@@ -1,0 +1,80 @@
+---
+description: UI styling, touch targets, accessibility, lists, images, and animation rules for React Native
+globs: **/*.{tsx,ts}
+alwaysApply: false
+---
+
+# UI Rules
+
+See full spec: `docs/ui-rules.md`
+
+## Primitives — React Native Only
+
+| Use | Instead of |
+|-----|------------|
+| `<View>` | `<div>` |
+| `<Text>` | `<span>` / `<p>` |
+| `<Pressable>` | `<button>` / `<a>` |
+| `<FlatList>` | `ScrollView + .map()` |
+
+## Styling
+
+```typescript
+// ✅ GOOD
+const styles = StyleSheet.create({
+  container: { padding: spacing.md, backgroundColor: colors.surface },
+});
+
+// ❌ BAD
+<View style={{ padding: 16, backgroundColor: '#fff' }} />
+```
+
+- Spacing: multiples of 4 only — use `spacing.*` constants
+- Colors: always `colors.*` tokens — never raw hex
+- Typography: always `typography.*` scale — min 16px body, min 12px any text
+
+## Touch Targets
+
+```typescript
+// Min 44×44pt — use hitSlop when visual is smaller
+<Pressable
+  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+  style={({ pressed }) => [styles.btn, pressed && styles.pressed]}
+  onPress={onPress}
+/>
+```
+
+## Lists
+
+```typescript
+// ✅ ALWAYS use FlatList for dynamic data
+const renderItem = useCallback(({ item }) => <ItemCard item={item} />, []);
+<FlatList data={items} keyExtractor={i => i.id} renderItem={renderItem} />
+```
+
+## Safe Areas
+
+```typescript
+import { SafeAreaView } from 'react-native-safe-area-context';
+// Always wrap root screens — never place fixed bars without safe area insets
+```
+
+## Accessibility
+
+- `accessibilityLabel` + `accessibilityRole` on all interactive elements
+- No emoji icons — vector icons only (`@expo/vector-icons` or `react-native-vector-icons`)
+- Minimum contrast: 4.5:1 (text), 3:1 (large text / icons)
+
+## Animation
+
+- Duration: 150–300ms; max 400ms for complex transitions
+- Only animate `opacity` and `transform` — never `width`/`height`
+- Respect reduced motion: `AccessibilityInfo.isReduceMotionEnabled()`
+
+## Empty / Loading / Error States
+
+```typescript
+if (isLoading) return <SkeletonList />;
+if (error)     return <ErrorState onRetry={refetch} />;
+if (!data?.length) return <EmptyState message="No data yet." />;
+```

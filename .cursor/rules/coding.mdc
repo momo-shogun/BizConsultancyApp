@@ -1,0 +1,111 @@
+---
+description: TypeScript, component patterns, hooks, state, error handling, performance, and testing standards
+globs: **/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Coding Rules
+
+See full spec: `docs/coding-rules.md`
+
+## TypeScript — Strict
+
+```typescript
+// ❌ BAD
+function process(data: any) { return data.value; }
+
+// ✅ GOOD
+function process(data: ClientData): number { return data.value; }
+```
+
+- No `any` — use `unknown` + type guards in catch blocks
+- Explicit return types on all functions
+- `interface` for object shapes, `type` for unions/intersections
+
+## Components
+
+```typescript
+// ✅ Functional component with typed props
+interface CardProps { title: string; onPress: () => void; }
+const Card: React.FC<CardProps> = ({ title, onPress }): JSX.Element => { ... };
+```
+
+- One component per file, under 150 lines
+- Conditional renders: ternary + `null` — NOT `&&`
+- Destructure props at the signature
+
+## Hooks
+
+```typescript
+// Business logic in hooks, not screens
+export const useClients = () => {
+  const [clients, setClients] = useState<Client[]>([]);
+  // ... fetch logic
+  return { clients, isLoading, error, refetch };
+};
+```
+
+- Always specify `useEffect` dependency arrays
+- Clean up subscriptions in `useEffect` return
+- Use `useCallback` for callbacks passed to children
+- Use `useMemo` for expensive derived values
+
+## State
+
+```typescript
+// ✅ Immutable updates
+setUser(prev => ({ ...prev, name: 'Jane' }));
+
+// ❌ Never mutate directly
+state.user.name = 'Jane';
+```
+
+## Error Handling
+
+```typescript
+// ✅ Typed errors, never empty catch
+try {
+  const data = await clientService.getAll();
+} catch (error: unknown) {
+  if (isApiError(error)) { logger.error(error.code); }
+  throw error;
+}
+```
+
+## Performance
+
+```typescript
+// Memoize FlatList renderItem
+const renderItem = useCallback(
+  ({ item }: { item: Client }) => <ClientCard client={item} />,
+  [],
+);
+
+// Memoize pure child components
+const ClientItem = React.memo(({ client }: Props) => <View />);
+```
+
+## Naming
+
+- Booleans: `is`, `has`, `can`, `should` prefix → `isLoading`, `hasError`
+- Event handlers: `handle` or `on` prefix → `handlePress`, `onSubmit`
+- Constants: `UPPER_SNAKE_CASE`
+- No magic numbers — extract to named constants
+
+## Imports Order
+
+1. React / React Native core
+2. Third-party libraries
+3. Absolute internal imports (`@features/`, `@constants/`)
+4. Relative imports (same folder)
+
+## Anti-Patterns
+
+- ❌ `any` type
+- ❌ Class components
+- ❌ Direct state mutation
+- ❌ `&&` conditional render with non-boolean left
+- ❌ `useEffect` without dependency array
+- ❌ Empty `catch` blocks
+- ❌ Magic numbers / hardcoded colors in components
+- ❌ Business logic in screens

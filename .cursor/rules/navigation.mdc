@@ -1,0 +1,120 @@
+---
+description: React Navigation v7 typed navigation, navigator setup, back behaviour, deep linking, and modal rules
+globs: src/navigation/**/*.{ts,tsx},src/features/**/*Screen.tsx,src/**/*Navigator.tsx
+alwaysApply: false
+---
+
+# Navigation Rules
+
+See full spec: `docs/navigation-rules.md`
+
+## Stack: React Navigation v7 (NOT Expo Router)
+
+```typescript
+// ✅ CORRECT imports
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+
+// ❌ BANNED — this project does not use Expo Router
+import { useRouter } from 'expo-router';
+```
+
+## Typed Navigation — Mandatory
+
+```typescript
+// src/navigation/types.ts — ALL param lists live here
+export type AppStackParamList = {
+  Dashboard: undefined;
+  ClientDetail: { clientId: string; clientName: string };
+  ConsultancyDetail: { consultancyId: string };
+};
+
+// In screens — always typed
+const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
+const route = useRoute<RouteProp<AppStackParamList, 'ClientDetail'>>();
+```
+
+## Navigator Setup
+
+```typescript
+const Stack = createNativeStackNavigator<AppStackParamList>();
+
+// Default screen options for consistency
+const defaultOptions: NativeStackNavigationOptions = {
+  headerBackTitleVisible: false,
+  headerTitleAlign: 'center',
+  headerShadowVisible: false,
+  animation: 'slide_from_right',
+};
+```
+
+## Navigation Calls
+
+```typescript
+// navigate — go to screen (won't duplicate if already in stack)
+navigation.navigate('ClientDetail', { clientId: '123', clientName: 'Acme' });
+
+// push — always add new instance
+navigation.push('ClientDetail', { clientId: '456', clientName: 'Beta' });
+
+// replace — swap current (after login)
+navigation.replace('Dashboard');
+
+// reset — full stack reset (logout)
+navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+```
+
+## Route Params — Serialisable Only
+
+```typescript
+// ✅ Pass primitives only
+navigation.navigate('ClientDetail', { clientId: '123', clientName: 'Acme' });
+
+// ❌ Never pass full objects — breaks deep links & serialisation
+navigation.navigate('ClientDetail', { client: clientObject });
+```
+
+## Back Behaviour
+
+- Back must be predictable — use `goBack()` for normal back flows
+- Never reset stack silently mid-flow
+- Preserve scroll position and filter state on back
+- Never disable `gestureEnabled` (iOS swipe-back)
+
+## Bottom Tabs
+
+- Maximum **5 tab items**
+- Every item: icon + text label (no icon-only)
+- Bottom nav = top-level screens only — no nested sub-navigation inside tabs
+- Apply safe area insets to `tabBarStyle`
+
+## Modals
+
+```typescript
+// Use 'modal' presentation for sheets
+<Stack.Screen
+  name="CreateClient"
+  component={CreateClientScreen}
+  options={{ presentation: 'modal' }}
+/>
+```
+
+- Always provide visible close/dismiss affordance
+- Never use modals for primary navigation flows
+- Confirm before dismissing with unsaved changes
+
+## Deep Linking
+
+- Every key screen must have a deep link path registered in `NavigationContainer`
+- Prefix: `bizconsultancy://`
+
+## Anti-Patterns
+
+- ❌ `import from 'expo-router'`
+- ❌ Untyped `useNavigation()` / `useRoute()`
+- ❌ Passing objects as route params
+- ❌ More than 5 bottom tab items
+- ❌ Icon-only tab items
+- ❌ Disabling swipe-back gesture
+- ❌ Silently resetting navigation stack mid-flow
+- ❌ Modals used for primary navigation screens

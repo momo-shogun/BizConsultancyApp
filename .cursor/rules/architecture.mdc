@@ -1,0 +1,51 @@
+---
+description: Feature-first architecture, naming conventions, layer separation, and TypeScript rules for BizConsultancyApp
+alwaysApply: true
+---
+
+# Architecture Rules
+
+See full spec: `docs/architecture-rules.md`
+
+## Directory Structure
+
+```
+src/
+├── features/<FeatureName>/   # components/, screens/, hooks/
+├── components/               # shared UI
+├── navigation/               # navigators + types.ts
+├── services/                 # API layer
+├── store/                    # Zustand global state
+├── hooks/                    # shared custom hooks
+├── utils/                    # pure helpers
+├── constants/                # colors, spacing, typography
+└── types/                    # shared TypeScript types
+```
+
+## Naming
+
+- Components/Screens → `PascalCase`
+- Hooks → `camelCase` starting with `use`
+- Constants → `UPPER_SNAKE_CASE`
+- Feature dirs → `PascalCase`, others → `kebab-case`
+
+## Layer Rules
+
+- Screens → never call fetch/axios directly
+- Services → no React hooks
+- Stores → serialisable state only
+- Components → no business logic
+
+## TypeScript
+
+- `strict: true` — no `any`, use `unknown` + type guards
+- Explicit return types on all functions
+- `interface` for object shapes; `type` for unions
+
+## Anti-Patterns
+
+- ❌ HTML elements (`div`, `span`) — use `View`, `Text`, `Pressable`
+- ❌ Inline styles — use `StyleSheet.create`
+- ❌ Relative imports beyond 2 levels — use `@` aliases
+- ❌ `&&` conditional render with non-boolean left side
+- ❌ Business logic in screen components
