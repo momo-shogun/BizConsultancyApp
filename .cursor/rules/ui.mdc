@@ -67,9 +67,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 ## Animation
 
+- **Use React Native’s built-in `Animated` API** (`import { Animated } from 'react-native'`) for all UI motion — timing, spring, stagger, `Animated.event`, etc.
+- Prefer **`useNativeDriver: true`** whenever the animated style uses only `opacity` and/or `transform` (composite props).
 - Duration: 150–300ms; max 400ms for complex transitions
-- Only animate `opacity` and `transform` — never `width`/`height`
-- Respect reduced motion: `AccessibilityInfo.isReduceMotionEnabled()`
+- Only animate `opacity` and `transform` — never `width`/`height` on the UI thread without a strong reason
+- Respect reduced motion: `AccessibilityInfo.isReduceMotionEnabled()` — skip or shorten motion and apply end state immediately
+- Do not introduce other animation libraries for standard transitions unless the team explicitly adopts them project-wide
 
 ## Empty / Loading / Error States
 
