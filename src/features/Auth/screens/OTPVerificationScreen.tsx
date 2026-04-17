@@ -1,20 +1,14 @@
-import React, { useMemo, useState } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import React from 'react';
+import { StyleSheet, View } from 'react-native';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-import { THEME } from '@/constants/theme';
+import { useAuth } from '@/app/providers/AuthProvider';
 import { ROUTES } from '@/navigation/routeNames';
 import type { AuthStackParamList } from '@/navigation/types';
-import {
-  Button,
-  KeyboardWrapper,
-  OTPInput,
-  SafeAreaWrapper,
-  ScreenHeader,
-  ScreenWrapper,
-  ScrollWrapper,
-} from '@/shared/components';
+import { Button, EmptyState, SafeAreaWrapper, ScreenWrapper } from '@/shared/components';
+import { OTPVerificationScreenContent as UserOtpContent } from '@/features/Auth/User/screens/OTPVerificationScreenContent';
+import { OTPVerificationScreenContent as ConsultantOtpContent } from '@/features/Auth/Consultant/screens/OTPVerificationScreenContent';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, typeof ROUTES.Auth.OtpVerification>;
 type Rt = RouteProp<AuthStackParamList, typeof ROUTES.Auth.OtpVerification>;
@@ -22,70 +16,52 @@ type Rt = RouteProp<AuthStackParamList, typeof ROUTES.Auth.OtpVerification>;
 export function OTPVerificationScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Rt>();
+  const { state } = useAuth();
+
   const contact = route.params.contact;
 
-  const [otp, setOtp] = useState<string>('');
+  const onVerified = (): void => {
+    navigation.navigate(ROUTES.Auth.ProfileSetup);
+  };
 
-  const masked = useMemo(() => {
-    const c = contact.trim();
-    if (c.includes('@')) return c.replace(/(^.).*(@.*$)/, '$1***$2');
-    if (c.length >= 4) return `${c.slice(0, 2)}***${c.slice(-2)}`;
-    return c;
-  }, [contact]);
-
-  const canVerify = otp.length === 6;
-
-  return (
-    <SafeAreaWrapper edges={['top', 'bottom']}>
-      <ScreenHeader title="Verify OTP" onBackPress={() => navigation.goBack()} />
-      <KeyboardWrapper>
-        <ScreenWrapper>
-          <ScrollWrapper contentContainerStyle={styles.content}>
-            <Text style={styles.help}>Enter the 6-digit code sent to {masked}.</Text>
-
-            <OTPInput value={otp} onChange={setOtp} accessibilityLabel="OTP input" />
-
-            <TextInput
-              accessibilityLabel="Hidden OTP input"
-              value={otp}
-              onChangeText={(t) => setOtp(t.replace(/\D/g, '').slice(0, 6))}
-              keyboardType="number-pad"
-              textContentType="oneTimeCode"
-              style={styles.hiddenInput}
-              autoFocus
-            />
-
-            <View style={styles.spacer} />
-
+  if (!state.userType) {
+    const next = state.authIntent ?? 'login';
+    return (
+      <SafeAreaWrapper edges={['top', 'bottom']}>
+        <ScreenWrapper style={styles.wrapper}>
+          <EmptyState title="Choose account type" description="Please select User or Consultant to continue." />
+          <View style={styles.actionRow}>
             <Button
-              label="Verify"
-              accessibilityLabel="Verify OTP"
-              disabled={!canVerify}
-              onPress={() => navigation.navigate(ROUTES.Auth.ProfileSetup)}
+              label="Choose account type"
+              accessibilityLabel="Choose account type"
+              onPress={() => navigation.navigate(ROUTES.Auth.ChooseAccountType, { next })}
             />
-          </ScrollWrapper>
+          </View>
         </ScreenWrapper>
-      </KeyboardWrapper>
-    </SafeAreaWrapper>
+      </SafeAreaWrapper>
+    );
+  }
+
+  return state.userType === 'user' ? (
+    <UserOtpContent
+      contact={contact}
+      onVerified={onVerified}
+      onBackPress={() => navigation.goBack()}
+    />
+  ) : (
+    <ConsultantOtpContent
+      contact={contact}
+      onVerified={onVerified}
+      onBackPress={() => navigation.goBack()}
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  content: {
-    padding: THEME.spacing[16],
-    gap: THEME.spacing[16],
+  wrapper: {
+    padding: 24,
   },
-  help: {
-    fontSize: THEME.typography.size[14],
-    color: THEME.colors.textSecondary,
-  },
-  spacer: {
-    height: THEME.spacing[8],
-  },
-  hiddenInput: {
-    height: 0,
-    width: 0,
-    opacity: 0,
+  actionRow: {
+    marginTop: 16,
   },
 });
-

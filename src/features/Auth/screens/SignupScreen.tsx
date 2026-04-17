@@ -1,83 +1,54 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React from 'react';
+import { StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-import { THEME } from '@/constants/theme';
+import { useAuth } from '@/app/providers/AuthProvider';
 import { ROUTES } from '@/navigation/routeNames';
 import type { AuthStackParamList } from '@/navigation/types';
-import {
-  Button,
-  Input,
-  KeyboardWrapper,
-  SafeAreaWrapper,
-  ScreenHeader,
-  ScreenWrapper,
-  ScrollWrapper,
-} from '@/shared/components';
+import { Button, EmptyState, SafeAreaWrapper, ScreenWrapper } from '@/shared/components';
+import { SignupScreenContent as UserSignupScreenContent } from '@/features/Auth/User/screens/SignupScreenContent';
+import { SignupScreenContent as ConsultantSignupScreenContent } from '@/features/Auth/Consultant/screens/SignupScreenContent';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, typeof ROUTES.Auth.Signup>;
 
 export function SignupScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
-  const [name, setName] = useState<string>('');
-  const [contact, setContact] = useState<string>('');
+  const { state } = useAuth();
 
-  const canContinue = name.trim().length > 0 && contact.trim().length > 0;
+  const onSendOtp = (contact: string): void => {
+    navigation.navigate(ROUTES.Auth.OtpVerification, { contact });
+  };
 
-  return (
-    <SafeAreaWrapper edges={['top', 'bottom']}>
-      <ScreenHeader title="Create account" onBackPress={() => navigation.goBack()} />
-      <KeyboardWrapper>
-        <ScreenWrapper>
-          <ScrollWrapper contentContainerStyle={styles.content}>
-            <Text style={styles.help}>Create your account in a few steps.</Text>
-
-            <Input
-              label="Full name"
-              value={name}
-              onChangeText={setName}
-              placeholder="Your name"
-              textContentType="name"
-              autoCapitalize="words"
-              accessibilityLabel="Full name input"
-            />
-            <Input
-              label="Email or phone"
-              value={contact}
-              onChangeText={setContact}
-              placeholder="you@example.com"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              accessibilityLabel="Email or phone input"
-            />
-
-            <View style={styles.spacer} />
-
+  if (!state.userType) {
+    return (
+      <SafeAreaWrapper edges={['top', 'bottom']}>
+        <ScreenWrapper style={styles.wrapper}>
+          <EmptyState title="Choose account type" description="Please select User or Consultant to continue." />
+          <View style={styles.actionRow}>
             <Button
-              label="Send OTP"
-              accessibilityLabel="Send OTP"
-              disabled={!canContinue}
-              onPress={() => navigation.navigate(ROUTES.Auth.OtpVerification, { contact: contact.trim() })}
+              label="Choose account type"
+              accessibilityLabel="Choose account type"
+              onPress={() => navigation.navigate(ROUTES.Auth.ChooseAccountType, { next: 'signup' })}
             />
-          </ScrollWrapper>
+          </View>
         </ScreenWrapper>
-      </KeyboardWrapper>
-    </SafeAreaWrapper>
+      </SafeAreaWrapper>
+    );
+  }
+
+  return state.userType === 'user' ? (
+    <UserSignupScreenContent onSendOtp={onSendOtp} onBackPress={() => navigation.goBack()} />
+  ) : (
+    <ConsultantSignupScreenContent onSendOtp={onSendOtp} onBackPress={() => navigation.goBack()} />
   );
 }
 
 const styles = StyleSheet.create({
-  content: {
-    padding: THEME.spacing[16],
-    gap: THEME.spacing[16],
+  wrapper: {
+    padding: 24,
   },
-  help: {
-    fontSize: THEME.typography.size[14],
-    color: THEME.colors.textSecondary,
-  },
-  spacer: {
-    height: THEME.spacing[8],
+  actionRow: {
+    marginTop: 16,
   },
 });
-

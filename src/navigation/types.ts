@@ -5,6 +5,7 @@ import { ROUTES } from './routeNames';
 export type AuthStackParamList = {
   [ROUTES.Auth.Splash]: undefined;
   [ROUTES.Auth.Landing]: undefined;
+  [ROUTES.Auth.ChooseAccountType]: { next?: 'login' | 'signup' };
   [ROUTES.Auth.Login]: undefined;
   [ROUTES.Auth.Signup]: undefined;
   [ROUTES.Auth.OtpVerification]: { contact: string };

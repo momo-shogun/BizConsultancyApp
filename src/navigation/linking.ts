@@ -11,6 +11,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
         screens: {
           [ROUTES.Auth.Splash]: 'splash',
           [ROUTES.Auth.Landing]: 'landing',
+          [ROUTES.Auth.ChooseAccountType]: 'choose-account-type/:next?',
           [ROUTES.Auth.Login]: 'login',
           [ROUTES.Auth.Signup]: 'signup',
           [ROUTES.Auth.OtpVerification]: 'otp',

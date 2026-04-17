@@ -6,6 +6,7 @@ export const ROUTES = {
   Auth: {
     Splash: 'Auth/Splash',
     Landing: 'Auth/Landing',
+    ChooseAccountType: 'Auth/ChooseAccountType',
     Login: 'Auth/Login',
     Signup: 'Auth/Signup',
     OtpVerification: 'Auth/OtpVerification',

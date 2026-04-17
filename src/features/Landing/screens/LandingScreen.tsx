@@ -27,13 +27,13 @@ export function LandingScreen(): React.ReactElement {
           <Button
             label="Log in"
             accessibilityLabel="Log in"
-            onPress={() => navigation.navigate(ROUTES.Auth.Login)}
+            onPress={() => navigation.navigate(ROUTES.Auth.ChooseAccountType, { next: 'login' })}
           />
           <Button
             label="Create account"
             accessibilityLabel="Create account"
             variant="secondary"
-            onPress={() => navigation.navigate(ROUTES.Auth.Signup)}
+            onPress={() => navigation.navigate(ROUTES.Auth.ChooseAccountType, { next: 'signup' })}
           />
         </View>
       </ScreenWrapper>

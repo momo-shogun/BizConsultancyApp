@@ -4,15 +4,20 @@ import ReactTestRenderer from 'react-test-renderer';
 
 import { AuthProvider, useAuth } from './AuthProvider';
 
-function TestConsumer(props: { action?: 'complete' | 'logout' }): React.ReactElement {
-  const { state, completeOnboarding, logout } = useAuth();
+function TestConsumer(props: { action?: 'complete' | 'logout' | 'context' }): React.ReactElement {
+  const { state, completeOnboarding, logout, selectAccountContext } = useAuth();
 
   useEffect(() => {
     if (props.action === 'complete') completeOnboarding();
     if (props.action === 'logout') logout();
-  }, [props.action, completeOnboarding, logout]);
+    if (props.action === 'context') selectAccountContext({ userType: 'consultant', authIntent: 'signup' });
+  }, [props.action, completeOnboarding, logout, selectAccountContext]);
 
-  return <Text>{state.isAuthenticated ? 'AUTH' : 'NOAUTH'}</Text>;
+  return (
+    <Text>
+      {state.isAuthenticated ? 'AUTH' : 'NOAUTH'}|{state.userType ?? 'NONE'}|{state.authIntent ?? 'NONE'}
+    </Text>
+  );
 }
 
 test('AuthProvider defaults to not authenticated', async () => {
@@ -26,7 +31,7 @@ test('AuthProvider defaults to not authenticated', async () => {
   });
 
   const textNodes = tree!.root.findAllByType(Text);
-  expect(textNodes[0]?.props.children).toBe('NOAUTH');
+  expect(textNodes[0]?.props.children).toBe('NOAUTH|NONE|NONE');
 });
 
 test('AuthProvider can complete onboarding', async () => {
@@ -40,6 +45,20 @@ test('AuthProvider can complete onboarding', async () => {
   });
 
   const textNodes = tree!.root.findAllByType(Text);
-  expect(textNodes[0]?.props.children).toBe('AUTH');
+  expect(textNodes[0]?.props.children).toBe('AUTH|NONE|NONE');
+});
+
+test('AuthProvider can set account context', async () => {
+  let tree: ReactTestRenderer.ReactTestRenderer | null = null;
+  await ReactTestRenderer.act(() => {
+    tree = ReactTestRenderer.create(
+      <AuthProvider>
+        <TestConsumer action="context" />
+      </AuthProvider>,
+    );
+  });
+
+  const textNodes = tree!.root.findAllByType(Text);
+  expect(textNodes[0]?.props.children).toBe('NOAUTH|consultant|signup');
 });
 

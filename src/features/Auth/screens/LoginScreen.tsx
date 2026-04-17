@@ -1,75 +1,55 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React from 'react';
+import { StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-import { THEME } from '@/constants/theme';
 import { ROUTES } from '@/navigation/routeNames';
 import type { AuthStackParamList } from '@/navigation/types';
-import { Button, Input, KeyboardWrapper, SafeAreaWrapper, ScreenHeader, ScrollWrapper, ScreenWrapper } from '@/shared/components';
+import { useAuth } from '@/app/providers/AuthProvider';
+import { Button, EmptyState, ScreenWrapper, SafeAreaWrapper } from '@/shared/components';
+import { LoginScreenContent as UserLoginScreenContent } from '@/features/Auth/User/screens/LoginScreenContent';
+import { LoginScreenContent as ConsultantLoginScreenContent } from '@/features/Auth/Consultant/screens/LoginScreenContent';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, typeof ROUTES.Auth.Login>;
 
 export function LoginScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
-  const [contact, setContact] = useState<string>('');
-  const [password, setPassword] = useState<string>('');
+  const { state } = useAuth();
 
-  const canContinue = contact.trim().length > 0 && password.trim().length > 0;
+  const onContinue = (contact: string): void => {
+    navigation.navigate(ROUTES.Auth.OtpVerification, { contact });
+  };
 
-  return (
-    <SafeAreaWrapper edges={['top', 'bottom']}>
-      <ScreenHeader title="Log in" onBackPress={() => navigation.goBack()} />
-      <KeyboardWrapper>
-        <ScreenWrapper>
-          <ScrollWrapper contentContainerStyle={styles.content}>
-            <Text style={styles.help}>Use your email or phone number to continue.</Text>
-
-            <Input
-              label="Email or phone"
-              value={contact}
-              onChangeText={setContact}
-              placeholder="you@example.com"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              accessibilityLabel="Email or phone input"
-            />
-            <Input
-              label="Password"
-              value={password}
-              onChangeText={setPassword}
-              placeholder="••••••••"
-              secureTextEntry
-              textContentType="password"
-              accessibilityLabel="Password input"
-            />
-
-            <View style={styles.spacer} />
-
+  if (!state.userType) {
+    return (
+      <SafeAreaWrapper edges={['top', 'bottom']}>
+        <ScreenWrapper style={styles.wrapper}>
+          <EmptyState title="Choose account type" description="Please select User or Consultant to continue." />
+          <View style={styles.actionRow}>
             <Button
-              label="Continue"
-              accessibilityLabel="Continue to OTP verification"
-              disabled={!canContinue}
-              onPress={() => navigation.navigate(ROUTES.Auth.OtpVerification, { contact: contact.trim() })}
+              label="Choose account type"
+              accessibilityLabel="Choose account type"
+              onPress={() => navigation.navigate(ROUTES.Auth.ChooseAccountType, { next: 'login' })}
             />
-          </ScrollWrapper>
+          </View>
         </ScreenWrapper>
-      </KeyboardWrapper>
-    </SafeAreaWrapper>
+      </SafeAreaWrapper>
+    );
+  }
+
+  return state.userType === 'user' ? (
+    <UserLoginScreenContent onContinue={onContinue} onBackPress={() => navigation.goBack()} />
+  ) : (
+    <ConsultantLoginScreenContent onContinue={onContinue} onBackPress={() => navigation.goBack()} />
   );
 }
 
 const styles = StyleSheet.create({
-  content: {
-    padding: THEME.spacing[16],
-    gap: THEME.spacing[16],
+  wrapper: {
+    padding: 24,
   },
-  help: {
-    fontSize: THEME.typography.size[14],
-    color: THEME.colors.textSecondary,
-  },
-  spacer: {
-    height: THEME.spacing[8],
+  actionRow: {
+    marginTop: 16,
   },
 });
 

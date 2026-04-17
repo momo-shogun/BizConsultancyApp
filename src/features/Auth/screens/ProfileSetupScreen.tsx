@@ -1,85 +1,51 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React from 'react';
+import { StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { useAuth } from '@/app/providers/AuthProvider';
-import { THEME } from '@/constants/theme';
 import { ROUTES } from '@/navigation/routeNames';
 import type { AuthStackParamList } from '@/navigation/types';
-import {
-  Button,
-  Input,
-  KeyboardWrapper,
-  SafeAreaWrapper,
-  ScreenHeader,
-  ScreenWrapper,
-  ScrollWrapper,
-} from '@/shared/components';
+import { Button, EmptyState, SafeAreaWrapper, ScreenWrapper } from '@/shared/components';
+import { ProfileSetupScreenContent as UserProfileSetupContent } from '@/features/Auth/User/screens/ProfileSetupScreenContent';
+import { ProfileSetupScreenContent as ConsultantProfileSetupContent } from '@/features/Auth/Consultant/screens/ProfileSetupScreenContent';
 
 type Nav = NativeStackNavigationProp<AuthStackParamList, typeof ROUTES.Auth.ProfileSetup>;
 
 export function ProfileSetupScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
-  const { completeOnboarding } = useAuth();
+  const { state, completeOnboarding } = useAuth();
 
-  const [fullName, setFullName] = useState<string>('');
-  const [company, setCompany] = useState<string>('');
-
-  const canFinish = fullName.trim().length > 0;
-
-  return (
-    <SafeAreaWrapper edges={['top', 'bottom']}>
-      <ScreenHeader title="Profile setup" onBackPress={() => navigation.goBack()} />
-      <KeyboardWrapper>
-        <ScreenWrapper>
-          <ScrollWrapper contentContainerStyle={styles.content}>
-            <Text style={styles.help}>Tell us a bit about you.</Text>
-
-            <Input
-              label="Full name"
-              value={fullName}
-              onChangeText={setFullName}
-              placeholder="Your name"
-              textContentType="name"
-              autoCapitalize="words"
-              accessibilityLabel="Full name input"
-            />
-            <Input
-              label="Company (optional)"
-              value={company}
-              onChangeText={setCompany}
-              placeholder="Company"
-              autoCapitalize="words"
-              accessibilityLabel="Company input"
-            />
-
-            <View style={styles.spacer} />
-
+  if (!state.userType) {
+    const next = state.authIntent ?? 'login';
+    return (
+      <SafeAreaWrapper edges={['top', 'bottom']}>
+        <ScreenWrapper style={styles.wrapper}>
+          <EmptyState title="Choose account type" description="Please select User or Consultant to continue." />
+          <View style={styles.actionRow}>
             <Button
-              label="Finish"
-              accessibilityLabel="Finish profile setup"
-              disabled={!canFinish}
-              onPress={completeOnboarding}
+              label="Choose account type"
+              accessibilityLabel="Choose account type"
+              onPress={() => navigation.navigate(ROUTES.Auth.ChooseAccountType, { next })}
             />
-          </ScrollWrapper>
+          </View>
         </ScreenWrapper>
-      </KeyboardWrapper>
-    </SafeAreaWrapper>
+      </SafeAreaWrapper>
+    );
+  }
+
+  return state.userType === 'user' ? (
+    <UserProfileSetupContent onFinish={completeOnboarding} onBackPress={() => navigation.goBack()} />
+  ) : (
+    <ConsultantProfileSetupContent onFinish={completeOnboarding} onBackPress={() => navigation.goBack()} />
   );
 }
 
 const styles = StyleSheet.create({
-  content: {
-    padding: THEME.spacing[16],
-    gap: THEME.spacing[16],
+  wrapper: {
+    padding: 24,
   },
-  help: {
-    fontSize: THEME.typography.size[14],
-    color: THEME.colors.textSecondary,
-  },
-  spacer: {
-    height: THEME.spacing[8],
+  actionRow: {
+    marginTop: 16,
   },
 });
-
