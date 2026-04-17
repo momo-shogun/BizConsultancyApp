@@ -3,7 +3,7 @@ import React from 'react';
 import {
   OTPVerificationScreenContent as OTPVerificationScreenContentBase,
   type OTPVerificationScreenContentProps,
-} from '@/features/Auth/components/OTPVerificationScreenContent/OTPVerificationScreenContent';
+} from '@/features/Auth/components/OTPVerificationScreenContent';
 
 type Props = Omit<OTPVerificationScreenContentProps, 'roleLabel'>;
 

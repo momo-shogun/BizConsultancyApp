@@ -3,7 +3,7 @@ import React from 'react';
 import {
   ProfileSetupScreenContent as ProfileSetupScreenContentBase,
   type ProfileSetupScreenContentProps,
-} from '@/features/Auth/components/ProfileSetupScreenContent/ProfileSetupScreenContent';
+} from '@/features/Auth/components/ProfileSetupScreenContent';
 
 type Props = Omit<ProfileSetupScreenContentProps, 'roleLabel' | 'companyLabel' | 'companyPlaceholder'>;
 

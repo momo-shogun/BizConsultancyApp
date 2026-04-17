@@ -3,7 +3,7 @@ import React from 'react';
 import {
   LoginScreenContent as LoginScreenContentBase,
   type LoginScreenContentProps,
-} from '@/features/Auth/components/LoginScreenContent/LoginScreenContent';
+} from '@/features/Auth/components/LoginScreenContent';
 
 type Props = Omit<LoginScreenContentProps, 'roleLabel'>;
 
