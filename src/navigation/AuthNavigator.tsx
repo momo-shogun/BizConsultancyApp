@@ -5,7 +5,7 @@ import type { AuthStackParamList } from './types';
 import { ROUTES } from './routeNames';
 
 import { SplashScreen } from '@/features/Splash/screens/SplashScreen';
-import { LandingScreen } from '@/features/Landing/screens/LandingScreen';
+import { LandingScreen } from '@/features/Auth/screens/LandingScreen';
 import { ChooseAccountTypeScreen } from '@/features/Auth/screens/ChooseAccountTypeScreen';
 import { LoginScreen } from '@/features/Auth/screens/LoginScreen';
 import { SignupScreen } from '@/features/Auth/screens/SignupScreen';
