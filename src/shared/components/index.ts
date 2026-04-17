@@ -1,4 +1,5 @@
 export { Button } from './ui/Button/Button';
+export { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/Card/Card';
 export { Input } from './ui/Input/Input';
 export { ScreenHeader } from './ui/ScreenHeader/ScreenHeader';
 
@@ -13,4 +14,5 @@ export { EmptyState } from './feedback/EmptyState';
 export { OTPInput } from './otp/OTPInput';
 export { SectionHeader } from './sections/SectionHeader';
 export { DashboardCard } from './cards/DashboardCard';
+export { AccountTypeCard } from './cards/AccountTypeCard/AccountTypeCard';
 

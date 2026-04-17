@@ -1,14 +1,11 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import {
-  Animated,
   Dimensions,
-  Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import Icon from 'react-native-vector-icons/Ionicons';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
@@ -16,7 +13,11 @@ import { THEME } from '@/constants/theme';
 import { ROUTES } from '@/navigation/routeNames';
 import type { AuthStackParamList } from '@/navigation/types';
 import { useAuth } from '@/app/providers/AuthProvider';
-import { SafeAreaWrapper, ScrollWrapper } from '@/shared/components';
+import {
+  AccountTypeCard,
+  SafeAreaWrapper,
+  ScrollWrapper,
+} from '@/shared/components';
 
 type Nav = NativeStackNavigationProp<
   AuthStackParamList,
@@ -29,90 +30,6 @@ type Rt = RouteProp<
 >;
 
 const { width } = Dimensions.get('window');
-
-type AccountCardProps = {
-  title: string;
-  description: string;
-  icon: string;
-  gradient: string[];
-  onPress: () => void;
-};
-
-function AccountCard({
-  title,
-  description,
-  icon,
-  gradient,
-  onPress,
-}: AccountCardProps): React.ReactElement {
-  const scale = useRef(new Animated.Value(1)).current;
-  const translateY = useRef(new Animated.Value(0)).current;
-
-  const animateIn = (): void => {
-    Animated.parallel([
-      Animated.spring(scale, {
-        toValue: 0.97,
-        useNativeDriver: true,
-        speed: 20,
-        bounciness: 4,
-      }),
-      Animated.spring(translateY, {
-        toValue: 4,
-        useNativeDriver: true,
-        speed: 20,
-        bounciness: 4,
-      }),
-    ]).start();
-  };
-
-  const animateOut = (): void => {
-    Animated.parallel([
-      Animated.spring(scale, {
-        toValue: 1,
-        useNativeDriver: true,
-        speed: 20,
-        bounciness: 6,
-      }),
-      Animated.spring(translateY, {
-        toValue: 0,
-        useNativeDriver: true,
-        speed: 20,
-        bounciness: 6,
-      }),
-    ]).start();
-  };
-
-  return (
-    <Pressable
-      onPressIn={animateIn}
-      onPressOut={animateOut}
-      onPress={onPress}
-      style={styles.pressable}
-    >
-      <Animated.View
-        style={[
-          styles.card,
-          {
-            transform: [{ scale }, { translateY }],
-          },
-        ]}
-      >
-        <LinearGradient colors={gradient} style={styles.iconContainer}>
-          <Icon name={icon} size={28} color={THEME.colors.chooseAccountIconOnGradient} />
-        </LinearGradient>
-
-        <View style={styles.cardContent}>
-          <Text style={styles.cardTitle}>{title}</Text>
-          <Text style={styles.cardDescription}>{description}</Text>
-        </View>
-
-        <View style={styles.arrowContainer}>
-          <Icon name="arrow-forward" size={18} color={THEME.colors.chooseAccountArrow} />
-        </View>
-      </Animated.View>
-    </Pressable>
-  );
-}
 
 export function ChooseAccountTypeScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
@@ -161,25 +78,25 @@ export function ChooseAccountTypeScreen(): React.ReactElement {
           </View>
 
           <View style={styles.cardsContainer}>
-            <AccountCard
+            <AccountTypeCard
               title="User"
-              description="Book experts, explore services, and get personalized guidance."
-              icon="person-outline"
-              gradient={[
+              iconName="person-outline"
+              gradientColors={[
                 THEME.colors.chooseAccountUserGrad1,
                 THEME.colors.chooseAccountUserGrad2,
               ]}
+              accessibilityLabel="Continue as user"
               onPress={() => choose('user')}
             />
 
-            <AccountCard
+            <AccountTypeCard
               title="Consultant"
-              description="Grow your business, connect with clients, and offer expertise."
-              icon="briefcase-outline"
-              gradient={[
+              iconName="briefcase-outline"
+              gradientColors={[
                 THEME.colors.chooseAccountConsultantGrad1,
                 THEME.colors.chooseAccountConsultantGrad2,
               ]}
+              accessibilityLabel="Continue as consultant"
               onPress={() => choose('consultant')}
             />
           </View>
@@ -250,56 +167,5 @@ const styles = StyleSheet.create({
   },
   cardsContainer: {
     gap: 18,
-  },
-  pressable: {
-    borderRadius: 30,
-  },
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: THEME.colors.chooseAccountCardBg,
-    borderRadius: 30,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: THEME.colors.chooseAccountCardBorder2,
-    shadowColor: THEME.colors.chooseAccountTitle,
-    shadowOffset: {
-      width: 0,
-      height: 12,
-    },
-    shadowOpacity: 0.08,
-    shadowRadius: 24,
-    elevation: 8,
-  },
-  iconContainer: {
-    width: 68,
-    height: 68,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cardContent: {
-    flex: 1,
-    marginLeft: 16,
-    marginRight: 12,
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: THEME.colors.chooseAccountTitle,
-    marginBottom: 6,
-  },
-  cardDescription: {
-    fontSize: 13,
-    lineHeight: 20,
-    color: THEME.colors.chooseAccountSubtitle,
-  },
-  arrowContainer: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: THEME.colors.chooseAccountArrowBg,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 });
