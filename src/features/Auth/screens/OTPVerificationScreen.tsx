@@ -16,11 +16,16 @@ type Rt = RouteProp<AuthStackParamList, typeof ROUTES.Auth.OtpVerification>;
 export function OTPVerificationScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Rt>();
-  const { state } = useAuth();
+  const { state, completeOnboarding } = useAuth();
 
   const contact = route.params.contact;
 
   const onVerified = (): void => {
+    if (state.userType === 'user') {
+      completeOnboarding();
+      return;
+    }
+
     navigation.navigate(ROUTES.Auth.ProfileSetup);
   };
 

@@ -1,181 +1,282 @@
-import React, { useState } from 'react';
-import { Dimensions, StyleSheet, Text, View } from 'react-native';
+
+import React, { useMemo, useState } from 'react';
+import {
+  ImageBackground,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { THEME } from '@/constants/theme';
 import {
   Button,
-  Card,
-  CardContent,
-  Input,
   KeyboardWrapper,
   SafeAreaWrapper,
-  ScreenHeader,
+  ScreenWrapper,
   ScrollWrapper,
 } from '@/shared/components';
+import { Input } from '@/shared/components/ui/Input/Input';
 
-const { width } = Dimensions.get('window');
+import heroIllustration from '../../../assets/tuxpi.com.1776427891.jpg';
 
 export interface LoginScreenContentProps {
   roleLabel: string;
-  onContinue: (contact: string) => void;
+  onContinue: (phoneNumber: string) => void;
   onBackPress?: () => void;
 }
 
-export function LoginScreenContent(props: LoginScreenContentProps): React.ReactElement {
-  const [contact, setContact] = useState<string>('');
-  const [password, setPassword] = useState<string>('');
+export function LoginScreenContent(
+  props: LoginScreenContentProps,
+): React.ReactElement {
+  const [phoneNumber, setPhoneNumber] = useState<string>('');
 
-  const canContinue = contact.trim().length > 0 && password.trim().length > 0;
+  const cleanedPhone = useMemo(
+    () => phoneNumber.replace(/[^0-9]/g, '').slice(0, 10),
+    [phoneNumber],
+  );
+
+  const canContinue = cleanedPhone.length === 10;
 
   return (
     <SafeAreaWrapper edges={['top', 'bottom']}>
-      <LinearGradient
-        colors={[THEME.colors.chooseAccountBg1, THEME.colors.chooseAccountBg2, THEME.colors.chooseAccountBg3]}
-        style={styles.container}
-      >
-        <View style={styles.topGlow} />
-        <View style={styles.bottomGlow} />
+      <KeyboardWrapper>
+        <ScreenWrapper>
+          <ScrollWrapper
+            contentContainerStyle={styles.content}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={styles.heroSection}>
+              <ImageBackground
+                source={heroIllustration}
+                style={styles.heroImage}
+                imageStyle={styles.heroImageRadius}
+                resizeMode="cover"
+              >
+                {props.onBackPress ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Go back"
+                    onPress={props.onBackPress}
+                    style={styles.backButton}
+                    hitSlop={10}
+                  >
+                    <Ionicons name="arrow-back" size={18} color={THEME.colors.textPrimary} />
+                  </Pressable>
+                ) : null}
 
-        <ScreenHeader title="Log in" onBackPress={props.onBackPress} />
+                <LinearGradient
+                  colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.9)', '#FFFFFF']}
+                  locations={[0, 0.55, 1]}
+                  style={styles.heroFade}
+                />
+              </ImageBackground>
+            </View>
 
-        <KeyboardWrapper>
-          <ScrollWrapper contentContainerStyle={styles.content}>
-            <View style={styles.header}>
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>Secure login</Text>
-              </View>
-
-              <Text style={styles.title}>Welcome back</Text>
+            <View style={styles.headerCopy}>
+              <Text style={styles.title}>Start Your Business
+              </Text>
 
               <Text style={styles.subtitle}>
-                Sign in with your email or phone to continue as <Text style={styles.subtitleStrong}>{props.roleLabel}</Text>.
+                Log in to continue as {props.roleLabel}.
               </Text>
             </View>
 
-            <Card style={styles.card}>
-              <CardContent style={styles.cardContent}>
-                <Input
-                  label="Email or phone"
-                  value={contact}
-                  onChangeText={setContact}
-                  placeholder="you@example.com"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  accessibilityLabel="Email or phone input"
-                />
-                <Input
-                  label="Password"
-                  value={password}
-                  onChangeText={setPassword}
-                  placeholder="••••••••"
-                  secureTextEntry
-                  textContentType="password"
-                  accessibilityLabel="Password input"
-                />
+            <View style={styles.card}>
+              {/* <Text style={styles.inputLabel}>Mobile Number</Text> */}
 
-                <View style={styles.actions}>
-                  <Button
-                    label="Continue"
-                    accessibilityLabel="Continue"
-                    disabled={!canContinue}
-                    onPress={() => props.onContinue(contact.trim())}
-                  />
-                </View>
-              </CardContent>
-            </Card>
 
-            <Text style={styles.footerHint}>
-              Tip: Use a strong password and never share your OTP.
-            </Text>
+              <Input
+                label="Mobile Number"
+                value={cleanedPhone}
+                onChangeText={setPhoneNumber}
+                placeholder="Enter 10-digit mobile number"
+                keyboardType="number-pad"
+                accessibilityLabel="Phone number input"
+                containerStyle={styles.inputContainer}
+                inputStyle={styles.input}
+                maxLength={10}
+                rightAdornment={
+                  cleanedPhone.length > 0 ? (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Clear phone number"
+                      onPress={() => setPhoneNumber('')}
+                      hitSlop={10}
+                      style={styles.clearButton}
+                    >
+                      <Ionicons
+                        name="close-circle"
+                        size={18}
+                        color={THEME.colors.textSecondary}
+                      />
+                    </Pressable>
+                  ) : null
+                }
+              />
+
+
+              <View style={styles.infoRow}>
+                <Ionicons
+                  name="shield-checkmark-outline"
+                  size={16}
+                  color={THEME.colors.success || '#16A34A'}
+                />
+                <Text style={styles.infoText}>
+                  OTP will be sent for secure verification
+                </Text>
+              </View>
+
+              <Button
+                label="Continue"
+                accessibilityLabel="Continue to OTP verification"
+                disabled={!canContinue}
+                onPress={() => props.onContinue(cleanedPhone)}
+                style={styles.button}
+              />
+            </View>
           </ScrollWrapper>
-        </KeyboardWrapper>
-      </LinearGradient>
+        </ScreenWrapper>
+      </KeyboardWrapper>
     </SafeAreaWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   content: {
     flexGrow: 1,
-    paddingHorizontal: THEME.spacing[24],
-    paddingTop: THEME.spacing[16],
     paddingBottom: THEME.spacing[24],
-    gap: THEME.spacing[16],
+    backgroundColor: THEME.colors.background,
   },
-  topGlow: {
-    position: 'absolute',
-    top: -90,
-    right: -50,
-    width: 240,
+
+  heroSection: {
+    paddingTop: THEME.spacing[20],
+    paddingHorizontal: THEME.spacing[16],
+  },
+
+  heroImage: {
     height: 240,
-    borderRadius: 240,
-    backgroundColor: THEME.colors.chooseAccountGlowUser,
+    width: '100%',
+    overflow: 'hidden',
+    borderRadius: 24,
+    backgroundColor: THEME.colors.surface,
   },
-  bottomGlow: {
+
+  heroImageRadius: {
+    borderRadius: 24,
+  },
+
+  heroFade: {
     position: 'absolute',
-    bottom: -120,
-    left: -80,
-    width: 280,
-    height: 280,
-    borderRadius: 280,
-    backgroundColor: THEME.colors.chooseAccountGlowConsultant,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 140,
   },
-  header: {
-    paddingTop: THEME.spacing[8],
-    marginBottom: THEME.spacing[8],
-  },
-  badge: {
-    alignSelf: 'flex-start',
-    backgroundColor: THEME.colors.chooseAccountBadgeBg,
+
+  backButton: {
+    position: 'absolute',
+    top: 14,
+    left: 14,
+    height: 40,
+    width: 40,
     borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    marginBottom: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.06)',
   },
-  badgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: THEME.colors.chooseAccountBadgeText,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
+
+  headerCopy: {
+    paddingHorizontal: THEME.spacing[16],
+    paddingTop: THEME.spacing[12],
+    paddingBottom: THEME.spacing[16],
+    alignItems: 'center',
+    gap: THEME.spacing[8],
   },
+
   title: {
-    fontSize: 34,
-    fontWeight: '800',
-    color: THEME.colors.chooseAccountTitle,
-    letterSpacing: -1,
-  },
-  subtitle: {
-    marginTop: 12,
-    fontSize: 15,
-    lineHeight: 24,
-    color: THEME.colors.chooseAccountSubtitle,
-    maxWidth: width * 0.86,
-  },
-  subtitleStrong: {
-    fontWeight: '800',
+    fontSize: 28,
+    fontWeight: '900',
     color: THEME.colors.textPrimary,
+    textAlign: 'center',
+    letterSpacing: -0.6,
   },
-  card: {
-    backgroundColor: THEME.colors.chooseAccountCardBg,
-    borderColor: THEME.colors.chooseAccountCardBorder,
-    borderRadius: THEME.radius[16],
-  },
-  cardContent: {
-    gap: THEME.spacing[16],
-  },
-  actions: {
-    paddingTop: THEME.spacing[8],
-  },
-  footerHint: {
-    marginTop: THEME.spacing[4],
-    fontSize: THEME.typography.size[12],
+
+  subtitle: {
+    fontSize: 14,
+    lineHeight: 20,
     color: THEME.colors.textSecondary,
     textAlign: 'center',
   },
-});
 
+  card: {
+    marginTop: THEME.spacing[8],
+    marginHorizontal: THEME.spacing[16],
+    backgroundColor: THEME.colors.white,
+    borderRadius: 24,
+    padding: THEME.spacing[16],
+    borderWidth: 1,
+    borderColor: 'rgba(15,81,50,0.10)',
+    shadowColor: '#0B3D2C',
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.10,
+    shadowRadius: 26,
+    elevation: 10,
+  },
+
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: THEME.colors.textPrimary,
+    marginBottom: THEME.spacing[12],
+  },
+
+  inputContainer: {
+    flex: 1,
+    marginBottom: 0,
+    minHeight: 52,
+    borderRadius: 18,
+  },
+
+  input: {
+    borderWidth: 0,
+    backgroundColor: 'transparent',
+    fontSize: 16,
+    fontWeight: '600',
+    color: THEME.colors.textPrimary,
+  },
+
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: THEME.spacing[16],
+    marginBottom: THEME.spacing[24],
+  },
+
+  infoText: {
+    flex: 1,
+    fontSize: 13,
+    color: THEME.colors.textSecondary,
+    lineHeight: 18,
+  },
+
+  button: {
+    borderRadius: 18,
+    minHeight: 56,
+  },
+
+  clearButton: {
+    marginLeft: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 36,
+    width: 36,
+    borderRadius: 18,
+    backgroundColor: THEME.colors.surface,
+  },
+});

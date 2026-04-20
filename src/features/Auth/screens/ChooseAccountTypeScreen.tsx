@@ -73,13 +73,14 @@ export function ChooseAccountTypeScreen(): React.ReactElement {
             <Text style={styles.title}>Choose your account</Text>
 
             <Text style={styles.subtitle}>
-              Select how you want to continue and unlock a personalized experience.
+              Select how you want to continue. You can switch later.
             </Text>
           </View>
 
           <View style={styles.cardsContainer}>
             <AccountTypeCard
               title="User"
+              description="Book experts & track sessions"
               iconName="person-outline"
               gradientColors={[
                 THEME.colors.chooseAccountUserGrad1,
@@ -91,6 +92,7 @@ export function ChooseAccountTypeScreen(): React.ReactElement {
 
             <AccountTypeCard
               title="Consultant"
+              description="Manage clients & consultations"
               iconName="briefcase-outline"
               gradientColors={[
                 THEME.colors.chooseAccountConsultantGrad1,
@@ -113,8 +115,8 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     justifyContent: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 32,
+    paddingHorizontal: THEME.spacing[16],
+    paddingVertical: THEME.spacing[24],
   },
   topGlow: {
     position: 'absolute',
@@ -135,15 +137,15 @@ const styles = StyleSheet.create({
     backgroundColor: THEME.colors.chooseAccountGlowConsultant,
   },
   header: {
-    marginBottom: 36,
+    marginBottom: THEME.spacing[24],
   },
   badge: {
     alignSelf: 'flex-start',
     backgroundColor: THEME.colors.chooseAccountBadgeBg,
     borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    marginBottom: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    marginBottom: THEME.spacing[16],
   },
   badgeText: {
     fontSize: 12,
@@ -153,19 +155,19 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   title: {
-    fontSize: 34,
+    fontSize: 30,
     fontWeight: '800',
     color: THEME.colors.chooseAccountTitle,
-    letterSpacing: -1,
+    letterSpacing: -0.8,
   },
   subtitle: {
-    marginTop: 14,
-    fontSize: 15,
-    lineHeight: 24,
+    marginTop: THEME.spacing[12],
+    fontSize: 14,
+    lineHeight: 20,
     color: THEME.colors.chooseAccountSubtitle,
-    maxWidth: width * 0.82,
+    maxWidth: width * 0.86,
   },
   cardsContainer: {
-    gap: 18,
+    gap: THEME.spacing[12],
   },
 });

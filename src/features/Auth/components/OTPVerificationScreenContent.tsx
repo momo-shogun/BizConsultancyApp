@@ -1,8 +1,26 @@
-import React, { useMemo, useState } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import React, { useMemo, useRef, useState } from 'react';
+import {
+  Image,
+  Pressable,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { THEME } from '@/constants/theme';
-import { Button, KeyboardWrapper, OTPInput, ScrollWrapper, SafeAreaWrapper, ScreenHeader, ScreenWrapper } from '@/shared/components';
+import {
+  KeyboardWrapper,
+  OTPInput,
+  ScrollWrapper,
+  SafeAreaWrapper,
+  ScreenWrapper,
+} from '@/shared/components';
+
+import lightLogo from '@/assets/lightlogo.png';
 
 export interface OTPVerificationScreenContentProps {
   roleLabel: string;
@@ -15,6 +33,8 @@ export function OTPVerificationScreenContent(
   props: OTPVerificationScreenContentProps,
 ): React.ReactElement {
   const { contact } = props;
+  const insets = useSafeAreaInsets();
+  const hiddenInputRef = useRef<TextInput>(null);
 
   const [otp, setOtp] = useState<string>('');
 
@@ -29,34 +49,97 @@ export function OTPVerificationScreenContent(
 
   return (
     <SafeAreaWrapper edges={['top', 'bottom']}>
-      <ScreenHeader title="Verify OTP" onBackPress={props.onBackPress} />
+      <StatusBar barStyle="dark-content" backgroundColor={THEME.colors.background} />
       <KeyboardWrapper>
         <ScreenWrapper>
           <ScrollWrapper contentContainerStyle={styles.content}>
+            <View style={[styles.top, { paddingTop: insets.top + THEME.spacing[8] }]}>
+              <Image
+                source={lightLogo}
+                accessibilityLabel="Biz Consultancy"
+                style={styles.brandMark}
+                resizeMode="contain"
+              />
+              <View style={styles.progressTrack}>
+                <View style={styles.progressActive} />
+              </View>
+            </View>
+
+            <Text style={styles.title}>We just texted you, what’s the code?</Text>
+
+            <OTPInput
+              value={otp}
+              onChange={setOtp}
+              accessibilityLabel="OTP input"
+              onPress={() => hiddenInputRef.current?.focus()}
+              activeIndex={Math.min(otp.length, 5)}
+              containerStyle={styles.otpRow}
+            />
+
             <Text style={styles.help}>
-              Enter the 6-digit code sent to {masked}. (Account: {props.roleLabel})
+              We’ve sent a verification code to <Text style={styles.helpStrong}>{masked}</Text>
             </Text>
 
-            <OTPInput value={otp} onChange={setOtp} accessibilityLabel="OTP input" />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Resend code"
+              onPress={() => undefined}
+              style={({ pressed }) => [styles.resend, pressed ? styles.resendPressed : null]}
+              hitSlop={8}
+            >
+              <Ionicons name="refresh" size={16} color={THEME.colors.textPrimary} />
+              <Text style={styles.resendText}>Resend code</Text>
+            </Pressable>
 
             <TextInput
               accessibilityLabel="Hidden OTP input"
               value={otp}
-              onChangeText={(t) => setOtp(t.replace(/\D/g, '').slice(0, 6))}
+              onChangeText={(t) => setOtp(t.replace(/\\D/g, '').slice(0, 6))}
               keyboardType="number-pad"
               textContentType="oneTimeCode"
               style={styles.hiddenInput}
               autoFocus
+              ref={hiddenInputRef}
             />
 
-            <View style={styles.spacer} />
+            <View style={styles.flexSpacer} />
 
-            <Button
-              label="Verify"
-              accessibilityLabel="Verify OTP"
-              disabled={!canVerify}
-              onPress={props.onVerified}
-            />
+            <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+              {props.onBackPress ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Go back"
+                  onPress={props.onBackPress}
+                  style={styles.roundBtn}
+                  hitSlop={10}
+                >
+                  <Ionicons name="arrow-back" size={18} color={THEME.colors.textPrimary} />
+                </Pressable>
+              ) : (
+                <View style={styles.roundBtnSpacer} />
+              )}
+
+              <Text style={styles.footerHelp}>
+                Experiencing issues? Email our team:{'\n'}
+                <Text style={styles.footerHelpStrong}>support@samadhan.app</Text>
+              </Text>
+
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Verify OTP"
+                disabled={!canVerify}
+                onPress={props.onVerified}
+                style={({ pressed }) => [
+                  styles.roundBtn,
+                  styles.roundBtnPrimary,
+                  !canVerify ? styles.roundBtnDisabled : null,
+                  pressed && canVerify ? styles.roundBtnPressed : null,
+                ]}
+                hitSlop={10}
+              >
+                <Ionicons name="arrow-forward" size={18} color={THEME.colors.white} />
+              </Pressable>
+            </View>
           </ScrollWrapper>
         </ScreenWrapper>
       </KeyboardWrapper>
@@ -66,15 +149,115 @@ export function OTPVerificationScreenContent(
 
 const styles = StyleSheet.create({
   content: {
-    padding: THEME.spacing[16],
-    gap: THEME.spacing[16],
+    flexGrow: 1,
+    paddingHorizontal: THEME.spacing[16],
+    paddingBottom: THEME.spacing[16],
+    backgroundColor: THEME.colors.background,
+  },
+  top: {
+    gap: THEME.spacing[12],
+  },
+  brandMark: {
+    height: 34,
+    width: 180,
+    alignSelf: 'center',
+  },
+  progressTrack: {
+    height: 3,
+    width: '100%',
+    backgroundColor: 'rgba(0,0,0,0.08)',
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
+  progressActive: {
+    width: 64,
+    height: 3,
+    backgroundColor: '#FF5A1F',
+  },
+  title: {
+    marginTop: THEME.spacing[16],
+    fontSize: 30,
+    fontWeight: '900',
+    color: THEME.colors.textPrimary,
+    letterSpacing: -0.9,
+  },
+  otpRow: {
+    marginTop: THEME.spacing[16],
   },
   help: {
-    fontSize: THEME.typography.size[14],
+    marginTop: THEME.spacing[12],
+    fontSize: THEME.typography.size[12],
     color: THEME.colors.textSecondary,
   },
-  spacer: {
-    height: THEME.spacing[8],
+  helpStrong: {
+    color: THEME.colors.textPrimary,
+    fontWeight: THEME.typography.weight.semibold,
+  },
+  resend: {
+    marginTop: THEME.spacing[8],
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: THEME.spacing[8],
+    paddingHorizontal: THEME.spacing[12],
+    paddingVertical: THEME.spacing[8],
+    borderRadius: 999,
+    backgroundColor: THEME.colors.surface,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.06)',
+  },
+  resendPressed: {
+    opacity: 0.85,
+  },
+  resendText: {
+    fontSize: THEME.typography.size[14],
+    fontWeight: THEME.typography.weight.semibold,
+    color: THEME.colors.textPrimary,
+  },
+  flexSpacer: {
+    flex: 1,
+    minHeight: THEME.spacing[24],
+  },
+  bottomBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: THEME.spacing[12],
+  },
+  roundBtnSpacer: {
+    width: 48,
+    height: 48,
+  },
+  roundBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 999,
+    backgroundColor: THEME.colors.surface,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  roundBtnPrimary: {
+    backgroundColor: THEME.colors.primary,
+    borderColor: 'rgba(0,0,0,0.06)',
+  },
+  roundBtnDisabled: {
+    opacity: 0.45,
+  },
+  roundBtnPressed: {
+    opacity: 0.85,
+  },
+  footerHelp: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 11,
+    lineHeight: 15,
+    color: THEME.colors.textSecondary,
+  },
+  footerHelpStrong: {
+    color: THEME.colors.textPrimary,
+    fontWeight: THEME.typography.weight.semibold,
   },
   hiddenInput: {
     height: 0,

@@ -1,4 +1,5 @@
 import React from 'react';
+import type { StyleProp, ViewStyle } from 'react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { THEME } from '@/constants/theme';
@@ -8,6 +9,9 @@ interface OTPInputProps {
   length?: number;
   onChange: (value: string) => void;
   accessibilityLabel: string;
+  onPress?: () => void;
+  activeIndex?: number;
+  containerStyle?: StyleProp<ViewStyle>;
 }
 
 export function OTPInput(props: OTPInputProps): React.ReactElement {
@@ -15,16 +19,24 @@ export function OTPInput(props: OTPInputProps): React.ReactElement {
   const safeValue = props.value.slice(0, length);
 
   const digits = Array.from({ length }, (_, idx) => safeValue[idx] ?? '');
+  const activeIndex = Math.min(Math.max(props.activeIndex ?? safeValue.length, 0), length - 1);
 
   return (
     <Pressable
       accessibilityRole="keyboardkey"
       accessibilityLabel={props.accessibilityLabel}
-      onPress={() => undefined}
-      style={styles.row}
+      onPress={props.onPress}
+      style={[styles.row, props.containerStyle]}
     >
       {digits.map((d, idx) => (
-        <View key={idx} style={styles.cell}>
+        <View
+          key={idx}
+          style={[
+            styles.cell,
+            idx === activeIndex ? styles.cellActive : null,
+            d ? styles.cellFilled : null,
+          ]}
+        >
           <Text style={styles.digit}>{d}</Text>
         </View>
       ))}
@@ -43,10 +55,17 @@ const styles = StyleSheet.create({
     minHeight: 48,
     borderRadius: THEME.radius[12],
     borderWidth: 1,
-    borderColor: THEME.colors.border,
-    backgroundColor: THEME.colors.white,
+    borderColor: 'rgba(0,0,0,0.06)',
+    backgroundColor: THEME.colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  cellActive: {
+    borderColor: THEME.colors.primary,
+    backgroundColor: THEME.colors.white,
+  },
+  cellFilled: {
+    backgroundColor: THEME.colors.white,
   },
   digit: {
     fontSize: THEME.typography.size[18],
