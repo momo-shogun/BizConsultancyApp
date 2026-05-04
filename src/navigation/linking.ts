@@ -23,7 +23,6 @@ export const linking: LinkingOptions<RootStackParamList> = {
           [ROUTES.App.Home]: 'home',
           [ROUTES.App.Services]: 'services',
           [ROUTES.App.Bookings]: 'bookings',
-          [ROUTES.App.Wallet]: 'wallet',
           [ROUTES.App.Account]: 'account',
         },
       },

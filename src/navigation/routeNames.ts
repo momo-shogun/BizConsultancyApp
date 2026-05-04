@@ -16,7 +16,6 @@ export const ROUTES = {
     Home: 'App/Home',
     Services: 'App/Services',
     Bookings: 'App/Bookings',
-    Wallet: 'App/Wallet',
     Account: 'App/Account',
   },
 } as const;

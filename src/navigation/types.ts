@@ -16,7 +16,6 @@ export type AppTabParamList = {
   [ROUTES.App.Home]: undefined;
   [ROUTES.App.Services]: undefined;
   [ROUTES.App.Bookings]: undefined;
-  [ROUTES.App.Wallet]: undefined;
   [ROUTES.App.Account]: undefined;
 };
 

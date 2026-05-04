@@ -11,7 +11,7 @@ export function HomeDashboardScreen(): React.ReactElement {
   const tabStrip: ZeptoTabCProps = {
     tabs: [
       { id: 'all', label: 'All', icon: <Ionicons name="apps" size={22} color="#111" /> },
-      { id: 'book', label: 'Bookings', icon: <Ionicons name="calendar-outline" size={22} color="#111" /> },
+      { id: 'book', label: 'EDP', icon: <Ionicons name="calendar-outline" size={22} color="#111" /> },
       { id: 'pay', label: 'Payments', icon: <Ionicons name="card-outline" size={22} color="#111" /> },
       { id: 'help', label: 'Help', icon: <Ionicons name="help-circle-outline" size={22} color="#111" /> },
     ],

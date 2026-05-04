@@ -44,6 +44,13 @@ const styles = StyleSheet.create({
 />
 ```
 
+## Custom bottom tab bar (React Native)
+
+- Keep **≥12pt** for tab labels where possible; use `adjustsFontSizeToFit` + `minimumFontScale` (e.g. 0.8–0.85) and `numberOfLines={1}` so full labels stay on one line on narrow widths without defaulting to tiny body text.
+- Tighten **horizontal padding** on the bar and between pill/icon/label first; avoid shrinking touch targets below **44×44pt** — use **`hitSlop`** on `Pressable` when visuals are compact.
+- **Icon-only** inactive tabs still need **`accessibilityLabel`** (or `tabBarAccessibilityLabel`) so VoiceOver is not silent.
+- Prefer **`options.title`** / **`tabBarLabel`** for visible tab copy — do not show raw route keys (e.g. `App/Home`) in the UI.
+
 ## Lists
 
 ```typescript

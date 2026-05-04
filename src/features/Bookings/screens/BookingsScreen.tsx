@@ -7,7 +7,7 @@ import { EmptyState, SafeAreaWrapper, ScreenHeader, ScreenWrapper } from '@/shar
 export function BookingsScreen(): React.ReactElement {
   return (
     <SafeAreaWrapper edges={['top', 'bottom']}>
-      <ScreenHeader title="Bookings" />
+      <ScreenHeader title="EDP" />
       <ScreenWrapper style={styles.screen}>
         <View style={styles.center}>
           <EmptyState title="No bookings yet" description="Book a consultant and your sessions will show here." />
