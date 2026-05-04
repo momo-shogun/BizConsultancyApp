@@ -20,6 +20,9 @@ importers:
       '@react-navigation/native-stack':
         specifier: ^7.14.11
         version: 7.14.11(e0906032dc5138f6b839f568df559ef6)
+      lottie-react-native:
+        specifier: ^7.3.6
+        version: 7.3.6(react-native@0.85.1(@babel/core@7.29.0)(@react-native-community/cli@20.1.0(typescript@5.9.3))(@react-native/jest-preset@0.85.1(@babel/core@7.29.0)(react@19.2.3))(@react-native/metro-config@0.85.1(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.3))(react@19.2.3)
       react:
         specifier: 19.2.3
         version: 19.2.3
@@ -2673,6 +2676,19 @@ packages:
   loose-envify@1.4.0:
     resolution: {integrity: sha512-lyuxPGr/Wfhrlem2CL/UcnUc1zcqKAImBDzukY7Y5F/yQiNdko6+fRLevlw1HgMySw7f611UIY408EtxRSoK3Q==}
     hasBin: true
+
+  lottie-react-native@7.3.6:
+    resolution: {integrity: sha512-TevFHRvFURh6GlaqLKrSNXuKAxvBvFCiXfS7FXQI1K/ikOStgAwWLFPGjW0i1qB2/VzPACKmRs+535VjHUZZZQ==}
+    peerDependencies:
+      '@lottiefiles/dotlottie-react': ^0.13.5
+      react: '*'
+      react-native: '>=0.46'
+      react-native-windows: '>=0.63.x'
+    peerDependenciesMeta:
+      '@lottiefiles/dotlottie-react':
+        optional: true
+      react-native-windows:
+        optional: true
 
   lru-cache@10.4.3:
     resolution: {integrity: sha512-JNAzZcXrCt42VGLuYz0zfAzDfAvJWW6AfYlDBQyDV5DClI2m5sAmK+OIO7s59XfsRsWHp02jAJrRadPRGTt6SQ==}
@@ -7221,6 +7237,11 @@ snapshots:
   loose-envify@1.4.0:
     dependencies:
       js-tokens: 4.0.0
+
+  lottie-react-native@7.3.6(react-native@0.85.1(@babel/core@7.29.0)(@react-native-community/cli@20.1.0(typescript@5.9.3))(@react-native/jest-preset@0.85.1(@babel/core@7.29.0)(react@19.2.3))(@react-native/metro-config@0.85.1(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.3))(react@19.2.3):
+    dependencies:
+      react: 19.2.3
+      react-native: 0.85.1(@babel/core@7.29.0)(@react-native-community/cli@20.1.0(typescript@5.9.3))(@react-native/jest-preset@0.85.1(@babel/core@7.29.0)(react@19.2.3))(@react-native/metro-config@0.85.1(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.3)
 
   lru-cache@10.4.3: {}
 
