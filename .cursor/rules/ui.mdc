@@ -44,6 +44,12 @@ const styles = StyleSheet.create({
 />
 ```
 
+## Home shell scroll (ZeptoHS-style)
+
+- **Sticky search**: keep search outside the vertical `Animated.ScrollView` (absolute overlay) while header + tabs sit *inside* the scroll content; reserve a **fixed-height spacer** under the tabs equal to the search band height so list content doesn’t jump.
+- Drive **fade** on header/tabs via `opacity` + `scrollY` (e.g. 0→~100 pt); drive **sticky lift** via `interpolate(scrollY, …)` between `header+tabs` and a small top inset. Prefer **Reanimated** `useAnimatedScrollHandler` + shared values so work stays UI-thread friendly.
+- **Horizontal carousels** inside the same vertical scroll: `horizontal` `ScrollView` + `showsHorizontalScrollIndicator={false}`; keep card width fixed (`~280`) for peek of the next card; don’t nest competing vertical scrolls.
+
 ## App header / brand mark (React Native)
 
 - **Logo-only headers:** use a flat layout (no pill/chip around the mark unless the design system calls for it). Prefer `resizeMode="contain"`, fixed **height** aligned to adjacent controls (e.g. same `minHeight` as wallet/search chips), and a **max width** so wide wordmarks do not collide with trailing actions.

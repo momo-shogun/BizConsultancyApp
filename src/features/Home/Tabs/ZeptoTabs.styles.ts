@@ -121,7 +121,8 @@ export const zeptoTabsStyles = StyleSheet.create({
   },
   searchWrap: {
     paddingHorizontal: ZEPTO.scrollPadH,
-    paddingVertical: ZEPTO.scrollPadV,
+    paddingTop: 6,
+    paddingBottom: ZEPTO.scrollPadV,
   },
   searchBg: {
     alignSelf: 'stretch',

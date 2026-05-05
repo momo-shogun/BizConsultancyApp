@@ -1,15 +1,39 @@
 import React, { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { View } from 'react-native';
+import type { LayoutChangeEvent } from 'react-native';
+import { Platform, StyleSheet, UIManager, View } from 'react-native';
+import Animated, {
+  Extrapolation,
+  interpolate,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+} from 'react-native-reanimated';
 
 import { ZeptoHeaderV1 } from '../../navigation/Header/ZeptoHeaderV1';
 import { ZeptoTabs } from '../../Tabs/ZeptoTabs';
+import { ZeptoTabsSearchBand } from '../../Tabs/ZeptoTabsSearchBand';
+import { THEME } from '@/constants/theme';
 import { darkenHex, ZEPTO_TABS_TRACK_DARKEN } from '@/utils/darkenHex';
 
 import { ZeptoHSCategorySpotlight } from './ZeptoHSCategorySpotlight';
 import type { HomeCategoryId, ZeptoHSProps, ZeptoHSShellColors } from './ZeptoHS.types';
 
-// ─── Shell colors per category ────────────────────────────────────────────────
+if (
+  Platform.OS === 'android' &&
+  typeof UIManager.setLayoutAnimationEnabledExperimental === 'function'
+) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+/** Must match sticky search wrapper (top pad + search band). */
+const SEARCH_SCROLL_SPACER_HEIGHT = 64;
+const STICKY_SEARCH_TOP_PAD = 6;
+/** Scroll distance over which header + tabs row fade out. */
+const HEADER_TABS_FADE_DISTANCE = 100;
+/** Fallback totals before layout; replaced by onLayout heights. */
+const FALLBACK_HEADER_H = 64;
+const FALLBACK_TABS_H = 80;
 
 function uniformShell(fallbackBackground: string): ZeptoHSShellColors {
   return {
@@ -53,8 +77,6 @@ export function resolveZeptoHSShellColors(
   return ZEPTO_HS_SHELL_BY_CATEGORY_ID[categoryId] ?? uniformShell(fallbackBackground);
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
-
 export function ZeptoHS(props: ZeptoHSProps): React.ReactElement {
   const { header, children, testID, style } = props;
   const [searchQuery, setSearchQuery] = useState('');
@@ -88,41 +110,121 @@ export function ZeptoHS(props: ZeptoHSProps): React.ReactElement {
     [activeShell.topTabsBackground],
   );
 
+  const scrollY = useSharedValue(0);
+  const headerBlockH = useSharedValue(FALLBACK_HEADER_H);
+  const tabsBlockH = useSharedValue(FALLBACK_TABS_H);
+
+  const onScroll = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollY.value = event.contentOffset.y;
+    },
+  });
+
+  const collapsingHeaderOpacityStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      scrollY.value,
+      [0, HEADER_TABS_FADE_DISTANCE],
+      [1, 0],
+      Extrapolation.CLAMP,
+    ),
+  }));
+
+  const stickySearchLiftStyle = useAnimatedStyle(() => {
+    const startTop = headerBlockH.value + tabsBlockH.value;
+    const pinnedTop = 0;
+    const travel = Math.max(startTop - pinnedTop, 1);
+    const top = interpolate(scrollY.value, [0, travel], [startTop, pinnedTop], Extrapolation.CLAMP);
+    const stuck = interpolate(scrollY.value, [travel * 0.5, travel], [0, 1], Extrapolation.CLAMP);
+
+    return {
+      position: 'absolute' as const,
+      left: 0,
+      right: 0,
+      top,
+      zIndex: 40,
+    };
+  });
+
+  const onHeaderLayout = (e: LayoutChangeEvent): void => {
+    headerBlockH.value = e.nativeEvent.layout.height;
+  };
+
+  const onTabsLayout = (e: LayoutChangeEvent): void => {
+    tabsBlockH.value = e.nativeEvent.layout.height;
+  };
+
+  const renderedChildren =
+    children != null
+      ? typeof children === 'function'
+        ? (children as (id: HomeCategoryId) => ReactNode)(activeTopCategoryId)
+        : children
+      : null;
+
   return (
     <View style={[{ flex: 1 }, style]} testID={testID}>
-      <ZeptoHeaderV1 {...header} backgroundColor={headerBackgroundColor} />
+      <Animated.ScrollView
+        style={styles.flex}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        showsVerticalScrollIndicator
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+      >
+        <Animated.View style={collapsingHeaderOpacityStyle} onLayout={onHeaderLayout} collapsable={false}>
+          <ZeptoHeaderV1 {...header} backgroundColor={headerBackgroundColor} />
+        </Animated.View>
 
-      <ZeptoTabs
-        tabs={[...ZEPTO_HS_TOP_CATEGORY_TABS]}
-        tabBackgroundColors={topTabsTabBackgroundColors}
-        tabLabelColors={topTabsTabLabelColors}
-        inactiveTabTileBackgroundColor={ZEPTO_HS_INACTIVE_TAB_TILE_BG}
-        activeIndex={activeTopCategoryIndex}
-        defaultActiveIndex={0}
-        onChange={setActiveTopCategoryIndex}
-        showSearch
-        searchValue={searchQuery}
-        onSearchChange={setSearchQuery}
-        searchPlaceholder="Search for services, experts..."
-        style={{ borderRadius: 0 }}
-      />
+        <Animated.View style={collapsingHeaderOpacityStyle} onLayout={onTabsLayout} collapsable={false}>
+          <ZeptoTabs
+            tabs={[...ZEPTO_HS_TOP_CATEGORY_TABS]}
+            tabBackgroundColors={topTabsTabBackgroundColors}
+            tabLabelColors={topTabsTabLabelColors}
+            inactiveTabTileBackgroundColor={ZEPTO_HS_INACTIVE_TAB_TILE_BG}
+            activeIndex={activeTopCategoryIndex}
+            defaultActiveIndex={0}
+            onChange={setActiveTopCategoryIndex}
+            showSearch={false}
+            style={{ borderRadius: 0 }}
+          />
+        </Animated.View>
 
-      <ZeptoHSCategorySpotlight
-        key={activeTopCategoryId}
-        categoryId={activeTopCategoryId}
-        backgroundColor={activeShell.categoryStripBackground}
-        accentColor={activeShell.tabLabelColor}
-      />
+        {/* Reserves vertical space aligned with sticky search */}
+        <View
+          style={{ height: SEARCH_SCROLL_SPACER_HEIGHT, backgroundColor: activeShell.topTabsBackground }}
+          collapsable
+        />
 
-      {children != null ? (
-        <View style={{ flex: 1 }}>
-          {typeof children === 'function'
-            ? (children as (id: HomeCategoryId) => ReactNode)(activeTopCategoryId)
-            : children}
+        <ZeptoHSCategorySpotlight
+          key={activeTopCategoryId}
+          categoryId={activeTopCategoryId}
+          backgroundColor={activeShell.categoryStripBackground}
+          accentColor={activeShell.tabLabelColor}
+        />
+
+        {renderedChildren}
+      </Animated.ScrollView>
+
+      <Animated.View style={stickySearchLiftStyle} pointerEvents="box-none">
+        <View style={{ paddingTop: STICKY_SEARCH_TOP_PAD, backgroundColor: activeShell.topTabsBackground }}>
+          <ZeptoTabsSearchBand
+            backgroundColor={activeShell.topTabsBackground}
+            searchPlaceholder="Search for services, experts..."
+            searchValue={searchQuery}
+            onSearchChange={setSearchQuery}
+            testID="zepto_hs_sticky_search"
+          />
         </View>
-      ) : null}
+      </Animated.View>
     </View>
   );
 }
 
 ZeptoHS.displayName = 'ZeptoHS';
+
+const styles = StyleSheet.create({
+  flex: { flex: 1 },
+  scrollContent: {
+    paddingBottom: THEME.spacing[24],
+  },
+});

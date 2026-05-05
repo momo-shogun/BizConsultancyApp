@@ -13,6 +13,15 @@ export { EmptyState } from './feedback/EmptyState';
 
 export { OTPInput } from './otp/OTPInput';
 export { SectionHeader } from './sections/SectionHeader';
+export { InterestEventsSection } from './sections/InterestEventsSection';
 export { DashboardCard } from './cards/DashboardCard';
+export {
+  EventSpotlightCard,
+  EVENT_SPOTLIGHT_ACCENT,
+  type EventSpotlightCardProps,
+  type EventSpotlightItem,
+  type EventSpotlightOrganizer,
+  type EventSpotlightParticipants,
+} from './cards/EventSpotlightCard/EventSpotlightCard';
 export { AccountTypeCard } from './cards/AccountTypeCard/AccountTypeCard';
 
