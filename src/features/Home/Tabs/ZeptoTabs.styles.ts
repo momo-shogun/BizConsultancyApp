@@ -91,22 +91,30 @@ export const zeptoTabsStyles = StyleSheet.create({
   },
   labelTop: {
     lineHeight: 16,
+    letterSpacing: 0.35,
   },
   labelBottom: {
     fontSize: 11,
-    lineHeight: 13,
-    marginTop: 1,
+    lineHeight: 14,
+    marginTop: 0,
+    letterSpacing: 0.28,
   },
+  /** Dark slate headline color; overridden when `tabLabelColors` is passed. */
   labelActive: {
-    color: '#141414',
+    color: '#071225',
+    fontWeight: '800',
+  },
+  /** Second line of a tab label: same color as active, slightly lighter weight. */
+  labelActiveSubline: {
     fontWeight: '700',
   },
   labelInactive: {
-    color: '#6B6B70',
-    fontWeight: '500',
+    color: '#5B616A',
+    fontWeight: '600',
   },
+  /** Inactive still readable; avoids “washed” tabs while staying secondary to active. */
   labelInactiveDim: {
-    opacity: 0.62,
+    opacity: 0.78,
   },
   iconWrap: {
     marginRight: 6,

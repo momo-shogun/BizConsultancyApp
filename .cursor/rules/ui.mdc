@@ -44,6 +44,12 @@ const styles = StyleSheet.create({
 />
 ```
 
+## App header / brand mark (React Native)
+
+- **Logo-only headers:** use a flat layout (no pill/chip around the mark unless the design system calls for it). Prefer `resizeMode="contain"`, fixed **height** aligned to adjacent controls (e.g. same `minHeight` as wallet/search chips), and a **max width** so wide wordmarks do not collide with trailing actions.
+- Give the image a clear **`accessibilityLabel`** (e.g. product name). If you add depth, use a light **shadow/elevation** on a wrapper `View`, not a heavy border that reads as a second button.
+- Keep **touch targets** for real controls ≥44×44pt; decorative logos do not need to be pressable unless they navigate home.
+
 ## Custom bottom tab bar (React Native)
 
 - Keep **≥12pt** for tab labels where possible; use `adjustsFontSizeToFit` + `minimumFontScale` (e.g. 0.8–0.85) and `numberOfLines={1}` so full labels stay on one line on narrow widths without defaulting to tiny body text.

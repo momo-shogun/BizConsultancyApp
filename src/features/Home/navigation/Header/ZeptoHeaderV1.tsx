@@ -1,7 +1,8 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
+import bizLogo from '@/assets/lightlogo.png';
 import { THEME } from '@/constants/theme';
 
 import type { ZeptoHeaderV1Props } from './ZeptoHeaderV1.types';
@@ -10,10 +11,14 @@ const DEFAULT_FG = '#0A0A0A';
 const DEFAULT_WALLET_ACCENT = '#6B21A8';
 const DEFAULT_WALLET_PILL_BG = '#FFFFFF';
 
+/** Match wallet pill `minHeight` so the mark aligns with that control (no pill chrome on the logo). */
+const BRAND_MARK_HEIGHT = 36;
+/** Horizontal bound for wide wordmarks; `contain` keeps aspect ratio. */
+const BRAND_MARK_MAX_WIDTH = 168;
+
 export function ZeptoHeaderV1(props: ZeptoHeaderV1Props): React.ReactElement {
   const {
     backgroundColor,
-    etaLabel,
     addressLabel,
     walletLabel,
     onAddressPress,
@@ -30,7 +35,12 @@ export function ZeptoHeaderV1(props: ZeptoHeaderV1Props): React.ReactElement {
   if (unstyled) {
     return (
       <View testID={testID} accessibilityLabel="Zepto style header">
-        <Text>{etaLabel}</Text>
+        <Image
+          source={bizLogo}
+          style={styles.brandMarkImage}
+          resizeMode="contain"
+          accessibilityLabel="Biz Consultancy"
+        />
         {/* <Text>{addressLabel}</Text> */}
         <Pressable accessibilityRole="button" onPress={onWalletPress}>
           <Text>{walletLabel}</Text>
@@ -42,10 +52,17 @@ export function ZeptoHeaderV1(props: ZeptoHeaderV1Props): React.ReactElement {
     );
   }
 
-  const etaIcon = slots.etaIcon ?? <Ionicons name="business-outline" color={foregroundColor} size={18} />;
-  const addressTrail =
-    slots.addressTrailingIcon ?? (
-      <Ionicons name="chevron-down" color={foregroundColor} size={14} />
+  const brandMark =
+    slots.etaIcon ?? (
+      <View style={styles.brandMarkWrap}>
+        <Image
+          source={bizLogo}
+          style={styles.brandMarkImage}
+          resizeMode="contain"
+          accessibilityLabel="Biz Consultancy"
+          accessibilityIgnoresInvertColors
+        />
+      </View>
     );
   const walletGlyph =
     slots.walletIcon ?? (
@@ -59,46 +76,7 @@ export function ZeptoHeaderV1(props: ZeptoHeaderV1Props): React.ReactElement {
   return (
     <View style={[styles.root, { backgroundColor }, slots.root]} testID={testID}>
       <View style={styles.row}>
-        <View style={[styles.left, slots.left]}>
-          <View style={styles.etaRow}>
-            {etaIcon}
-            <Text style={[styles.etaText, { color: foregroundColor }]} numberOfLines={1}>
-              {etaLabel}
-            </Text>
-          </View>
-
-          {/* {onAddressPress ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Delivery address"
-              onPress={onAddressPress}
-              style={styles.addressRow}
-            >
-              <Text
-                style={[styles.addressText, { color: foregroundColor }]}
-                numberOfLines={1}
-                ellipsizeMode="tail"
-              >
-                {addressLabel}
-              </Text>
-              {addressTrail}
-            </Pressable>
-          ) : (
-            <View style={styles.addressRow}>
-              <Text
-                style={[styles.addressText, { color: foregroundColor }]}
-                numberOfLines={1}
-                ellipsizeMode="tail"
-              >
-                {addressLabel}
-              </Text>
-              {addressTrail}
-            </View>
-          )} */}
-          <View style={styles.addressRow}>
-            <Text style={[styles.addressText, { color: foregroundColor }]} numberOfLines={1} ellipsizeMode="tail">Welcome to Biz Consultancy</Text>
-          </View>
-        </View>
+        <View style={[styles.left, slots.left]}>{brandMark}</View>
 
         <View style={[styles.right, slots.right]}>
           <Pressable
@@ -148,30 +126,32 @@ const styles = StyleSheet.create({
   left: {
     flex: 1,
     minWidth: 0,
-    gap: THEME.spacing[4],
+    justifyContent: 'center',
+    alignItems: 'flex-start',
   },
-  etaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: THEME.spacing[8],
+  /** Flat container — no pill radius; optional shadow for separation from tinted header bg. */
+  brandMarkWrap: {
+    alignSelf: 'flex-start',
+    alignItems: 'flex-start',
+    maxWidth: BRAND_MARK_MAX_WIDTH + 4,
+    paddingVertical: 2,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#0f172a',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.06,
+        shadowRadius: 3,
+      },
+      default: {
+        elevation: 1,
+        shadowColor: '#0f172a',
+      },
+    }),
   },
-  etaText: {
-    fontSize: THEME.typography.size[16],
-    fontWeight: THEME.typography.weight.bold,
-    letterSpacing: -0.2,
-  },
-  addressRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: THEME.spacing[8],
-    marginTop: 2,
-  },
-  addressText: {
-    flex: 1,
-    minWidth: 0,
-    fontSize: THEME.typography.size[12],
-    fontWeight: THEME.typography.weight.regular,
-    letterSpacing: -0.1,
+  brandMarkImage: {
+    height: BRAND_MARK_HEIGHT,
+    width: BRAND_MARK_MAX_WIDTH,
+    alignSelf: 'flex-start',
   },
   right: {
     flexDirection: 'row',

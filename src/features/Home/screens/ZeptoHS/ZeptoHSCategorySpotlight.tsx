@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, Animated, Easing } from 'react-native';
+import { StyleSheet, Text, View, Animated, Easing, Pressable } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import LottieView from 'lottie-react-native';
 import type { HomeCategoryId } from './ZeptoHS.types';
@@ -32,7 +32,135 @@ function withAlpha(hex: string, alpha: number): string {
 const SHADOW_RED = '#7a1a0a';
 const SHADOW_TEAL = '#0d3a2e';
 
-/** Soft “radial” glow using linear gradient in a circle + slow drift (native driver). */
+/** One config object for the diagnosis hero loop: Lottie in → dwell → fly-by → text in → hold → text out → repeat. */
+const DIAG_BANNER = {
+  /** Time copy stays readable before the next Lottie pass. */
+  dwellMs: 10_000,
+  introMs: 820,
+  afterIntroMs: 320,
+  flyByMs: 580,
+  lottieFadeOutMs: 480,
+  textInOpacityMs: 440,
+  textOutMoveMs: 440,
+  textOutOpacityMs: 400,
+  springLottie: { friction: 8, tension: 70 } as const,
+  springTextIn: { friction: 10, tension: 78 } as const,
+  lottie: {
+    from: { tx: -120, ty: -95, s: 0.52 },
+    center: { tx: 0, ty: 0, s: 1 },
+    exit: { tx: 300, ty: -55, s: 0.68 },
+  },
+  text: { hiddenAbove: -36, exitDown: 40 },
+} as const;
+
+type DiagnosisAnimValues = {
+  lottieTx: Animated.Value;
+  lottieTy: Animated.Value;
+  lottieScale: Animated.Value;
+  lottieOpacity: Animated.Value;
+  textTy: Animated.Value;
+  textOpacity: Animated.Value;
+};
+
+function resetDiagnosisBannerForCycle(v: DiagnosisAnimValues): void {
+  const { from } = DIAG_BANNER.lottie;
+  v.lottieTx.setValue(from.tx);
+  v.lottieTy.setValue(from.ty);
+  v.lottieScale.setValue(from.s);
+  v.lottieOpacity.setValue(1);
+  v.textTy.setValue(DIAG_BANNER.text.hiddenAbove);
+  v.textOpacity.setValue(0);
+}
+
+/** Full cycle once; caller resets with `resetDiagnosisBannerForCycle` before each start. */
+function createDiagnosisBannerCycle(v: DiagnosisAnimValues): Animated.CompositeAnimation {
+  const { center, exit } = DIAG_BANNER.lottie;
+
+  const intro = Animated.parallel([
+    Animated.timing(v.lottieTx, {
+      toValue: center.tx,
+      duration: DIAG_BANNER.introMs,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }),
+    Animated.timing(v.lottieTy, {
+      toValue: center.ty,
+      duration: DIAG_BANNER.introMs,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }),
+    Animated.spring(v.lottieScale, {
+      toValue: center.s,
+      ...DIAG_BANNER.springLottie,
+      useNativeDriver: true,
+    }),
+  ]);
+
+  const flyBy = Animated.parallel([
+    Animated.timing(v.lottieTx, {
+      toValue: exit.tx,
+      duration: DIAG_BANNER.flyByMs,
+      easing: Easing.in(Easing.cubic),
+      useNativeDriver: true,
+    }),
+    Animated.timing(v.lottieTy, {
+      toValue: exit.ty,
+      duration: DIAG_BANNER.flyByMs,
+      easing: Easing.in(Easing.cubic),
+      useNativeDriver: true,
+    }),
+    Animated.timing(v.lottieScale, {
+      toValue: exit.s,
+      duration: DIAG_BANNER.flyByMs,
+      useNativeDriver: true,
+    }),
+    Animated.timing(v.lottieOpacity, {
+      toValue: 0,
+      duration: DIAG_BANNER.lottieFadeOutMs,
+      useNativeDriver: true,
+    }),
+  ]);
+
+  const textIn = Animated.parallel([
+    Animated.spring(v.textTy, {
+      toValue: 0,
+      ...DIAG_BANNER.springTextIn,
+      useNativeDriver: true,
+    }),
+    Animated.timing(v.textOpacity, {
+      toValue: 1,
+      duration: DIAG_BANNER.textInOpacityMs,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: true,
+    }),
+  ]);
+
+  const textOut = Animated.parallel([
+    Animated.timing(v.textTy, {
+      toValue: DIAG_BANNER.text.exitDown,
+      duration: DIAG_BANNER.textOutMoveMs,
+      easing: Easing.in(Easing.cubic),
+      useNativeDriver: true,
+    }),
+    Animated.timing(v.textOpacity, {
+      toValue: 0,
+      duration: DIAG_BANNER.textOutOpacityMs,
+      easing: Easing.in(Easing.quad),
+      useNativeDriver: true,
+    }),
+  ]);
+
+  return Animated.sequence([
+    intro,
+    Animated.delay(DIAG_BANNER.afterIntroMs),
+    flyBy,
+    textIn,
+    Animated.delay(DIAG_BANNER.dwellMs),
+    textOut,
+  ]);
+}
+
+/** Soft "radial" glow using linear gradient in a circle + slow drift (native driver). */
 function AmbientRadialOrbs({ accentColor }: { accentColor: string }) {
   const driftA = useRef(new Animated.Value(0)).current;
   const driftB = useRef(new Animated.Value(0)).current;
@@ -160,62 +288,133 @@ type DiagnosisBannerProps = {
 };
 
 function DiagnosisBanner({ backgroundColor, accentColor }: DiagnosisBannerProps) {
-  const pulse = useRef(new Animated.Value(0)).current;
+  const lottieTx = useRef(new Animated.Value(DIAG_BANNER.lottie.from.tx)).current;
+  const lottieTy = useRef(new Animated.Value(DIAG_BANNER.lottie.from.ty)).current;
+  const lottieScale = useRef(new Animated.Value(DIAG_BANNER.lottie.from.s)).current;
+  const lottieOpacity = useRef(new Animated.Value(1)).current;
+  const textTy = useRef(new Animated.Value(DIAG_BANNER.text.hiddenAbove)).current;
+  const textOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, {
-          toValue: 1,
-          duration: 2000,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulse, {
-          toValue: 0,
-          duration: 2000,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-      ]),
-    ).start();
-  }, [pulse]);
+    let cancelled = false;
+    let running: Animated.CompositeAnimation | null = null;
 
-  const scale = pulse.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.98, 1.02],
-  });
+    const v: DiagnosisAnimValues = {
+      lottieTx,
+      lottieTy,
+      lottieScale,
+      lottieOpacity,
+      textTy,
+      textOpacity,
+    };
+
+    const stop = (): void => {
+      running?.stop();
+      running = null;
+    };
+
+    const runLoop = (): void => {
+      if (cancelled) return;
+      stop();
+      resetDiagnosisBannerForCycle(v);
+      running = createDiagnosisBannerCycle(v);
+      running.start(({ finished }) => {
+        running = null;
+        if (!finished || cancelled) return;
+        runLoop();
+      });
+    };
+
+    runLoop();
+
+    return () => {
+      cancelled = true;
+      stop();
+    };
+  }, [lottieTx, lottieTy, lottieScale, lottieOpacity, textTy, textOpacity]);
+
+  const lottieMotion = {
+    opacity: lottieOpacity,
+    transform: [{ translateX: lottieTx }, { translateY: lottieTy }, { scale: lottieScale }],
+  };
+
+  const textMotion = {
+    opacity: textOpacity,
+    transform: [{ translateY: textTy }],
+  };
 
   return (
     <View style={[banner.wrap, { backgroundColor }]}>
       <AmbientRadialOrbs accentColor={accentColor} />
 
-      <View style={banner.lottieSlot}>
-        <LottieView source={DIAGNOSIS_LOTTIE_SOURCE} autoPlay loop style={banner.lottie} />
-      </View>
+      <View style={banner.stage}>
+        <Animated.View style={[banner.lottieAnchor, lottieMotion]} pointerEvents="none">
+          <LottieView
+            source={DIAGNOSIS_LOTTIE_SOURCE}
+            autoPlay
+            loop
+            style={banner.lottie}
+          />
+        </Animated.View>
 
-      <Animated.View style={[banner.center, { transform: [{ scale }] }]}>
-        <Text style={[banner.eyebrow, { color: accentColor }]}>AI-POWERED</Text>
+        <Animated.View style={[banner.textBlock, textMotion]}>
+          <View style={banner.textColumn}>
+            <Text style={[banner.eyebrow, { color: accentColor }]}>Business Intelligence 
+            </Text>
 
-        <View style={banner.titleRow}>
-          <Text style={banner.wordBoost}>Boost </Text>
-          <Text style={banner.wordYour}>Your</Text>
-        </View>
-        <View style={banner.titleRow}>
-          <Text style={banner.wordBiz}>BIZ</Text>
-          <Text style={banner.dot}> · </Text>
-          <Text style={banner.wordDiag}>Diagnostics</Text>
-        </View>
-        <Text style={banner.sub}>Smart insights to fix, scale & grow</Text>
-      </Animated.View>
+            <View style={banner.titleRow}>
+              <Text style={banner.wordBoost}>Boost </Text>
+              <Text style={banner.wordYour}>your business</Text>
+            </View>
 
-      <View style={[banner.lottieSlot, banner.lottieRight]}>
-        <LottieView
-          source={DIAGNOSIS_LOTTIE_SOURCE}
-          autoPlay
-          loop
-          style={[banner.lottie, { transform: [{ scaleX: -1 }] }]}
-        />
+            {/* "with" — hairline rules flanking the word as a divider */}
+            <View style={banner.withRow}>
+              {/* <View style={banner.withLine} /> */}
+              <Text style={banner.withWord}>with</Text>
+              {/* <View style={banner.withLine} /> */}
+            </View>
+
+            <View style={banner.titleRow}>
+              <Text style={banner.wordBiz}>BIZ</Text>
+              {/* <Text style={banner.dot}> · </Text> */}
+              <Text style={banner.wordDiag}>Diagnostics</Text>
+            </View>
+
+            <Text style={banner.sub}>Smart insights to fix, scale & grow</Text>
+
+            <View style={banner.pills}>
+              <Pressable
+                style={({ pressed }) => [
+                  banner.pill,
+                  banner.pillPrimary,
+                  pressed && banner.pillPressed,
+                ]}
+                onPress={() => console.log('Talk to expert clicked')}
+                accessibilityRole="button"
+                accessibilityLabel="Talk to expert"
+                hitSlop={6}
+              >
+                <Text style={banner.pillIconPrimary}>💬</Text>
+                <Text style={[banner.pillText, banner.pillTextPrimary]}>Talk to Expert</Text>
+              </Pressable>
+
+              <Pressable
+                style={({ pressed }) => [
+                  banner.pill,
+                  banner.pillSecondary,
+                  pressed && banner.pillPressed,
+                ]}
+                onPress={() => console.log('Request Diagnosis clicked')}
+                accessibilityRole="button"
+                accessibilityLabel="Request Diagnosis"
+                hitSlop={6}
+              >
+                <Text style={banner.pillIconSecondary}>🔍</Text>
+                <Text style={[banner.pillText, banner.pillTextSecondary]}>Diagnose Now</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Animated.View>
       </View>
     </View>
   );
@@ -224,45 +423,54 @@ function DiagnosisBanner({ backgroundColor, accentColor }: DiagnosisBannerProps)
 const banner = StyleSheet.create({
   wrap: {
     width: '100%',
-    minHeight: 156,
+    minHeight: 172,
     borderRadius: 0,
     overflow: 'hidden',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
+    paddingHorizontal: 14,
   },
-  lottieSlot: {
-    width: 96,
+  stage: {
+    position: 'relative',
+    minHeight: 172,
+    zIndex: 2,
+    paddingVertical: 10,
+  },
+  lottieAnchor: {
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 2,
+    zIndex: 3,
   },
-  lottieRight: {},
   lottie: {
-    width: 86,
-    height: 86,
+    width: 148,
+    height: 148,
   },
-  center: {
-    flex: 1,
-    alignItems: 'center',
+  textBlock: {
+    ...StyleSheet.absoluteFill,
     justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 6,
+    alignItems: 'stretch',
     zIndex: 2,
-    minWidth: 0,
+  },
+  textColumn: {
+    width: '100%',
+    alignSelf: 'stretch',
+    alignItems: 'stretch',
   },
   eyebrow: {
     fontSize: 10,
     letterSpacing: 2.2,
     fontWeight: '700',
-    marginBottom: 6,
+    marginBottom: 4,
     opacity: 0.92,
+    width: '100%',
+    textAlign: 'center',
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
     flexWrap: 'wrap',
     justifyContent: 'center',
+    width: '100%',
+    alignSelf: 'stretch',
   },
   wordBoost: {
     fontSize: 22,
@@ -280,11 +488,34 @@ const banner = StyleSheet.create({
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 3,
   },
+  /** "with" divider row — hairline rules + small italic label */
+  withRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    marginTop: 2,
+    marginBottom: -4,
+    gap: 2,
+    justifyContent: 'center',
+  },
+  withLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth * 2,
+    backgroundColor: 'rgba(15, 23, 42, 0.16)',
+    borderRadius: 1,
+  },
+  withWord: {
+    fontSize: 10,
+    fontWeight: '500',
+    fontStyle: 'italic',
+    letterSpacing: 1.0,
+    color: 'rgba(15, 23, 42, 0.4)',
+  },
   /** BIZ styling — unchanged from approved design. */
   wordBiz: {
     fontSize: 26,
     fontWeight: '900',
-    color: '#FFD93D', // fallback; use MaskedView for gradient
+    color: '#FFD93D',
     textShadowColor: SHADOW_RED,
     textShadowOffset: { width: 0, height: 5 },
     textShadowRadius: 1,
@@ -301,35 +532,68 @@ const banner = StyleSheet.create({
     textShadowColor: SHADOW_TEAL,
     textShadowOffset: { width: 0, height: 3 },
     textShadowRadius: 0,
+    marginLeft: 8,
   },
   sub: {
     fontSize: 12,
     fontWeight: '600',
     color: '#334155',
-    lineHeight: 17,
+    lineHeight: 18,
     textAlign: 'center',
-    maxWidth: 220,
+    width: '100%',
+    alignSelf: 'stretch',
     marginTop: 6,
     marginBottom: 10,
-    paddingHorizontal: 4,
+    paddingHorizontal: 0,
   },
   pills: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
+    width: '100%',
+    alignSelf: 'stretch',
     gap: 8,
-    rowGap: 8,
+    marginTop: 2,
   },
   pill: {
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
     borderWidth: 1,
+    gap: 5,
+  },
+  pillPrimary: {
+    backgroundColor: 'rgba(37, 99, 235, 0.12)',
+    borderColor: 'rgba(37, 99, 235, 0.35)',
+  },
+  pillSecondary: {
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    borderColor: 'rgba(4, 120, 87, 0.32)',
+  },
+  pillPressed: {
+    opacity: 0.65,
+    transform: [{ scale: 0.97 }],
+  },
+  pillIconPrimary: {
+    fontSize: 13,
+    lineHeight: 16,
+  },
+  pillIconSecondary: {
+    fontSize: 13,
+    lineHeight: 16,
   },
   pillText: {
     fontSize: 11,
     fontWeight: '700',
-    letterSpacing: 0.2,
+    letterSpacing: 0.1,
+  },
+  pillTextPrimary: {
+    color: '#1D4ED8',
+  },
+  pillTextSecondary: {
+    color: '#047857',
   },
 });
 

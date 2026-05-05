@@ -11,7 +11,6 @@ export function HomeDashboardScreen(): React.ReactElement {
       <ZeptoHS
         header={{
           backgroundColor: '#E6C8A4',
-          etaLabel: 'Hi Krishna',
           addressLabel: 'Business setup • Tap to update address',
           walletLabel: '₹0',
           onAddressPress: () => undefined,

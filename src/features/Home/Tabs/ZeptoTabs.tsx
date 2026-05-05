@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
-import type { LayoutChangeEvent } from 'react-native';
+import type { LayoutChangeEvent, TextStyle } from 'react-native';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import Animated, {
   interpolateColor,
@@ -21,6 +21,39 @@ function splitLabel(label: string): { top: string; bottom: string } {
     return { top: label.trim(), bottom: '' };
   }
   return { top: parts[0] ?? '', bottom: parts.slice(1).join(' ') };
+}
+
+/** `#RRGGBB` / `#RGB` → `rgba(r,g,b,a)` so the shadow matches the label hue. */
+function hexToRgba(hex: string, alpha: number): string {
+  const raw = hex.replace('#', '').trim();
+  let r: number;
+  let g: number;
+  let b: number;
+  if (raw.length === 3) {
+    r = Number.parseInt(raw[0] + raw[0], 16);
+    g = Number.parseInt(raw[1] + raw[1], 16);
+    b = Number.parseInt(raw[2] + raw[2], 16);
+  } else if (raw.length === 6) {
+    r = Number.parseInt(raw.slice(0, 2), 16);
+    g = Number.parseInt(raw.slice(2, 4), 16);
+    b = Number.parseInt(raw.slice(4, 6), 16);
+  } else {
+    return `rgba(15, 23, 42, ${alpha})`;
+  }
+  if ([r, g, b].some((n) => Number.isNaN(n))) return `rgba(15, 23, 42, ${alpha})`;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+/** Tinted depth read as a soft glow on active tabs; subtle on inactive (same font sizes). */
+function labelDepthStyle(color: string, active: boolean, variant: 'top' | 'bottom'): TextStyle {
+  const opacityTop = active ? 0.5 : 0.16;
+  const opacityBottom = active ? 0.38 : 0.12;
+  const a = variant === 'top' ? opacityTop : opacityBottom;
+  return {
+    textShadowColor: hexToRgba(color, a),
+    textShadowOffset: { width: 0, height: variant === 'top' ? (active ? 1 : 2) : 1 },
+    textShadowRadius: active ? (variant === 'top' ? 2.25 : 1.75) : 0.85,
+  };
 }
 
 function resolveTabColors(
@@ -228,6 +261,12 @@ export function ZeptoTabs(props: ZeptoTabsProps): React.ReactElement | null {
 
             {tabs.map((tab, index) => {
               const active = index === clampedIndex;
+              const labelColor =
+                resolvedLabelColors != null
+                  ? resolvedLabelColors[index] ?? '#141414'
+                  : active
+                    ? '#071225'
+                    : '#5B616A';
               return (
                 <Pressable
                   key={tab.id}
@@ -261,6 +300,7 @@ export function ZeptoTabs(props: ZeptoTabsProps): React.ReactElement | null {
                           zeptoTabsStyles.label,
                           zeptoTabsStyles.labelTop,
                           active ? zeptoTabsStyles.labelActive : zeptoTabsStyles.labelInactive,
+                          labelDepthStyle(labelColor, active, 'top'),
                           resolvedLabelColors != null
                             ? { color: resolvedLabelColors[index] ?? '#141414' }
                             : null,
@@ -278,6 +318,8 @@ export function ZeptoTabs(props: ZeptoTabsProps): React.ReactElement | null {
                           zeptoTabsStyles.label,
                           zeptoTabsStyles.labelBottom,
                           active ? zeptoTabsStyles.labelActive : zeptoTabsStyles.labelInactive,
+                          active ? zeptoTabsStyles.labelActiveSubline : null,
+                          labelDepthStyle(labelColor, active, 'bottom'),
                           resolvedLabelColors != null
                             ? { color: resolvedLabelColors[index] ?? '#141414' }
                             : null,

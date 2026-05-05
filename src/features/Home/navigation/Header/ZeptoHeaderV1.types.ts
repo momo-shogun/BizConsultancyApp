@@ -13,7 +13,8 @@ export interface ZeptoHeaderV1Slots {
 
 export interface ZeptoHeaderV1Props {
   backgroundColor: string;
-  etaLabel: string;
+  /** Unused in the default header UI (logo only); kept for compatibility / unstyled dumps. */
+  etaLabel?: string;
   addressLabel: string;
   walletLabel: string;
   onAddressPress?: () => void;
