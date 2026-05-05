@@ -6,6 +6,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ROUTES } from '@/navigation/routeNames';
 import type { AuthStackParamList } from '@/navigation/types';
 import { useAuth } from '@/app/providers/AuthProvider';
+import { navigationRef } from '@/navigation/RootNavigator';
 import { Button, EmptyState, ScreenWrapper, SafeAreaWrapper } from '@/shared/components';
 import { LoginScreenContent as UserLoginScreenContent } from '@/features/Auth/User/screens/LoginScreenContent';
 import { LoginScreenContent as ConsultantLoginScreenContent } from '@/features/Auth/Consultant/screens/LoginScreenContent';
@@ -14,7 +15,18 @@ type Nav = NativeStackNavigationProp<AuthStackParamList, typeof ROUTES.Auth.Logi
 
 export function LoginScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
-  const { state } = useAuth();
+  const { state, completeOnboarding } = useAuth();
+
+  const onSkip = (): void => {
+    completeOnboarding();
+    // Force landing on dashboard even if auth stack doesn't re-render immediately.
+    if (navigationRef.isReady()) {
+      navigationRef.resetRoot({
+        index: 0,
+        routes: [{ name: ROUTES.Root.App }],
+      });
+    }
+  };
 
   const onContinue = (contact: string): void => {
     navigation.navigate(ROUTES.Auth.OtpVerification, { contact });
@@ -38,7 +50,11 @@ export function LoginScreen(): React.ReactElement {
   }
 
   return state.userType === 'user' ? (
-    <UserLoginScreenContent onContinue={onContinue} onBackPress={() => navigation.goBack()} />
+    <UserLoginScreenContent
+      onContinue={onContinue}
+      onSkip={onSkip}
+      onBackPress={() => navigation.goBack()}
+    />
   ) : (
     <ConsultantLoginScreenContent onContinue={onContinue} onBackPress={() => navigation.goBack()} />
   );

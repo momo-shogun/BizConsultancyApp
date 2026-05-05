@@ -25,6 +25,7 @@ import heroIllustration from '../../../assets/tuxpi.com.1776427891.jpg';
 export interface LoginScreenContentProps {
   roleLabel: string;
   onContinue: (phoneNumber: string) => void;
+  onSkip?: () => void;
   onBackPress?: () => void;
 }
 
@@ -136,6 +137,18 @@ export function LoginScreenContent(
                 onPress={() => props.onContinue(cleanedPhone)}
                 style={styles.button}
               />
+
+              {props.onSkip ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Skip login"
+                  onPress={props.onSkip}
+                  hitSlop={10}
+                  style={({ pressed }) => [styles.skipBtn, pressed ? styles.skipPressed : null]}
+                >
+                  <Text style={styles.skipText}>Skip for now</Text>
+                </Pressable>
+              ) : null}
             </View>
           </ScrollWrapper>
         </ScreenWrapper>
@@ -268,6 +281,21 @@ const styles = StyleSheet.create({
   button: {
     borderRadius: 18,
     minHeight: 56,
+  },
+  skipBtn: {
+    marginTop: THEME.spacing[12],
+    alignSelf: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  skipPressed: {
+    opacity: 0.75,
+  },
+  skipText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: THEME.colors.textSecondary,
+    textDecorationLine: 'underline',
   },
 
   clearButton: {

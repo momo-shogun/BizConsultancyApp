@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Image, Platform, Pressable, StyleSheet, Text, View, type DimensionValue } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
@@ -8,63 +8,108 @@ import { THEME } from '@/constants/theme';
 export const EVENT_SPOTLIGHT_ACCENT = '#FFD60A';
 const TAG_TEXT = '#0A0A0A';
 
-export type EventSpotlightOrganizer = {
-  name: string;
-  /** `@/assets/...` or `{ uri }` */
-  avatarSource?: React.ComponentProps<typeof Image>['source'];
-};
-
-export type EventSpotlightParticipants = {
-  /** Up to ~3 overlapping avatars shown */
-  avatarSources?: Array<NonNullable<React.ComponentProps<typeof Image>['source']>>;
-  extraCount?: number;
-};
-
 export type EventSpotlightItem = {
-  id: string;
-  title: string;
-  locationLabel: string;
-  scheduleLabel: string;
-  tags?: string[];
-  imageSource: React.ComponentProps<typeof Image>['source'];
-  organizer: EventSpotlightOrganizer;
-  participants?: EventSpotlightParticipants;
+  /** From API: numeric id. */
+  id: number;
+  createdAt: string;
+  updatedAt: string;
+  name: string;
+  slug: string;
+  type: string;
+  thumbnail: string;
+  description: string;
+  highlightPoints?: string;
+  keywords?: string;
+  startDate: string; // yyyy-mm-dd
+  endDate?: string; // yyyy-mm-dd
+  startTime?: string; // hh:mm:ss
+  endTime?: string; // hh:mm:ss
+  place?: string;
+  mapLocation?: string;
+  contactNumber?: string;
+  segmentId?: number;
+  industryId?: number;
+  onlineFee?: string;
+  offlineFee?: string;
+  isOnlineAvailable?: number;
+  isLiveWorkshop?: number;
+  externalUrlOnline?: string;
+  externalUrlOffline?: string;
+  workshopUrl?: string;
+  status?: number;
+  createdBy?: unknown | null;
+  updatedBy?: unknown | null;
+  deletedBy?: unknown | null;
+  isDeleted?: number;
 };
 
 export interface EventSpotlightCardProps {
   item: EventSpotlightItem;
   cardWidth?: DimensionValue;
-  initialFavorite?: boolean;
-  onFavoritePress?: () => void;
   onPress?: () => void;
 }
-
-const AVATAR = 26;
-const ORG_ICON = 24;
 
 export function EventSpotlightCard({
   item,
   cardWidth = 280,
-  initialFavorite = false,
-  onFavoritePress,
   onPress,
 }: EventSpotlightCardProps): React.ReactElement {
-  const [fav, setFav] = useState(initialFavorite);
+  const FALLBACK_THUMB =
+    'https://images.unsplash.com/photo-1556761175-4b46a572b786?auto=format&fit=crop&w=1200&q=80';
 
-  const tags = item.tags ?? [];
-  const p = item.participants;
-  const avatars = p?.avatarSources?.slice(0, 4) ?? [];
-  const extra = p?.extraCount ?? 0;
+  const tags = useMemo(() => {
+    const raw = (item.highlightPoints ?? '').trim();
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw);
+      const arr = typeof parsed === 'string' ? JSON.parse(parsed) : parsed;
+      return Array.isArray(arr) ? (arr as string[]).filter(Boolean).slice(0, 2) : [];
+    } catch {
+      return [];
+    }
+  }, [item.highlightPoints]);
 
-  const toggleFavorite = (): void => {
-    setFav((v) => !v);
-    onFavoritePress?.();
-  };
+  const initialThumbUri = useMemo(() => {
+    const thumb = item.thumbnail?.trim();
+    if (!thumb) return FALLBACK_THUMB;
+    if (thumb.startsWith('http://') || thumb.startsWith('https://')) return thumb;
+    return FALLBACK_THUMB;
+  }, [item.thumbnail]);
+
+  const [thumbUri, setThumbUri] = useState<string>(initialThumbUri);
+
+  const imageSource = useMemo<React.ComponentProps<typeof Image>['source']>(() => {
+    return { uri: thumbUri };
+  }, [thumbUri]);
+
+  const dateLabel = useMemo(() => {
+    const start = item.startDate;
+    const end = item.endDate;
+    if (start && end && end !== start) return `${start} → ${end}`;
+    return start || '';
+  }, [item.endDate, item.startDate]);
+
+  const timeLabel = useMemo(() => {
+    const st = item.startTime?.slice(0, 5);
+    const et = item.endTime?.slice(0, 5);
+    if (st && et) return `${st}–${et}`;
+    return st || et || '';
+  }, [item.endTime, item.startTime]);
+
+  const feeLabel = useMemo(() => {
+    const online = Number(item.onlineFee ?? '0');
+    const offline = Number(item.offlineFee ?? '0');
+    const fee = online > 0 ? online : offline;
+    if (!Number.isFinite(fee) || fee <= 0) return 'Free';
+    return `₹${fee.toFixed(0)}`;
+  }, [item.offlineFee, item.onlineFee]);
+
+  const placeLabel = item.place?.trim() ? item.place.trim() : 'Online';
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${item.title}. ${item.locationLabel}. ${item.scheduleLabel}`}
+      accessibilityLabel={`${item.name}. ${placeLabel}. ${dateLabel} ${timeLabel}`.trim()}
       accessibilityHint={onPress != null ? 'Opens details' : undefined}
       onPress={onPress}
       style={({ pressed }) => [
@@ -74,7 +119,17 @@ export function EventSpotlightCard({
       ]}
     >
       <View style={styles.imageWrap}>
-        <Image source={item.imageSource} style={styles.image} accessibilityIgnoresInvertColors />
+        <Image
+          source={imageSource}
+          style={styles.image}
+          resizeMode="cover"
+          accessibilityIgnoresInvertColors
+          onError={(e) => {
+            // Network image failed (common during dev / flaky connections) → fall back.
+            console.log('Workshop thumbnail failed', e.nativeEvent?.error, item.thumbnail);
+            setThumbUri(FALLBACK_THUMB);
+          }}
+        />
         <View style={styles.imageOverlayBottom}>
           <View style={styles.tagRow}>
             {tags.map((t) => (
@@ -87,67 +142,42 @@ export function EventSpotlightCard({
           </View>
         </View>
 
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={fav ? 'Remove from favourites' : 'Add to favourites'}
-          accessibilityState={{ selected: fav }}
-          onPress={() => toggleFavorite()}
-          hitSlop={10}
-          style={({ pressed: pFavorite }) => [styles.favBtn, pFavorite ? styles.hitPressed : null]}
-        >
-          <Ionicons
-            name={fav ? 'heart' : 'heart-outline'}
-            size={18}
-            color={TAG_TEXT}
-          />
-        </Pressable>
       </View>
 
       <View style={styles.body}>
         <Text style={styles.title} numberOfLines={2}>
-          {item.title}
+          {item.name}
         </Text>
         <View style={styles.metaRow}>
-          <Ionicons name="location-outline" size={14} color="#6B7280" />
+          <Ionicons
+            name={placeLabel === 'Online' ? 'globe-outline' : 'location-outline'}
+            size={14}
+            color="#6B7280"
+          />
           <Text style={styles.meta} numberOfLines={1}>
-            {item.locationLabel}
+            {placeLabel}
           </Text>
         </View>
-        <Text style={styles.meta} numberOfLines={2}>
-          {item.scheduleLabel}
-        </Text>
+        <View style={styles.metaRow}>
+          <Ionicons name="time-outline" size={14} color="#6B7280" />
+          <Text style={styles.meta} numberOfLines={1}>
+            {[dateLabel, timeLabel].filter(Boolean).join(' • ')}
+          </Text>
+        </View>
 
-        <View style={styles.footer}>
-          <View style={styles.orgRow}>
-            {item.organizer.avatarSource ? (
-              <Image source={item.organizer.avatarSource} style={styles.orgAvatar} />
-            ) : (
-              <View style={[styles.orgAvatar, styles.orgAvatarFallback]}>
-                <Text style={styles.orgInitial}>{item.organizer.name.charAt(0).toUpperCase()}</Text>
-              </View>
-            )}
-            <Text style={styles.orgName} numberOfLines={1}>
-              {item.organizer.name}
+        <View style={styles.metaRow}>
+          <View style={styles.typePill}>
+            <Text style={styles.typeText} numberOfLines={1}>
+              {item.type?.toUpperCase() || 'WORKSHOP'}
             </Text>
           </View>
-
-          <View style={styles.participants}>
-            <View style={styles.avatarStack}>
-              {avatars.map((src, idx) => (
-                <Image
-                  key={idx}
-                  source={src}
-                  style={[styles.stackAvatar, { marginLeft: idx === 0 ? 0 : -10 }]}
-                />
-              ))}
-            </View>
-            {extra > 0 ? (
-              <Text style={styles.participantsSuffix} numberOfLines={1}>
-                + {extra} others
-              </Text>
-            ) : null}
+          <View style={styles.feePill}>
+            <Text style={styles.feeText} numberOfLines={1}>
+              {feeLabel}
+            </Text>
           </View>
         </View>
+
       </View>
     </Pressable>
   );
@@ -218,23 +248,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: TAG_TEXT,
   },
-  favBtn: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: EVENT_SPOTLIGHT_ACCENT,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(0,0,0,0.08)',
-  },
-  hitPressed: {
-    opacity: 0.88,
-    transform: [{ scale: 0.96 }],
-  },
   body: {
     paddingHorizontal: THEME.spacing[12],
     paddingVertical: THEME.spacing[12],
@@ -259,64 +272,32 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     lineHeight: 18,
   },
-  footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: THEME.spacing[8],
-    marginTop: 4,
+  typePill: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(37, 99, 235, 0.10)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(37, 99, 235, 0.22)',
   },
-  orgRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: THEME.spacing[8],
-    flex: 1,
-    minWidth: 0,
+  typeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+    color: '#1D4ED8',
   },
-  orgAvatar: {
-    width: ORG_ICON,
-    height: ORG_ICON,
-    borderRadius: ORG_ICON / 2,
-    backgroundColor: '#E5E7EB',
+  feePill: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(4, 120, 87, 0.22)',
   },
-  orgAvatarFallback: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#CBD5F5',
-  },
-  orgInitial: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#3730A3',
-  },
-  orgName: {
-    fontSize: 12,
-    color: '#6B7280',
-    flex: 1,
-    fontWeight: '600',
-  },
-  participants: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    flexShrink: 0,
-  },
-  avatarStack: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  stackAvatar: {
-    width: AVATAR,
-    height: AVATAR,
-    borderRadius: AVATAR / 2,
-    borderWidth: 2,
-    borderColor: THEME.colors.background,
-    backgroundColor: '#D1D5DB',
-  },
-  participantsSuffix: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#6B7280',
-    maxWidth: 72,
+  feeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    color: '#047857',
   },
 });

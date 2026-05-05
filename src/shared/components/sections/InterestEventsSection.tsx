@@ -22,7 +22,7 @@ export interface InterestEventsSectionProps {
 
 export function InterestEventsSection(props: InterestEventsSectionProps): React.ReactElement {
   const {
-    title = 'Based on your interests',
+    title = 'Learn directly from experts',
     onViewAllPress,
     viewAllLabel = 'View all',
     items,
