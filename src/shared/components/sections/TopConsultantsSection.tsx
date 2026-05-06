@@ -4,31 +4,31 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { THEME } from '@/constants/theme';
 
 import {
-  EventSpotlightCard,
-  type EventSpotlightItem,
-} from '../cards/EventSpotlightCard/EventSpotlightCard';
+  TopConsultantCard,
+  type TopConsultantItem,
+} from '../cards/TopConsultantCard/TopConsultantCard';
 
-export interface InterestEventsSectionProps {
+export interface TopConsultantsSectionProps {
   title?: string;
   onViewAllPress?: () => void;
   viewAllLabel?: string;
-  /** Horizontal cards */
-  items: EventSpotlightItem[];
+  items: TopConsultantItem[];
   cardWidth?: number;
-  /** Extra bottom margin below the carousel */
   contentBottomInset?: number;
-  onItemPress?: (item: EventSpotlightItem) => void;
+  onItemPress?: (item: TopConsultantItem) => void;
+  onBookPress?: (item: TopConsultantItem) => void;
 }
 
-export function InterestEventsSection(props: InterestEventsSectionProps): React.ReactElement {
+export function TopConsultantsSection(props: TopConsultantsSectionProps): React.ReactElement {
   const {
-    title = 'Learn directly from experts',
+    title = 'Top consultants',
     onViewAllPress,
     viewAllLabel = 'View all',
     items,
-    cardWidth = 260,
+    cardWidth = 192,
     contentBottomInset = THEME.spacing[16],
     onItemPress,
+    onBookPress,
   } = props;
 
   return (
@@ -60,11 +60,12 @@ export function InterestEventsSection(props: InterestEventsSectionProps): React.
         contentContainerStyle={styles.carousel}
       >
         {items.map((item) => (
-          <EventSpotlightCard
+          <TopConsultantCard
             key={item.id}
             item={item}
             cardWidth={cardWidth}
             onPress={() => onItemPress?.(item)}
+            onBookPress={onBookPress ? () => onBookPress(item) : undefined}
           />
         ))}
       </ScrollView>
@@ -72,7 +73,7 @@ export function InterestEventsSection(props: InterestEventsSectionProps): React.
   );
 }
 
-InterestEventsSection.displayName = 'InterestEventsSection';
+TopConsultantsSection.displayName = 'TopConsultantsSection';
 
 const styles = StyleSheet.create({
   section: {
@@ -117,3 +118,4 @@ const styles = StyleSheet.create({
     paddingBottom: THEME.spacing[4],
   },
 });
+

@@ -4,31 +4,33 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { THEME } from '@/constants/theme';
 
 import {
-  EventSpotlightCard,
-  type EventSpotlightItem,
-} from '../cards/EventSpotlightCard/EventSpotlightCard';
+  UpcomingBookingCard,
+  type UpcomingBookingItem,
+} from '../cards/UpcomingBookingCard/UpcomingBookingCard';
 
-export interface InterestEventsSectionProps {
+export interface UpcomingBookingsSectionProps {
   title?: string;
   onViewAllPress?: () => void;
   viewAllLabel?: string;
   /** Horizontal cards */
-  items: EventSpotlightItem[];
+  items: UpcomingBookingItem[];
   cardWidth?: number;
   /** Extra bottom margin below the carousel */
   contentBottomInset?: number;
-  onItemPress?: (item: EventSpotlightItem) => void;
+  onItemPress?: (item: UpcomingBookingItem) => void;
+  onJoinCallPress?: (item: UpcomingBookingItem) => void;
 }
 
-export function InterestEventsSection(props: InterestEventsSectionProps): React.ReactElement {
+export function UpcomingBookingsSection(props: UpcomingBookingsSectionProps): React.ReactElement {
   const {
-    title = 'Learn directly from experts',
+    title = 'Upcoming bookings',
     onViewAllPress,
     viewAllLabel = 'View all',
     items,
-    cardWidth = 260,
+    cardWidth = 300,
     contentBottomInset = THEME.spacing[16],
     onItemPress,
+    onJoinCallPress,
   } = props;
 
   return (
@@ -60,11 +62,12 @@ export function InterestEventsSection(props: InterestEventsSectionProps): React.
         contentContainerStyle={styles.carousel}
       >
         {items.map((item) => (
-          <EventSpotlightCard
+          <UpcomingBookingCard
             key={item.id}
             item={item}
             cardWidth={cardWidth}
             onPress={() => onItemPress?.(item)}
+            onJoinCallPress={onJoinCallPress ? () => onJoinCallPress(item) : undefined}
           />
         ))}
       </ScrollView>
@@ -72,7 +75,7 @@ export function InterestEventsSection(props: InterestEventsSectionProps): React.
   );
 }
 
-InterestEventsSection.displayName = 'InterestEventsSection';
+UpcomingBookingsSection.displayName = 'UpcomingBookingsSection';
 
 const styles = StyleSheet.create({
   section: {
@@ -117,3 +120,4 @@ const styles = StyleSheet.create({
     paddingBottom: THEME.spacing[4],
   },
 });
+

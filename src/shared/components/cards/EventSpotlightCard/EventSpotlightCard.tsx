@@ -49,6 +49,52 @@ export interface EventSpotlightCardProps {
   onPress?: () => void;
 }
 
+const MONTHS_SHORT = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+] as const;
+
+function parseYyyyMmDd(value?: string): { y: number; m: number; d: number } | null {
+  if (!value) return null;
+  const [yRaw, mRaw, dRaw] = value.split('-');
+  const y = Number(yRaw);
+  const m = Number(mRaw);
+  const d = Number(dRaw);
+  if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) return null;
+  if (m < 1 || m > 12) return null;
+  if (d < 1 || d > 31) return null;
+  return { y, m, d };
+}
+
+function formatDateRange(start?: string, end?: string): string {
+  const s = parseYyyyMmDd(start);
+  if (!s) return '';
+  const e = parseYyyyMmDd(end);
+  const sMonth = MONTHS_SHORT[s.m - 1];
+  if (!e || !end || end === start) return `${s.d} ${sMonth}`;
+
+  const eMonth = MONTHS_SHORT[e.m - 1];
+  if (s.y === e.y && s.m === e.m) return `${s.d}–${e.d} ${sMonth}`;
+  return `${s.d} ${sMonth} – ${e.d} ${eMonth}`;
+}
+
+function formatTimeRange(startTime?: string, endTime?: string): string {
+  const st = startTime?.slice(0, 5);
+  const et = endTime?.slice(0, 5);
+  if (st && et) return `${st}–${et}`;
+  return st || et || '';
+}
+
 export function EventSpotlightCard({
   item,
   cardWidth = 280,
@@ -72,7 +118,14 @@ export function EventSpotlightCard({
   const initialThumbUri = useMemo(() => {
     const thumb = item.thumbnail?.trim();
     if (!thumb) return FALLBACK_THUMB;
-    if (thumb.startsWith('http://') || thumb.startsWith('https://')) return thumb;
+    if (thumb.startsWith('http://') || thumb.startsWith('https://')) {
+      // Some backends send URLs with unescaped characters; RN Image can fail silently.
+      try {
+        return encodeURI(thumb);
+      } catch {
+        return thumb;
+      }
+    }
     return FALLBACK_THUMB;
   }, [item.thumbnail]);
 
@@ -82,19 +135,20 @@ export function EventSpotlightCard({
     return { uri: thumbUri };
   }, [thumbUri]);
 
-  const dateLabel = useMemo(() => {
-    const start = item.startDate;
-    const end = item.endDate;
-    if (start && end && end !== start) return `${start} → ${end}`;
-    return start || '';
-  }, [item.endDate, item.startDate]);
+  const dateLabel = useMemo(
+    () => formatDateRange(item.startDate, item.endDate),
+    [item.endDate, item.startDate],
+  );
 
-  const timeLabel = useMemo(() => {
-    const st = item.startTime?.slice(0, 5);
-    const et = item.endTime?.slice(0, 5);
-    if (st && et) return `${st}–${et}`;
-    return st || et || '';
-  }, [item.endTime, item.startTime]);
+  const timeLabel = useMemo(
+    () => formatTimeRange(item.startTime, item.endTime),
+    [item.endTime, item.startTime],
+  );
+
+  const scheduleLabel = useMemo(() => {
+    const parts = [dateLabel, timeLabel].filter(Boolean);
+    return parts.length ? parts.join(' • ') : 'Schedule TBA';
+  }, [dateLabel, timeLabel]);
 
   const feeLabel = useMemo(() => {
     const online = Number(item.onlineFee ?? '0');
@@ -161,7 +215,7 @@ export function EventSpotlightCard({
         <View style={styles.metaRow}>
           <Ionicons name="time-outline" size={14} color="#6B7280" />
           <Text style={styles.meta} numberOfLines={1}>
-            {[dateLabel, timeLabel].filter(Boolean).join(' • ')}
+            {scheduleLabel}
           </Text>
         </View>
 
@@ -186,6 +240,7 @@ export function EventSpotlightCard({
 EventSpotlightCard.displayName = 'EventSpotlightCard';
 
 const IMAGE_RADIUS = 20;
+const IMAGE_HEIGHT = 124;
 
 const styles = StyleSheet.create({
   root: {
@@ -216,7 +271,7 @@ const styles = StyleSheet.create({
   },
   image: {
     width: '100%',
-    aspectRatio: 1.05,
+    height: IMAGE_HEIGHT,
     backgroundColor: '#E5E7EB',
   },
   imageOverlayBottom: {

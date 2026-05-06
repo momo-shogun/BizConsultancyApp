@@ -6,6 +6,8 @@ import {
   InterestEventsSection,
   SafeAreaWrapper,
   StatsSection,
+  UpcomingBookingsSection,
+  TopConsultantsSection,
   type EventSpotlightItem,
 } from '@/shared/components';
 import type { HomeCategoryId } from './ZeptoHS/ZeptoHS.types';
@@ -80,6 +82,14 @@ export function HomeDashboardScreen(): React.ReactElement {
     console.log('View all interests');
   }, []);
 
+  const onBookingsViewAll = useCallback(() => {
+    console.log('View all bookings');
+  }, []);
+
+  const onTopConsultantsViewAll = useCallback(() => {
+    console.log('View all consultants');
+  }, []);
+
   return (
     <SafeAreaWrapper edges={['top', 'bottom']}>
       <ZeptoHS
@@ -101,7 +111,62 @@ export function HomeDashboardScreen(): React.ReactElement {
                 console.log('Workshop clicked', item.id, item.slug)
               }
             />
-            <StatsSection />
+            {/* <StatsSection /> */}
+            <UpcomingBookingsSection
+              title="Upcoming bookings"
+              items={[
+                {
+                  id: 'BCG99763',
+                  dateLabel: '10/05/2026',
+                  timeLabel: '11:00–11:30',
+                  consultantName: 'Riya Sharma',
+                  consultantTitle: 'Startup & Compliance Consultant',
+                  callType: 'video',
+                  statusLabel: 'Upcoming',
+                },
+                {
+                  id: 'BCG99764',
+                  dateLabel: '12/05/2026',
+                  timeLabel: '16:00–16:30',
+                  consultantName: 'Aman Verma',
+                  consultantTitle: 'Funding & Pitch Advisor',
+                  callType: 'audio',
+                  statusLabel: 'Upcoming',
+                },
+              ]}
+              onViewAllPress={onBookingsViewAll}
+              onItemPress={(item) => console.log('Open booking', item.id)}
+              onJoinCallPress={(item) => console.log('Join call', item.id)}
+            />
+            <TopConsultantsSection
+              title="Top consultants"
+              cardWidth={184}
+              items={[
+                {
+                  id: 'consultant-lata-moorjani',
+                  name: 'CA Lata Moorjani',
+                  role: 'Business Analyst',
+                  bio: 'Bringing over 5 years of rich experience to the table, I, C.A. Lata Moorjani stand out as a seasoned financial expert. I am a proficient financial advisor, leveraging my extensive knowledge to assist clients in making informed decisions. My strategic insights help individuals and businesses achieve their financial goals.',
+                  specialty: 'Startup Nurturing & Funding',
+                  experienceLabel: '5+ years',
+                  rateLabel: '₹354',
+                  photoUri: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&auto=format&fit=crop&q=80',
+                },
+                {
+                  id: 'consultant-aman-verma',
+                  name: 'Aman Verma',
+                  role: 'Funding & Pitch Advisor',
+                  bio: 'Startup funding specialist with 8+ years helping founders raise seed to Series A rounds. Former VC analyst, now working directly with entrepreneurs.',
+                  specialty: 'Funding & Pitch',
+                  experienceLabel: '8+ years',
+                  rateLabel: '₹499',
+                  photoUri: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=600&auto=format&fit=crop&q=80',
+                },
+              ]}
+              onViewAllPress={onTopConsultantsViewAll}
+              onItemPress={(item) => console.log('Open consultant', item.id)}
+              onBookPress={(item) => console.log('Book consultation', item.id)}
+            />
           </View>
         )}
       </ZeptoHS>
