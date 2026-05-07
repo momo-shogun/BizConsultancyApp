@@ -15,6 +15,7 @@ export interface RecommendedServicesSectionProps {
   items: RecommendedServiceItem[];
   cardWidth?: number;
   contentBottomInset?: number;
+  variant?: 'default' | 'accentPanel';
   onItemPress?: (item: RecommendedServiceItem) => void;
   onCtaPress?: (item: RecommendedServiceItem) => void;
 }
@@ -27,14 +28,23 @@ export function RecommendedServicesSection(props: RecommendedServicesSectionProp
     items,
     cardWidth = 320,
     contentBottomInset = THEME.spacing[16],
+    variant = 'default',
     onItemPress,
     onCtaPress,
   } = props;
 
+  const isAccentPanel = variant === 'accentPanel';
+
   return (
-    <View style={[styles.section, { marginBottom: contentBottomInset }]}>
+    <View
+      style={[
+        styles.section,
+        isAccentPanel && styles.accentPanel,
+        { marginBottom: contentBottomInset },
+      ]}
+    >
       <View style={styles.header}>
-        <Text style={styles.title} accessibilityRole="header">
+        <Text style={[styles.title, isAccentPanel && styles.titleOnAccent]} accessibilityRole="header">
           {title}
         </Text>
         {onViewAllPress != null ? (
@@ -45,10 +55,14 @@ export function RecommendedServicesSection(props: RecommendedServicesSectionProp
             hitSlop={8}
             style={({ pressed }) => [styles.viewAll, pressed && styles.viewAllPressed]}
           >
-            <Text style={styles.viewAllText}>{viewAllLabel}</Text>
+            <Text style={[styles.viewAllText, isAccentPanel && styles.viewAllTextOnAccent]}>
+              {viewAllLabel}
+            </Text>
           </Pressable>
         ) : (
-          <Text style={styles.viewAllTextMuted}>{viewAllLabel}</Text>
+          <Text style={[styles.viewAllTextMuted, isAccentPanel && styles.viewAllTextMutedOnAccent]}>
+            {viewAllLabel}
+          </Text>
         )}
       </View>
 
@@ -79,9 +93,17 @@ const styles = StyleSheet.create({
   section: {
     marginTop: THEME.spacing[4],
   },
+  accentPanel: {
+    marginHorizontal: THEME.spacing[16],
+    paddingTop: THEME.spacing[16],
+    paddingBottom: THEME.spacing[12],
+    backgroundColor: THEME.colors.chooseAccountConsultantGrad2,
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
   header: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: THEME.spacing[12],
     paddingHorizontal: THEME.spacing[16],
@@ -89,17 +111,19 @@ const styles = StyleSheet.create({
   },
   title: {
     flex: 1,
-    fontSize: THEME.typography.size[18],
+    fontSize: THEME.typography.size[16],
     fontWeight: THEME.typography.weight.bold as '700',
     color: THEME.colors.textPrimary,
     letterSpacing: -0.35,
     lineHeight: 24,
   },
+  titleOnAccent: {
+    color: THEME.colors.white,
+  },
   viewAll: {
     flexShrink: 0,
     paddingVertical: 4,
     paddingHorizontal: 4,
-    marginTop: 2,
   },
   viewAllPressed: {
     opacity: 0.75,
@@ -107,13 +131,18 @@ const styles = StyleSheet.create({
   viewAllText: {
     fontSize: THEME.typography.size[14],
     fontWeight: THEME.typography.weight.semibold as '600',
-    color: '#2563EB',
+    color: THEME.colors.primary,
+  },
+  viewAllTextOnAccent: {
+    color: THEME.colors.white,
   },
   viewAllTextMuted: {
     fontSize: THEME.typography.size[14],
     fontWeight: THEME.typography.weight.semibold as '600',
     color: '#9CA3AF',
-    marginTop: 2,
+  },
+  viewAllTextMutedOnAccent: {
+    color: 'rgba(255,255,255,0.82)',
   },
   carousel: {
     paddingLeft: THEME.spacing[16],

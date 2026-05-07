@@ -2,35 +2,29 @@ import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { THEME } from '@/constants/theme';
+import { MembershipPlanCard, type MembershipPlanItem } from '../cards/MembershipPlanCard/MembershipPlanCard';
 
-import {
-  UpcomingBookingCard,
-  type UpcomingBookingItem,
-} from '../cards/UpcomingBookingCard/UpcomingBookingCard';
-
-export interface UpcomingBookingsSectionProps {
+export interface MembershipPlansSectionProps {
   title?: string;
   onViewAllPress?: () => void;
   viewAllLabel?: string;
-  /** Horizontal cards */
-  items: UpcomingBookingItem[];
+  items: MembershipPlanItem[];
   cardWidth?: number;
-  /** Extra bottom margin below the carousel */
   contentBottomInset?: number;
-  onItemPress?: (item: UpcomingBookingItem) => void;
-  onJoinCallPress?: (item: UpcomingBookingItem) => void;
+  onItemPress?: (item: MembershipPlanItem) => void;
+  onCtaPress?: (item: MembershipPlanItem) => void;
 }
 
-export function UpcomingBookingsSection(props: UpcomingBookingsSectionProps): React.ReactElement {
+export function MembershipPlansSection(props: MembershipPlansSectionProps): React.ReactElement {
   const {
-    title = 'Upcoming bookings',
+    title = 'Membership plans',
     onViewAllPress,
     viewAllLabel = 'View all',
     items,
-    cardWidth = 300,
+    cardWidth = 340,
     contentBottomInset = THEME.spacing[16],
     onItemPress,
-    onJoinCallPress,
+    onCtaPress,
   } = props;
 
   return (
@@ -62,12 +56,12 @@ export function UpcomingBookingsSection(props: UpcomingBookingsSectionProps): Re
         contentContainerStyle={styles.carousel}
       >
         {items.map((item) => (
-          <UpcomingBookingCard
+          <MembershipPlanCard
             key={item.id}
             item={item}
             cardWidth={cardWidth}
             onPress={() => onItemPress?.(item)}
-            onJoinCallPress={onJoinCallPress ? () => onJoinCallPress(item) : undefined}
+            onCtaPress={onCtaPress ? () => onCtaPress(item) : undefined}
           />
         ))}
       </ScrollView>
@@ -75,7 +69,7 @@ export function UpcomingBookingsSection(props: UpcomingBookingsSectionProps): Re
   );
 }
 
-UpcomingBookingsSection.displayName = 'UpcomingBookingsSection';
+MembershipPlansSection.displayName = 'MembershipPlansSection';
 
 const styles = StyleSheet.create({
   section: {
@@ -95,6 +89,7 @@ const styles = StyleSheet.create({
     fontWeight: THEME.typography.weight.bold as '700',
     color: THEME.colors.textPrimary,
     letterSpacing: -0.35,
+    lineHeight: 24,
   },
   viewAll: {
     flexShrink: 0,
@@ -118,6 +113,7 @@ const styles = StyleSheet.create({
     paddingLeft: THEME.spacing[16],
     paddingRight: THEME.spacing[8],
     paddingBottom: THEME.spacing[4],
+    gap: THEME.spacing[12],
   },
 });
 

@@ -15,6 +15,8 @@ import {
   type TestimonialItem,
   TestimonialsSection,
   type TopConsultantItem,
+  MembershipPlansSection,
+  type MembershipPlanItem,
 } from '@/shared/components';
 import type { HomeCategoryId } from './ZeptoHS/ZeptoHS.types';
 import { ZeptoHS } from './ZeptoHS/ZeptoHS';
@@ -190,6 +192,68 @@ const HOME_UPCOMING_BOOKINGS_DEMO_ITEMS: UpcomingBookingItem[] = [
   },
 ];
 
+const HOME_MEMBERSHIP_PLANS_CARD_WIDTH = 360;
+
+const HOME_MEMBERSHIP_PLANS_DEMO_ITEMS: MembershipPlanItem[] = [
+  {
+    id: 'm-starter',
+    audienceLabel: 'For individuals & solo founders',
+    title: 'Starter',
+    subtitle: 'Perfect to start with clarity',
+    priceLabel: '₹999',
+    periodLabel: '/mo',
+    badgeLabel: 'Save 20%',
+    ctaLabel: 'Get Starter',
+    gradientColors: [THEME.colors.chooseAccountUserGrad1, THEME.colors.chooseAccountUserGrad2],
+    features: [
+      'Business idea validation',
+      '1 expert call / month',
+      'Basic compliance checklist',
+      'Document templates',
+      'Email support',
+      'Monthly action plan',
+    ],
+  },
+  {
+    id: 'm-growth',
+    audienceLabel: 'For growing teams',
+    title: 'Growth',
+    subtitle: 'Structured execution & tracking',
+    priceLabel: '₹2,499',
+    periodLabel: '/mo',
+    badgeLabel: 'Most popular',
+    ctaLabel: 'Choose Growth',
+    gradientColors: [THEME.colors.chooseAccountConsultantGrad1, THEME.colors.chooseAccountConsultantGrad2],
+    features: [
+      '2 expert calls / month',
+      'GST + compliance tracking',
+      'Pitch deck review',
+      'Monthly performance review',
+      'Priority chat support',
+      'Vendor & tools guidance',
+    ],
+  },
+  {
+    id: 'm-pro',
+    audienceLabel: 'For scaling businesses',
+    title: 'Pro',
+    subtitle: 'Hands-on strategy + compliance',
+    priceLabel: '₹4,999',
+    periodLabel: '/mo',
+    badgeLabel: 'Best value',
+    ctaLabel: 'Go Pro',
+    gradientColors: [THEME.colors.splashGreen3, THEME.colors.splashGreen4],
+    features: [
+      'Weekly advisory call',
+      'Dedicated compliance manager',
+      'Funding & pitch roadmap',
+      'SOPs & operations guidance',
+      'Fast-track support',
+      'Quarterly strategy plan',
+    ],
+  },
+];
+
 export function HomeDashboardScreen(): React.ReactElement {
   const onInterestViewAll = useCallback(() => {
     console.log('View all interests');
@@ -209,6 +273,10 @@ export function HomeDashboardScreen(): React.ReactElement {
 
   const onTestimonialsViewAll = useCallback(() => {
     console.log('View all testimonials');
+  }, []);
+
+  const onMembershipViewAll = useCallback(() => {
+    console.log('View all memberships');
   }, []);
 
   return (
@@ -249,9 +317,10 @@ export function HomeDashboardScreen(): React.ReactElement {
               onBookPress={(item) => console.log('Book consultation', item.id)}
             />
             <RecommendedServicesSection
-              title="Connect with Verified Business Experts @ One Click"
+              title="Recommended services"
               cardWidth={HOME_RECOMMENDED_SERVICES_CARD_WIDTH}
               items={HOME_RECOMMENDED_SERVICES_DEMO_ITEMS}
+              variant="accentPanel"
               onViewAllPress={onRecommendedServicesViewAll}
               onItemPress={(item) => console.log('Open service', item.slug)}
               onCtaPress={(item) => console.log('Get started', item.slug)}
@@ -262,6 +331,14 @@ export function HomeDashboardScreen(): React.ReactElement {
               items={HOME_TESTIMONIALS_DEMO_ITEMS}
               onViewAllPress={onTestimonialsViewAll}
               onItemPress={(item) => console.log('Open testimonial', item.id)}
+            />
+            <MembershipPlansSection
+              title="Membership plans"
+              cardWidth={HOME_MEMBERSHIP_PLANS_CARD_WIDTH}
+              items={HOME_MEMBERSHIP_PLANS_DEMO_ITEMS}
+              onViewAllPress={onMembershipViewAll}
+              onItemPress={(item) => console.log('Open membership', item.id)}
+              onCtaPress={(item) => console.log('Select membership', item.id)}
             />
           </View>
         )}

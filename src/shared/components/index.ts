@@ -20,6 +20,7 @@ export { UpcomingBookingsSection, type UpcomingBookingsSectionProps } from './se
 export { TopConsultantsSection, type TopConsultantsSectionProps } from './sections/TopConsultantsSection';
 export { RecommendedServicesSection, type RecommendedServicesSectionProps } from './sections/RecommendedServicesSection';
 export { TestimonialsSection, type TestimonialsSectionProps } from './sections/TestimonialsSection';
+export { MembershipPlansSection, type MembershipPlansSectionProps } from './sections/MembershipPlansSection';
 export { DashboardCard } from './cards/DashboardCard';
 export {
   EventSpotlightCard,
@@ -35,5 +36,10 @@ export {
   type RecommendedServiceItem,
 } from './cards/RecommendedServiceCard/RecommendedServiceCard';
 export { TestimonialCard, type TestimonialCardProps, type TestimonialItem } from './cards/TestimonialCard/TestimonialCard';
+export {
+  MembershipPlanCard,
+  type MembershipPlanCardProps,
+  type MembershipPlanItem,
+} from './cards/MembershipPlanCard/MembershipPlanCard';
 export { AccountTypeCard } from './cards/AccountTypeCard/AccountTypeCard';
 
