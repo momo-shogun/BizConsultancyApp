@@ -3,6 +3,15 @@ export { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 export { Input } from './ui/Input/Input';
 export { ScreenHeader } from './ui/ScreenHeader/ScreenHeader';
 
+export { FilterChipsBar, type FilterChipItem, type FilterChipsBarProps } from './filters/FilterChipsBar';
+export {
+  FilterSheet,
+  type FilterOption,
+  type FilterSection,
+  type FilterSheetProps,
+  type FilterSheetValue,
+} from './filters/FilterSheet';
+
 export { ScreenWrapper } from './wrappers/ScreenWrapper';
 export { SafeAreaWrapper } from './wrappers/SafeAreaWrapper';
 export { KeyboardWrapper } from './wrappers/KeyboardWrapper';
