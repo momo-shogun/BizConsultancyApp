@@ -405,7 +405,7 @@ const styles = StyleSheet.create({
     color: THEME.colors.textPrimary,
   },
   badge: {
-    backgroundColor: THEME.colors.accentSky,
+    backgroundColor: THEME.colors.accentAmber,
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -477,7 +477,7 @@ const styles = StyleSheet.create({
     bottom: 6,
     width: 3,
     borderRadius: 2,
-    backgroundColor: THEME.colors.accentSky,
+    backgroundColor: THEME.colors.accentAmber,
   },
   railText: {
     fontSize: 13,
@@ -493,7 +493,7 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: THEME.colors.accentSky,
+    backgroundColor: THEME.colors.accentAmber,
     marginLeft: 4,
   },
   pressedScale: {
@@ -527,7 +527,7 @@ const styles = StyleSheet.create({
     gap: THEME.spacing[12],
   },
   optionRowSelected: {
-    backgroundColor: `${THEME.colors.accentSky}12`,
+    backgroundColor: `${THEME.colors.accentAmber}12`,
   },
   optionPressed: {
     backgroundColor: THEME.colors.surface,
@@ -541,7 +541,7 @@ const styles = StyleSheet.create({
   },
   optionTextSelected: {
     fontWeight: '600',
-    color: THEME.colors.accentSky,
+    color: THEME.colors.accentAmber,
   },
   radio: {
     width: 20,
@@ -553,14 +553,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   radioSelected: {
-    borderColor: THEME.colors.accentSky,
-    backgroundColor: `${THEME.colors.accentSky}14`,
+    borderColor: THEME.colors.accentAmber,
+    backgroundColor: `${THEME.colors.accentAmber}14`,
   },
   radioDot: {
     width: 9,
     height: 9,
     borderRadius: 4.5,
-    backgroundColor: THEME.colors.accentSky,
+    backgroundColor: THEME.colors.accentAmber,
   },
 
   // Footer
@@ -600,12 +600,12 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 50,
     borderRadius: 14,
-    backgroundColor: THEME.colors.accentSky,
+    backgroundColor: THEME.colors.accentAmber,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    shadowColor: THEME.colors.accentSky,
+    shadowColor: THEME.colors.accentAmber,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.28,
     shadowRadius: 10,
