@@ -6,7 +6,7 @@ import type { AppTabParamList } from '../types';
 import { ROUTES } from '../routeNames';
 
 import { HomeDashboardScreen } from '@/features/Home/screens/HomeDashboardScreen';
-import { ServicesListingScreen } from '@/features/Services/screens/ServicesListingScreen';
+import { ServicesStackNavigator } from '../ServicesStackNavigator';
 import { BookingsScreen } from '@/features/Bookings/screens/BookingsScreen';
 import { ProfileScreen } from '@/features/Profile/screens/ProfileScreen';
 
@@ -46,7 +46,7 @@ export function BottomTabNavigator(): React.ReactElement {
       <Tab.Screen name={ROUTES.App.Home} component={HomeDashboardScreen} options={{ title: 'Home' }} />
       <Tab.Screen
         name={ROUTES.App.Services}
-        component={ServicesListingScreen}
+        component={ServicesStackNavigator}
         options={{ title: 'Services' }}
       />
       <Tab.Screen

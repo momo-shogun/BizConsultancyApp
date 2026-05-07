@@ -18,5 +18,9 @@ export const ROUTES = {
     Bookings: 'App/Bookings',
     Account: 'App/Account',
   },
+  Services: {
+    List: 'App/Services/List',
+    Detail: 'App/Services/Detail',
+  },
 } as const;
 

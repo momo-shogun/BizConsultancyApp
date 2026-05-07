@@ -8,10 +8,10 @@ import { ROUTES } from '../../routeNames';
 import { PlanckBridgedTabBar } from '../../shared/PlanckBridgedTabBar';
 
 import { HomeDashboardScreen } from '@/features/Home/screens/HomeDashboardScreen';
-import { ServicesListingScreen } from '@/features/Services/screens/ServicesListingScreen';
 import { BookingsScreen } from '@/features/Bookings/screens/BookingsScreen';
 import { ProfileScreen } from '@/features/Profile/screens/ProfileScreen';
 
+import { ServicesStackNavigator } from '../../ServicesStackNavigator';
 import { plankBarV1TabNavigatorScreenOptions } from './plankBarV1.styles';
 
 const PlankTab = createBottomTabNavigator<AppTabParamList>();
@@ -54,7 +54,7 @@ export function PlankBarV1TabNavigator(): React.ReactElement {
       <PlankTab.Screen name={ROUTES.App.Home} component={HomeDashboardScreen} options={{ title: 'Home' }} />
       <PlankTab.Screen
         name={ROUTES.App.Services}
-        component={ServicesListingScreen}
+        component={ServicesStackNavigator}
         options={{ title: 'Services' }}
       />
       <PlankTab.Screen

@@ -25,6 +25,10 @@ export interface RecommendedServiceCardProps {
   cardWidth?: DimensionValue;
   onPress?: () => void;
   onCtaPress?: () => void;
+  /** Removes carousel trailing gutter when the card spans the full content width */
+  fullWidth?: boolean;
+  /** Overrides default hint on the top pressable (e.g. on detail where `onPress` is disabled) */
+  upperPressableAccessibilityHint?: string;
 }
 
 const HEADER_PRESETS: readonly { bg: string; fg: string }[] = [
@@ -57,6 +61,8 @@ export function RecommendedServiceCard({
   cardWidth = 320,
   onPress,
   onCtaPress,
+  fullWidth = false,
+  upperPressableAccessibilityHint,
 }: RecommendedServiceCardProps): React.ReactElement {
   const a11y = useMemo(
     () =>
@@ -70,12 +76,19 @@ export function RecommendedServiceCard({
     (onCtaPress ?? onPress)?.();
   };
 
+  const upperHint =
+    upperPressableAccessibilityHint != null
+      ? upperPressableAccessibilityHint
+      : onPress != null
+        ? 'Opens service details'
+        : undefined;
+
   return (
-    <View style={[styles.root, { width: cardWidth }]}>
+    <View style={[styles.root, fullWidth ? styles.rootFullWidth : null, { width: cardWidth }]}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={a11y}
-        accessibilityHint="Opens service details"
+        accessibilityHint={upperHint}
         onPress={onPress}
         disabled={onPress == null}
         style={({ pressed }) => [pressed && onPress != null ? styles.upperPressed : null]}
@@ -161,6 +174,9 @@ const styles = StyleSheet.create({
         elevation: 3,
       },
     }),
+  },
+  rootFullWidth: {
+    marginRight: 0,
   },
   upperPressed: {
     opacity: 0.96,

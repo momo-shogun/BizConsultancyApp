@@ -1,42 +1,82 @@
 import React, { useCallback } from 'react';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { FlatList, ListRenderItem, StyleSheet, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { THEME } from '@/constants/theme';
-import { EmptyState, SafeAreaWrapper, ScreenHeader, ScreenWrapper, SectionHeader } from '@/shared/components';
+import { ROUTES } from '@/navigation/routeNames';
+import type { ServicesStackParamList } from '@/navigation/types';
+import {
+  EmptyState,
+  RecommendedServiceCard,
+  type RecommendedServiceItem,
+  SafeAreaWrapper,
+  ScreenHeader,
+  ScreenWrapper,
+  SectionHeader,
+} from '@/shared/components';
 
-interface ServiceItem {
-  id: string;
-  title: string;
-  description: string;
-}
+import { DEMO_SERVICES } from '../data/demoServices';
 
-const DATA: ServiceItem[] = [
-  { id: 'strategy', title: 'Business Strategy', description: 'Roadmaps, market fit, growth plans.' },
-  { id: 'finance', title: 'Finance & Compliance', description: 'Cashflow, tax basics, compliance guidance.' },
-  { id: 'marketing', title: 'Marketing', description: 'Positioning, campaigns, content strategy.' },
-];
+const LIST_SEPARATOR_HEIGHT = THEME.spacing[12];
 
 export function ServicesListingScreen(): React.ReactElement {
-  const renderItem = useCallback(({ item }: { item: ServiceItem }): React.ReactElement => {
-    return (
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>{item.title}</Text>
-        <Text style={styles.cardDesc}>{item.description}</Text>
-      </View>
-    );
+  const navigation = useNavigation<NativeStackNavigationProp<ServicesStackParamList>>();
+
+  const goToDetail = useCallback(
+    (slug: string): void => {
+      navigation.navigate(ROUTES.Services.Detail, { slug });
+    },
+    [navigation],
+  );
+
+  const renderItem = useCallback<ListRenderItem<RecommendedServiceItem>>(
+    ({ item }) => {
+      return (
+        <RecommendedServiceCard
+          item={item}
+          cardWidth="100%"
+          fullWidth
+          onPress={() => {
+            goToDetail(item.slug);
+          }}
+          onCtaPress={() => {
+            goToDetail(item.slug);
+          }}
+        />
+      );
+    },
+    [goToDetail],
+  );
+
+  const keyExtractor = useCallback((i: RecommendedServiceItem): string => i.id, []);
+
+  const ItemSeparator = useCallback((): React.ReactElement => {
+    return <View style={styles.separator} />;
   }, []);
 
   return (
     <SafeAreaWrapper edges={['top', 'bottom']}>
-      <ScreenHeader title="Services" />
+      <ScreenHeader title="Services" onSearchPress={() => {}} />
       <ScreenWrapper>
         <FlatList
-          data={DATA}
-          keyExtractor={(i) => i.id}
-          contentContainerStyle={styles.content}
+          data={DEMO_SERVICES}
+          keyExtractor={keyExtractor}
           renderItem={renderItem}
-          ListHeaderComponent={<SectionHeader title="Browse services" subtitle="Pick a category to explore." />}
-          ListEmptyComponent={<EmptyState title="No services yet" description="This will be populated from API later." />}
+          ItemSeparatorComponent={ItemSeparator}
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          ListHeaderComponent={
+            <View style={styles.listHeader}>
+              <SectionHeader
+                title="Browse services"
+                subtitle="Pick a service to see scope, pricing, and next steps."
+              />
+            </View>
+          }
+          ListEmptyComponent={
+            <EmptyState title="No services yet" description="This will be populated from API later." />
+          }
         />
       </ScreenWrapper>
     </SafeAreaWrapper>
@@ -46,24 +86,13 @@ export function ServicesListingScreen(): React.ReactElement {
 const styles = StyleSheet.create({
   content: {
     padding: THEME.spacing[16],
-    gap: THEME.spacing[12],
+    paddingBottom: THEME.spacing[24],
+    flexGrow: 1,
   },
-  card: {
-    borderWidth: 1,
-    borderColor: THEME.colors.border,
-    backgroundColor: THEME.colors.white,
-    borderRadius: THEME.radius[16],
-    padding: THEME.spacing[16],
-    gap: THEME.spacing[8],
+  listHeader: {
+    marginBottom: THEME.spacing[12],
   },
-  cardTitle: {
-    fontSize: THEME.typography.size[16],
-    fontWeight: THEME.typography.weight.semibold,
-    color: THEME.colors.textPrimary,
-  },
-  cardDesc: {
-    fontSize: THEME.typography.size[14],
-    color: THEME.colors.textSecondary,
+  separator: {
+    height: LIST_SEPARATOR_HEIGHT,
   },
 });
-

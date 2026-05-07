@@ -7,13 +7,17 @@ import { THEME } from '@/constants/theme';
 interface ScreenHeaderProps {
   title: string;
   onBackPress?: () => void;
+  onSearchPress?: () => void;
 }
 
 export function ScreenHeader(props: ScreenHeaderProps): React.ReactElement {
+  const hasBack = props.onBackPress != null;
+  const hasSearch = props.onSearchPress != null;
+
   return (
     <View style={styles.container}>
       <View style={styles.left}>
-        {props.onBackPress ? (
+        {hasBack ? (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Go back"
@@ -23,12 +27,20 @@ export function ScreenHeader(props: ScreenHeaderProps): React.ReactElement {
           >
             <Ionicons name="chevron-back" size={22} color={THEME.colors.textPrimary} />
           </Pressable>
-        ) : (
-          <View style={styles.backSpacer} />
-        )}
+        ) : null}
         <Text style={styles.title}>{props.title}</Text>
       </View>
-      <View style={styles.right} />
+      {hasSearch ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Search"
+          onPress={props.onSearchPress}
+          hitSlop={8}
+          style={styles.rightButton}
+        >
+          <Ionicons name="search" size={20} color={THEME.colors.textPrimary} />
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -40,8 +52,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderBottomWidth: 1,
-    borderBottomColor: THEME.colors.border,
     backgroundColor: THEME.colors.background,
   },
   left: {
@@ -58,9 +68,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  backSpacer: {
+  rightButton: {
     width: 32,
     height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   title: {
     fontSize: THEME.typography.size[18],

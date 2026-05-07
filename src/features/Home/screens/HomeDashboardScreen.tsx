@@ -2,6 +2,7 @@ import React, { useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { THEME } from '@/constants/theme';
+import { DEMO_SERVICES } from '@/features/Services/data/demoServices';
 import {
   InterestEventsSection,
   SafeAreaWrapper,
@@ -11,7 +12,6 @@ import {
   RecommendedServicesSection,
   type EventSpotlightItem,
   type UpcomingBookingItem,
-  type RecommendedServiceItem,
   type TestimonialItem,
   TestimonialsSection,
   type TopConsultantItem,
@@ -111,42 +111,6 @@ const HOME_TOP_CONSULTANTS_DEMO_ITEMS: TopConsultantItem[] = [
 ];
 
 const HOME_RECOMMENDED_SERVICES_CARD_WIDTH = 320;
-
-const HOME_RECOMMENDED_SERVICES_DEMO_ITEMS: RecommendedServiceItem[] = [
-  {
-    id: 'svc-plc',
-    slug: 'private-limited-company-incorporation',
-    headerRight: 'Expert-led',
-    categoryLabel: 'Business incorporation',
-    title: 'Private Limited Company Ikncorporation',
-    summary: 'Incorporate your Pvt Ltd with DSC, DIN, MOA/AOA and MCA filing—guided by verified experts.',
-    badgeLabel: 'Popular',
-    priceLabel: 'From ₹9,999',
-    headerStyleIndex: 0,
-  },
-  {
-    id: 'svc-gst',
-    slug: 'gst-registration',
-    headerRight: '2–4 weeks',
-    categoryLabel: 'Tax & compliance',
-    title: 'GST Registration',
-    summary: 'Get GSTIN for your business with document prep and compliance hand-holding from day one.',
-    badgeLabel: 'Verified',
-    priceLabel: 'From ₹1,499',
-    headerStyleIndex: 1,
-  },
-  {
-    id: 'svc-tm',
-    slug: 'trademark-registration',
-    headerRight: 'MCA ready',
-    categoryLabel: 'IP & legal',
-    title: 'Trademark Registration',
-    summary: 'Protect your brand with search, filing, and expert follow-up through registration.',
-    badgeLabel: 'Trending',
-    priceLabel: 'From ₹5,999',
-    headerStyleIndex: 2,
-  },
-];
 
 const HOME_TESTIMONIALS_CARD_WIDTH = 260;
 
@@ -319,7 +283,7 @@ export function HomeDashboardScreen(): React.ReactElement {
             <RecommendedServicesSection
               title="Recommended services"
               cardWidth={HOME_RECOMMENDED_SERVICES_CARD_WIDTH}
-              items={HOME_RECOMMENDED_SERVICES_DEMO_ITEMS}
+              items={DEMO_SERVICES}
               variant="accentPanel"
               onViewAllPress={onRecommendedServicesViewAll}
               onItemPress={(item) => console.log('Open service', item.slug)}

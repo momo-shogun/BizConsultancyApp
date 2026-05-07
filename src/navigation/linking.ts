@@ -21,7 +21,13 @@ export const linking: LinkingOptions<RootStackParamList> = {
       [ROUTES.Root.App]: {
         screens: {
           [ROUTES.App.Home]: 'home',
-          [ROUTES.App.Services]: 'services',
+          [ROUTES.App.Services]: {
+            path: 'services',
+            screens: {
+              [ROUTES.Services.List]: '',
+              [ROUTES.Services.Detail]: ':slug',
+            },
+          },
           [ROUTES.App.Bookings]: 'bookings',
           [ROUTES.App.Account]: 'account',
         },

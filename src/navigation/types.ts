@@ -12,9 +12,14 @@ export type AuthStackParamList = {
   [ROUTES.Auth.ProfileSetup]: undefined;
 };
 
+export type ServicesStackParamList = {
+  [ROUTES.Services.List]: undefined;
+  [ROUTES.Services.Detail]: { slug: string };
+};
+
 export type AppTabParamList = {
   [ROUTES.App.Home]: undefined;
-  [ROUTES.App.Services]: undefined;
+  [ROUTES.App.Services]: NavigatorScreenParams<ServicesStackParamList>;
   [ROUTES.App.Bookings]: undefined;
   [ROUTES.App.Account]: undefined;
 };
