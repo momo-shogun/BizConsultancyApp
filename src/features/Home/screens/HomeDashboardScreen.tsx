@@ -8,7 +8,13 @@ import {
   StatsSection,
   UpcomingBookingsSection,
   TopConsultantsSection,
+  RecommendedServicesSection,
   type EventSpotlightItem,
+  type UpcomingBookingItem,
+  type RecommendedServiceItem,
+  type TestimonialItem,
+  TestimonialsSection,
+  type TopConsultantItem,
 } from '@/shared/components';
 import type { HomeCategoryId } from './ZeptoHS/ZeptoHS.types';
 import { ZeptoHS } from './ZeptoHS/ZeptoHS';
@@ -77,6 +83,113 @@ const HOME_INTEREST_DEMO_ITEMS: EventSpotlightItem[] = [
   },
 ];
 
+const HOME_TOP_CONSULTANTS_CARD_WIDTH = 184;
+
+const HOME_TOP_CONSULTANTS_DEMO_ITEMS: TopConsultantItem[] = [
+  {
+    id: 'consultant-lata-moorjani',
+    name: 'CA Lata Moorjani',
+    role: 'Business Analyst',
+    bio: 'Bringing over 5 years of rich experience to the table, I, C.A. Lata Moorjani stand out as a seasoned financial expert. I am a proficient financial advisor, leveraging my extensive knowledge to assist clients in making informed decisions. My strategic insights help individuals and businesses achieve their financial goals.',
+    specialty: 'Startup Nurturing & Funding',
+    experienceLabel: '5+ years',
+    rateLabel: '₹354',
+    photoUri: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&auto=format&fit=crop&q=80',
+  },
+  {
+    id: 'consultant-aman-verma',
+    name: 'Aman Verma',
+    role: 'Funding & Pitch Advisor',
+    bio: 'Startup funding specialist with 8+ years helping founders raise seed to Series A rounds. Former VC analyst, now working directly with entrepreneurs.',
+    specialty: 'Funding & Pitch',
+    experienceLabel: '8+ years',
+    rateLabel: '₹499',
+    photoUri: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=600&auto=format&fit=crop&q=80',
+  },
+];
+
+const HOME_RECOMMENDED_SERVICES_CARD_WIDTH = 320;
+
+const HOME_RECOMMENDED_SERVICES_DEMO_ITEMS: RecommendedServiceItem[] = [
+  {
+    id: 'svc-plc',
+    slug: 'private-limited-company-incorporation',
+    headerRight: 'Expert-led',
+    categoryLabel: 'Business incorporation',
+    title: 'Private Limited Company Ikncorporation',
+    summary: 'Incorporate your Pvt Ltd with DSC, DIN, MOA/AOA and MCA filing—guided by verified experts.',
+    badgeLabel: 'Popular',
+    priceLabel: 'From ₹9,999',
+    headerStyleIndex: 0,
+  },
+  {
+    id: 'svc-gst',
+    slug: 'gst-registration',
+    headerRight: '2–4 weeks',
+    categoryLabel: 'Tax & compliance',
+    title: 'GST Registration',
+    summary: 'Get GSTIN for your business with document prep and compliance hand-holding from day one.',
+    badgeLabel: 'Verified',
+    priceLabel: 'From ₹1,499',
+    headerStyleIndex: 1,
+  },
+  {
+    id: 'svc-tm',
+    slug: 'trademark-registration',
+    headerRight: 'MCA ready',
+    categoryLabel: 'IP & legal',
+    title: 'Trademark Registration',
+    summary: 'Protect your brand with search, filing, and expert follow-up through registration.',
+    badgeLabel: 'Trending',
+    priceLabel: 'From ₹5,999',
+    headerStyleIndex: 2,
+  },
+];
+
+const HOME_TESTIMONIALS_CARD_WIDTH = 260;
+
+const HOME_TESTIMONIALS_DEMO_ITEMS: TestimonialItem[] = [
+  {
+    id: 't-victoria',
+    quote: 'We prioritized a structured approach to enhance credit management features efficiently.',
+    name: 'Victoria P.',
+    role: 'Team lead',
+    avatarUri:
+      'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=256&auto=format&fit=crop&q=80',
+    accentStyleIndex: 0,
+  },
+  {
+    id: 't-dmitry',
+    quote: 'Iterative design sprints helped refine user experience based on continuous feedback.',
+    name: 'Dmitry K.',
+    role: 'UX/UI Designer',
+    avatarUri:
+      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=256&auto=format&fit=crop&q=80',
+    accentStyleIndex: 1,
+  },
+];
+
+const HOME_UPCOMING_BOOKINGS_DEMO_ITEMS: UpcomingBookingItem[] = [
+  {
+    id: 'BCG99763',
+    dateLabel: '10/05/2026',
+    timeLabel: '11:00–11:30',
+    consultantName: 'Riya Sharma',
+    consultantTitle: 'Startup & Compliance Consultant',
+    callType: 'video',
+    statusLabel: 'Upcoming',
+  },
+  {
+    id: 'BCG99764',
+    dateLabel: '12/05/2026',
+    timeLabel: '16:00–16:30',
+    consultantName: 'Aman Verma',
+    consultantTitle: 'Funding & Pitch Advisor',
+    callType: 'audio',
+    statusLabel: 'Upcoming',
+  },
+];
+
 export function HomeDashboardScreen(): React.ReactElement {
   const onInterestViewAll = useCallback(() => {
     console.log('View all interests');
@@ -88,6 +201,14 @@ export function HomeDashboardScreen(): React.ReactElement {
 
   const onTopConsultantsViewAll = useCallback(() => {
     console.log('View all consultants');
+  }, []);
+
+  const onRecommendedServicesViewAll = useCallback(() => {
+    console.log('View all services');
+  }, []);
+
+  const onTestimonialsViewAll = useCallback(() => {
+    console.log('View all testimonials');
   }, []);
 
   return (
@@ -114,58 +235,33 @@ export function HomeDashboardScreen(): React.ReactElement {
             {/* <StatsSection /> */}
             <UpcomingBookingsSection
               title="Upcoming bookings"
-              items={[
-                {
-                  id: 'BCG99763',
-                  dateLabel: '10/05/2026',
-                  timeLabel: '11:00–11:30',
-                  consultantName: 'Riya Sharma',
-                  consultantTitle: 'Startup & Compliance Consultant',
-                  callType: 'video',
-                  statusLabel: 'Upcoming',
-                },
-                {
-                  id: 'BCG99764',
-                  dateLabel: '12/05/2026',
-                  timeLabel: '16:00–16:30',
-                  consultantName: 'Aman Verma',
-                  consultantTitle: 'Funding & Pitch Advisor',
-                  callType: 'audio',
-                  statusLabel: 'Upcoming',
-                },
-              ]}
+              items={HOME_UPCOMING_BOOKINGS_DEMO_ITEMS}
               onViewAllPress={onBookingsViewAll}
               onItemPress={(item) => console.log('Open booking', item.id)}
               onJoinCallPress={(item) => console.log('Join call', item.id)}
             />
             <TopConsultantsSection
               title="Top consultants"
-              cardWidth={184}
-              items={[
-                {
-                  id: 'consultant-lata-moorjani',
-                  name: 'CA Lata Moorjani',
-                  role: 'Business Analyst',
-                  bio: 'Bringing over 5 years of rich experience to the table, I, C.A. Lata Moorjani stand out as a seasoned financial expert. I am a proficient financial advisor, leveraging my extensive knowledge to assist clients in making informed decisions. My strategic insights help individuals and businesses achieve their financial goals.',
-                  specialty: 'Startup Nurturing & Funding',
-                  experienceLabel: '5+ years',
-                  rateLabel: '₹354',
-                  photoUri: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&auto=format&fit=crop&q=80',
-                },
-                {
-                  id: 'consultant-aman-verma',
-                  name: 'Aman Verma',
-                  role: 'Funding & Pitch Advisor',
-                  bio: 'Startup funding specialist with 8+ years helping founders raise seed to Series A rounds. Former VC analyst, now working directly with entrepreneurs.',
-                  specialty: 'Funding & Pitch',
-                  experienceLabel: '8+ years',
-                  rateLabel: '₹499',
-                  photoUri: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=600&auto=format&fit=crop&q=80',
-                },
-              ]}
+              cardWidth={HOME_TOP_CONSULTANTS_CARD_WIDTH}
+              items={HOME_TOP_CONSULTANTS_DEMO_ITEMS}
               onViewAllPress={onTopConsultantsViewAll}
               onItemPress={(item) => console.log('Open consultant', item.id)}
               onBookPress={(item) => console.log('Book consultation', item.id)}
+            />
+            <RecommendedServicesSection
+              title="Connect with Verified Business Experts @ One Click"
+              cardWidth={HOME_RECOMMENDED_SERVICES_CARD_WIDTH}
+              items={HOME_RECOMMENDED_SERVICES_DEMO_ITEMS}
+              onViewAllPress={onRecommendedServicesViewAll}
+              onItemPress={(item) => console.log('Open service', item.slug)}
+              onCtaPress={(item) => console.log('Get started', item.slug)}
+            />
+            <TestimonialsSection
+              title="Testimonials"
+              cardWidth={HOME_TESTIMONIALS_CARD_WIDTH}
+              items={HOME_TESTIMONIALS_DEMO_ITEMS}
+              onViewAllPress={onTestimonialsViewAll}
+              onItemPress={(item) => console.log('Open testimonial', item.id)}
             />
           </View>
         )}
