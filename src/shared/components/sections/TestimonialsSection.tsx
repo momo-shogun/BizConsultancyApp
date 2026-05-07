@@ -29,7 +29,7 @@ export function TestimonialsSection(props: TestimonialsSectionProps): React.Reac
   } = props;
 
   return (
-    <View style={[styles.section, { marginBottom: contentBottomInset }]}>
+    <View style={[styles.section]}>
       <View style={styles.header}>
         <Text style={styles.title} accessibilityRole="header">
           {title}
