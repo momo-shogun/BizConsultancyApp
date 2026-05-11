@@ -278,6 +278,8 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: THEME.colors.border,
     backgroundColor: THEME.colors.white,
+    paddingHorizontal: THEME.spacing[12],
+
   },
   tabActive: {
     backgroundColor: THEME.colors.black,

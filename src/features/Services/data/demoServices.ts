@@ -1,17 +1,342 @@
 import type { RecommendedServiceItem } from '@/shared/components';
 
-export const DEMO_SERVICES: RecommendedServiceItem[] = [
+export const DEMO_SERVICES: any[] = [
   {
-    id: 'svc-plc',
+    id: "sd",
+
     slug: 'private-limited-company-incorporation',
-    headerRight: 'Expert-led',
-    categoryLabel: 'Business incorporation',
+
     title: 'Private Limited Company Incorporation',
+
     summary:
-      'Incorporate your Pvt Ltd with DSC, DIN, MOA/AOA and MCA filing—guided by verified experts.',
+      'Get your Private Limited Company registered with complete expert assistance.',
+
+    headerRight: '8–10 Days',
+
     badgeLabel: 'Popular',
-    priceLabel: 'From ₹9,999',
-    headerStyleIndex: 0,
+
+    categoryLabel: 'Business Incorporation',
+
+    priceLabel: '₹10,500',
+
+    hero: {
+      title:
+        'Register Your Private Limited Company with IID Biz Consultancy',
+
+      subtitle:
+        'Get a fully compliant, investor ready private limited company without visiting any office.',
+
+      formHeading:
+        'Get a fully compliant, investor ready private limited company without visiting any office.',
+
+      features: [
+        {
+          icon: 'CheckCircle2',
+
+          text: 'Fast: Incorporation in as little as 8–10 working days',
+
+          color: '',
+        },
+
+        {
+          icon: 'CheckCircle2',
+
+          text: 'Expert-Handled: Professional backed Drafting and filing with RoC done for you',
+
+          color: '',
+        },
+
+        {
+          icon: 'CheckCircle2',
+
+          text: 'Transparent Pricing: Fixed packages with no surprise costs',
+
+          color: '',
+        },
+      ],
+
+      quickActions: [
+        {
+          href: '',
+
+          icon: 'FileText',
+
+          text: 'Get Started',
+        },
+
+        {
+          href: '',
+
+          icon: 'FileText',
+
+          text: 'Talk to an Expert',
+        },
+      ],
+    },
+
+    about: {
+      badge: 'About this service',
+
+      titleSegments: [
+        {
+          type: 'plain',
+
+          value: 'What is',
+        },
+
+        {
+          type: 'highlight',
+
+          color: 'orange',
+
+          value: 'Private Limited',
+        },
+
+        {
+          type: 'plain',
+
+          value: 'Company Registration?',
+        },
+      ],
+
+      taglineSegments: [
+        {
+          type: 'plain',
+
+          value:
+            'It is one of the most trusted and scalable business structures in India.',
+        },
+      ],
+
+      paragraphsSegments: [
+        {
+          segments: [
+            {
+              type: 'plain',
+
+              value:
+                'Private Limited Company registration is the legal process of incorporating a company under the Companies Act, 2013.',
+            },
+          ],
+        },
+
+        {
+          segments: [
+            {
+              type: 'plain',
+
+              value:
+                'A Private Limited Company is a separate legal entity offering limited liability protection.',
+            },
+          ],
+        },
+      ],
+    },
+
+    ourPackage: {
+      sectionTitle: 'Our Packages',
+
+      items: [
+        {
+          icon: 'fileText',
+
+          title: 'Support Included',
+
+          status: 'completed',
+
+          category: 'Support',
+
+          details: [
+            'End-to-end filing',
+
+            'Professional consultation',
+
+            'Compliance guidance',
+          ],
+        },
+
+        {
+          icon: 'award',
+
+          title: 'Deliverables',
+
+          status: 'completed',
+
+          category: 'Deliverables',
+
+          details: [
+            'Certificate of Incorporation',
+
+            'PAN & TAN',
+
+            'MOA & AOA',
+
+            'DIN & DSC',
+          ],
+        },
+      ],
+    },
+
+    process: {
+      title: 'How the Process Works',
+
+      steps: [
+        {
+          number: '1',
+
+          title: 'Order Placement',
+
+          description:
+            'Book the service and submit your details.',
+        },
+
+        {
+          number: '2',
+
+          title: 'Document Verification',
+
+          description:
+            'We verify your documents for MCA compliance.',
+        },
+
+        {
+          number: '3',
+
+          title: 'Company Name Approval',
+
+          description:
+            'We submit your company name for approval.',
+        },
+
+        {
+          number: '4',
+
+          title: 'Company Incorporation',
+
+          description:
+            'SPICe+ filing and incorporation completion.',
+        },
+      ],
+    },
+
+    documents: {
+      categories: [
+        {
+          title: 'For Directors',
+
+          documents: [
+            'PAN Card',
+
+            'Aadhaar Card',
+
+            'Address Proof',
+
+            'Photograph',
+          ],
+        },
+
+        {
+          title: 'Registered Office',
+
+          subtitle: 'Office proof',
+
+          documents: [
+            'Utility Bill',
+
+            'Rent Agreement',
+
+            'NOC',
+          ],
+        },
+      ],
+    },
+
+    benefits: {
+      items: [
+        {
+          title: 'Limited liability',
+
+          description:
+            'Protects shareholders from personal liability.',
+        },
+
+        {
+          title: 'Higher credibility',
+
+          description:
+            'Builds trust with banks and investors.',
+        },
+
+        {
+          title: 'Easy funding',
+
+          description:
+            'Enables raising capital through shares.',
+        },
+      ],
+    },
+
+    eligibility: {
+      items: [
+        {
+          icon: 'Users',
+
+          title: 'Members',
+
+          description:
+            'Minimum 2 members required.',
+        },
+
+        {
+          icon: 'LuBuilding2',
+
+          title: 'Directors',
+
+          description:
+            'Minimum 2 directors required.',
+        },
+      ],
+    },
+
+    compliance: {
+      items: [
+        'Open current account',
+
+        'Maintain statutory registers',
+
+        'Annual ROC filings',
+
+        'Board meetings',
+      ],
+    },
+
+    faqs: {
+      faqs: [
+        {
+          question:
+            'What is a Private Limited Company?',
+
+          answer:
+            'A registered business entity under Companies Act, 2013.',
+        },
+
+        {
+          question:
+            'How long does registration take?',
+
+          answer:
+            'Usually 8–10 working days.',
+        },
+
+        {
+          question:
+            'Is GST mandatory after incorporation?',
+
+          answer:
+            'Only if turnover threshold is crossed.',
+        },
+      ],
+    },
   },
   {
     id: 'svc-gst',
@@ -21,7 +346,7 @@ export const DEMO_SERVICES: RecommendedServiceItem[] = [
     title: 'GST Registration',
     summary:
       'Get GSTIN for your business with document prep and compliance hand-holding from day one.',
-    badgeLabel: 'Verified',
+    badgeLabel: 'ourPackage',
     priceLabel: 'From ₹1,499',
     headerStyleIndex: 1,
   },
@@ -31,87 +356,10 @@ export const DEMO_SERVICES: RecommendedServiceItem[] = [
     headerRight: 'MCA ready',
     categoryLabel: 'IP & legal',
     title: 'Trademark Registration',
-    summary: 'Protect your brand with search, filing, and expert follow-up through registration.',
+    summary:
+      'Protect your brand with search, filing, and expert follow-up through registration.',
     badgeLabel: 'Trending',
     priceLabel: 'From ₹5,999',
     headerStyleIndex: 2,
   },
 ];
-
-export interface ServiceDetailExtras {
-  overview: string;
-  included: string[];
-  howItWorks: string[];
-}
-
-const DEFAULT_EXTRAS: ServiceDetailExtras = {
-  overview:
-    'Our consultants guide you end-to-end with clear timelines, document checklists, and compliance-ready deliverables. You get a single point of contact and milestone-based updates.',
-  included: [
-    'Discovery call to confirm scope',
-    'Document checklist and templates',
-    'Expert review before submission',
-    'Status updates at key milestones',
-  ],
-  howItWorks: [
-    'Share your business details securely',
-    'We prepare filings and coordinate signatures',
-    'Track progress in-app until completion',
-  ],
-};
-
-const EXTRAS_BY_SLUG: Partial<Record<string, ServiceDetailExtras>> = {
-  'private-limited-company-incorporation': {
-    overview:
-      'Form a Private Limited Company with DSC, DIN, MOA/AOA drafting, and MCA filing. Ideal for founders who want limited liability and a scalable shareholding structure.',
-    included: [
-      'Name approval and incorporation filing support',
-      'MOA/AOA drafting aligned to your objects',
-      'PAN application guidance for the company',
-      'Post-incorporation compliance checklist',
-    ],
-    howItWorks: [
-      'Confirm directors, capital, and registered office',
-      'Complete KYC and obtain DSC for directors',
-      'File SPICe+ and track MCA approval',
-      'Receive COI and next-step compliance roadmap',
-    ],
-  },
-  'gst-registration': {
-    overview:
-      'Obtain GSTIN with correct HSN/SAC mapping and place-of-supply clarity. Suited for new registrations and businesses crossing the threshold.',
-    included: [
-      'Eligibility and turnover assessment',
-      'Document preparation and portal filing',
-      'Clarifications on state and place of supply',
-      'Basic post-registration compliance pointers',
-    ],
-    howItWorks: [
-      'Share business constitution and address proof',
-      'We validate documents and file on the GST portal',
-      'Respond to queries if raised by the department',
-      'Hand over GSTIN and a short compliance calendar',
-    ],
-  },
-  'trademark-registration': {
-    overview:
-      'Protect your brand identity with trademark search, class selection, and filing support. Reduce objection risk with structured drafting and expert review.',
-    included: [
-      'Knock-out search and class recommendation',
-      'Application drafting and owner particulars',
-      'Filing and acknowledgment tracking',
-      'Basic guidance on objections and next steps',
-    ],
-    howItWorks: [
-      'Share logo/word mark and business description',
-      'We shortlist classes and run a preliminary search',
-      'File the application and monitor status',
-      'Advise on examination reports if they arise',
-    ],
-  },
-};
-
-export function getServiceDetailExtras(slug: string): ServiceDetailExtras {
-  const specific = EXTRAS_BY_SLUG[slug];
-  return specific != null ? specific : DEFAULT_EXTRAS;
-}

@@ -1,13 +1,21 @@
 import React, { useLayoutEffect, useMemo, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+
+import { Pressable, Text, View, ScrollView } from 'react-native';
+
 import type { RouteProp } from '@react-navigation/native';
+
 import { useNavigation, useRoute } from '@react-navigation/native';
+
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+
 import LinearGradient from 'react-native-linear-gradient';
+
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { THEME } from '@/constants/theme';
+
 import { ROUTES } from '@/navigation/routeNames';
+
 import type { ServicesStackParamList } from '@/navigation/types';
 
 import {
@@ -18,16 +26,17 @@ import {
   SectionHeader,
 } from '@/shared/components';
 
-import { getServiceDetailExtras } from '../data/demoServices';
+import { SERVICE_TABS, type DetailTabKey } from './serviceTabs';
+
 import { useServiceBySlug } from '../hooks/useServiceBySlug';
+
 import { styles } from './ServiceDetailsStyle';
+// import { ScrollView } from 'react-native-gesture-handler';
 
 type ServiceDetailRouteProp = RouteProp<
   ServicesStackParamList,
   typeof ROUTES.Services.Detail
 >;
-
-type DetailTabKey = 'overview' | 'included' | 'how';
 
 export function ServiceDetailScreen(): React.ReactElement {
   const route = useRoute<ServiceDetailRouteProp>();
@@ -39,9 +48,8 @@ export function ServiceDetailScreen(): React.ReactElement {
 
   const item = useServiceBySlug(slug);
 
-  const extras = useMemo(() => getServiceDetailExtras(slug), [slug]);
-
-  const [activeTab, setActiveTab] = useState<DetailTabKey>('overview');
+  const [activeTab, setActiveTab] =
+    useState<DetailTabKey>('about');
 
   useLayoutEffect(() => {
     if (item != null) {
@@ -51,18 +59,31 @@ export function ServiceDetailScreen(): React.ReactElement {
     }
   }, [navigation, item]);
 
-  /* -------------------------------------------------------------------------- */
-  /*                             IMPORTANT FIX                                  */
-  /* -------------------------------------------------------------------------- */
-  /* Hooks MUST stay above conditional returns                                  */
-  /* -------------------------------------------------------------------------- */
+  const visibleTabs = useMemo(() => {
+    if (item == null) {
+      return [];
+    }
 
-  const highlights = useMemo((): readonly {
-    id: string;
-    icon: string;
-    title: string;
-    subtitle: string;
-  }[] => {
+    return SERVICE_TABS.filter(tab => {
+      const value = item?.[tab.key as keyof typeof item];
+
+      if (value == null) {
+        return false;
+      }
+
+      if (Array.isArray(value)) {
+        return value.length > 0;
+      }
+
+      if (typeof value === 'object') {
+        return Object.keys(value).length > 0;
+      }
+
+      return true;
+    });
+  }, [item]);
+
+  const highlights = useMemo(() => {
     if (item == null) {
       return [];
     }
@@ -80,24 +101,8 @@ export function ServiceDetailScreen(): React.ReactElement {
         title: 'Expert support',
         subtitle: 'Guided by verified consultants',
       },
-      {
-        id: 'updates',
-        icon: 'notifications-outline',
-        title: 'Milestone updates',
-        subtitle: 'Stay informed at each step',
-      },
-      {
-        id: 'docs',
-        icon: 'document-text-outline',
-        title: 'Document checklist',
-        subtitle: 'Templates + review included',
-      },
     ];
   }, [item]);
-
-  /* -------------------------------------------------------------------------- */
-  /*                             CONDITIONAL RETURN                             */
-  /* -------------------------------------------------------------------------- */
 
   if (item == null) {
     return (
@@ -105,7 +110,7 @@ export function ServiceDetailScreen(): React.ReactElement {
         <ScreenWrapper style={styles.missWrap}>
           <EmptyState
             title="Service not found"
-            description="This service may have been removed or the link is invalid. Use the back button to return."
+            description="This service may have been removed."
           />
         </ScreenWrapper>
       </SafeAreaWrapper>
@@ -119,11 +124,77 @@ export function ServiceDetailScreen(): React.ReactElement {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* -------------------------------------------------------------------------- */}
-          {/*                                   HERO                                     */}
-          {/* -------------------------------------------------------------------------- */}
-
           <View style={styles.heroWrap}>
+            {/* <LinearGradient
+              colors={[
+                THEME.colors.chooseAccountConsultantGrad1,
+                THEME.colors.chooseAccountConsultantGrad2,
+              ]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.heroBg}
+            >
+              <Text style={styles.heroTitle}>
+                {item.title}
+              </Text>
+
+              <Text style={styles.heroSummary}>
+                {item.summary}
+              </Text>
+
+              <View style={styles.heroCard}>
+                <View style={styles.heroCardLeft}>
+                  <Text style={styles.priceLabel}>
+                    {item.priceLabel ?? '—'}
+                  </Text>
+
+                  <Text style={styles.subLabel}>
+                    Ex GST • Government Fee As per the State Fees
+                  </Text>
+                </View>
+
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Get started with ${item.title}`}
+                  hitSlop={8}
+                  onPress={() => console.log('Get started', item.slug)}
+                  style={({ pressed }) => [
+                    styles.heroCta,
+                    pressed ? styles.heroCtaPressed : null,
+                  ]}
+                >
+                  <Text style={styles.heroCtaText}>Get started</Text>
+
+                  <Ionicons
+                    name="arrow-forward"
+                    size={16}
+                    color={THEME.colors.white}
+                  />
+                </Pressable>
+              </View>
+              <View style={styles.trustRow}>
+                <View style={styles.trustItem}>
+                  <Ionicons name="star" size={14} color="#FFD166" />
+
+                  <Text style={styles.trustText}>4.8</Text>
+
+                  <Text style={styles.trustTextMuted}>(1.2k)</Text>
+                </View>
+
+                <View style={styles.trustDot} />
+
+                <View style={styles.trustItem}>
+                  <Ionicons
+                    name="shield-checkmark-outline"
+                    size={14}
+                    color={THEME.colors.white}
+                  />
+
+                  <Text style={styles.trustText}>Verified experts</Text>
+                </View>
+              </View>
+            </LinearGradient> */}
+
             <LinearGradient
               colors={[
                 THEME.colors.chooseAccountConsultantGrad1,
@@ -279,146 +350,235 @@ export function ServiceDetailScreen(): React.ReactElement {
                   <Text style={styles.quickBtnText}>Talk to expert</Text>
                 </Pressable>
               </View>
-            </LinearGradient>
+            </LinearGradient> ̰
           </View>
 
-          {/* -------------------------------------------------------------------------- */}
-          {/*                               HIGHLIGHTS                                   */}
-          {/* -------------------------------------------------------------------------- */}
 
-          <View style={styles.highlights}>
-            <View style={styles.highlightsHeader}>
-              <Text style={styles.highlightsTitle}>Service highlights</Text>
-            </View>
 
-            <View style={styles.highlightsList}>
-              {highlights.map(h => (
-                <View key={h.id} style={styles.highlightRow}>
-                  <View style={styles.highlightIcon}>
-                    <Ionicons
-                      name={h.icon as never}
-                      size={18}
-                      color={THEME.colors.accentAmber}
-                    />
-                  </View>
 
-                  <View style={styles.highlightText}>
-                    <Text style={styles.highlightTitle}>{h.title}</Text>
+          
 
-                    <Text style={styles.highlightSubtitle}>{h.subtitle}</Text>
-                  </View>
-                </View>
+
+
+
+
+
+          <View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.tabs}
+            >
+              {visibleTabs.map(tab => (
+                <Pressable
+                  key={tab.key}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${tab.label} tab`}
+                  onPress={() => setActiveTab(tab.key)}
+                  hitSlop={8}
+                  style={({ pressed }) => [
+                    styles.tab,
+                    activeTab === tab.key
+                      ? styles.tabActive
+                      : null,
+                    pressed ? styles.tabPressed : null,
+                  ]}
+                >
+                  <Text
+                    numberOfLines={1}
+                    style={[
+                      styles.tabText,
+                      activeTab === tab.key
+                        ? styles.tabTextActive
+                        : null,
+                    ]}
+                  >
+                    {tab.label}
+                  </Text>
+                </Pressable>
               ))}
-            </View>
-          </View>
+            </ScrollView>
+          </View> ̰
 
-          {/* -------------------------------------------------------------------------- */}
-          {/*                                   TABS                                     */}
-          {/* -------------------------------------------------------------------------- */}
-
-          <View style={styles.tabs}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Overview tab"
-              onPress={() => setActiveTab('overview')}
-              hitSlop={8}
-              style={({ pressed }) => [
-                styles.tab,
-                activeTab === 'overview' ? styles.tabActive : null,
-                pressed ? styles.tabPressed : null,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.tabText,
-                  activeTab === 'overview' ? styles.tabTextActive : null,
-                ]}
-              >
-                Overview
-              </Text>
-            </Pressable>
-
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Included tab"
-              onPress={() => setActiveTab('included')}
-              hitSlop={8}
-              style={({ pressed }) => [
-                styles.tab,
-                activeTab === 'included' ? styles.tabActive : null,
-                pressed ? styles.tabPressed : null,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.tabText,
-                  activeTab === 'included' ? styles.tabTextActive : null,
-                ]}
-              >
-                Included
-              </Text>
-            </Pressable>
-
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="How it works tab"
-              onPress={() => setActiveTab('how')}
-              hitSlop={8}
-              style={({ pressed }) => [
-                styles.tab,
-                activeTab === 'how' ? styles.tabActive : null,
-                pressed ? styles.tabPressed : null,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.tabText,
-                  activeTab === 'how' ? styles.tabTextActive : null,
-                ]}
-              >
-                How it works
-              </Text>
-            </Pressable>
-          </View>
-
-          {/* -------------------------------------------------------------------------- */}
-          {/*                                  CONTENT                                   */}
-          {/* -------------------------------------------------------------------------- */}
-
-          {activeTab === 'overview' ? (
+          {activeTab === 'about' && item.about ? (
             <View style={styles.section}>
               <SectionHeader title="Overview" />
 
-              <Text style={styles.body}>{extras.overview}</Text>
+              {item.about.paragraphsSegments?.map(
+                (paragraph, index) => (
+                  <Text key={index} style={styles.body}>
+                    {paragraph.segments
+                      ?.map(segment => segment.value)
+                      .join(' ')}
+                  </Text>
+                ),
+              )}
             </View>
           ) : null}
 
-          {activeTab === 'included' ? (
+          {activeTab === 'ourPackage' &&
+            item.ourPackage ? (
             <View style={styles.section}>
-              <SectionHeader title="What's included" />
+              <SectionHeader title="Our Packages" />
 
               <View style={styles.bulletList}>
-                {extras.included.map(line => (
-                  <View key={line} style={styles.bulletRow}>
-                    <Text style={styles.bulletMark}>{'\u2022'}</Text>
+                {item.ourPackage.items?.map(pkg => (
+                  <View
+                    key={pkg.title}
+                    style={styles.bulletRow}
+                  >
+                    <Text style={styles.bulletMark}>
+                      {'\u2022'}
+                    </Text>
 
-                    <Text style={styles.bulletText}>{line}</Text>
+                    <Text style={styles.bulletText}>
+                      {pkg.title}
+                    </Text>
                   </View>
                 ))}
               </View>
             </View>
           ) : null}
 
-          {activeTab === 'how' ? (
-            <View style={styles.sectionLast}>
+          {activeTab === 'process' && item.process ? (
+            <View style={styles.section}>
               <SectionHeader title="How it works" />
 
               <View style={styles.bulletList}>
-                {extras.howItWorks.map(line => (
-                  <View key={line} style={styles.bulletRow}>
-                    <Text style={styles.bulletMark}>{'\u2022'}</Text>
+                {item.process.steps?.map(step => (
+                  <View
+                    key={step.number}
+                    style={styles.bulletRow}
+                  >
+                    <Text style={styles.bulletMark}>
+                      {step.number}.
+                    </Text>
 
-                    <Text style={styles.bulletText}>{line}</Text>
+                    <Text style={styles.bulletText}>
+                      {step.title}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ) : null}
+
+          {activeTab === 'documents' &&
+            item.documents ? (
+            <View style={styles.section}>
+              <SectionHeader title="Documents" />
+
+              <View style={styles.bulletList}>
+                {item.documents.categories?.flatMap(
+                  category =>
+                    category.documents.map(doc => (
+                      <View
+                        key={doc}
+                        style={styles.bulletRow}
+                      >
+                        <Text style={styles.bulletMark}>
+                          {'\u2022'}
+                        </Text>
+
+                        <Text style={styles.bulletText}>
+                          {doc}
+                        </Text>
+                      </View>
+                    )),
+                )}
+              </View>
+            </View>
+          ) : null}
+
+          {activeTab === 'benefits' &&
+            item.benefits ? (
+            <View style={styles.section}>
+              <SectionHeader title="Benefits" />
+
+              <View style={styles.bulletList}>
+                {item.benefits.items?.map(benefit => (
+                  <View
+                    key={benefit.title}
+                    style={styles.bulletRow}
+                  >
+                    <Text style={styles.bulletMark}>
+                      {'\u2022'}
+                    </Text>
+
+                    <Text style={styles.bulletText}>
+                      {benefit.title}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ) : null}
+
+          {activeTab === 'eligibility' &&
+            item.eligibility ? (
+            <View style={styles.section}>
+              <SectionHeader title="Eligibility" />
+
+              <View style={styles.bulletList}>
+                {item.eligibility.items?.map(rule => (
+                  <View
+                    key={rule.title}
+                    style={styles.bulletRow}
+                  >
+                    <Text style={styles.bulletMark}>
+                      {'\u2022'}
+                    </Text>
+
+                    <Text style={styles.bulletText}>
+                      {rule.title}: {rule.description}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ) : null}
+
+          {activeTab === 'compliance' &&
+            item.compliance ? (
+            <View style={styles.section}>
+              <SectionHeader title="Compliance" />
+
+              <View style={styles.bulletList}>
+                {item.compliance.items?.map(rule => (
+                  <View
+                    key={rule}
+                    style={styles.bulletRow}
+                  >
+                    <Text style={styles.bulletMark}>
+                      {'\u2022'}
+                    </Text>
+
+                    <Text style={styles.bulletText}>
+                      {rule}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ) : null}
+
+          {activeTab === 'faqs' && item.faqs ? (
+            <View style={styles.sectionLast}>
+              <SectionHeader title="FAQs" />
+
+              <View style={styles.bulletList}>
+                {item.faqs.faqs?.map(faq => (
+                  <View
+                    key={faq.question}
+                    style={styles.bulletRow}
+                  >
+                    <Text style={styles.bulletMark}>
+                      {'\u2022'}
+                    </Text>
+
+                    <Text style={styles.bulletText}>
+                      {faq.question}
+                    </Text>
                   </View>
                 ))}
               </View>
