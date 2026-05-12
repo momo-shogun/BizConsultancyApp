@@ -68,13 +68,33 @@ export interface FAQItem {
   answer: string;
 }
 
+/* -------------------- NEW IDEAL FOR TYPES -------------------- */
+
+export interface IdealForItem {
+  image: string;
+
+  title: string;
+
+  description: string;
+}
+
+export interface IdealForSection {
+  titleSegments?: TextSegment[];
+
+  items?: IdealForItem[];
+}
+
+/* -------------------- MAIN SERVICE PAGE -------------------- */
+
 export interface ServicePage extends RecommendedServiceItem {
   about?: AboutSection;
 
-  ourPackage?: {
+  idealFor?: IdealForSection;
+
+  ourPackage: {
     sectionTitle?: string;
 
-    items?: PackageItem[];
+    items: PackageItem[];
   };
 
   process?: {

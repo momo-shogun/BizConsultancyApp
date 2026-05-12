@@ -133,6 +133,53 @@ export const DEMO_SERVICES: any[] = [
       ],
     },
 
+    idealFor: {
+      titleSegments: [
+        {
+          type: 'plain',
+          value: 'Who Is This',
+        },
+
+        {
+          type: 'highlight',
+          color: 'blue',
+          value: 'Ideal For?',
+        },
+      ],
+
+      items: [
+        {
+          image:
+            'https://biz-consultancy-sigma.vercel.app/service/12553960_4963914.jpg',
+
+          title: 'Founders & Startups',
+
+          description:
+            'Individuals starting a new business who need a legally recognized structure to grow and raise funds.',
+        },
+
+        {
+          image:
+            'https://biz-consultancy-sigma.vercel.app/service/5597691_56632.jpg',
+
+          title: 'Small & Medium Enterprises (SMEs)',
+
+          description:
+            'Growing businesses that require formal registration for compliance, credibility, and expansion.',
+        },
+
+        {
+          image:
+            'https://biz-consultancy-sigma.vercel.app/service/6438019_3279765.jpg',
+
+          title: 'Professionals & Consultants',
+
+          description:
+            'Service providers who want a legal entity to sign contracts, invoice clients, and limit personal liability.',
+        },
+      ],
+    },
+
     ourPackage: {
       sectionTitle: 'Our Packages',
 

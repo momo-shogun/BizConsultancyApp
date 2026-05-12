@@ -31,7 +31,11 @@ import { SERVICE_TABS, type DetailTabKey } from './serviceTabs';
 import { useServiceBySlug } from '../hooks/useServiceBySlug';
 
 import { styles } from './ServiceDetailsStyle';
-// import { ScrollView } from 'react-native-gesture-handler';
+import { OurPackageSection } from './components/Ourpackagesection';
+import { AboutSection } from './components/aboutSection/aboutSection';
+import EligibilitySection from './components/eiligibility/EligibilitySection';
+import DocumentCategories from './components/documentChecklist/DocumentCategories';
+import BenefitsSection from './BenefitsSection/BenefitsSection';
 
 type ServiceDetailRouteProp = RouteProp<
   ServicesStackParamList,
@@ -83,27 +87,6 @@ export function ServiceDetailScreen(): React.ReactElement {
     });
   }, [item]);
 
-  const highlights = useMemo(() => {
-    if (item == null) {
-      return [];
-    }
-
-    return [
-      {
-        id: 'timeline',
-        icon: 'time-outline',
-        title: item.headerRight,
-        subtitle: 'Typical turnaround',
-      },
-      {
-        id: 'support',
-        icon: 'headset-outline',
-        title: 'Expert support',
-        subtitle: 'Guided by verified consultants',
-      },
-    ];
-  }, [item]);
-
   if (item == null) {
     return (
       <SafeAreaWrapper edges={['bottom']}>
@@ -125,76 +108,6 @@ export function ServiceDetailScreen(): React.ReactElement {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.heroWrap}>
-            {/* <LinearGradient
-              colors={[
-                THEME.colors.chooseAccountConsultantGrad1,
-                THEME.colors.chooseAccountConsultantGrad2,
-              ]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.heroBg}
-            >
-              <Text style={styles.heroTitle}>
-                {item.title}
-              </Text>
-
-              <Text style={styles.heroSummary}>
-                {item.summary}
-              </Text>
-
-              <View style={styles.heroCard}>
-                <View style={styles.heroCardLeft}>
-                  <Text style={styles.priceLabel}>
-                    {item.priceLabel ?? '—'}
-                  </Text>
-
-                  <Text style={styles.subLabel}>
-                    Ex GST • Government Fee As per the State Fees
-                  </Text>
-                </View>
-
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`Get started with ${item.title}`}
-                  hitSlop={8}
-                  onPress={() => console.log('Get started', item.slug)}
-                  style={({ pressed }) => [
-                    styles.heroCta,
-                    pressed ? styles.heroCtaPressed : null,
-                  ]}
-                >
-                  <Text style={styles.heroCtaText}>Get started</Text>
-
-                  <Ionicons
-                    name="arrow-forward"
-                    size={16}
-                    color={THEME.colors.white}
-                  />
-                </Pressable>
-              </View>
-              <View style={styles.trustRow}>
-                <View style={styles.trustItem}>
-                  <Ionicons name="star" size={14} color="#FFD166" />
-
-                  <Text style={styles.trustText}>4.8</Text>
-
-                  <Text style={styles.trustTextMuted}>(1.2k)</Text>
-                </View>
-
-                <View style={styles.trustDot} />
-
-                <View style={styles.trustItem}>
-                  <Ionicons
-                    name="shield-checkmark-outline"
-                    size={14}
-                    color={THEME.colors.white}
-                  />
-
-                  <Text style={styles.trustText}>Verified experts</Text>
-                </View>
-              </View>
-            </LinearGradient> */}
-
             <LinearGradient
               colors={[
                 THEME.colors.chooseAccountConsultantGrad1,
@@ -225,7 +138,7 @@ export function ServiceDetailScreen(): React.ReactElement {
                       {item.headerRight}
                     </Text>
                   </View>
-                   
+
                   {item.badgeLabel ? (
                     <View style={styles.dealChip}>
                       <Ionicons
@@ -353,16 +266,6 @@ export function ServiceDetailScreen(): React.ReactElement {
             </LinearGradient> ̰
           </View>
 
-
-
-
-          
-
-
-
-
-
-
           <View>
             <ScrollView
               horizontal
@@ -401,140 +304,75 @@ export function ServiceDetailScreen(): React.ReactElement {
           </View> ̰
 
           {activeTab === 'about' && item.about ? (
-            <View style={styles.section}>
-              <SectionHeader title="Overview" />
-
-              {item.about.paragraphsSegments?.map(
-                (paragraph, index) => (
-                  <Text key={index} style={styles.body}>
-                    {paragraph.segments
-                      ?.map(segment => segment.value)
-                      .join(' ')}
-                  </Text>
-                ),
-              )}
-            </View>
+            <AboutSection
+              title="Why businesses choose our consulting services"
+              titleSegments={[
+                'Why businesses choose ',
+                {
+                  text: 'our consulting',
+                  color: 'blue',
+                },
+                ' services',
+              ]}
+              intro={[
+                'We help startups and enterprises build ',
+                {
+                  text: 'scalable systems',
+                  color: 'emerald',
+                },
+                ' with modern operational workflows.',
+              ]}
+              paragraphs={[
+                [
+                  'Our team focuses on ',
+                  {
+                    text: 'growth strategy',
+                    color: 'orange',
+                  },
+                  ', execution, and long-term business sustainability.',
+                ],
+                'From onboarding to scaling, we create systems that reduce friction and improve efficiency.',
+              ]}
+              tagline={[
+                'Built for ambitious founders who want ',
+                {
+                  text: 'real business momentum',
+                  color: 'emerald',
+                },
+                '.',
+              ]}
+            />
           ) : null}
 
-          {activeTab === 'ourPackage' &&
-            item.ourPackage ? (
-            <View style={styles.section}>
-              <SectionHeader title="Our Packages" />
+          {activeTab === 'ourPackage' && item.ourPackage ? (
+            <OurPackageSection ourPackage={item.ourPackage} />
+          ) : null} ̰
 
-              <View style={styles.bulletList}>
-                {item.ourPackage.items?.map(pkg => (
-                  <View
-                    key={pkg.title}
-                    style={styles.bulletRow}
-                  >
-                    <Text style={styles.bulletMark}>
-                      {'\u2022'}
-                    </Text>
-
-                    <Text style={styles.bulletText}>
-                      {pkg.title}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          ) : null}
-
-          {activeTab === 'process' && item.process ? (
-            <View style={styles.section}>
-              <SectionHeader title="How it works" />
-
-              <View style={styles.bulletList}>
-                {item.process.steps?.map(step => (
-                  <View
-                    key={step.number}
-                    style={styles.bulletRow}
-                  >
-                    <Text style={styles.bulletMark}>
-                      {step.number}.
-                    </Text>
-
-                    <Text style={styles.bulletText}>
-                      {step.title}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            </View>
+          {activeTab === 'process' && item?.eligibility ? (
+            <EligibilitySection item={item.eligibility} activeTab={activeTab} />
           ) : null}
 
           {activeTab === 'documents' &&
             item.documents ? (
-            <View style={styles.section}>
-              <SectionHeader title="Documents" />
-
-              <View style={styles.bulletList}>
-                {item.documents.categories?.flatMap(
-                  category =>
-                    category.documents.map(doc => (
-                      <View
-                        key={doc}
-                        style={styles.bulletRow}
-                      >
-                        <Text style={styles.bulletMark}>
-                          {'\u2022'}
-                        </Text>
-
-                        <Text style={styles.bulletText}>
-                          {doc}
-                        </Text>
-                      </View>
-                    )),
-                )}
-              </View>
-            </View>
+            <DocumentCategories
+              documents={item.documents}
+              onDocumentPress={(docName, categoryName) => {
+                console.log(`Document pressed: ${docName} from ${categoryName}`);
+                // Navigate to document upload screen
+              }}
+              initiallyExpanded={['For Directors']} // Auto-expand important categories
+            />
           ) : null}
 
           {activeTab === 'benefits' &&
             item.benefits ? (
-            <View style={styles.section}>
-              <SectionHeader title="Benefits" />
-
-              <View style={styles.bulletList}>
-                {item.benefits.items?.map(benefit => (
-                  <View
-                    key={benefit.title}
-                    style={styles.bulletRow}
-                  >
-                    <Text style={styles.bulletMark}>
-                      {'\u2022'}
-                    </Text>
-
-                    <Text style={styles.bulletText}>
-                      {benefit.title}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            </View>
+            <BenefitsSection benefits={item.benefits} />
           ) : null}
 
-          {activeTab === 'eligibility' &&
-            item.eligibility ? (
+          {activeTab === 'IdealFor' &&
+            item.idealFor ? (
             <View style={styles.section}>
-              <SectionHeader title="Eligibility" />
-
-              <View style={styles.bulletList}>
-                {item.eligibility.items?.map(rule => (
-                  <View
-                    key={rule.title}
-                    style={styles.bulletRow}
-                  >
-                    <Text style={styles.bulletMark}>
-                      {'\u2022'}
-                    </Text>
-
-                    <Text style={styles.bulletText}>
-                      {rule.title}: {rule.description}
-                    </Text>
-                  </View>
-                ))}
-              </View>
+              <SectionHeader title="Ideal For" />
             </View>
           ) : null}
 
