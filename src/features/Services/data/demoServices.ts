@@ -346,14 +346,44 @@ export const DEMO_SERVICES: any[] = [
     },
 
     compliance: {
+      badge: '📋 Compliance Requirements',
+
+      titleSegments: [
+        {
+          type: 'plain',
+          value: 'Post-Incorporation',
+        },
+
+        {
+          type: 'highlight',
+          color: 'blue',
+          value: 'Compliance',
+        },
+      ],
+
+      description:
+        'After incorporation, Private Limited Company needs to comply with:',
+
       items: [
         'Open current account',
 
+        'Deposit subscription money',
+
+        'Appoint First Auditor within 30 days',
+
+        'Issue Share Certificates within 60 days',
+
+        'INC-20A – Declaration of Commencement of Business within 180 days',
+
         'Maintain statutory registers',
 
-        'Annual ROC filings',
+        'Obtain applicable registrations (GST, Shops & Establishment, PT, EPFO/ESIC)',
 
-        'Board meetings',
+        'Activate PAN/TAN and comply with TDS, if applicable',
+
+        'Annual filings with RoC (AOC-4, MGT-7/MGT-7A)',
+
+        'Board Meetings (minimum 4 per year)',
       ],
     },
 
@@ -381,6 +411,75 @@ export const DEMO_SERVICES: any[] = [
 
           answer:
             'Only if turnover threshold is crossed.',
+        },
+      ],
+    },
+
+    recommendedServices: {
+      title: 'Related Services / Recommended Packs',
+
+      description:
+        'Explore allied services frequently chosen together for faster compliance and smoother business operations.',
+
+      items: [
+        {
+          href:
+            '/services/registration-licenses/private-limited-company-incorporation',
+
+          title: 'ROC Compliance Kit',
+
+          description:
+            'A complete annual compliance package that covers mandatory ROC filings and statutory compliances, to keep your company legally compliant.',
+
+          servicePageId: 2,
+        },
+
+        {
+          href:
+            '/services/registration-licenses/trademark-registration',
+
+          title: 'Trademark Registration',
+
+          description:
+            'Protect your brand name and logo by registering a trademark, giving your business legal protection across India.',
+
+          servicePageId: 45,
+        },
+
+        {
+          href:
+            '/services/registration-licenses/private-limited-company-incorporation',
+
+          title: 'GST Compliance Pack',
+
+          description:
+            'Get GST registration along with return filing support, enabling your company to legally bill customers, collect GST and meet ongoing GST compliances.',
+
+          servicePageId: 2,
+        },
+
+        {
+          href:
+            '/services/registration-licenses/private-limited-company-incorporation',
+
+          title: 'Project Funding and Loan Advisory',
+
+          description:
+            'End-to-end advisory support for business loans and project funding, including eligibility assessment and documentation assistance.',
+
+          servicePageId: 2,
+        },
+
+        {
+          href:
+            '/services/registration-licenses/private-limited-company-incorporation',
+
+          title: 'Expert Connect',
+
+          description:
+            'Speak with an experienced professional to understand the right compliances, registrations or funding options best suited for your business stage.',
+
+          servicePageId: 2,
         },
       ],
     },

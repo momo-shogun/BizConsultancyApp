@@ -109,8 +109,6 @@ export const AboutSection = memo(
             entering={FadeInDown.delay(80).duration(500)}
             style={styles.badge}
           >
-            <View style={styles.badgeDot} />
-
             <Text style={styles.badgeText}>
               About this service
             </Text>

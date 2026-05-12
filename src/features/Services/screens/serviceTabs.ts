@@ -20,7 +20,7 @@ export const SERVICE_TABS = [
     label: 'Benefits',
   },
   {
-    key: 'IdealFor',
+    key: 'idealFor',
     label: 'Ideal For',
   },
   {
@@ -30,10 +30,6 @@ export const SERVICE_TABS = [
   {
     key: 'faqs',
     label: 'FAQs',
-  },
-  {
-    key: '123',
-    label: '123',
   },
 ] as const;
 

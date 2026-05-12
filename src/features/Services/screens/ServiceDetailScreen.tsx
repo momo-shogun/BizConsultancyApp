@@ -35,7 +35,12 @@ import { OurPackageSection } from './components/Ourpackagesection';
 import { AboutSection } from './components/aboutSection/aboutSection';
 import EligibilitySection from './components/eiligibility/EligibilitySection';
 import DocumentCategories from './components/documentChecklist/DocumentCategories';
-import BenefitsSection from './BenefitsSection/BenefitsSection';
+import BenefitsSection from './components/BenefitsSection/BenefitsSection';
+import IdealForSection from './components/idealFor/IdealForSection';
+import ComplianceSection from './components/compliance/ComplianceSection';
+import FAQSection from './components/faq/faq';
+import Faq from './components/faq/faq';
+import RecommendedServicesSection from './components/RecommendedServicesSection/RecommendedServicesSection';
 
 type ServiceDetailRouteProp = RouteProp<
   ServicesStackParamList,
@@ -99,6 +104,12 @@ export function ServiceDetailScreen(): React.ReactElement {
       </SafeAreaWrapper>
     );
   }
+
+  const handlePressService = (serviceSlug: string) => {
+    console.log('Pressed recommended service:', serviceSlug);
+
+  }
+
 
   return (
     <SafeAreaWrapper edges={['bottom']}>
@@ -369,60 +380,27 @@ export function ServiceDetailScreen(): React.ReactElement {
             <BenefitsSection benefits={item.benefits} />
           ) : null}
 
-          {activeTab === 'IdealFor' &&
+          {activeTab === 'idealFor' &&
             item.idealFor ? (
-            <View style={styles.section}>
-              <SectionHeader title="Ideal For" />
-            </View>
+            <IdealForSection idealFor={item.idealFor} />
           ) : null}
 
           {activeTab === 'compliance' &&
             item.compliance ? (
-            <View style={styles.section}>
-              <SectionHeader title="Compliance" />
-
-              <View style={styles.bulletList}>
-                {item.compliance.items?.map(rule => (
-                  <View
-                    key={rule}
-                    style={styles.bulletRow}
-                  >
-                    <Text style={styles.bulletMark}>
-                      {'\u2022'}
-                    </Text>
-
-                    <Text style={styles.bulletText}>
-                      {rule}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            </View>
+            <ComplianceSection compliance={item.compliance} />
           ) : null}
 
           {activeTab === 'faqs' && item.faqs ? (
-            <View style={styles.sectionLast}>
-              <SectionHeader title="FAQs" />
-
-              <View style={styles.bulletList}>
-                {item.faqs.faqs?.map(faq => (
-                  <View
-                    key={faq.question}
-                    style={styles.bulletRow}
-                  >
-                    <Text style={styles.bulletMark}>
-                      {'\u2022'}
-                    </Text>
-
-                    <Text style={styles.bulletText}>
-                      {faq.question}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            </View>
+            <FAQSection faqs={item.faqs} />
           ) : null}
+
+          <RecommendedServicesSection
+            recommendedServices={item.recommendedServices}
+            onPressService={handlePressService}
+          />
+
         </ScrollWrapper>
+
       </ScreenWrapper>
     </SafeAreaWrapper>
   );

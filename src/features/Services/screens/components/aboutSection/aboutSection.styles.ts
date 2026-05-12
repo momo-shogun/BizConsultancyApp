@@ -27,7 +27,7 @@ export const highlightColors = {
 export const styles = StyleSheet.create({
   sectionWrapper: {
     position: 'relative',
-    paddingHorizontal: 20,
+    paddingHorizontal: 12,
     paddingVertical: 28,
   },
 
@@ -120,7 +120,6 @@ export const styles = StyleSheet.create({
     letterSpacing: -1,
 
     color: '#0F172A',
-
     marginBottom: 18,
   },
 
@@ -195,7 +194,6 @@ export const styles = StyleSheet.create({
     paddingVertical: 4,
 
     marginHorizontal: 2,
-    marginVertical: 2,
   },
 
   inlineHighlightChip: {

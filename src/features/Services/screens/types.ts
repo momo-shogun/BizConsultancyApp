@@ -2,7 +2,9 @@ import type { RecommendedServiceItem } from '@/shared/components';
 
 export interface TextSegment {
   type: 'plain' | 'highlight';
+
   value: string;
+
   color?: string;
 }
 
@@ -20,55 +22,7 @@ export interface AboutSection {
   paragraphsSegments?: AboutParagraph[];
 }
 
-export interface PackageItem {
-  title: string;
-
-  details: string[];
-
-  category?: string;
-
-  icon?: string;
-
-  status?: string;
-}
-
-export interface ProcessStep {
-  title: string;
-
-  number: string;
-
-  description: string;
-}
-
-export interface DocumentCategory {
-  title: string;
-
-  subtitle?: string;
-
-  documents: string[];
-}
-
-export interface BenefitItem {
-  title: string;
-
-  description: string;
-}
-
-export interface EligibilityItem {
-  title: string;
-
-  description: string;
-
-  icon?: string;
-}
-
-export interface FAQItem {
-  question: string;
-
-  answer: string;
-}
-
-/* -------------------- NEW IDEAL FOR TYPES -------------------- */
+/* -------------------- IDEAL FOR -------------------- */
 
 export interface IdealForItem {
   image: string;
@@ -82,6 +36,106 @@ export interface IdealForSection {
   titleSegments?: TextSegment[];
 
   items?: IdealForItem[];
+}
+
+/* -------------------- OUR PACKAGE -------------------- */
+
+export interface PackageItem {
+  title: string;
+
+  details: string[];
+
+  category?: string;
+
+  icon?: string;
+
+  status?: string;
+}
+
+/* -------------------- PROCESS -------------------- */
+
+export interface ProcessStep {
+  title: string;
+
+  number: string;
+
+  description: string;
+}
+
+/* -------------------- DOCUMENTS -------------------- */
+
+export interface DocumentCategory {
+  title: string;
+
+  subtitle?: string;
+
+  documents: string[];
+}
+
+/* -------------------- BENEFITS -------------------- */
+
+export interface BenefitItem {
+  title: string;
+
+  description: string;
+}
+
+/* -------------------- ELIGIBILITY -------------------- */
+
+export interface EligibilityItem {
+  title: string;
+
+  description: string;
+
+  icon?: string;
+}
+
+/* -------------------- COMPLIANCE -------------------- */
+
+export interface ComplianceSection {
+  badge?: string;
+
+  titleSegments?: TextSegment[];
+
+  description?: string;
+
+  items?: string[];
+}
+
+/* -------------------- FAQS -------------------- */
+
+export interface FAQItem {
+  question: string;
+
+  answer: string;
+}
+
+export interface FAQSection {
+  badge?: string;
+
+  titleSegments?: TextSegment[];
+
+  faqs?: FAQItem[];
+}
+
+/* -------------------- RECOMMENDED SERVICES -------------------- */
+
+export interface RecommendedServiceCard {
+  href: string;
+
+  title: string;
+
+  description: string;
+
+  servicePageId: number;
+}
+
+export interface RecommendedServicesSection {
+  title?: string;
+
+  description?: string;
+
+  items?: RecommendedServiceCard[];
 }
 
 /* -------------------- MAIN SERVICE PAGE -------------------- */
@@ -115,11 +169,9 @@ export interface ServicePage extends RecommendedServiceItem {
     items?: EligibilityItem[];
   };
 
-  compliance?: {
-    items?: string[];
-  };
+  compliance?: ComplianceSection;
 
-  faqs?: {
-    faqs?: FAQItem[];
-  };
+  faqs?: FAQSection;
+
+  recommendedServices?: RecommendedServicesSection;
 }
