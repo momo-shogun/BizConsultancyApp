@@ -272,7 +272,7 @@ export function ServiceDetailScreen(): React.ReactElement {
                   <Text style={styles.quickBtnText}>Talk to expert</Text>
                 </Pressable>
               </View>
-            </LinearGradient> ̰
+            </LinearGradient>
           </View>
 
           <View>
@@ -310,7 +310,7 @@ export function ServiceDetailScreen(): React.ReactElement {
                 </Pressable>
               ))}
             </ScrollView>
-          </View> ̰
+          </View>
 
           {activeTab === 'about' && item.about ? (
             <AboutSection
@@ -355,7 +355,7 @@ export function ServiceDetailScreen(): React.ReactElement {
 
           {activeTab === 'ourPackage' && item.ourPackage ? (
             <OurPackageSection ourPackage={item.ourPackage} />
-          ) : null} ̰
+          ) : null}
 
           {activeTab === 'process' && item?.eligibility ? (
             <EligibilitySection item={item.eligibility} activeTab={activeTab} />

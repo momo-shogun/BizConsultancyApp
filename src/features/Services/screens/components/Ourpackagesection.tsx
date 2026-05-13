@@ -16,7 +16,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { styles } from './ourPackagestyles.ts';
+import { styles } from './ourPackagestyles';
 
 // Enable LayoutAnimation on Android
 if (
@@ -127,25 +127,19 @@ const PackageCard = ({
   pkg: PackageItem;
   index: number;
 }) => {
-  // Open by default
+  // Open by default (chevron rotated when expanded)
   const [expanded, setExpanded] = useState(true);
 
   const config = CARD_CONFIG[pkg.category] ?? CARD_CONFIG.Support;
 
-  // Professional subtle chevron animation only
-  const rotate = useSharedValue(1);
+  /** Degrees: expanded → 180, collapsed → 0. Never call `withTiming` inside `useAnimatedStyle`. */
+  const chevronRotationDeg = useSharedValue(180);
 
   const chevronStyle = useAnimatedStyle(() => ({
-    transform: [
-      {
-        rotate: `${withTiming(rotate.value ? 180 : 0, {
-          duration: 180,
-        })}deg`,
-      },
-    ],
+    transform: [{ rotate: `${chevronRotationDeg.value}deg` }],
   }));
 
-  const handlePress = () => {
+  const handlePress = (): void => {
     LayoutAnimation.configureNext(
       LayoutAnimation.create(
         220,
@@ -154,9 +148,11 @@ const PackageCard = ({
       ),
     );
 
-    rotate.value = expanded ? 0 : 1;
-
-    setExpanded(prev => !prev);
+    const nextExpanded = !expanded;
+    chevronRotationDeg.value = withTiming(nextExpanded ? 180 : 0, {
+      duration: 180,
+    });
+    setExpanded(nextExpanded);
   };
 
   return (
