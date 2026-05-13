@@ -33,6 +33,7 @@ export type RootStackParamList = {
   [ROUTES.Root.Auth]: NavigatorScreenParams<AuthStackParamList>;
   [ROUTES.Root.App]: NavigatorScreenParams<AppTabParamList>;
   [ROUTES.Root.ConsultantsList]: undefined;
+  [ROUTES.Root.ConsultantDetail]: { slug: string };
 };
 
 

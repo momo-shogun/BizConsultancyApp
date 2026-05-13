@@ -14,6 +14,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { THEME } from '@/constants/theme';
+import { ROUTES } from '@/navigation/routeNames';
 import type { RootStackParamList } from '@/navigation/types';
 import {
   EmptyState,
@@ -32,6 +33,18 @@ const LIST_GAP = THEME.spacing[10];
 const H_PADDING = THEME.spacing[12];
 
 const DEMO_CONSULTANTS: TopConsultantItem[] = [
+  {
+    id: '3',
+    slug: 'r-k-saxena',
+    name: 'R K Saxena',
+    role: 'Project Manager',
+    bio: 'Textile & apparel · business mentorship.',
+    specialty: 'Agriculture',
+    experienceLabel: '48+ years',
+    rateLabel: '₹354',
+    photoUri:
+      'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=600&auto=format&fit=crop&q=80',
+  },
   {
     id: 'consultant-lata-moorjani',
     name: 'CA Lata Moorjani',
@@ -342,12 +355,20 @@ export function ConsultantViewAllScreen(): React.ReactElement {
           cardWidth={cardWidth}
           showSpecialtyInMeta={false}
           bioNumberOfLines={1}
-          onPress={() => undefined}
-          onBookPress={() => undefined}
+          onPress={() =>
+            navigation.navigate(ROUTES.Root.ConsultantDetail, {
+              slug: item.slug ?? item.id,
+            })
+          }
+          onBookPress={() =>
+            navigation.navigate(ROUTES.Root.ConsultantDetail, {
+              slug: item.slug ?? item.id,
+            })
+          }
         />
       </View>
     ),
-    [cardWidth],
+    [cardWidth, navigation],
   );
 
   const ListHeader = useCallback(

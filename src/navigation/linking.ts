@@ -33,6 +33,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
         },
       },
       [ROUTES.Root.ConsultantsList]: 'consultants',
+      [ROUTES.Root.ConsultantDetail]: 'consultant/:slug',
     },
   },
 };

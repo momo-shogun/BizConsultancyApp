@@ -10,6 +10,7 @@ import type { RootStackParamList } from './types';
 import { useRouteTracking } from './useRouteTracking';
 import { AuthNavigator } from './AuthNavigator';
 import { AppNavigator } from './AppNavigator';
+import { ConsultantDetailScreen } from '@/features/consultant/screens/ConsultantDetailScreen';
 import { ConsultantViewAllScreen } from '@/features/consultant/screens/ConsultantViewAllScreen';
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
@@ -33,6 +34,11 @@ export function RootNavigator(): React.ReactElement {
               options={{
                 headerShown: false,
               }}
+            />
+            <RootStack.Screen
+              name={ROUTES.Root.ConsultantDetail}
+              component={ConsultantDetailScreen}
+              options={{ headerShown: false }}
             />
           </RootStack.Group>
         )}

@@ -14,6 +14,8 @@ import { THEME } from '@/constants/theme';
 
 export interface TopConsultantItem {
   id: string;
+  /** URL slug for detail screen / API (falls back to `id` when missing). */
+  slug?: string;
   name: string;
   role: string;
   bio: string;
