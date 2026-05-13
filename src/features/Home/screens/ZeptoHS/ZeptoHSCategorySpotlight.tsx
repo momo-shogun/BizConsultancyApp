@@ -3,7 +3,10 @@ import { StyleSheet, Text, View, Animated, Easing, Pressable } from 'react-nativ
 import LinearGradient from 'react-native-linear-gradient';
 import LottieView from 'lottie-react-native';
 import type { HomeCategoryId } from './ZeptoHS.types';
+import { ZeptoHSServicesSpotlight } from './ZeptoHSServicesSpotlight';
 import diagnosisAnimation from '@/assets/animations/businessDiagonisis.json';
+import { ExpertConsultation } from './ExpertConsultation';
+import { MentorshipProgram } from './MentorshipProgram';
 
 /** Satisfies `LottieView` `source` when JSON is typed as `Record<string, unknown>` from Metro. */
 const DIAGNOSIS_LOTTIE_SOURCE = diagnosisAnimation as unknown as React.ComponentProps<
@@ -632,13 +635,22 @@ export function ZeptoHSCategorySpotlight({
   }
 
   else if (categoryId === 'services') {
-    return (<>
-       <View>
-        <Text style={ph.hint}>Demo content — wire real data later.</Text>
-       </View>
-    
-    </>)
+    return <ZeptoHSServicesSpotlight backgroundColor={backgroundColor} accentColor={accentColor} />;
   }
+
+  else if (categoryId === 'consultation') {
+    return (
+      <ExpertConsultation backgroundColor={backgroundColor} accentColor={accentColor} />
+    )
+  }
+
+  else if (categoryId === 'mentorship') {
+    return (
+      <MentorshipProgram backgroundColor={backgroundColor} accentColor={accentColor} />
+    )
+
+  }
+    
 
   const body = PLACEHOLDER_COPY[categoryId];
 
