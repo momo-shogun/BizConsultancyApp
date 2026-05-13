@@ -72,6 +72,35 @@ const TAB_LABEL_INACTIVE = THEME.colors.black;
 
 const EASE_OUT_CUBIC = Easing.bezier(0.25, 0.46, 0.45, 0.94);
 
+/**
+ * Rotating row backgrounds — same visual language as
+ * `RecommendedServicesSection` `accentPanel` (inset rounded card + teal band)
+ * alternating with soft brand surfaces so stacked sub-categories feel curated.
+ */
+interface SubCategoryPanelStyle {
+  backgroundColor: string;
+  titleColor: string;
+}
+
+const SUB_CATEGORY_PANEL_STYLES: readonly SubCategoryPanelStyle[] = [
+  {
+    backgroundColor: THEME.colors.chooseAccountConsultantGrad2,
+    titleColor: THEME.colors.white,
+  },
+  {
+    backgroundColor: THEME.colors.chooseAccountBg1,
+    titleColor: THEME.colors.primary,
+  },
+  {
+    backgroundColor: THEME.colors.surface,
+    titleColor: THEME.colors.textPrimary,
+  },
+  {
+    backgroundColor: THEME.colors.splashGreen1,
+    titleColor: THEME.colors.chooseAccountUserGrad1,
+  },
+] as const;
+
 function hexToRgba(hex: string, alpha: number): string {
   const raw = hex.replace('#', '').trim();
   if (raw.length !== 3 && raw.length !== 6) return `rgba(16, 163, 74, ${alpha})`;
@@ -358,24 +387,38 @@ export function ZeptoHSServicesSpotlight({
   );
 
   const renderSubCategorySection = useCallback(
-    (sub: ServicesSubCategory): React.ReactElement => (
-      <View key={sub.slug} style={styles.section}>
-        <Text style={styles.sectionTitle} numberOfLines={2}>
-          {sub.name.trim()}
-        </Text>
-        <FlatList
-          horizontal
-          nestedScrollEnabled
-          data={sub.pages}
-          renderItem={renderPageItem}
-          keyExtractor={pageKeyExtractor}
-          ItemSeparatorComponent={ListSeparator}
-          showsHorizontalScrollIndicator={false}
-          style={styles.hRow}
-          contentContainerStyle={styles.hRowContent}
-        />
-      </View>
-    ),
+    (sub: ServicesSubCategory, sectionIndex: number): React.ReactElement => {
+      const panel =
+        SUB_CATEGORY_PANEL_STYLES[sectionIndex % SUB_CATEGORY_PANEL_STYLES.length] ??
+        SUB_CATEGORY_PANEL_STYLES[0];
+
+      return (
+        <View
+          key={sub.slug}
+          style={[styles.sectionCard, { backgroundColor: panel.backgroundColor }]}
+        >
+          <View style={styles.sectionHeader}>
+            <Text
+              style={[styles.sectionTitle, { color: panel.titleColor }]}
+              numberOfLines={2}
+            >
+              {sub.name.trim()}
+            </Text>
+          </View>
+          <FlatList
+            horizontal
+            nestedScrollEnabled
+            data={sub.pages}
+            renderItem={renderPageItem}
+            keyExtractor={pageKeyExtractor}
+            ItemSeparatorComponent={ListSeparator}
+            showsHorizontalScrollIndicator={false}
+            style={styles.hRow}
+            contentContainerStyle={styles.hRowContent}
+          />
+        </View>
+      );
+    },
     [ListSeparator, pageKeyExtractor, renderPageItem],
   );
 
@@ -430,7 +473,9 @@ export function ZeptoHSServicesSpotlight({
         entering={FadeIn.duration(180).delay(60).easing(EASE_OUT_CUBIC)}
         style={styles.sections}
       >
-        {activeCategory.subCategories.map((sub) => renderSubCategorySection(sub))}
+        {activeCategory.subCategories.map((sub, sectionIndex) =>
+          renderSubCategorySection(sub, sectionIndex),
+        )}
       </Animated.View>
     </View>
   );
@@ -504,28 +549,38 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 12,
   },
 
-  // Content
+  // Content — canvas behind inset cards (see `RecommendedServicesSection` sheet)
   sections: {
-    gap: THEME.spacing[20],
-    paddingHorizontal: THEME.spacing[16],
+    gap: THEME.spacing[16],
     paddingTop: THEME.spacing[16],
-    backgroundColor: 'white',
+    paddingBottom: THEME.spacing[4],
+    backgroundColor: THEME.colors.background,
   },
-  section: {
-    gap: THEME.spacing[10],
+  sectionCard: {
+    marginHorizontal: THEME.spacing[16],
+    borderRadius: 20,
+    overflow: 'hidden',
+    paddingTop: THEME.spacing[16],
+    paddingBottom: THEME.spacing[12],
+  },
+  sectionHeader: {
+    paddingHorizontal: THEME.spacing[16],
+    marginBottom: THEME.spacing[12],
   },
   sectionTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: THEME.colors.textPrimary,
-    lineHeight: 20,
+    fontSize: THEME.typography.size[16],
+    fontWeight: THEME.typography.weight.bold as '700',
+    letterSpacing: -0.35,
+    lineHeight: 24,
   },
   hRow: {
     flexGrow: 0,
   },
   hRowContent: {
-    paddingVertical: 2,
-    paddingRight: THEME.spacing[4],
+    paddingLeft: THEME.spacing[16],
+    paddingRight: THEME.spacing[8],
+    paddingTop: 2,
+    paddingBottom: THEME.spacing[4],
   },
   cardGap: {
     width: THEME.spacing[12],
