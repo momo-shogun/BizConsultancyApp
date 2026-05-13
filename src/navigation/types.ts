@@ -27,9 +27,15 @@ export type AppTabParamList = {
   [ROUTES.App.Services]: NavigatorScreenParams<ServicesStackParamList>;
   [ROUTES.App.Edp]: NavigatorScreenParams<EdpStackParamList>;
   [ROUTES.App.Account]: undefined;
+  [ROUTES.App.ConsultantsList]: undefined;
 };
 
 export type RootStackParamList = {
   [ROUTES.Root.Auth]: NavigatorScreenParams<AuthStackParamList>;
   [ROUTES.Root.App]: NavigatorScreenParams<AppTabParamList>;
 };
+
+
+// export type EdpStackParamList = {
+//   [ROUTES.App.Edp]: undefined;
+// };

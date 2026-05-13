@@ -17,6 +17,7 @@ export const ROUTES = {
     Services: 'App/Services',
     Edp: 'App/Edp',
     Account: 'App/Account',
+    ConsultantsList: 'App/ConsultantsList',
   },
   Edp: {
     Main: 'Edp/Main',
@@ -26,5 +27,6 @@ export const ROUTES = {
     List: 'App/Services/List',
     Detail: 'App/Services/Detail',
   },
+  ConsultantsList: 'App/ConsultantsList',
 } as const;
 

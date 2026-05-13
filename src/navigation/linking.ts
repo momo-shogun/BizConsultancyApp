@@ -30,6 +30,9 @@ export const linking: LinkingOptions<RootStackParamList> = {
           },
 
           [ROUTES.App.Account]: 'account',
+
+          [ROUTES.App.ConsultantsList]: 'consultants',
+          
         },
       },
     },

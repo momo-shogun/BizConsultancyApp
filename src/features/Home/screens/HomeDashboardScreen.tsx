@@ -20,6 +20,10 @@ import {
 } from '@/shared/components';
 import type { HomeCategoryId } from './ZeptoHS/ZeptoHS.types';
 import { ZeptoHS } from './ZeptoHS/ZeptoHS';
+import { ROUTES } from '@/navigation/routeNames';
+import { navigationRef } from '@/navigation/RootNavigator';
+import { NativeStackNavigationProp } from 'node_modules/@react-navigation/native-stack/lib/typescript/src/types';
+import { AuthStackParamList } from '@/navigation/types';
 
 const HOME_INTEREST_DEMO_ITEMS: EventSpotlightItem[] = [
   {
@@ -135,6 +139,9 @@ const HOME_TESTIMONIALS_DEMO_ITEMS: TestimonialItem[] = [
   },
 ];
 
+type Nav = NativeStackNavigationProp<AuthStackParamList, typeof ROUTES.App.ConsultantsList>;
+
+
 const HOME_UPCOMING_BOOKINGS_DEMO_ITEMS: UpcomingBookingItem[] = [
   {
     id: 'BCG99763',
@@ -219,6 +226,9 @@ const HOME_MEMBERSHIP_PLANS_DEMO_ITEMS: MembershipPlanItem[] = [
 ];
 
 export function HomeDashboardScreen(): React.ReactElement {
+
+  const navigation = useNavigation<Nav>();
+  
   const onInterestViewAll = useCallback(() => {
     console.log('View all interests');
   }, []);
@@ -228,7 +238,7 @@ export function HomeDashboardScreen(): React.ReactElement {
   }, []);
 
   const onTopConsultantsViewAll = useCallback(() => {
-    console.log('View all consultants');
+    navigation.navigate(ROUTES.App.ConsultantsList);
   }, []);
 
   const onRecommendedServicesViewAll = useCallback(() => {
