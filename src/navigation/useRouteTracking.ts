@@ -1,4 +1,4 @@
-import type { NavigationContainerRef, ParamListBase } from '@react-navigation/native';
+import type { NavigationContainerRefWithCurrent, ParamListBase } from '@react-navigation/native';
 import { useCallback, useRef } from 'react';
 
 export interface RouteTrackingHandlers {
@@ -7,7 +7,7 @@ export interface RouteTrackingHandlers {
 }
 
 export function useRouteTracking(
-  navigationRef: React.RefObject<NavigationContainerRef<ParamListBase>>,
+  navigationRef: NavigationContainerRefWithCurrent<ParamListBase>,
 ): RouteTrackingHandlers {
   const lastRouteNameRef = useRef<string | undefined>(undefined);
 

@@ -32,6 +32,8 @@ function getTabBarIcon(
         return focused ? 'calendar' : 'calendar-outline';
       case ROUTES.App.Account:
         return focused ? 'person' : 'person-outline';
+      default:
+        return 'help-circle-outline';
     }
   })();
 

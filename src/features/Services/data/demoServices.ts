@@ -1,6 +1,6 @@
-import type { RecommendedServiceItem } from '@/shared/components';
+import type { ServicePage } from '../screens/types';
 
-export const DEMO_SERVICES: any[] = [
+export const DEMO_SERVICES: ServicePage[] = [
   {
     id: "sd",
 
@@ -324,6 +324,7 @@ export const DEMO_SERVICES: any[] = [
     },
 
     eligibility: {
+      title: 'Eligibility Requirements',
       items: [
         {
           icon: 'Users',
@@ -495,6 +496,10 @@ export const DEMO_SERVICES: any[] = [
     badgeLabel: 'ourPackage',
     priceLabel: 'From ₹1,499',
     headerStyleIndex: 1,
+    ourPackage: {
+      sectionTitle: 'GST Registration Package',
+      items: [],
+    },
   },
   {
     id: 'svc-tm',
@@ -507,5 +512,9 @@ export const DEMO_SERVICES: any[] = [
     badgeLabel: 'Trending',
     priceLabel: 'From ₹5,999',
     headerStyleIndex: 2,
+    ourPackage: {
+      sectionTitle: 'Trademark Registration Package',
+      items: [],
+    },
   },
 ];

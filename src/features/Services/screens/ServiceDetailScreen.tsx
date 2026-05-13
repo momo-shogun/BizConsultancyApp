@@ -33,13 +33,12 @@ import { useServiceBySlug } from '../hooks/useServiceBySlug';
 import { styles } from './ServiceDetailsStyle';
 import { OurPackageSection } from './components/Ourpackagesection';
 import { AboutSection } from './components/aboutSection/aboutSection';
-import EligibilitySection from './components/eiligibility/EligibilitySection';
+import { EligibilitySection } from './components/eiligibility/EligibilitySection';
 import DocumentCategories from './components/documentChecklist/DocumentCategories';
 import BenefitsSection from './components/BenefitsSection/BenefitsSection';
 import IdealForSection from './components/idealFor/IdealForSection';
 import ComplianceSection from './components/compliance/ComplianceSection';
 import FAQSection from './components/faq/faq';
-import Faq from './components/faq/faq';
 import RecommendedServicesSection from './components/RecommendedServicesSection/RecommendedServicesSection';
 
 type ServiceDetailRouteProp = RouteProp<
@@ -105,9 +104,8 @@ export function ServiceDetailScreen(): React.ReactElement {
     );
   }
 
-  const handlePressService = (serviceSlug: string) => {
-    console.log('Pressed recommended service:', serviceSlug);
-
+  const handlePressService = (service: { href: string; title: string; description: string; servicePageId: number }): void => {
+    console.log('Pressed recommended service:', service.href);
   }
 
 
@@ -367,11 +365,6 @@ export function ServiceDetailScreen(): React.ReactElement {
             item.documents ? (
             <DocumentCategories
               documents={item.documents}
-              onDocumentPress={(docName, categoryName) => {
-                console.log(`Document pressed: ${docName} from ${categoryName}`);
-                // Navigate to document upload screen
-              }}
-              initiallyExpanded={['For Directors']} // Auto-expand important categories
             />
           ) : null}
 

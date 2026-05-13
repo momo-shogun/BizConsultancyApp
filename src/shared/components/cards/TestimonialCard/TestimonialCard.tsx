@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
     opacity: 0.94,
   },
   accentLayer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   haze: {
     position: 'absolute',

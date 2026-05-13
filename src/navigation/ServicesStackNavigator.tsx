@@ -14,7 +14,7 @@ export function ServicesStackNavigator(): React.ReactElement {
     <Stack.Navigator
       initialRouteName={ROUTES.Services.List}
       screenOptions={{
-        headerBackTitleVisible: false,
+        headerBackButtonDisplayMode: 'minimal',
         headerTitleAlign: 'center',
         headerShadowVisible: false,
         animation: 'slide_from_right',

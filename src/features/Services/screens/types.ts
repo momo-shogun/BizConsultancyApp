@@ -35,7 +35,7 @@ export interface IdealForItem {
 export interface IdealForSection {
   titleSegments?: TextSegment[];
 
-  items?: IdealForItem[];
+  items: IdealForItem[];
 }
 
 /* -------------------- OUR PACKAGE -------------------- */
@@ -45,11 +45,11 @@ export interface PackageItem {
 
   details: string[];
 
-  category?: string;
+  category: string;
 
-  icon?: string;
+  icon: string;
 
-  status?: string;
+  status: string;
 }
 
 /* -------------------- PROCESS -------------------- */
@@ -99,7 +99,7 @@ export interface ComplianceSection {
 
   description?: string;
 
-  items?: string[];
+  items: string[];
 }
 
 /* -------------------- FAQS -------------------- */
@@ -115,7 +115,7 @@ export interface FAQSection {
 
   titleSegments?: TextSegment[];
 
-  faqs?: FAQItem[];
+  faqs: FAQItem[];
 }
 
 /* -------------------- RECOMMENDED SERVICES -------------------- */
@@ -140,13 +140,35 @@ export interface RecommendedServicesSection {
 
 /* -------------------- MAIN SERVICE PAGE -------------------- */
 
+interface HeroFeature {
+  icon: string;
+  text: string;
+  color: string;
+}
+
+interface HeroQuickAction {
+  href: string;
+  icon: string;
+  text: string;
+}
+
+interface HeroSection {
+  title: string;
+  subtitle: string;
+  formHeading: string;
+  features: HeroFeature[];
+  quickActions: HeroQuickAction[];
+}
+
 export interface ServicePage extends RecommendedServiceItem {
+  hero?: HeroSection;
+
   about?: AboutSection;
 
   idealFor?: IdealForSection;
 
   ourPackage: {
-    sectionTitle?: string;
+    sectionTitle: string;
 
     items: PackageItem[];
   };
@@ -158,15 +180,17 @@ export interface ServicePage extends RecommendedServiceItem {
   };
 
   documents?: {
-    categories?: DocumentCategory[];
+    categories: DocumentCategory[];
   };
 
   benefits?: {
-    items?: BenefitItem[];
+    items: BenefitItem[];
   };
 
   eligibility?: {
-    items?: EligibilityItem[];
+    title: string;
+
+    items: EligibilityItem[];
   };
 
   compliance?: ComplianceSection;
