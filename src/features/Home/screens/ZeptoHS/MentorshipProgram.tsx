@@ -1,344 +1,169 @@
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
   FlatList,
-  Image,
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 
-type MentorshipItem = {
-  id: number;
-  name: string;
-  slug: string;
-  thumbnail: string;
-  description: string;
-  category: {
-    id: number;
-    name: string;
-    slug: string;
-  };
-};
+import { THEME } from '@/constants/theme';
+
+export interface MentorshipStatItem {
+  label: string;
+  value: number;
+  /** Shown under the value (e.g. programme code). */
+  tag: string;
+}
+
+const DEFAULT_MENTORSHIP_STATS: readonly MentorshipStatItem[] = [
+  { label: 'Total Videos', value: 144, tag: 'EDP' },
+  { label: 'PDFs', value: 147, tag: 'EDP' },
+  { label: 'Modules', value: 22, tag: 'EDP' },
+  { label: 'Assessments', value: 0, tag: 'EDP' },
+  { label: 'Enrolled Users', value: 0, tag: 'EDP' },
+] as const;
+
+const STAT_ACCENTS_REST = ['#0EA5E9', THEME.colors.primary, '#6366F1', '#0891B2'] as const;
+
+const GRID_COLUMNS = 2;
+const CARD_GAP = THEME.spacing[8];
+const CARD_MIN_HEIGHT = 68;
+const ACCENT_RAIL_WIDTH = 3;
 
 type Props = {
   backgroundColor?: string;
   accentColor?: string;
-  data?: MentorshipItem[];
+  stats?: readonly MentorshipStatItem[];
 };
 
-/* -------------------------------------------------------------------------- */
-/*                                  DUMMY DATA                                */
-/* -------------------------------------------------------------------------- */
-
-const DUMMY_DATA: MentorshipItem[] = [
-  {
-    id: 1,
-    name: 'Energy and Fuel',
-    slug: 'energy-and-fuel',
-    thumbnail:
-      'https://images.unsplash.com/photo-1513828583688-c52646db42da?q=80&w=1200&auto=format&fit=crop',
-    description:
-      'Mentorship for petroleum, gas, energy operations and industrial growth strategies.',
-    category: {
-      id: 1,
-      name: 'Industrial',
-      slug: 'industrial',
-    },
-  },
-
-  {
-    id: 2,
-    name: 'Manufacturing Excellence',
-    slug: 'manufacturing',
-    thumbnail:
-      'https://images.unsplash.com/photo-1504307651254-35680f356dfd?q=80&w=1200&auto=format&fit=crop',
-    description:
-      'Learn scaling, automation and operational efficiency from manufacturing leaders.',
-    category: {
-      id: 1,
-      name: 'Industrial',
-      slug: 'industrial',
-    },
-  },
-
-  {
-    id: 3,
-    name: 'Social Enterprises & CSR Funding',
-    slug: 'social-enterprises-csr-funding',
-    thumbnail:
-      'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?q=80&w=1200&auto=format&fit=crop',
-    description:
-      'Guidance for NGOs, CSR initiatives and social impact funding opportunities.',
-    category: {
-      id: 2,
-      name: 'Professional',
-      slug: 'professional',
-    },
-  },
-
-  {
-    id: 4,
-    name: 'Business Consulting',
-    slug: 'business-consulting',
-    thumbnail:
-      'https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=1200&auto=format&fit=crop',
-    description:
-      'Connect with experienced consultants for strategy, finance and growth planning.',
-    category: {
-      id: 2,
-      name: 'Professional',
-      slug: 'professional',
-    },
-  },
-
-  {
-    id: 5,
-    name: 'Startup Fundraising',
-    slug: 'startup-fundraising',
-    thumbnail:
-      'https://images.unsplash.com/photo-1556761175-b413da4baf72?q=80&w=1200&auto=format&fit=crop',
-    description:
-      'Learn investor pitching, fundraising and startup scaling from founders and VCs.',
-    category: {
-      id: 3,
-      name: 'Startup',
-      slug: 'startup',
-    },
-  },
-
-  {
-    id: 6,
-    name: 'Product & UX Mentorship',
-    slug: 'product-ux',
-    thumbnail:
-      'https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=1200&auto=format&fit=crop',
-    description:
-      'Get mentorship in product strategy, user experience and digital innovation.',
-    category: {
-      id: 3,
-      name: 'Startup',
-      slug: 'startup',
-    },
-  },
-];
-
-/* -------------------------------------------------------------------------- */
-/*                              MAIN COMPONENT                                */
-/* -------------------------------------------------------------------------- */
+const StatCell = React.memo(function StatCell({
+  item,
+  accent,
+  isRightColumn,
+  valueFontSize,
+}: {
+  item: MentorshipStatItem;
+  accent: string;
+  isRightColumn: boolean;
+  valueFontSize: number;
+}): React.ReactElement {
+  return (
+    <View style={[styles.cellWrap, isRightColumn ? styles.cellRight : styles.cellLeft]}>
+      <View style={styles.statCell}>
+        <View style={[styles.statAccentRail, { backgroundColor: accent }]} />
+        <View style={styles.statCellInner}>
+          <Text style={styles.statLabel} numberOfLines={2}>
+            {item.label}
+          </Text>
+          <Text
+            style={[
+              styles.statValue,
+              { fontSize: valueFontSize, lineHeight: Math.round(valueFontSize * 1.12) },
+            ]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.88}
+          >
+            {item.value}
+          </Text>
+          <Text style={[styles.statTag, { color: accent }]} numberOfLines={1}>
+            {item.tag}
+          </Text>
+        </View>
+      </View>
+    </View>
+  );
+});
 
 export function MentorshipProgram({
   backgroundColor = '#F8FAFC',
   accentColor = '#2563EB',
-  data = DUMMY_DATA,
-}: Props) {
-  const groupedData = useMemo(() => {
-    const map: Record<string, MentorshipItem[]> = {};
+  stats = DEFAULT_MENTORSHIP_STATS,
+}: Props): React.ReactElement {
+  const { width } = useWindowDimensions();
+  const valueFontSize = width <= 360 ? 19 : 21;
 
-    data.forEach(item => {
-      const key = item.category?.name ?? 'Other';
+  const statList = useMemo(() => [...stats], [stats]);
 
-      if (!map[key]) {
-        map[key] = [];
-      }
+  const accentPalette = useMemo(
+    () => [accentColor, ...STAT_ACCENTS_REST] as const,
+    [accentColor],
+  );
 
-      map[key].push(item);
-    });
-
-    return Object.entries(map);
-  }, [data]);
+  const renderStat = useCallback(
+    ({ item, index }: { item: MentorshipStatItem; index: number }) => {
+      const accent = accentPalette[index % accentPalette.length];
+      return (
+        <StatCell
+          item={item}
+          accent={accent}
+          isRightColumn={index % GRID_COLUMNS === 1}
+          valueFontSize={valueFontSize}
+        />
+      );
+    },
+    [valueFontSize, accentPalette],
+  );
 
   return (
     <ScrollView
-      style={[
-        styles.container,
-        { backgroundColor },
-      ]}
-      contentContainerStyle={
-        styles.contentContainer
-      }
+      style={[styles.container, { backgroundColor }]}
+      contentContainerStyle={styles.contentContainer}
       showsVerticalScrollIndicator={false}
     >
-      {/* HERO */}
-      <LinearGradient
-        colors={[
-          'rgba(37,99,235,0.14)',
-          'rgba(14,165,233,0.04)',
-        ]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.hero}
-      >
-        <Text
-          style={[
-            styles.eyebrow,
-            { color: accentColor },
-          ]}
+      <View style={styles.unifiedOuter}>
+        <LinearGradient
+          colors={['rgba(248,250,252,0.97)', 'rgba(241,245,249,0.98)', 'rgba(224,242,254,0.35)']}
+          locations={[0, 0.55, 1]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.unifiedGradient}
         >
-          MENTORSHIP PROGRAM
-        </Text>
+          <View style={styles.unifiedInner}>
+            <Text style={[styles.eyebrow, { color: accentColor }]}>MENTORSHIP PROGRAM</Text>
 
-        <Text style={styles.title}>
-          Learn from{'\n'}
-          <Text style={styles.titleAccent}>
-            Industry Experts
-          </Text>
-        </Text>
-
-        <Text style={styles.subtitle}>
-          Personalized mentorship across
-          industries to help you scale,
-          grow and innovate faster.
-        </Text>
-
-        <View style={styles.heroPills}>
-          <View style={styles.heroPill}>
-            <Text style={styles.heroPillEmoji}>
-              🚀
+            <Text style={styles.title}>
+              Learn from{' '}
+              <Text style={[styles.titleAccent, { color: accentColor }]}>industry experts</Text>
             </Text>
 
-            <Text style={styles.heroPillText}>
-              Startup Growth
-            </Text>
-          </View>
-
-          <View style={styles.heroPill}>
-            <Text style={styles.heroPillEmoji}>
-              🎯
+            <Text style={styles.subtitle}>
+              1:1 guidance across industries — scale, grow and innovate faster.
             </Text>
 
-            <Text style={styles.heroPillText}>
-              1:1 Guidance
-            </Text>
-          </View>
-        </View>
-      </LinearGradient>
+            <View style={styles.heroPills}>
+              <View style={styles.heroPill}>
+                <Text style={[styles.heroPillText, { color: accentColor }]}>Startup growth</Text>
+              </View>
+              <View style={[styles.heroPill, styles.heroPillMuted]}>
+                <Text style={styles.heroPillTextMuted}>1:1 sessions</Text>
+              </View>
+            </View>
 
-      {/* CATEGORY SECTIONS */}
-      {groupedData.map(([category, items]) => {
-        return (
-          <View
-            key={category}
-            style={styles.section}
-          >
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>
-                {category}
-              </Text>
+            <View style={styles.seamDivider} />
 
-              <View style={styles.sectionLine} />
+            <View style={styles.statsHeaderRow}>
+              <Text style={styles.statsHeaderTitle}>Program stats</Text>
+              <Text style={[styles.statsHeaderEdp, { color: accentColor }]}>EDP</Text>
             </View>
 
             <FlatList
-              horizontal
-              data={items}
-              keyExtractor={item =>
-                item.id.toString()
-              }
-              showsHorizontalScrollIndicator={
-                false
-              }
-              contentContainerStyle={
-                styles.horizontalList
-              }
-              renderItem={({ item }) => {
-                return (
-                  <View style={styles.card}>
-                    {/* IMAGE */}
-                    <View style={styles.imageWrap}>
-                      <Image
-                        source={{
-                          uri: item.thumbnail,
-                        }}
-                        style={styles.image}
-                        resizeMode="cover"
-                      />
-
-                      <LinearGradient
-                        colors={[
-                          'transparent',
-                          'rgba(15,23,42,0.65)',
-                        ]}
-                        style={
-                          styles.imageOverlay
-                        }
-                      />
-
-                      <View
-                        style={
-                          styles.floatingBadge
-                        }
-                      >
-                        <Text
-                          style={
-                            styles.floatingBadgeText
-                          }
-                        >
-                          Expert Mentors
-                        </Text>
-                      </View>
-                    </View>
-
-                    {/* CONTENT */}
-                    <View style={styles.cardBody}>
-                      <Text
-                        numberOfLines={2}
-                        style={styles.cardTitle}
-                      >
-                        {item.name}
-                      </Text>
-
-                      <Text
-                        numberOfLines={3}
-                        style={
-                          styles.cardDescription
-                        }
-                      >
-                        {item.description}
-                      </Text>
-
-                      <View
-                        style={styles.cardFooter}
-                      >
-                        <View style={styles.tag}>
-                          <Text
-                            style={styles.tagText}
-                          >
-                            {
-                              item.category
-                                .slug
-                            }
-                          </Text>
-                        </View>
-
-                        <View
-                          style={
-                            styles.arrowWrap
-                          }
-                        >
-                          <Text
-                            style={styles.arrow}
-                          >
-                            →
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
-                  </View>
-                );
-              }}
+              data={statList}
+              keyExtractor={(item) => item.label}
+              renderItem={renderStat}
+              numColumns={GRID_COLUMNS}
+              scrollEnabled={false}
+              contentContainerStyle={styles.statsListContent}
             />
           </View>
-        );
-      })}
+        </LinearGradient>
+      </View>
     </ScrollView>
   );
 }
-
-/* -------------------------------------------------------------------------- */
-/*                                   STYLES                                   */
-/* -------------------------------------------------------------------------- */
 
 const styles = StyleSheet.create({
   container: {
@@ -346,201 +171,183 @@ const styles = StyleSheet.create({
   },
 
   contentContainer: {
-    paddingBottom: 40,
+    paddingBottom: THEME.spacing[12],
   },
 
-  hero: {
-    margin: 14,
-    borderRadius: 28,
-    padding: 20,
+  unifiedOuter: {
+    marginHorizontal: THEME.spacing[12],
+    marginTop: THEME.spacing[8],
+  },
+
+  unifiedGradient: {
+    borderRadius: THEME.radius[16],
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: THEME.colors.border,
+    backgroundColor: THEME.colors.surface,
+  },
+
+  unifiedInner: {
+    paddingHorizontal: THEME.spacing[12],
+    paddingTop: THEME.spacing[12],
+    paddingBottom: THEME.spacing[12],
   },
 
   eyebrow: {
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 2,
-    marginBottom: 10,
+    fontSize: 10,
+    fontWeight: '600',
+    letterSpacing: 1.85,
+    marginBottom: THEME.spacing[8],
+    opacity: 0.88,
   },
 
   title: {
-    fontSize: 30,
-    lineHeight: 36,
-    fontWeight: '900',
-    color: '#0F172A',
+    fontSize: 21,
+    lineHeight: 26,
+    fontWeight: '700',
+    color: THEME.colors.textPrimary,
+    letterSpacing: -0.4,
   },
 
   titleAccent: {
-    color: '#2563EB',
+    fontWeight: '600',
   },
 
   subtitle: {
-    marginTop: 12,
-    fontSize: 14,
-    lineHeight: 22,
-    color: '#475569',
-    paddingRight: 20,
+    marginTop: THEME.spacing[10],
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: '400',
+    color: THEME.colors.textSecondary,
   },
 
   heroPills: {
     flexDirection: 'row',
-    gap: 10,
-    marginTop: 18,
+    flexWrap: 'wrap',
+    gap: THEME.spacing[8],
+    marginTop: THEME.spacing[10],
   },
 
   heroPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor:
-      'rgba(255,255,255,0.7)',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 999,
-    gap: 6,
+    backgroundColor: THEME.colors.white,
+    paddingHorizontal: THEME.spacing[10],
+    paddingVertical: 6,
+    borderRadius: THEME.radius[12],
+    borderWidth: 1,
+    borderColor: THEME.colors.border,
   },
 
-  heroPillEmoji: {
-    fontSize: 14,
+  heroPillMuted: {
+    backgroundColor: THEME.colors.surface,
+    borderColor: THEME.colors.border,
   },
 
   heroPillText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#0F172A',
+    fontSize: 11,
+    fontWeight: '600',
   },
 
-  section: {
-    marginTop: 18,
+  heroPillTextMuted: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: THEME.colors.textSecondary,
   },
 
-  sectionHeader: {
+  seamDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: THEME.colors.border,
+    marginTop: THEME.spacing[14],
+    marginBottom: THEME.spacing[10],
+  },
+
+  statsHeaderRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    marginBottom: 14,
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    marginBottom: THEME.spacing[10],
   },
 
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#0F172A',
+  statsHeaderTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: THEME.colors.textSecondary,
+    letterSpacing: 0.2,
   },
 
-  sectionLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor:
-      'rgba(15,23,42,0.08)',
-    marginLeft: 12,
-  },
-
-  horizontalList: {
-    paddingLeft: 16,
-    paddingRight: 4,
-  },
-
-  card: {
-    width: 260,
-    marginRight: 14,
-    borderRadius: 24,
-    backgroundColor: 'white',
-    overflow: 'hidden',
-
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 14,
-    shadowOffset: {
-      width: 0,
-      height: 6,
-    },
-
-    elevation: 4,
-  },
-
-  imageWrap: {
-    height: 150,
-    position: 'relative',
-  },
-
-  image: {
-    width: '100%',
-    height: '100%',
-  },
-
-  imageOverlay: {
-    ...StyleSheet.absoluteFill,
-  },
-
-  floatingBadge: {
-    position: 'absolute',
-    top: 12,
-    left: 12,
-    backgroundColor:
-      'rgba(255,255,255,0.92)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-  },
-
-  floatingBadgeText: {
+  statsHeaderEdp: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#0F172A',
+    letterSpacing: 2.4,
+    opacity: 0.92,
   },
 
-  cardBody: {
-    padding: 16,
+  statsListContent: {
+    paddingTop: 0,
+    paddingBottom: 0,
   },
 
-  cardTitle: {
-    fontSize: 18,
-    lineHeight: 24,
-    fontWeight: '800',
-    color: '#0F172A',
+  cellWrap: {
+    flex: 1,
+    minWidth: 0,
+    marginBottom: CARD_GAP,
   },
 
-  cardDescription: {
-    marginTop: 10,
-    fontSize: 13,
-    lineHeight: 20,
-    color: '#64748B',
-    minHeight: 58,
+  cellLeft: {
+    paddingRight: CARD_GAP / 2,
   },
 
-  cardFooter: {
-    marginTop: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  cellRight: {
+    paddingLeft: CARD_GAP / 2,
   },
 
-  tag: {
-    backgroundColor:
-      'rgba(37,99,235,0.08)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
+  statCell: {
+    backgroundColor: THEME.colors.white,
+    borderWidth: 1,
+    borderColor: THEME.colors.border,
+    borderRadius: THEME.radius[12],
+    minHeight: CARD_MIN_HEIGHT,
+    overflow: 'hidden',
   },
 
-  tagText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#2563EB',
-    textTransform: 'capitalize',
+  statAccentRail: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: ACCENT_RAIL_WIDTH,
   },
 
-  arrowWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: '#0F172A',
-    alignItems: 'center',
+  statCellInner: {
+    paddingHorizontal: THEME.spacing[10],
+    paddingTop: THEME.spacing[10],
+    paddingBottom: THEME.spacing[10],
+    paddingLeft: THEME.spacing[10] + ACCENT_RAIL_WIDTH,
+    gap: THEME.spacing[4],
     justifyContent: 'center',
   },
 
-  arrow: {
-    color: 'white',
-    fontSize: 16,
+  statLabel: {
+    color: THEME.colors.textSecondary,
+    fontSize: 11,
+    fontWeight: '500',
+    lineHeight: 15,
+  },
+
+  statValue: {
+    color: THEME.colors.textPrimary,
     fontWeight: '700',
+    letterSpacing: -0.35,
+    includeFontPadding: false,
+    fontVariant: ['tabular-nums'],
+  },
+
+  statTag: {
+    fontSize: 9,
+    fontWeight: '600',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    opacity: 0.88,
   },
 });
