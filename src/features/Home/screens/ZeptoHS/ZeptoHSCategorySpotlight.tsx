@@ -631,6 +631,15 @@ export function ZeptoHSCategorySpotlight({
     return <DiagnosisBanner backgroundColor={backgroundColor} accentColor={accentColor} />;
   }
 
+  else if (categoryId === 'services') {
+    return (<>
+       <View>
+        <Text style={ph.hint}>Demo content — wire real data later.</Text>
+       </View>
+    
+    </>)
+  }
+
   const body = PLACEHOLDER_COPY[categoryId];
 
   return (
