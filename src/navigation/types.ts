@@ -17,10 +17,15 @@ export type ServicesStackParamList = {
   [ROUTES.Services.Detail]: { slug: string };
 };
 
+export type EdpStackParamList = {
+  [ROUTES.Edp.Main]: undefined;
+  [ROUTES.Edp.Modules]: undefined;
+};
+
 export type AppTabParamList = {
   [ROUTES.App.Home]: undefined;
   [ROUTES.App.Services]: NavigatorScreenParams<ServicesStackParamList>;
-  [ROUTES.App.Edp]: undefined;
+  [ROUTES.App.Edp]: NavigatorScreenParams<EdpStackParamList>;
   [ROUTES.App.Account]: undefined;
 };
 
@@ -28,7 +33,3 @@ export type RootStackParamList = {
   [ROUTES.Root.Auth]: NavigatorScreenParams<AuthStackParamList>;
   [ROUTES.Root.App]: NavigatorScreenParams<AppTabParamList>;
 };
-
-// export type EdpStackParamList = {
-//   [ROUTES.App.Edp]: undefined;
-// };

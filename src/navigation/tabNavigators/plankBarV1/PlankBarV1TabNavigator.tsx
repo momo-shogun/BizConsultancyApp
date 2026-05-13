@@ -13,7 +13,7 @@ import { ProfileScreen } from '@/features/Profile/screens/ProfileScreen';
 
 import { ServicesStackNavigator } from '../../ServicesStackNavigator';
 import { plankBarV1TabNavigatorScreenOptions } from './plankBarV1.styles';
-import Edp from '@/features/Edp/screens/Edp';
+import { EdpStackNavigator } from '../../EdpStackNavigator';
 
 const PlankTab = createBottomTabNavigator<AppTabParamList>();
 
@@ -62,7 +62,7 @@ export function PlankBarV1TabNavigator(): React.ReactElement {
       />
       <PlankTab.Screen
         name={ROUTES.App.Edp}
-        component={Edp}
+        component={EdpStackNavigator}
         options={{ title: 'EDP' }}
       />
       <PlankTab.Screen name={ROUTES.App.Account} component={ProfileScreen} options={{ title: 'Account' }} />

@@ -1,4 +1,8 @@
 import React, { useCallback, useState } from 'react';
+import { useNavigation } from '@react-navigation/native';
+import type { NavigationProp } from '@react-navigation/native';
+import { ROUTES } from '@/navigation/routeNames';
+import type { EdpStackParamList } from '@/navigation/types';
 import {
   View,
   Text,
@@ -6,6 +10,7 @@ import {
   TouchableOpacity,
   StatusBar,
   Pressable,
+  Alert,
 } from 'react-native';
 import Animated, {
   FadeInDown,
@@ -20,6 +25,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { styles, ACCENT_BLUE, ACCENT_GREEN, ACCENT_PURPLE, ACCENT_AMBER } from './EDPScreen.styles';
 import { SafeAreaWrapper, ScreenHeader } from '@/shared/components';
+
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -60,7 +66,7 @@ interface ProgressMeta {
 export interface EDPScreenProps {
   onBack?: () => void;
   onShare?: () => void;
-  onGetStarted?: () => void;
+ // onGetStarted?: () => void;
   onContinueLearning?: () => void;
   onTalkToExpert?: () => void;
   onModulePress?: (moduleId: string) => void;
@@ -439,14 +445,19 @@ function CtaButton({
 export default function EDPScreen({
   onBack,
   onShare,
-  onGetStarted,
   onContinueLearning,
   onTalkToExpert,
   onModulePress,
   onViewAllModules,
 }: EDPScreenProps) {
+    const navigation = useNavigation<NavigationProp<EdpStackParamList>>();
+
+  const onGetStarted = () => {
+    navigation.navigate(ROUTES.Edp.Modules);
+  };
+
   return (
-    <SafeAreaWrapper edges={['top', 'bottom']}>     
+    <SafeAreaWrapper edges={['top',]} bgColor='#0F5132'>     
  {/* <StatusBar  backgroundColor="#fe1414" /> */}
 
     <View style={styles.root}>

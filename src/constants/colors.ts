@@ -8,6 +8,7 @@ export const COLORS = {
   border: '#E5E7EF',
   /** Brand primary (logo forest green) */
   primary: '#0F5132',
+   accentGreen: '#34D399',
   /**
    * Accent (non-green) that pairs with primary green.
    * Used for selections/highlights where green is undesirable.

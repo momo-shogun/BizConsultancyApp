@@ -18,6 +18,10 @@ export const ROUTES = {
     Edp: 'App/Edp',
     Account: 'App/Account',
   },
+  Edp: {
+    Main: 'Edp/Main',
+    Modules: 'Edp/Modules',
+  },
   Services: {
     List: 'App/Services/List',
     Detail: 'App/Services/Detail',

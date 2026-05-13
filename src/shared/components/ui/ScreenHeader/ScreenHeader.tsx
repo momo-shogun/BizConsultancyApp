@@ -1,21 +1,34 @@
-import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useState } from 'react';
+import { Pressable, StyleSheet, Text, View , StatusBar } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { THEME } from '@/constants/theme';
+
+
 
 interface ScreenHeaderProps {
   title: string;
   onBackPress?: () => void;
   onSearchPress?: () => void;
   headerColor?: string;
+  showLanguageSwitch?: boolean;
+  lang?: 'ENG' | 'HI';
+  onLangSwitch?: (lang: 'ENG' | 'HI') => void;
 }
+
+
 
 export function ScreenHeader(props: ScreenHeaderProps): React.ReactElement {
   const hasBack = props.onBackPress != null;
   const hasSearch = props.onSearchPress != null;
-
+ 
   const isCustomHeader = !!props.headerColor;
+  const isLang = props.showLanguageSwitch ?? false;
+  const lang = props.lang ?? 'ENG';
+
+  function onLangSwitch(newLang: 'ENG' | 'HI'): void {
+    props.onLangSwitch?.(newLang);
+  }
 
   return (
     <View
@@ -72,6 +85,25 @@ export function ScreenHeader(props: ScreenHeaderProps): React.ReactElement {
           />
         </Pressable>
       ) : null}
+
+     {isLang ? (
+            <View style={styles.langToggle}>
+              <Pressable
+                style={[styles.langBtn, lang === 'ENG' && styles.langBtnActive]}
+                onPress={() => onLangSwitch('ENG')}
+                //activeOpacity={0.8}
+              >
+                <Text style={lang === 'ENG' ? styles.langBtnActiveText : styles.langBtnText}>EN</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.langBtn, lang === 'HI' && styles.langBtnActive]}
+                onPress={() => onLangSwitch('HI')}
+                //activeOpacity={0.8}
+              >
+                <Text style={lang === 'HI' ? styles.langBtnActiveText : styles.langBtnText}>हिंदी</Text>
+              </Pressable>
+            </View>
+      ) : null}
     </View>
   );
 }
@@ -85,6 +117,21 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: THEME.colors.background,
   },
+    langToggle: {
+      flexDirection: 'row',
+      borderRadius: 5,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: THEME.colors.border,
+    },
+    langBtn: {
+      paddingHorizontal: THEME.spacing[10],
+      paddingVertical: THEME.spacing[4],
+      fontSize: THEME.typography.size[12],
+      fontWeight: THEME.typography.weight.semibold,
+      color: THEME.colors.textSecondary,
+      backgroundColor: 'transparent',
+    },
   left: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -93,6 +140,19 @@ const styles = StyleSheet.create({
   right: {
     width: 32,
   },
+    langBtnText: {
+      fontSize: THEME.typography.size[12],
+      fontWeight: THEME.typography.weight.semibold,
+      color: THEME.colors.white,
+    },
+    langBtnActive: {
+      backgroundColor: THEME.colors.accentGreen,
+    },
+    langBtnActiveText: {
+      color: 'white',
+      fontSize: THEME.typography.size[12],
+      fontWeight: THEME.typography.weight.bold,
+    },
   backButton: {
     width: 32,
     height: 32,
