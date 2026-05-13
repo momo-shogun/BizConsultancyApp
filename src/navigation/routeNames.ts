@@ -2,6 +2,8 @@ export const ROUTES = {
   Root: {
     Auth: 'Root/Auth',
     App: 'Root/App',
+    /** Full-screen stack above tabs (not a tab bar destination). */
+    ConsultantsList: 'Root/ConsultantsList',
   },
   Auth: {
     Splash: 'Auth/Splash',
@@ -17,7 +19,6 @@ export const ROUTES = {
     Services: 'App/Services',
     Edp: 'App/Edp',
     Account: 'App/Account',
-    ConsultantsList: 'App/ConsultantsList',
   },
   Edp: {
     Main: 'Edp/Main',
@@ -27,6 +28,5 @@ export const ROUTES = {
     List: 'App/Services/List',
     Detail: 'App/Services/Detail',
   },
-  ConsultantsList: 'App/ConsultantsList',
 } as const;
 

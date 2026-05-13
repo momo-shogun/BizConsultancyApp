@@ -1,14 +1,11 @@
 import React, { useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 
 import { THEME } from '@/constants/theme';
 import { DEMO_SERVICES } from '@/features/Services/data/demoServices';
 import {
   InterestEventsSection,
   SafeAreaWrapper,
-  StatsSection,
   UpcomingBookingsSection,
   TopConsultantsSection,
   RecommendedServicesSection,
@@ -24,7 +21,6 @@ import type { HomeCategoryId } from './ZeptoHS/ZeptoHS.types';
 import { ZeptoHS } from './ZeptoHS/ZeptoHS';
 import { ROUTES } from '@/navigation/routeNames';
 import { navigationRef } from '@/navigation/RootNavigator';
-import type { AppTabParamList } from '@/navigation/types';
 
 const HOME_INTEREST_DEMO_ITEMS: EventSpotlightItem[] = [
   {
@@ -140,8 +136,6 @@ const HOME_TESTIMONIALS_DEMO_ITEMS: TestimonialItem[] = [
   },
 ];
 
-type Nav = BottomTabNavigationProp<AppTabParamList>;
-
 
 const HOME_UPCOMING_BOOKINGS_DEMO_ITEMS: UpcomingBookingItem[] = [
   {
@@ -227,9 +221,6 @@ const HOME_MEMBERSHIP_PLANS_DEMO_ITEMS: MembershipPlanItem[] = [
 ];
 
 export function HomeDashboardScreen(): React.ReactElement {
-
-  const navigation = useNavigation<Nav>();
-  
   const onInterestViewAll = useCallback(() => {
     console.log('View all interests');
   }, []);
@@ -238,8 +229,11 @@ export function HomeDashboardScreen(): React.ReactElement {
     console.log('View all bookings');
   }, []);
 
-  const onTopConsultantsViewAll = useCallback(() => {
-    navigation.navigate(ROUTES.App.ConsultantsList);
+  const onTopConsultantsViewAll = useCallback((): void => {
+    if (!navigationRef.isReady()) {
+      return;
+    }
+    navigationRef.navigate(ROUTES.Root.ConsultantsList);
   }, []);
 
   const onRecommendedServicesViewAll = useCallback(() => {

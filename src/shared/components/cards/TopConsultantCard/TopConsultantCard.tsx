@@ -28,6 +28,10 @@ export interface TopConsultantCardProps {
   cardWidth?: DimensionValue;
   onPress?: () => void;
   onBookPress?: () => void;
+  /** When false, meta line shows only experience + rate (specialty hidden). Default true. */
+  showSpecialtyInMeta?: boolean;
+  /** Bio clamp lines (dense lists often use 1). Default 2. */
+  bioNumberOfLines?: 1 | 2;
 }
 
 const FALLBACK_PHOTO =
@@ -49,11 +53,15 @@ export function TopConsultantCard({
   cardWidth = 192,
   onPress,
   onBookPress,
+  showSpecialtyInMeta = true,
+  bioNumberOfLines = 2,
 }: TopConsultantCardProps): React.ReactElement {
   const a11y = useMemo(
     () =>
-      `${item.name}, ${item.role}. ${item.specialty}. ${item.experienceLabel}. ${item.rateLabel}.`,
-    [item.experienceLabel, item.name, item.rateLabel, item.role, item.specialty],
+      showSpecialtyInMeta
+        ? `${item.name}, ${item.role}. ${item.specialty}. ${item.experienceLabel}. ${item.rateLabel}.`
+        : `${item.name}, ${item.role}. ${item.experienceLabel}. ${item.rateLabel}.`,
+    [item.experienceLabel, item.name, item.rateLabel, item.role, item.specialty, showSpecialtyInMeta],
   );
 
   const cardHeight = resolveCardHeight(cardWidth);
@@ -67,7 +75,13 @@ export function TopConsultantCard({
   const [photoUri, setPhotoUri] = useState(initialUri);
   const hasPhoto = Boolean(initialUri);
 
-  const metaLine = [item.specialty, item.experienceLabel, item.rateLabel].filter(Boolean).join(' · ');
+  const metaLine = (
+    showSpecialtyInMeta
+      ? [item.specialty, item.experienceLabel, item.rateLabel]
+      : [item.experienceLabel, item.rateLabel]
+  )
+    .filter(Boolean)
+    .join(' · ');
 
   const photoContent = hasPhoto ? (
     <Image
@@ -126,7 +140,7 @@ export function TopConsultantCard({
             <Text style={styles.role} numberOfLines={2}>
               {item.role}
             </Text>
-            <Text style={styles.bio} numberOfLines={2} ellipsizeMode="tail">
+            <Text style={styles.bio} numberOfLines={bioNumberOfLines} ellipsizeMode="tail">
               {item.bio}
             </Text>
             <Text style={styles.meta} numberOfLines={3}>
@@ -145,7 +159,9 @@ export function TopConsultantCard({
                 onBookPress == null ? styles.bookBtnDisabled : null,
               ]}
             >
-              <Text style={styles.bookBtnText}>Book consultation</Text>
+              <Text style={styles.bookBtnText} numberOfLines={1}>
+                Book
+              </Text>
             </Pressable>
           </View>
         </LinearGradient>
@@ -247,9 +263,9 @@ const styles = StyleSheet.create({
   },
   bookBtn: {
     marginTop: THEME.spacing[4],
-    minHeight: 44,
-    paddingVertical: THEME.spacing[8],
-    paddingHorizontal: THEME.spacing[12],
+    minHeight: 34,
+    paddingVertical: THEME.spacing[4],
+    paddingHorizontal: THEME.spacing[10],
     borderRadius: THEME.radius[12],
     backgroundColor: THEME.colors.primary,
     alignItems: 'center',
