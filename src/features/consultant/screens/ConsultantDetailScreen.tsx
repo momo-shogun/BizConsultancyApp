@@ -1,8 +1,8 @@
 import React, { useCallback, useMemo } from 'react';
 import {
   Image,
-  ImageBackground,
   Linking,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -25,7 +25,12 @@ import { SafeAreaWrapper, ScreenHeader, ScreenWrapper } from '@/shared/component
 import { youtubeEmbedToWatchUrl } from '@/utils/youtubeUrl';
 
 const H_PADDING = THEME.spacing[12];
-const HERO_HEIGHT = 268;
+/** Cool neutral canvas with a hint of mint (pairs with hero gradient). */
+const SCREEN_CANVAS = '#F4F8F6';
+const SLATE_LINE = '#E2E8F0';
+const SLATE_MUTED = '#64748B';
+/** Max hero photo height so tablets do not get an oversized portrait block. */
+const HERO_PHOTO_MAX = 420;
 
 function isMeaningfulText(value: string | null | undefined): boolean {
   if (value == null || value.trim().length === 0) {
@@ -52,6 +57,130 @@ function openExternalUrl(url: string): void {
 
 type ConsultantDetailRoute = RouteProp<RootStackParamList, typeof ROUTES.Root.ConsultantDetail>;
 
+type ProfileFactItem =
+  | {
+      kind: 'row';
+      id: string;
+      icon: React.ComponentProps<typeof Ionicons>['name'];
+      label: string;
+      value: string;
+    }
+  | { kind: 'website'; id: string; url: string };
+
+function collectProfileFacts(detail: ConsultantDetail): ProfileFactItem[] {
+  const out: ProfileFactItem[] = [];
+  if (isMeaningfulText(detail.profile.highestQualification)) {
+    out.push({
+      kind: 'row',
+      id: 'qualification',
+      icon: 'school-outline',
+      label: 'Qualification',
+      value: detail.profile.highestQualification as string,
+    });
+  }
+  if (isMeaningfulText(detail.profile.speakIn)) {
+    out.push({
+      kind: 'row',
+      id: 'speak',
+      icon: 'chatbubbles-outline',
+      label: 'Speaks',
+      value: detail.profile.speakIn as string,
+    });
+  }
+  if (isMeaningfulText(detail.gender)) {
+    out.push({
+      kind: 'row',
+      id: 'gender',
+      icon: 'person-outline',
+      label: 'Gender',
+      value: detail.gender,
+    });
+  }
+  if (isMeaningfulText(detail.category)) {
+    out.push({
+      kind: 'row',
+      id: 'focus',
+      icon: 'briefcase-outline',
+      label: 'Focus',
+      value: detail.category,
+    });
+  }
+  if (isMeaningfulText(detail.profile.address)) {
+    out.push({
+      kind: 'row',
+      id: 'address',
+      icon: 'home-outline',
+      label: 'Address',
+      value: detail.profile.address as string,
+    });
+  }
+  if (isMeaningfulText(detail.profile.websiteUrl)) {
+    out.push({ kind: 'website', id: 'website', url: detail.profile.websiteUrl as string });
+  }
+  return out;
+}
+
+interface ProfileFactsListProps {
+  items: ProfileFactItem[];
+  isKnownProfile: boolean;
+  onOpenWebsite: () => void;
+}
+
+function SectionHeading(props: { children: string }): React.ReactElement {
+  return (
+    <View style={styles.sectionHeadingRow}>
+      <View style={styles.sectionHeadingAccent} accessibilityElementsHidden />
+      <Text style={styles.sectionTitle}>{props.children}</Text>
+    </View>
+  );
+}
+
+function ProfileFactsList(props: ProfileFactsListProps): React.ReactElement | null {
+  const { items } = props;
+
+  if (items.length === 0) {
+    if (!props.isKnownProfile) {
+      return <Text style={styles.factsEmpty}>More fields will appear when the API is connected.</Text>;
+    }
+    return null;
+  }
+
+  return (
+    <View style={styles.factsCardInner}>
+      {items.map((item, index) => {
+        const showDivider = index < items.length - 1;
+        const dividerStyle = showDivider ? styles.factRowDivider : null;
+        if (item.kind === 'website') {
+          return (
+            <View key={item.id} style={dividerStyle}>
+              <Pressable
+                onPress={props.onOpenWebsite}
+                style={({ pressed }) => [styles.websiteRow, pressed && styles.websiteRowPressed]}
+                accessibilityRole="link"
+                accessibilityLabel="Open website"
+              >
+                <Ionicons name="globe-outline" size={18} color={THEME.colors.primary} />
+                <View style={styles.websiteTextCol}>
+                  <Text style={styles.factLabel}>Website</Text>
+                  <Text style={styles.websiteUrl} numberOfLines={2}>
+                    {item.url}
+                  </Text>
+                </View>
+                <Ionicons name="open-outline" size={16} color={THEME.colors.textSecondary} />
+              </Pressable>
+            </View>
+          );
+        }
+        return (
+          <View key={item.id} style={dividerStyle}>
+            <FactRow icon={item.icon} label={item.label} value={item.value} />
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
 export function ConsultantDetailScreen(): React.ReactElement {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<ConsultantDetailRoute>();
@@ -61,7 +190,13 @@ export function ConsultantDetailScreen(): React.ReactElement {
   const slug = route.params.slug;
   const detail = useMemo((): ConsultantDetail => getConsultantDetail(slug), [slug]);
 
-  const talkCardWidth = useMemo((): number => Math.min(280, Math.round(width * 0.72)), [width]);
+  const talkCardWidth = useMemo((): number => Math.min(252, Math.round(width * 0.66)), [width]);
+
+  /** Portrait-friendly height: full image fits inside with `resizeMode="contain"`. */
+  const heroPhotoHeight = useMemo((): number => Math.min(Math.round(width * 1.12), HERO_PHOTO_MAX), [width]);
+
+  const expertiseCount =
+    detail.skills.length + detail.industries.length + detail.segments.length;
 
   const locationLine = useMemo((): string => {
     const parts: string[] = [];
@@ -89,6 +224,9 @@ export function ConsultantDetailScreen(): React.ReactElement {
   const showRates = detail.audioRate > 0 || detail.videoRate > 0;
   const isKnownProfile = detail.slug === 'r-k-saxena';
 
+  const profileFactItems = useMemo(() => collectProfileFacts(detail), [detail]);
+  const showCredentialsSection = profileFactItems.length > 0 || !isKnownProfile;
+
   return (
     <SafeAreaWrapper edges={['top']}>
       <ScreenHeader title="Consultant" onBackPress={() => navigation.goBack()} />
@@ -102,59 +240,84 @@ export function ConsultantDetailScreen(): React.ReactElement {
           ]}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.heroWrap}>
-            <ImageBackground
-              source={{ uri: detail.image }}
-              style={styles.heroImage}
-              resizeMode="cover"
-            >
-              <LinearGradient
-                colors={['rgba(11,15,25,0.05)', 'rgba(11,15,25,0.55)', 'rgba(11,15,25,0.92)']}
-                locations={[0, 0.45, 1]}
-                style={StyleSheet.absoluteFill}
+          <View style={styles.heroBlock}>
+            <LinearGradient
+              colors={['#DCFCE7', '#E0E7FF', '#F8FAFC']}
+              locations={[0, 0.45, 1]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+            <View style={[styles.heroPhotoFrame, { height: heroPhotoHeight }]}>
+              <Image
+                source={{ uri: detail.image }}
+                style={styles.heroPhoto}
+                resizeMode="contain"
+                accessibilityLabel={`Portrait of ${detail.name}`}
               />
-              <View style={styles.heroInner}>
-                <View style={styles.heroTitleRow}>
-                  <Text style={styles.heroName} numberOfLines={2}>
-                    {detail.name}
-                  </Text>
-                  {detail.verified ? (
-                    <View style={styles.verifiedPill} accessibilityLabel="Verified consultant">
-                      <Ionicons name="checkmark-circle" size={18} color={THEME.colors.accentGreen} />
-                      <Text style={styles.verifiedText}>Verified</Text>
-                    </View>
-                  ) : null}
-                </View>
-                <Text style={styles.heroRole} numberOfLines={2}>
-                  {detail.title}
-                  {detail.expertise ? ` · ${detail.expertise}` : ''}
+            </View>
+            <View style={styles.heroIdentity}>
+              <View style={styles.heroTitleRow}>
+                <Text style={styles.heroNameDark} numberOfLines={2}>
+                  {detail.name}
                 </Text>
-                {locationLine.length > 0 ? (
-                  <View style={styles.heroMetaRow}>
-                    <Ionicons name="location-outline" size={16} color="rgba(255,255,255,0.88)" />
-                    <Text style={styles.heroMeta} numberOfLines={1}>
-                      {locationLine}
-                    </Text>
+                {detail.verified ? (
+                  <View style={styles.verifiedPillDark} accessibilityLabel="Verified consultant">
+                    <Ionicons name="checkmark-circle" size={16} color={THEME.colors.primary} />
+                    <Text style={styles.verifiedTextDark}>Verified</Text>
                   </View>
                 ) : null}
               </View>
-            </ImageBackground>
+              <Text style={styles.heroRoleDark} numberOfLines={2}>
+                {detail.title}
+                {detail.expertise ? ` · ${detail.expertise}` : ''}
+              </Text>
+              {detail.type ? (
+                <View style={styles.heroTrustRowDark}>
+                  <Ionicons name="ribbon-outline" size={14} color={THEME.colors.primary} />
+                  <Text style={styles.heroTrustTextDark} numberOfLines={1}>
+                    {detail.type === 'professional' ? 'Professional expert' : detail.type}
+                  </Text>
+                </View>
+              ) : null}
+              {locationLine.length > 0 ? (
+                <View style={styles.heroMetaRowDark}>
+                  <Ionicons name="location-outline" size={16} color="#0D9488" />
+                  <Text style={styles.heroMetaDark} numberOfLines={1}>
+                    {locationLine}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
           </View>
 
-          <View style={[styles.sheet, { marginTop: -THEME.spacing[16] }]}>
+          <View style={[styles.sheet, { marginTop: -THEME.spacing[12] }]}>
+            <View style={styles.sheetAccentWrap} accessibilityElementsHidden>
+              <LinearGradient
+                colors={[THEME.colors.primary, '#1D6B4A', '#0B3D2C']}
+                start={{ x: 0, y: 0.5 }}
+                end={{ x: 1, y: 0.5 }}
+                style={styles.sheetAccentBar}
+              />
+            </View>
             {showRates ? (
-              <View style={styles.rateRow}>
-                <View style={styles.ratePill}>
-                  <Text style={styles.rateLabel}>Audio</Text>
-                  <Text style={styles.rateValue}>{formatRupee(detail.audioRate)}</Text>
+              <View style={styles.rateStrip}>
+                <View style={[styles.rateCell, styles.rateCellAudio]}>
+                  <Ionicons name="mic-outline" size={14} color="#166534" style={styles.rateIcon} />
+                  <Text style={styles.rateLabelAudio}>Audio</Text>
+                  <Text style={styles.rateValueAudio}>{formatRupee(detail.audioRate)}</Text>
                 </View>
-                <View style={styles.ratePill}>
-                  <Text style={styles.rateLabel}>Video</Text>
-                  <Text style={styles.rateValue}>{formatRupee(detail.videoRate)}</Text>
+                <View style={styles.rateSep} />
+                <View style={[styles.rateCell, styles.rateCellVideo]}>
+                  <Ionicons name="videocam-outline" size={14} color="#1D4ED8" style={styles.rateIcon} />
+                  <Text style={styles.rateLabelVideo}>Video</Text>
+                  <Text style={styles.rateValueVideo}>{formatRupee(detail.videoRate)}</Text>
                 </View>
-                <View style={styles.ratePill}>
-                  <Text style={styles.rateLabel}>Experience</Text>
-                  <Text style={styles.rateValue} numberOfLines={1}>
+                <View style={styles.rateSep} />
+                <View style={[styles.rateCell, styles.rateCellExp]}>
+                  <Ionicons name="time-outline" size={14} color="#B45309" style={styles.rateIcon} />
+                  <Text style={styles.rateLabelExp}>Exp.</Text>
+                  <Text style={styles.rateValueExp} numberOfLines={1}>
                     {detail.experience}
                   </Text>
                 </View>
@@ -170,90 +333,74 @@ export function ConsultantDetailScreen(): React.ReactElement {
 
             {isMeaningfulText(detail.profile.profileSummary) ? (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>About</Text>
-                <Text style={styles.bodyText}>{detail.profile.profileSummary}</Text>
-              </View>
-            ) : null}
-
-            {detail.skills.length > 0 ? (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Skills</Text>
-                <View style={styles.chipWrap}>
-                  {detail.skills.map((s) => (
-                    <View key={s} style={styles.chip}>
-                      <Text style={styles.chipText}>{s}</Text>
-                    </View>
-                  ))}
+                <SectionHeading>About</SectionHeading>
+                <View style={styles.aboutCard}>
+                  <Text style={styles.bodyText}>{detail.profile.profileSummary}</Text>
                 </View>
               </View>
             ) : null}
 
-            {detail.industries.length > 0 ? (
+            {expertiseCount > 0 ? (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Industries</Text>
-                <View style={styles.chipWrap}>
-                  {detail.industries.map((s) => (
-                    <View key={s} style={[styles.chip, styles.chipMuted]}>
-                      <Text style={styles.chipTextMuted}>{s}</Text>
+                <SectionHeading>Expertise & coverage</SectionHeading>
+                <View style={styles.expertiseCard}>
+                  {detail.skills.length > 0 ? (
+                    <View style={styles.expertiseRow}>
+                      <Text style={styles.expertiseRowLabel}>Skills</Text>
+                      <View style={styles.chipWrapTight}>
+                        {detail.skills.map((s) => (
+                          <View key={s} style={styles.chip}>
+                            <Text style={styles.chipText}>{s}</Text>
+                          </View>
+                        ))}
+                      </View>
                     </View>
-                  ))}
+                  ) : null}
+                  {detail.industries.length > 0 ? (
+                    <View style={[styles.expertiseRow, detail.skills.length > 0 ? styles.expertiseRowSpaced : null]}>
+                      <Text style={styles.expertiseRowLabel}>Industries</Text>
+                      <View style={styles.chipWrapTight}>
+                        {detail.industries.map((s) => (
+                          <View key={s} style={[styles.chip, styles.chipMuted]}>
+                            <Text style={styles.chipTextMuted}>{s}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  ) : null}
+                  {detail.segments.length > 0 ? (
+                    <View
+                      style={[
+                        styles.expertiseRow,
+                        detail.skills.length + detail.industries.length > 0 ? styles.expertiseRowSpaced : null,
+                      ]}
+                    >
+                      <Text style={styles.expertiseRowLabel}>Segments</Text>
+                      <View style={styles.chipWrapTight}>
+                        {detail.segments.map((s) => (
+                          <View key={s} style={[styles.chip, styles.chipOutline]}>
+                            <Text style={styles.chipTextOutline}>{s}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  ) : null}
                 </View>
               </View>
             ) : null}
 
-            {detail.segments.length > 0 ? (
+            {showCredentialsSection ? (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Segments</Text>
-                <View style={styles.chipWrap}>
-                  {detail.segments.map((s) => (
-                    <View key={s} style={[styles.chip, styles.chipOutline]}>
-                      <Text style={styles.chipTextOutline}>{s}</Text>
-                    </View>
-                  ))}
+                <SectionHeading>Credentials</SectionHeading>
+                <View style={styles.factsCard}>
+                  <ProfileFactsList
+                    items={profileFactItems}
+                    isKnownProfile={isKnownProfile}
+                    onOpenWebsite={onOpenWebsite}
+                  />
                 </View>
               </View>
             ) : null}
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Professional profile</Text>
-              <View style={styles.factsCard}>
-                {isMeaningfulText(detail.profile.highestQualification) ? (
-                  <FactRow icon="school-outline" label="Qualification" value={detail.profile.highestQualification ?? ''} />
-                ) : null}
-                {isMeaningfulText(detail.profile.speakIn) ? (
-                  <FactRow icon="chatbubbles-outline" label="Speaks" value={detail.profile.speakIn ?? ''} />
-                ) : null}
-                {isMeaningfulText(detail.gender) ? (
-                  <FactRow icon="person-outline" label="Gender" value={detail.gender} />
-                ) : null}
-                {isMeaningfulText(detail.category) ? (
-                  <FactRow icon="briefcase-outline" label="Focus" value={detail.category} />
-                ) : null}
-                {isMeaningfulText(detail.profile.address) ? (
-                  <FactRow icon="home-outline" label="Address" value={detail.profile.address ?? ''} />
-                ) : null}
-                {isMeaningfulText(detail.profile.websiteUrl) ? (
-                  <Pressable
-                    onPress={onOpenWebsite}
-                    style={({ pressed }) => [styles.websiteRow, pressed && styles.websiteRowPressed]}
-                    accessibilityRole="link"
-                    accessibilityLabel="Open website"
-                  >
-                    <Ionicons name="globe-outline" size={20} color={THEME.colors.primary} />
-                    <View style={styles.websiteTextCol}>
-                      <Text style={styles.factLabel}>Website</Text>
-                      <Text style={styles.websiteUrl} numberOfLines={2}>
-                        {detail.profile.websiteUrl}
-                      </Text>
-                    </View>
-                    <Ionicons name="open-outline" size={18} color={THEME.colors.textSecondary} />
-                  </Pressable>
-                ) : null}
-                {!isKnownProfile && !isMeaningfulText(detail.profile.highestQualification) ? (
-                  <Text style={styles.factsEmpty}>More fields will appear when the API is connected.</Text>
-                ) : null}
-              </View>
-            </View>
 
             {isMeaningfulText(detail.expertVideoUrl) ? (
               <Pressable
@@ -263,26 +410,27 @@ export function ConsultantDetailScreen(): React.ReactElement {
                 accessibilityLabel="Watch expert introduction on YouTube"
               >
                 <LinearGradient
-                  colors={['#0F5132', '#146E5C', '#0B3D2C']}
+                  colors={['#0F5132', '#0D9488', '#134E4A']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.introGradient}
                 >
                   <View style={styles.introIconWrap}>
-                    <Ionicons name="play" size={22} color={THEME.colors.white} />
+                    <Ionicons name="play" size={20} color={THEME.colors.white} />
                   </View>
                   <View style={styles.introTextCol}>
-                    <Text style={styles.introTitle}>Expert introduction</Text>
-                    <Text style={styles.introSubtitle}>Watch on YouTube</Text>
+                    <Text style={styles.introTitle}>Introduction video</Text>
+                    <Text style={styles.introSubtitle}>Opens in YouTube</Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={22} color="rgba(255,255,255,0.85)" />
+                  <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.85)" />
                 </LinearGradient>
               </Pressable>
             ) : null}
 
             {detail.expertTalks.length > 0 ? (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Expert talks</Text>
+                <SectionHeading>Expert talks</SectionHeading>
+                <Text style={styles.sectionHint}>Tap a card to watch</Text>
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
@@ -338,7 +486,7 @@ export function ConsultantDetailScreen(): React.ReactElement {
             accessibilityLabel="Book consultation"
           >
             <LinearGradient
-              colors={[THEME.colors.primary, '#146E5C']}
+              colors={[THEME.colors.primary, '#0D9488', '#0F5132']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.bookGradient}
@@ -362,7 +510,7 @@ interface FactRowProps {
 function FactRow(props: FactRowProps): React.ReactElement {
   return (
     <View style={styles.factRow}>
-      <Ionicons name={props.icon} size={20} color={THEME.colors.textSecondary} />
+      <Ionicons name={props.icon} size={18} color={SLATE_MUTED} />
       <View style={styles.factTextCol}>
         <Text style={styles.factLabel}>{props.label}</Text>
         <Text style={styles.factValue}>{props.value}</Text>
@@ -375,188 +523,362 @@ export default ConsultantDetailScreen;
 
 const styles = StyleSheet.create({
   screenBg: {
-    backgroundColor: THEME.colors.surface,
+    flex: 1,
+    backgroundColor: SCREEN_CANVAS,
   },
   scroll: {
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: THEME.spacing[16],
+    paddingBottom: THEME.spacing[12],
   },
-  heroWrap: {
+  heroBlock: {
     width: '100%',
-    height: HERO_HEIGHT,
+    position: 'relative',
     overflow: 'hidden',
+    paddingBottom: THEME.spacing[8],
   },
-  heroImage: {
+  heroPhotoFrame: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: THEME.spacing[8],
+    paddingHorizontal: THEME.spacing[12],
+  },
+  heroPhoto: {
     width: '100%',
     height: '100%',
-    justifyContent: 'flex-end',
   },
-  heroInner: {
-    paddingHorizontal: H_PADDING,
-    paddingBottom: THEME.spacing[20],
+  heroIdentity: {
+    marginHorizontal: H_PADDING,
+    marginTop: -THEME.spacing[14],
+    paddingHorizontal: THEME.spacing[14],
+    paddingTop: THEME.spacing[14],
+    paddingBottom: THEME.spacing[16],
+    backgroundColor: THEME.colors.white,
+    borderRadius: THEME.radius[16],
+    borderWidth: 1,
+    borderColor: 'rgba(15,81,50,0.12)',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#0F172A',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.08,
+        shadowRadius: 16,
+      },
+      android: { elevation: 3 },
+      default: {},
+    }),
   },
   heroTitleRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: THEME.spacing[8],
   },
-  heroName: {
+  heroNameDark: {
     flex: 1,
-    fontSize: THEME.typography.size[28],
+    fontSize: THEME.typography.size[24],
     fontWeight: THEME.typography.weight.bold as '700',
-    color: THEME.colors.onImageTextPrimary,
-    letterSpacing: -0.3,
+    color: THEME.colors.textPrimary,
+    letterSpacing: -0.4,
   },
-  verifiedPill: {
+  verifiedPillDark: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(255,255,255,0.14)',
+    backgroundColor: 'rgba(15,81,50,0.08)',
     paddingHorizontal: THEME.spacing[8],
-    paddingVertical: 4,
-    borderRadius: THEME.radius[16],
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.22)',
+    paddingVertical: 3,
+    borderRadius: THEME.radius[12],
+    borderWidth: 1,
+    borderColor: 'rgba(15,81,50,0.16)',
   },
-  verifiedText: {
+  verifiedTextDark: {
     fontSize: THEME.typography.size[12],
     fontWeight: THEME.typography.weight.semibold as '600',
-    color: THEME.colors.onImageTextSecondary,
+    color: THEME.colors.primary,
   },
-  heroRole: {
+  heroRoleDark: {
     marginTop: THEME.spacing[8],
-    fontSize: THEME.typography.size[16],
+    fontSize: THEME.typography.size[14],
     fontWeight: THEME.typography.weight.medium as '500',
-    color: THEME.colors.onImageTextSecondary,
+    color: THEME.colors.textSecondary,
+    lineHeight: 20,
   },
-  heroMetaRow: {
+  heroTrustRowDark: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     marginTop: THEME.spacing[8],
   },
-  heroMeta: {
+  heroTrustTextDark: {
+    fontSize: THEME.typography.size[12],
+    fontWeight: THEME.typography.weight.semibold as '600',
+    color: THEME.colors.primary,
+    letterSpacing: 0.2,
+  },
+  heroMetaRowDark: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: THEME.spacing[8],
+  },
+  heroMetaDark: {
     flex: 1,
-    fontSize: THEME.typography.size[14],
-    color: 'rgba(255,255,255,0.88)',
+    fontSize: THEME.typography.size[12],
+    fontWeight: THEME.typography.weight.medium as '500',
+    color: '#0F766E',
   },
   sheet: {
     marginHorizontal: H_PADDING,
     borderRadius: THEME.radius[16],
     backgroundColor: THEME.colors.white,
     borderWidth: 1,
-    borderColor: THEME.colors.border,
-    padding: THEME.spacing[14],
-    paddingTop: THEME.spacing[16],
+    borderColor: SLATE_LINE,
+    paddingHorizontal: THEME.spacing[12],
+    paddingBottom: THEME.spacing[12],
+    paddingTop: THEME.spacing[10],
+    ...Platform.select({
+      ios: {
+        shadowColor: '#0F172A',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.06,
+        shadowRadius: 20,
+      },
+      android: { elevation: 2 },
+      default: {},
+    }),
   },
-  rateRow: {
+  sheetAccentWrap: {
+    alignItems: 'center',
+    marginBottom: THEME.spacing[10],
+  },
+  sheetAccentBar: {
+    width: 56,
+    height: 4,
+    borderRadius: 3,
+  },
+  rateStrip: {
     flexDirection: 'row',
-    gap: THEME.spacing[8],
+    alignItems: 'stretch',
+    borderRadius: THEME.radius[12],
+    borderWidth: 1,
+    borderColor: SLATE_LINE,
+    overflow: 'hidden',
     marginBottom: THEME.spacing[4],
+    backgroundColor: THEME.colors.white,
   },
-  ratePill: {
+  rateSep: {
+    width: StyleSheet.hairlineWidth,
+    backgroundColor: 'rgba(148,163,184,0.45)',
+  },
+  rateCell: {
     flex: 1,
     minWidth: 0,
-    backgroundColor: THEME.colors.surface,
-    borderRadius: THEME.radius[12],
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: THEME.spacing[10],
-    paddingHorizontal: THEME.spacing[8],
-    borderWidth: 1,
-    borderColor: THEME.colors.border,
+    paddingHorizontal: THEME.spacing[4],
   },
-  rateLabel: {
+  rateCellAudio: {
+    backgroundColor: 'rgba(22,101,52,0.09)',
+  },
+  rateCellVideo: {
+    backgroundColor: 'rgba(37,99,235,0.10)',
+  },
+  rateCellExp: {
+    backgroundColor: 'rgba(217,119,6,0.11)',
+  },
+  rateIcon: {
+    marginBottom: 4,
+  },
+  rateLabelAudio: {
     fontSize: THEME.typography.size[12],
-    fontWeight: THEME.typography.weight.medium as '500',
-    color: THEME.colors.textSecondary,
+    fontWeight: THEME.typography.weight.semibold as '600',
+    color: '#166534',
     textTransform: 'uppercase',
-    letterSpacing: 0.6,
+    letterSpacing: 0.55,
   },
-  rateValue: {
-    marginTop: 4,
-    fontSize: THEME.typography.size[16],
+  rateLabelVideo: {
+    fontSize: THEME.typography.size[12],
+    fontWeight: THEME.typography.weight.semibold as '600',
+    color: '#1D4ED8',
+    textTransform: 'uppercase',
+    letterSpacing: 0.55,
+  },
+  rateLabelExp: {
+    fontSize: THEME.typography.size[12],
+    fontWeight: THEME.typography.weight.semibold as '600',
+    color: '#B45309',
+    textTransform: 'uppercase',
+    letterSpacing: 0.55,
+  },
+  rateValueAudio: {
+    marginTop: 2,
+    fontSize: THEME.typography.size[14],
     fontWeight: THEME.typography.weight.bold as '700',
-    color: THEME.colors.textPrimary,
+    color: '#14532D',
+  },
+  rateValueVideo: {
+    marginTop: 2,
+    fontSize: THEME.typography.size[14],
+    fontWeight: THEME.typography.weight.bold as '700',
+    color: '#1E3A8A',
+  },
+  rateValueExp: {
+    marginTop: 2,
+    fontSize: THEME.typography.size[14],
+    fontWeight: THEME.typography.weight.bold as '700',
+    color: '#92400E',
   },
   stubBanner: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: THEME.spacing[8],
-    padding: THEME.spacing[10],
+    paddingVertical: THEME.spacing[8],
+    paddingHorizontal: THEME.spacing[10],
     borderRadius: THEME.radius[12],
-    backgroundColor: 'rgba(15,81,50,0.06)',
+    backgroundColor: 'rgba(13,148,136,0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(15,81,50,0.12)',
+    borderColor: 'rgba(13,148,136,0.22)',
     marginBottom: THEME.spacing[4],
   },
   stubBannerText: {
     flex: 1,
-    fontSize: THEME.typography.size[14],
-    lineHeight: 19,
+    fontSize: THEME.typography.size[12],
+    lineHeight: 17,
     color: THEME.colors.textSecondary,
   },
   section: {
-    marginTop: THEME.spacing[16],
+    marginTop: THEME.spacing[12],
   },
-  sectionTitle: {
-    fontSize: THEME.typography.size[14],
-    fontWeight: THEME.typography.weight.semibold as '600',
-    color: THEME.colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
+  sectionHeadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: THEME.spacing[8],
     marginBottom: THEME.spacing[8],
   },
+  sectionHeadingAccent: {
+    width: 3,
+    height: 16,
+    borderRadius: 2,
+    backgroundColor: THEME.colors.primary,
+  },
+  sectionTitle: {
+    flex: 1,
+    fontSize: THEME.typography.size[12],
+    fontWeight: THEME.typography.weight.bold as '700',
+    color: '#1E293B',
+    textTransform: 'uppercase',
+    letterSpacing: 0.85,
+  },
+  sectionHint: {
+    fontSize: THEME.typography.size[12],
+    color: THEME.colors.textSecondary,
+    marginTop: -THEME.spacing[4],
+    marginBottom: THEME.spacing[8],
+  },
+  aboutCard: {
+    borderRadius: THEME.radius[12],
+    backgroundColor: THEME.colors.white,
+    borderWidth: 1,
+    borderColor: SLATE_LINE,
+    borderLeftWidth: 3,
+    borderLeftColor: THEME.colors.primary,
+    paddingHorizontal: THEME.spacing[12],
+    paddingVertical: THEME.spacing[10],
+  },
   bodyText: {
-    fontSize: THEME.typography.size[16],
-    lineHeight: 23,
+    fontSize: THEME.typography.size[14],
+    lineHeight: 21,
     color: THEME.colors.textPrimary,
   },
-  chipWrap: {
+  expertiseCard: {
+    borderRadius: THEME.radius[12],
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    paddingHorizontal: THEME.spacing[10],
+    paddingVertical: THEME.spacing[10],
+  },
+  expertiseRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: THEME.spacing[8],
+  },
+  expertiseRowSpaced: {
+    marginTop: THEME.spacing[10],
+    paddingTop: THEME.spacing[10],
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#BBF7D0',
+  },
+  expertiseRowLabel: {
+    width: 76,
+    flexShrink: 0,
+    paddingTop: 5,
+    fontSize: THEME.typography.size[12],
+    fontWeight: THEME.typography.weight.semibold as '600',
+    color: THEME.colors.primary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  chipWrapTight: {
+    flex: 1,
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: THEME.spacing[8],
   },
   chip: {
-    paddingHorizontal: THEME.spacing[10],
-    paddingVertical: 6,
-    borderRadius: THEME.radius[12],
-    backgroundColor: 'rgba(15,81,50,0.08)',
+    paddingHorizontal: THEME.spacing[8],
+    paddingVertical: 5,
+    borderRadius: THEME.radius[8],
+    backgroundColor: 'rgba(15,81,50,0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(15,81,50,0.14)',
+    borderColor: 'rgba(15,81,50,0.22)',
   },
   chipText: {
-    fontSize: THEME.typography.size[14],
+    fontSize: THEME.typography.size[12],
     fontWeight: THEME.typography.weight.medium as '500',
     color: THEME.colors.primary,
   },
   chipMuted: {
-    backgroundColor: THEME.colors.surface,
-    borderColor: THEME.colors.border,
+    backgroundColor: THEME.colors.white,
+    borderColor: '#BFDBFE',
   },
   chipTextMuted: {
-    fontSize: THEME.typography.size[14],
+    fontSize: THEME.typography.size[12],
     fontWeight: THEME.typography.weight.medium as '500',
     color: THEME.colors.textPrimary,
   },
   chipOutline: {
-    backgroundColor: THEME.colors.white,
-    borderColor: THEME.colors.border,
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FCD34D',
   },
   chipTextOutline: {
-    fontSize: THEME.typography.size[14],
-    color: THEME.colors.textSecondary,
+    fontSize: THEME.typography.size[12],
+    color: '#92400E',
   },
   factsCard: {
     borderRadius: THEME.radius[12],
-    backgroundColor: THEME.colors.surface,
-    padding: THEME.spacing[12],
-    gap: THEME.spacing[12],
+    backgroundColor: '#F8FAFF',
+    borderWidth: 1,
+    borderColor: '#E0E7FF',
+    overflow: 'hidden',
+  },
+  factsCardInner: {
+    paddingHorizontal: THEME.spacing[12],
+    paddingVertical: THEME.spacing[4],
+  },
+  factRowDivider: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: SLATE_LINE,
+    paddingBottom: THEME.spacing[8],
   },
   factRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: THEME.spacing[10],
+    paddingVertical: THEME.spacing[8],
   },
   factTextCol: {
     flex: 1,
@@ -565,22 +887,22 @@ const styles = StyleSheet.create({
   factLabel: {
     fontSize: THEME.typography.size[12],
     fontWeight: THEME.typography.weight.medium as '500',
-    color: THEME.colors.textSecondary,
+    color: SLATE_MUTED,
   },
   factValue: {
     marginTop: 2,
-    fontSize: THEME.typography.size[16],
+    fontSize: THEME.typography.size[14],
     color: THEME.colors.textPrimary,
-    lineHeight: 21,
+    lineHeight: 20,
   },
   websiteRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: THEME.spacing[10],
-    paddingVertical: THEME.spacing[4],
+    paddingVertical: THEME.spacing[8],
   },
   websiteRowPressed: {
-    opacity: 0.85,
+    opacity: 0.88,
   },
   websiteTextCol: {
     flex: 1,
@@ -593,31 +915,32 @@ const styles = StyleSheet.create({
     fontWeight: THEME.typography.weight.medium as '500',
   },
   factsEmpty: {
-    fontSize: THEME.typography.size[14],
+    fontSize: THEME.typography.size[12],
     color: THEME.colors.textSecondary,
-    lineHeight: 19,
+    lineHeight: 17,
+    paddingVertical: THEME.spacing[8],
+    paddingHorizontal: THEME.spacing[12],
   },
   introCard: {
-    marginTop: THEME.spacing[16],
-    borderRadius: THEME.radius[16],
+    marginTop: THEME.spacing[12],
+    borderRadius: THEME.radius[12],
     overflow: 'hidden',
   },
   introCardPressed: {
-    opacity: 0.92,
-    transform: [{ scale: 0.992 }],
+    opacity: 0.9,
   },
   introGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: THEME.spacing[14],
-    paddingHorizontal: THEME.spacing[14],
-    gap: THEME.spacing[12],
+    paddingVertical: THEME.spacing[12],
+    paddingHorizontal: THEME.spacing[12],
+    gap: THEME.spacing[10],
   },
   introIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255,255,255,0.16)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -626,29 +949,29 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   introTitle: {
-    fontSize: THEME.typography.size[16],
+    fontSize: THEME.typography.size[14],
     fontWeight: THEME.typography.weight.bold as '700',
     color: THEME.colors.white,
   },
   introSubtitle: {
     marginTop: 2,
-    fontSize: THEME.typography.size[14],
-    color: 'rgba(255,255,255,0.85)',
+    fontSize: THEME.typography.size[12],
+    color: 'rgba(255,255,255,0.82)',
   },
   talksScroll: {
-    gap: THEME.spacing[10],
+    gap: THEME.spacing[8],
     paddingRight: H_PADDING,
   },
   talkCard: {
-    borderRadius: THEME.radius[16],
+    borderRadius: THEME.radius[12],
     overflow: 'hidden',
     backgroundColor: THEME.colors.black,
-    borderWidth: 1,
-    borderColor: THEME.colors.border,
-    marginRight: THEME.spacing[10],
+    borderWidth: 2,
+    borderColor: 'rgba(45,212,191,0.55)',
+    marginRight: THEME.spacing[8],
   },
   talkCardPressed: {
-    opacity: 0.92,
+    opacity: 0.9,
   },
   talkMedia: {
     width: '100%',
@@ -668,13 +991,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
     borderRadius: THEME.radius[8],
   },
   talkDurationText: {
-    fontSize: 11,
+    fontSize: THEME.typography.size[12],
     fontWeight: THEME.typography.weight.semibold as '600',
     color: THEME.colors.white,
   },
@@ -682,10 +1005,11 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: THEME.spacing[10],
     right: THEME.spacing[10],
-    bottom: THEME.spacing[10],
-    fontSize: THEME.typography.size[14],
+    bottom: THEME.spacing[8],
+    fontSize: THEME.typography.size[12],
     fontWeight: THEME.typography.weight.semibold as '600',
     color: THEME.colors.white,
+    lineHeight: 16,
   },
   footer: {
     position: 'absolute',
@@ -695,24 +1019,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: H_PADDING,
     backgroundColor: THEME.colors.white,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: THEME.colors.border,
+    borderTopColor: SLATE_LINE,
   },
   bookBtn: {
-    borderRadius: THEME.radius[16],
+    borderRadius: THEME.radius[12],
     overflow: 'hidden',
   },
   bookBtnPressed: {
-    opacity: 0.92,
+    opacity: 0.9,
   },
   bookGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: THEME.spacing[8],
-    paddingVertical: THEME.spacing[14],
+    paddingVertical: THEME.spacing[12],
   },
   bookLabel: {
-    fontSize: THEME.typography.size[16],
+    fontSize: THEME.typography.size[14],
     fontWeight: THEME.typography.weight.bold as '700',
     color: THEME.colors.white,
   },

@@ -16,6 +16,14 @@ const BRAND_MARK_HEIGHT = 36;
 /** Horizontal bound for wide wordmarks; `contain` keeps aspect ratio. */
 const BRAND_MARK_MAX_WIDTH = 168;
 
+const RESOLVED_LOGO = Image.resolveAssetSource(bizLogo);
+const BRAND_MARK_WIDTH: number =
+  RESOLVED_LOGO?.width != null &&
+  RESOLVED_LOGO?.height != null &&
+  RESOLVED_LOGO.height > 0
+    ? Math.min(BRAND_MARK_MAX_WIDTH, Math.round(BRAND_MARK_HEIGHT * (RESOLVED_LOGO.width / RESOLVED_LOGO.height)))
+    : BRAND_MARK_MAX_WIDTH;
+
 export function ZeptoHeaderV1(props: ZeptoHeaderV1Props): React.ReactElement {
   const {
     backgroundColor,
@@ -133,7 +141,7 @@ const styles = StyleSheet.create({
   brandMarkWrap: {
     alignSelf: 'flex-start',
     alignItems: 'flex-start',
-    maxWidth: BRAND_MARK_MAX_WIDTH + 4,
+    maxWidth: BRAND_MARK_WIDTH,
     paddingVertical: 2,
     ...Platform.select({
       ios: {
@@ -150,7 +158,7 @@ const styles = StyleSheet.create({
   },
   brandMarkImage: {
     height: BRAND_MARK_HEIGHT,
-    width: BRAND_MARK_MAX_WIDTH,
+    width: BRAND_MARK_WIDTH,
     alignSelf: 'flex-start',
   },
   right: {
