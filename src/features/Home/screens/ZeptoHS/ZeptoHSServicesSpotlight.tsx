@@ -5,7 +5,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   useWindowDimensions,
   View,
 } from 'react-native';
@@ -19,6 +18,7 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
+import LinearGradient from 'react-native-linear-gradient';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useNavigation } from '@react-navigation/native';
 
@@ -30,7 +30,6 @@ import { ServiceSpotlightCard } from './components/ServiceSpotlightCard';
 import {
   SERVICES_CATEGORY_TREE,
   type ServicePageRef,
-  type ServicesSubCategory,
   type ServicesTopCategory,
 } from './data/servicesCategoryTree.static';
 
@@ -72,34 +71,8 @@ const TAB_LABEL_INACTIVE = THEME.colors.black;
 
 const EASE_OUT_CUBIC = Easing.bezier(0.25, 0.46, 0.45, 0.94);
 
-/**
- * Rotating row backgrounds — same visual language as
- * `RecommendedServicesSection` `accentPanel` (inset rounded card + teal band)
- * alternating with soft brand surfaces so stacked sub-categories feel curated.
- */
-interface SubCategoryPanelStyle {
-  backgroundColor: string;
-  titleColor: string;
-}
-
-const SUB_CATEGORY_PANEL_STYLES: readonly SubCategoryPanelStyle[] = [
-  {
-    backgroundColor: THEME.colors.chooseAccountConsultantGrad2,
-    titleColor: THEME.colors.white,
-  },
-  {
-    backgroundColor: THEME.colors.chooseAccountBg1,
-    titleColor: THEME.colors.primary,
-  },
-  {
-    backgroundColor: THEME.colors.surface,
-    titleColor: THEME.colors.textPrimary,
-  },
-  {
-    backgroundColor: THEME.colors.splashGreen1,
-    titleColor: THEME.colors.chooseAccountUserGrad1,
-  },
-] as const;
+/** Single spotlight band — sapphire → emerald (trust + growth, no black). */
+const SERVICES_SPOTLIGHT_PANEL_GRADIENT = ['#1E3A8A', '#0D9488'] as const;
 
 function hexToRgba(hex: string, alpha: number): string {
   const raw = hex.replace('#', '').trim();
@@ -356,6 +329,11 @@ export function ZeptoHSServicesSpotlight({
   const activeCategory: ServicesTopCategory | undefined =
     categories[activeCategoryIndex] ?? categories[0];
 
+  const combinedSpotlightPages = useMemo((): ServicePageRef[] => {
+    if (activeCategory == null) return [];
+    return activeCategory.subCategories.flatMap((sub) => sub.pages);
+  }, [activeCategory]);
+
   const goToService = useCallback(
     (slug: string): void => {
       navigation.navigate(ROUTES.App.Services, {
@@ -384,42 +362,6 @@ export function ZeptoHSServicesSpotlight({
   const ListSeparator = useCallback(
     (): React.ReactElement => <View style={styles.cardGap} />,
     [],
-  );
-
-  const renderSubCategorySection = useCallback(
-    (sub: ServicesSubCategory, sectionIndex: number): React.ReactElement => {
-      const panel =
-        SUB_CATEGORY_PANEL_STYLES[sectionIndex % SUB_CATEGORY_PANEL_STYLES.length] ??
-        SUB_CATEGORY_PANEL_STYLES[0];
-
-      return (
-        <View
-          key={sub.slug}
-          style={[styles.sectionCard, { backgroundColor: panel.backgroundColor }]}
-        >
-          <View style={styles.sectionHeader}>
-            <Text
-              style={[styles.sectionTitle, { color: panel.titleColor }]}
-              numberOfLines={2}
-            >
-              {sub.name.trim()}
-            </Text>
-          </View>
-          <FlatList
-            horizontal
-            nestedScrollEnabled
-            data={sub.pages}
-            renderItem={renderPageItem}
-            keyExtractor={pageKeyExtractor}
-            ItemSeparatorComponent={ListSeparator}
-            showsHorizontalScrollIndicator={false}
-            style={styles.hRow}
-            contentContainerStyle={styles.hRowContent}
-          />
-        </View>
-      );
-    },
-    [ListSeparator, pageKeyExtractor, renderPageItem],
   );
 
   if (activeCategory == null) {
@@ -473,9 +415,26 @@ export function ZeptoHSServicesSpotlight({
         entering={FadeIn.duration(180).delay(60).easing(EASE_OUT_CUBIC)}
         style={styles.sections}
       >
-        {activeCategory.subCategories.map((sub, sectionIndex) =>
-          renderSubCategorySection(sub, sectionIndex),
-        )}
+        <View style={styles.sectionCard}>
+          <LinearGradient
+            colors={[SERVICES_SPOTLIGHT_PANEL_GRADIENT[0], SERVICES_SPOTLIGHT_PANEL_GRADIENT[1]]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.sectionCardGradient}
+          >
+            <FlatList
+              horizontal
+              nestedScrollEnabled
+              data={combinedSpotlightPages}
+              renderItem={renderPageItem}
+              keyExtractor={pageKeyExtractor}
+              ItemSeparatorComponent={ListSeparator}
+              showsHorizontalScrollIndicator={false}
+              style={styles.hRow}
+              contentContainerStyle={styles.hRowContent}
+            />
+          </LinearGradient>
+        </View>
       </Animated.View>
     </View>
   );
@@ -560,18 +519,9 @@ const styles = StyleSheet.create({
     marginHorizontal: THEME.spacing[16],
     borderRadius: 20,
     overflow: 'hidden',
-    paddingTop: THEME.spacing[16],
-    paddingBottom: THEME.spacing[12],
   },
-  sectionHeader: {
-    paddingHorizontal: THEME.spacing[16],
-    marginBottom: THEME.spacing[12],
-  },
-  sectionTitle: {
-    fontSize: THEME.typography.size[16],
-    fontWeight: THEME.typography.weight.bold as '700',
-    letterSpacing: -0.35,
-    lineHeight: 24,
+  sectionCardGradient: {
+    paddingVertical: THEME.spacing[14],
   },
   hRow: {
     flexGrow: 0,
