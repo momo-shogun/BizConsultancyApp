@@ -1,5 +1,5 @@
-import React, { useRef } from 'react';
-import { Animated, Pressable, StyleSheet, View } from 'react-native';
+import React from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
@@ -13,57 +13,26 @@ interface AccountTypeCardProps {
   gradientColors: readonly [string, string];
   onPress: () => void;
   accessibilityLabel: string;
+  accessibilityHint?: string;
 }
 
 export function AccountTypeCard(props: AccountTypeCardProps): React.ReactElement {
-  const scale = useRef(new Animated.Value(1)).current;
-  const translateY = useRef(new Animated.Value(0)).current;
-
-  const animateIn = (): void => {
-    Animated.parallel([
-      Animated.spring(scale, {
-        toValue: 0.97,
-        useNativeDriver: true,
-        speed: 20,
-        bounciness: 4,
-      }),
-      Animated.spring(translateY, {
-        toValue: 4,
-        useNativeDriver: true,
-        speed: 20,
-        bounciness: 4,
-      }),
-    ]).start();
-  };
-
-  const animateOut = (): void => {
-    Animated.parallel([
-      Animated.spring(scale, {
-        toValue: 1,
-        useNativeDriver: true,
-        speed: 20,
-        bounciness: 6,
-      }),
-      Animated.spring(translateY, {
-        toValue: 0,
-        useNativeDriver: true,
-        speed: 20,
-        bounciness: 6,
-      }),
-    ]).start();
-  };
-
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={props.accessibilityLabel}
-      onPressIn={animateIn}
-      onPressOut={animateOut}
+      accessibilityHint={props.accessibilityHint}
+      hitSlop={6}
       onPress={props.onPress}
-      style={styles.pressable}
+      style={styles.pressableOuter}
     >
-      <Animated.View style={{ transform: [{ scale }, { translateY }] }}>
-        <Card style={styles.card}>
+      {({ pressed }) => (
+        <Card
+          style={StyleSheet.flatten([
+            styles.card,
+            pressed ? styles.cardPressed : {},
+          ])}
+        >
           <LinearGradient colors={[...props.gradientColors]} style={styles.iconContainer}>
             <Ionicons
               name={props.iconName}
@@ -83,13 +52,13 @@ export function AccountTypeCard(props: AccountTypeCardProps): React.ReactElement
             <Ionicons name="arrow-forward" size={16} color={THEME.colors.chooseAccountArrow} />
           </View>
         </Card>
-      </Animated.View>
+      )}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  pressable: {
+  pressableOuter: {
     borderRadius: 30,
   },
   card: {
@@ -109,6 +78,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 24,
     elevation: 8,
+  },
+  cardPressed: {
+    opacity: 0.94,
+    transform: [{ scale: 0.988 }],
+    borderColor: THEME.colors.chooseAccountCardBorder,
   },
   iconContainer: {
     width: 56,

@@ -1,5 +1,7 @@
 import React, { useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 
 import { THEME } from '@/constants/theme';
 import { DEMO_SERVICES } from '@/features/Services/data/demoServices';
@@ -22,8 +24,7 @@ import type { HomeCategoryId } from './ZeptoHS/ZeptoHS.types';
 import { ZeptoHS } from './ZeptoHS/ZeptoHS';
 import { ROUTES } from '@/navigation/routeNames';
 import { navigationRef } from '@/navigation/RootNavigator';
-import { NativeStackNavigationProp } from 'node_modules/@react-navigation/native-stack/lib/typescript/src/types';
-import { AuthStackParamList } from '@/navigation/types';
+import type { AppTabParamList } from '@/navigation/types';
 
 const HOME_INTEREST_DEMO_ITEMS: EventSpotlightItem[] = [
   {
@@ -139,7 +140,7 @@ const HOME_TESTIMONIALS_DEMO_ITEMS: TestimonialItem[] = [
   },
 ];
 
-type Nav = NativeStackNavigationProp<AuthStackParamList, typeof ROUTES.App.ConsultantsList>;
+type Nav = BottomTabNavigationProp<AppTabParamList>;
 
 
 const HOME_UPCOMING_BOOKINGS_DEMO_ITEMS: UpcomingBookingItem[] = [
