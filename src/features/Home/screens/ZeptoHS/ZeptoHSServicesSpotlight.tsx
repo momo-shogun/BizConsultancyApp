@@ -189,15 +189,6 @@ const PillTab = React.memo(function PillTab({
     active.value = withSpring(isActive ? 1 : 0, MICRO_SPRING);
   }, [isActive]);
 
-  // ── Text color + scale ──────────────────────────────────────────────────
-  // WHY interpolateColor on UI thread:
-  //   Color interpolation in JS would require the bridge on every frame.
-  //   On the UI thread it's a pure worklet computation — zero bridge cost.
-  //
-  // WHY scale 0.97 → 1.0:
-  //   A 3% scale difference is below conscious perception but above the
-  //   threshold where the eye notices "something moved." It reinforces the
-  //   active state without looking animated.
   const textStyle = useAnimatedStyle(() => ({
     color: interpolateColor(
       active.value,
@@ -209,21 +200,6 @@ const PillTab = React.memo(function PillTab({
     ],
   }));
 
-  // ── Press feedback — scale + translateY ─────────────────────────────────
-  // WHY scale 0.97 on press (not 0.95):
-  //   0.95 looks like a bug or an over-engineered animation on small elements.
-  //   0.97 is subliminal — it tells your finger "I registered that" without
-  //   distracting the eye.
-  //
-  // WHY translateY 1px:
-  //   A 1px downward nudge on press physically grounds the interaction —
-  //   makes it feel like pressing a real surface. The spring release (1.01
-  //   overshoot) creates a micro-"pop" on lift, like a physical button.
-  //
-  // WHY high stiffness (400) + low mass (0.3) for press:
-  //   Press feedback must be INSTANT. Low mass + high stiffness means the
-  //   spring reaches its target in <1 frame visually. The settle overshoot
-  //   happens in the ~80ms after lift — that's the "pop."
   const pressStyle = useAnimatedStyle(() => {
     const isPressing = pressed.value === 1;
     return {
