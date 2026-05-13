@@ -28,7 +28,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
               [ROUTES.Services.Detail]: ':slug',
             },
           },
-          [ROUTES.App.Bookings]: 'bookings',
+
           [ROUTES.App.Account]: 'account',
         },
       },

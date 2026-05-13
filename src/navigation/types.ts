@@ -20,7 +20,7 @@ export type ServicesStackParamList = {
 export type AppTabParamList = {
   [ROUTES.App.Home]: undefined;
   [ROUTES.App.Services]: NavigatorScreenParams<ServicesStackParamList>;
-  [ROUTES.App.Bookings]: undefined;
+  [ROUTES.App.Edp]: undefined;
   [ROUTES.App.Account]: undefined;
 };
 
@@ -29,3 +29,6 @@ export type RootStackParamList = {
   [ROUTES.Root.App]: NavigatorScreenParams<AppTabParamList>;
 };
 
+// export type EdpStackParamList = {
+//   [ROUTES.App.Edp]: undefined;
+// };

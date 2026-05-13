@@ -13,6 +13,7 @@ import { ProfileScreen } from '@/features/Profile/screens/ProfileScreen';
 
 import { ServicesStackNavigator } from '../../ServicesStackNavigator';
 import { plankBarV1TabNavigatorScreenOptions } from './plankBarV1.styles';
+import Edp from '@/features/Edp/screens/Edp';
 
 const PlankTab = createBottomTabNavigator<AppTabParamList>();
 
@@ -28,7 +29,7 @@ function getTabBarIcon(
         return focused ? 'home' : 'home-outline';
       case ROUTES.App.Services:
         return focused ? 'briefcase' : 'briefcase-outline';
-      case ROUTES.App.Bookings:
+      case ROUTES.App.Edp:
         return focused ? 'calendar' : 'calendar-outline';
       case ROUTES.App.Account:
         return focused ? 'person' : 'person-outline';
@@ -60,8 +61,8 @@ export function PlankBarV1TabNavigator(): React.ReactElement {
         options={{ title: 'Services' }}
       />
       <PlankTab.Screen
-        name={ROUTES.App.Bookings}
-        component={BookingsScreen}
+        name={ROUTES.App.Edp}
+        component={Edp}
         options={{ title: 'EDP' }}
       />
       <PlankTab.Screen name={ROUTES.App.Account} component={ProfileScreen} options={{ title: 'Account' }} />

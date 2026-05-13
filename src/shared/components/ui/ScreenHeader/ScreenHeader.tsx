@@ -8,14 +8,24 @@ interface ScreenHeaderProps {
   title: string;
   onBackPress?: () => void;
   onSearchPress?: () => void;
+  headerColor?: string;
 }
 
 export function ScreenHeader(props: ScreenHeaderProps): React.ReactElement {
   const hasBack = props.onBackPress != null;
   const hasSearch = props.onSearchPress != null;
 
+  const isCustomHeader = !!props.headerColor;
+
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        isCustomHeader && {
+          backgroundColor: props.headerColor,
+        },
+      ]}
+    >
       <View style={styles.left}>
         {hasBack ? (
           <Pressable
@@ -25,11 +35,28 @@ export function ScreenHeader(props: ScreenHeaderProps): React.ReactElement {
             hitSlop={8}
             style={styles.backButton}
           >
-            <Ionicons name="chevron-back" size={22} color={THEME.colors.textPrimary} />
+            <Ionicons
+              name="chevron-back"
+              size={22}
+              color={isCustomHeader ? "#fff" : THEME.colors.textPrimary}
+            />
           </Pressable>
         ) : null}
-        <Text style={styles.title}>{props.title}</Text>
+
+        <Text
+          style={[
+            styles.title,
+            {
+              color: isCustomHeader
+                ? "#fff"
+                : THEME.colors.textPrimary,
+            },
+          ]}
+        >
+          {props.title}
+        </Text>
       </View>
+
       {hasSearch ? (
         <Pressable
           accessibilityRole="button"
@@ -38,7 +65,11 @@ export function ScreenHeader(props: ScreenHeaderProps): React.ReactElement {
           hitSlop={8}
           style={styles.rightButton}
         >
-          <Ionicons name="search" size={20} color={THEME.colors.textPrimary} />
+          <Ionicons
+            name="search"
+            size={20}
+            color={isCustomHeader ? "#fff" : THEME.colors.textPrimary}
+          />
         </Pressable>
       ) : null}
     </View>

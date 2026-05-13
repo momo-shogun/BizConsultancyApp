@@ -15,7 +15,7 @@ export const ROUTES = {
   App: {
     Home: 'App/Home',
     Services: 'App/Services',
-    Bookings: 'App/Bookings',
+    Edp: 'App/Edp',
     Account: 'App/Account',
   },
   Services: {

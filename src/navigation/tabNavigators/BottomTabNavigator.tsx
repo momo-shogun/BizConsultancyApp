@@ -9,6 +9,7 @@ import { HomeDashboardScreen } from '@/features/Home/screens/HomeDashboardScreen
 import { ServicesStackNavigator } from '../ServicesStackNavigator';
 import { BookingsScreen } from '@/features/Bookings/screens/BookingsScreen';
 import { ProfileScreen } from '@/features/Profile/screens/ProfileScreen';
+import Edp from '@/features/Edp/screens/Edp';
 
 const Tab = createBottomTabNavigator<AppTabParamList>();
 
@@ -24,7 +25,7 @@ function getTabBarIcon(
         return focused ? 'home' : 'home-outline';
       case ROUTES.App.Services:
         return focused ? 'briefcase' : 'briefcase-outline';
-      case ROUTES.App.Bookings:
+      case ROUTES.App.Edp:
         return focused ? 'calendar' : 'calendar-outline';
       case ROUTES.App.Account:
         return focused ? 'person' : 'person-outline';
@@ -52,8 +53,8 @@ export function BottomTabNavigator(): React.ReactElement {
         options={{ title: 'Services' }}
       />
       <Tab.Screen
-        name={ROUTES.App.Bookings}
-        component={BookingsScreen}
+        name={ROUTES.App.Edp}
+        component={Edp}
         options={{ title: 'EDP' }}
       />
       <Tab.Screen name={ROUTES.App.Account} component={ProfileScreen} options={{ title: 'Account' }} />

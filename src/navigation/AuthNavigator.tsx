@@ -11,6 +11,7 @@ import { LoginScreen } from '@/features/Auth/screens/LoginScreen';
 import { SignupScreen } from '@/features/Auth/screens/SignupScreen';
 import { OTPVerificationScreen } from '@/features/Auth/screens/OTPVerificationScreen';
 import { ProfileSetupScreen } from '@/features/Auth/screens/ProfileSetupScreen';
+import Edp from '@/features/Edp/screens/Edp';
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
 

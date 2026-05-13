@@ -6,6 +6,7 @@ import { ServiceDetailScreen } from '@/features/Services/screens/ServiceDetailSc
 
 import { ROUTES } from './routeNames';
 import type { ServicesStackParamList } from './types';
+import Edp from '@/features/Edp/screens/Edp';
 
 const Stack = createNativeStackNavigator<ServicesStackParamList>();
 
@@ -14,7 +15,7 @@ export function ServicesStackNavigator(): React.ReactElement {
     <Stack.Navigator
       initialRouteName={ROUTES.Services.List}
       screenOptions={{
-        headerBackButtonDisplayMode: 'minimal',
+        // headerBackTitleVisible: false,
         headerTitleAlign: 'center',
         headerShadowVisible: false,
         animation: 'slide_from_right',
