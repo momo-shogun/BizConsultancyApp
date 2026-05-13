@@ -67,6 +67,9 @@ const MICRO_SPRING = {
   restSpeedThreshold: 0.001,
 } as const;
 
+/** Inactive tab label — solid black like reference; active uses `accentColor` (green). */
+const TAB_LABEL_INACTIVE = THEME.colors.black;
+
 const EASE_OUT_CUBIC = Easing.bezier(0.25, 0.46, 0.45, 0.94);
 
 function hexToRgba(hex: string, alpha: number): string {
@@ -140,7 +143,12 @@ const AnimatedPillIndicator = React.memo(function AnimatedPillIndicator({
       pointerEvents="none"
       style={[
         styles.pillIndicator,
-        { borderColor: accentColor, backgroundColor: hexToRgba(accentColor, 0.08) },
+        {
+          borderColor: accentColor,
+          backgroundColor: hexToRgba(accentColor, 0.06),
+          borderBottomWidth: 0,
+          borderBottomColor: 'transparent',
+        },
         indicatorStyle,
       ]}
     />
@@ -192,7 +200,7 @@ const PillTab = React.memo(function PillTab({
     color: interpolateColor(
       active.value,
       [0, 1],
-      [THEME.colors.textPrimary, accentColor],
+      [TAB_LABEL_INACTIVE, accentColor],
     ),
     transform: [
       { scale: interpolate(active.value, [0, 1], [0.97, 1.0]) },
@@ -434,7 +442,7 @@ export function ZeptoHSServicesSpotlight({
 const styles = StyleSheet.create({
   wrap: {
     width: '100%',
-    paddingBottom: THEME.spacing[16],
+    paddingBottom: THEME.spacing[12],
     paddingTop: THEME.spacing[8],
   },
 
@@ -447,62 +455,53 @@ const styles = StyleSheet.create({
   pillRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    paddingHorizontal: THEME.spacing[16],
-    paddingTop: THEME.spacing[10],
+    paddingHorizontal: THEME.spacing[12],
+    paddingTop: THEME.spacing[4],
     position: 'relative',
   },
 
-  // The sliding background pill (absolutely positioned, behind text)
+  // Sliding “folder tab” — no bottom stroke (meets full-width bar cleanly)
   pillIndicator: {
     position: 'absolute',
     top: 0,
     bottom: 0,
-    borderWidth: 2,
+    borderWidth: 1,
     borderBottomWidth: 0,
-    borderRadius: 14,
+    borderBottomColor: 'transparent',
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
-    // WHY zIndex 0: sits behind Pressable layers (zIndex 1)
     zIndex: 0,
   },
 
-  // Active tab text container — transparent bg (indicator is the bg)
   pillActive: {
     backgroundColor: 'transparent',
-    paddingHorizontal: THEME.spacing[14],
-    paddingTop: THEME.spacing[10],
-    paddingBottom: THEME.spacing[12],
+    paddingHorizontal: THEME.spacing[10],
+    paddingTop: THEME.spacing[4],
+    paddingBottom: THEME.spacing[8],
     zIndex: 1,
-    borderBottomWidth: 0,
-    borderBottomColor: 'white',
-
   },
 
-  // Inactive tab — no border, no background, just text
   pillInactive: {
     backgroundColor: 'transparent',
-    paddingHorizontal: THEME.spacing[14],
-    paddingVertical: THEME.spacing[10],
+    paddingHorizontal: THEME.spacing[10],
+    paddingVertical: THEME.spacing[8],
     zIndex: 1,
   },
 
   pillText: {
-    fontSize: 13,
-    fontWeight: '700',
-    lineHeight: 16,
+    fontSize: 12,
+    fontWeight: '600',
+    lineHeight: 15,
+    letterSpacing: -0.15,
   },
 
-  // Full-width accent underline beneath the tab row
   bottomLine: {
-    height: 2,
+    height: 1.5,
     width: '100%',
-    borderTopLeftRadius: 14,
-    borderTopRightRadius: 14,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-    borderBottomWidth: 0,
-    borderBottomColor: 'transparent',
-
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
   },
 
   // Content
