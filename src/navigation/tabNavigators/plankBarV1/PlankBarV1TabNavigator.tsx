@@ -9,7 +9,7 @@ import { PlanckBridgedTabBar } from '../../shared/PlanckBridgedTabBar';
 
 import { HomeDashboardScreen } from '@/features/Home/screens/HomeDashboardScreen';
 import { BookingsScreen } from '@/features/Bookings/screens/BookingsScreen';
-import { ProfileScreen } from '@/features/Profile/screens/ProfileScreen';
+import { ProfileScreen } from '@/features/Profile/screens/User/ProfileScreen';
 
 import { ServicesStackNavigator } from '../../ServicesStackNavigator';
 import { plankBarV1TabNavigatorScreenOptions } from './plankBarV1.styles';

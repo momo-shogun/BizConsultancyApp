@@ -8,7 +8,7 @@ import { ROUTES } from '../routeNames';
 import { HomeDashboardScreen } from '@/features/Home/screens/HomeDashboardScreen';
 import { ServicesStackNavigator } from '../ServicesStackNavigator';
 import { BookingsScreen } from '@/features/Bookings/screens/BookingsScreen';
-import { ProfileScreen } from '@/features/Profile/screens/ProfileScreen';
+import { ProfileScreen } from '@/features/Profile/screens/User/ProfileScreen';
 import Edp from '@/features/Edp/screens/Edp';
 
 const Tab = createBottomTabNavigator<AppTabParamList>();
