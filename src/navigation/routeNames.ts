@@ -29,6 +29,7 @@ export const ROUTES = {
   Services: {
     List: 'App/Services/List',
     Detail: 'App/Services/Detail',
+    Onboarding: 'App/Services/Onboarding',
   },
 } as const;
 

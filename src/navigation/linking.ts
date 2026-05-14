@@ -26,9 +26,9 @@ export const linking: LinkingOptions<RootStackParamList> = {
             screens: {
               [ROUTES.Services.List]: '',
               [ROUTES.Services.Detail]: ':slug',
+              [ROUTES.Services.Onboarding]: ':slug/onboarding',
             },
           },
-
           [ROUTES.App.Account]: 'account',
         },
       },

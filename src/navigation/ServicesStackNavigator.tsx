@@ -7,6 +7,7 @@ import { ServiceDetailScreen } from '@/features/Services/screens/ServiceDetailSc
 import { ROUTES } from './routeNames';
 import type { ServicesStackParamList } from './types';
 import Edp from '@/features/Edp/screens/Edp';
+import serviceOnboarding from '@/features/Services/screens/ServiceOnboarding';
 
 const Stack = createNativeStackNavigator<ServicesStackParamList>();
 
@@ -30,6 +31,12 @@ export function ServicesStackNavigator(): React.ReactElement {
         name={ROUTES.Services.Detail}
         component={ServiceDetailScreen}
         options={{ headerShown: false, title: 'Service' }}
+      />
+
+      <Stack.Screen
+        name={ROUTES.Services.Onboarding}
+        component={serviceOnboarding} // Replace with actual onboarding component
+        options={{ headerShown: false, title: 'EDP' }}
       />
 
 

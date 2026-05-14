@@ -15,6 +15,7 @@ export type AuthStackParamList = {
 export type ServicesStackParamList = {
   [ROUTES.Services.List]: undefined;
   [ROUTES.Services.Detail]: { slug: string };
+  [ROUTES.Services.Onboarding]: { slug : string };
 };
 
 export type EdpStackParamList = {

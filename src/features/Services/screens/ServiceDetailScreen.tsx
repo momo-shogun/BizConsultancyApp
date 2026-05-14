@@ -217,7 +217,7 @@ export function ServiceDetailScreen(): React.ReactElement {
                   accessibilityRole="button"
                   accessibilityLabel={`Get started with ${item.title}`}
                   hitSlop={8}
-                  onPress={() => console.log('Get started', item.slug)}
+                  onPress={() => navigation.navigate(ROUTES.Services.Onboarding, { slug: item.slug })}
                   style={({ pressed }) => [
                     styles.heroCta,
                     pressed ? styles.heroCtaPressed : null,
