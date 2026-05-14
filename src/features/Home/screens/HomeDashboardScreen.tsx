@@ -233,7 +233,7 @@ export function HomeDashboardScreen(): React.ReactElement {
     if (!navigationRef.isReady()) {
       return;
     }
-    // navigationRef.navigate(ROUTES.Root.ConsultantsList);
+    navigationRef.navigate(ROUTES.Root.ConsultantsList);
     console.log('Navigate to consultants list');
   }, []);
 
@@ -250,7 +250,7 @@ export function HomeDashboardScreen(): React.ReactElement {
   }, []);
 
   return (
-    <SafeAreaWrapper edges={['top', 'bottom']}>
+    <SafeAreaWrapper edges={['top', 'bottom']}  bgColor={'transparent'}>
       <ZeptoHS
         header={{
           backgroundColor: '#E6C8A4',

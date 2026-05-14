@@ -426,7 +426,7 @@ function DiagnosisBanner({ backgroundColor, accentColor }: DiagnosisBannerProps)
 const banner = StyleSheet.create({
   wrap: {
     width: '100%',
-    minHeight: 172,
+    minHeight: 176,
     borderRadius: 0,
     overflow: 'hidden',
     paddingHorizontal: 14,

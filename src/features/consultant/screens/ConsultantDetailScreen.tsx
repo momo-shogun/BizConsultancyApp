@@ -252,7 +252,7 @@ export function ConsultantDetailScreen(): React.ReactElement {
               <Image
                 source={{ uri: detail.image }}
                 style={styles.heroPhoto}
-                resizeMode="contain"
+                resizeMode="cover"
                 accessibilityLabel={`Portrait of ${detail.name}`}
               />
             </View>
@@ -291,7 +291,7 @@ export function ConsultantDetailScreen(): React.ReactElement {
             </View>
           </View>
 
-          <View style={[styles.sheet, { marginTop: -THEME.spacing[12] }]}>
+          <View style={[styles.sheet, { marginTop: 1}]}>
             <View style={styles.sheetAccentWrap} accessibilityElementsHidden>
               <LinearGradient
                 colors={[THEME.colors.primary, '#1D6B4A', '#0B3D2C']}
@@ -542,8 +542,9 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: THEME.spacing[8],
-    paddingHorizontal: THEME.spacing[12],
+    // paddingTop: THEME.spacing[4],
+    // paddingVertical: THEME.spacing[8],
+    // paddingHorizontal: THEME.spacing[12],
   },
   heroPhoto: {
     width: '100%',
@@ -551,7 +552,7 @@ const styles = StyleSheet.create({
   },
   heroIdentity: {
     marginHorizontal: H_PADDING,
-    marginTop: -THEME.spacing[14],
+    marginTop: -THEME.spacing[20],
     paddingHorizontal: THEME.spacing[14],
     paddingTop: THEME.spacing[14],
     paddingBottom: THEME.spacing[16],
