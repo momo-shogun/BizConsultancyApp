@@ -18,6 +18,9 @@ import { darkenHex, ZEPTO_TABS_TRACK_DARKEN } from '@/utils/darkenHex';
 
 import { ZeptoHSCategorySpotlight } from './ZeptoHSCategorySpotlight';
 import type { HomeCategoryId, ZeptoHSProps, ZeptoHSShellColors } from './ZeptoHS.types';
+import { ROUTES } from '@/navigation/routeNames';
+import { useNavigation } from 'node_modules/@react-navigation/core/lib/typescript/src/useNavigation';
+import { navigationRef } from '@/navigation/RootNavigator';
 
 if (
   Platform.OS === 'android' &&
@@ -172,7 +175,7 @@ export function ZeptoHS(props: ZeptoHSProps): React.ReactElement {
         scrollEventThrottle={16}
       >
         <Animated.View style={collapsingHeaderOpacityStyle} onLayout={onHeaderLayout} collapsable={false}>
-          <ZeptoHeaderV1 {...header} backgroundColor={headerBackgroundColor} />
+          <ZeptoHeaderV1 {...header} backgroundColor={headerBackgroundColor}  onWalletPress={()=> navigationRef.navigate(ROUTES.Root.Wallet)} />
         </Animated.View>
 
         <Animated.View style={collapsingHeaderOpacityStyle} onLayout={onTabsLayout} collapsable={false}>

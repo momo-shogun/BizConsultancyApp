@@ -5,6 +5,7 @@ export const ROUTES = {
     /** Full-screen stack above tabs (not a tab bar destination). */
     ConsultantsList: 'Root/ConsultantsList',
     ConsultantDetail: 'Root/ConsultantDetail',
+    Wallet: 'Root/Wallet',
   },
   Auth: {
     Splash: 'Auth/Splash',

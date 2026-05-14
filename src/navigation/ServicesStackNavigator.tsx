@@ -31,6 +31,8 @@ export function ServicesStackNavigator(): React.ReactElement {
         component={ServiceDetailScreen}
         options={{ headerShown: false, title: 'Service' }}
       />
+
+
     </Stack.Navigator>
   );
 }

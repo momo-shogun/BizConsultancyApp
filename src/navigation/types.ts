@@ -34,9 +34,5 @@ export type RootStackParamList = {
   [ROUTES.Root.App]: NavigatorScreenParams<AppTabParamList>;
   [ROUTES.Root.ConsultantsList]: undefined;
   [ROUTES.Root.ConsultantDetail]: { slug: string };
+  [ROUTES.Root.Wallet]: undefined;
 };
-  
-
-// export type EdpStackParamList = {
-//   [ROUTES.App.Edp]: undefined;
-// };
