@@ -256,7 +256,14 @@ const styles = StyleSheet.create({
   },
   logoRow: {
     marginBottom: 28,
-    alignSelf: 'flex-start',
+    width: '100%',
+    justifyContent: 'center',
+    // backgroundColor: 'red',
+    textAlign: 'center',
+    flex:1,
+    alignItems: 'center',
+
+
   },
   logoImage: {
     height: 40,
@@ -396,7 +403,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 52,
     borderRadius: 14,
-    backgroundColor: TITLE_COLOR,
+    backgroundColor: ACCENT,
     justifyContent: 'center',
     alignItems: 'center',
   },
