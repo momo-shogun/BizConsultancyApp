@@ -15,13 +15,16 @@ export const styles = StyleSheet.create({
   },
   heroWrap: {
     paddingHorizontal: THEME.spacing[0],
-    marginTop: THEME.spacing[8],
+    // marginTop: THEME.spacing[8],
   },
   heroBg: {
-    borderRadius: 22,
+    // borderRadius: 22,
     padding: THEME.spacing[16],
     gap: THEME.spacing[12],
     height: 392,
+    borderBottomLeftRadius: 22,
+    borderBottomRightRadius: 22,
+    overflow: 'hidden',
   },
   heroDecor: {
     ...StyleSheet.absoluteFill,

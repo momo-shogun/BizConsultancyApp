@@ -29,7 +29,7 @@ export function ServicesStackNavigator(): React.ReactElement {
       <Stack.Screen
         name={ROUTES.Services.Detail}
         component={ServiceDetailScreen}
-        options={{ headerShown: true, title: 'Service' }}
+        options={{ headerShown: false, title: 'Service' }}
       />
     </Stack.Navigator>
   );

@@ -21,6 +21,7 @@ import type { ServicesStackParamList } from '@/navigation/types';
 import {
   EmptyState,
   SafeAreaWrapper,
+  ScreenHeader,
   ScreenWrapper,
   ScrollWrapper,
   SectionHeader,
@@ -110,7 +111,8 @@ export function ServiceDetailScreen(): React.ReactElement {
 
 
   return (
-    <SafeAreaWrapper edges={['bottom']}>
+    <SafeAreaWrapper edges={['bottom', 'top']} >
+      <ScreenHeader title="title" headerColor="#0F5132" onSearchPress={() => {}} />
       <ScreenWrapper style={styles.flex}>
         <ScrollWrapper
           contentContainerStyle={styles.scrollContent}

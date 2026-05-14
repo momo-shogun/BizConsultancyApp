@@ -233,7 +233,8 @@ export function HomeDashboardScreen(): React.ReactElement {
     if (!navigationRef.isReady()) {
       return;
     }
-    navigationRef.navigate(ROUTES.Root.ConsultantsList);
+    // navigationRef.navigate(ROUTES.Root.ConsultantsList);
+    console.log('Navigate to consultants list');
   }, []);
 
   const onRecommendedServicesViewAll = useCallback(() => {
