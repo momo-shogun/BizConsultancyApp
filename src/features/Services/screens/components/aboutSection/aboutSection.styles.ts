@@ -28,7 +28,7 @@ export const styles = StyleSheet.create({
   sectionWrapper: {
     position: 'relative',
     paddingHorizontal: 12,
-    paddingVertical: 28,
+    // paddingVertical: 28,
   },
 
   gradientGlowTop: {

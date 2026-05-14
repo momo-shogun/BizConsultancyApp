@@ -65,7 +65,7 @@ export const styles = StyleSheet.create({
     gap: THEME.spacing[12],
   },
   badgesRow: {
-    width: '90%',
+    width: '100%',
     flexDirection: 'row',
     flexWrap: 'wrap',
     // gap: THEME.spacing[8],
@@ -154,9 +154,7 @@ export const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 18,
     elevation: 6,
-    width: '92%',
-    
-
+    width: '100%',
   },
   heroCardLeft: {
     flex: 1,

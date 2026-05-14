@@ -13,6 +13,7 @@ export function EdpStackNavigator(): React.ReactElement {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name={ROUTES.Edp.Main} component={Edp} />
       <Stack.Screen name={ROUTES.Edp.Modules} component={EDPModulesScreen} />
+      
     </Stack.Navigator>
   );
 }

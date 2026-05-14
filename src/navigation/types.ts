@@ -35,7 +35,7 @@ export type RootStackParamList = {
   [ROUTES.Root.ConsultantsList]: undefined;
   [ROUTES.Root.ConsultantDetail]: { slug: string };
 };
-
+  
 
 // export type EdpStackParamList = {
 //   [ROUTES.App.Edp]: undefined;

@@ -7,7 +7,9 @@
     "ios": "react-native run-ios",
     "lint": "eslint .",
     "start": "react-native start",
-    "test": "NODE_OPTIONS=--max-old-space-size=4096 jest"
+    "test": "NODE_OPTIONS=--max-old-space-size=4096 jest",
+    "build": "cd android && ./gradlew assembleRelease && cd -",
+    "installApk": "adb install -r android/app/build/outputs/apk/release/app-release.apk"
   },
   "dependencies": {
     "@react-native/new-app-screen": "0.85.1",

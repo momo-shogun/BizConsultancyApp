@@ -111,8 +111,8 @@ export function ServiceDetailScreen(): React.ReactElement {
 
 
   return (
-    <SafeAreaWrapper edges={['bottom', 'top']} >
-      <ScreenHeader title="title" headerColor="#0F5132" onSearchPress={() => {}} />
+    <SafeAreaWrapper edges={['bottom', 'top']}  bgColor='#0F5132' isLight={true}>
+      {/* <ScreenHeader title="title" headerColor="#0F5132" onSearchPress={() => {}} /> */}
       <ScreenWrapper style={styles.flex}>
         <ScrollWrapper
           contentContainerStyle={styles.scrollContent}
