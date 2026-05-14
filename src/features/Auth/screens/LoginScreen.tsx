@@ -56,7 +56,11 @@ export function LoginScreen(): React.ReactElement {
       onBackPress={() => navigation.goBack()}
     />
   ) : (
-    <ConsultantLoginScreenContent onContinue={onContinue} onBackPress={() => navigation.goBack()} />
+    <ConsultantLoginScreenContent
+      onContinue={onContinue}
+      onSkip={onSkip}
+      onBackPress={() => navigation.goBack()}
+    />
   );
 }
 
