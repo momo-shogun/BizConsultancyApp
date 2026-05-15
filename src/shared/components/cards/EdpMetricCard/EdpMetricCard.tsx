@@ -25,10 +25,9 @@ export function EdpMetricCard(props: EdpMetricCardProps): React.ReactElement {
   return (
     <Pressable
       onPress={props.onPress}
-      style={[styles.card, edpCardBase.card, props.style]}
+      style={[styles.card, edpCardBase.cardSurface, props.style]}
       disabled={props.onPress == null}
     >
-      <View style={edpCardBase.shimmer} />
       <View style={styles.row}>
         <View style={[styles.iconWrap, { borderColor: accentAlpha(accent, 0.33) }]}>
           <View style={[styles.iconInner, { backgroundColor: accentAlpha(accent, 0.13) }]}>

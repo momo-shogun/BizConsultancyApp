@@ -14,7 +14,7 @@ export function EdpFaqCard(props: EdpFaqCardProps): React.ReactElement {
   const [open, setOpen] = useState(false);
 
   return (
-    <View style={[edpCardBase.card, styles.card]}>
+    <View style={[edpCardBase.cardBordered, styles.card]}>
       <Pressable
         style={styles.row}
         onPress={() => setOpen((prev) => !prev)}

@@ -1,18 +1,27 @@
 import { StyleSheet } from 'react-native';
 
+import { THEME } from '@/constants/theme';
+
+/** Flat card — no shadow, no border (grid tiles, nested groups). */
 export const edpCardBase = StyleSheet.create({
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: THEME.colors.white,
     borderRadius: 20,
     overflow: 'hidden',
   },
-  shimmer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 1,
-    opacity: 0.6,
+  /** Bordered card — separation on white page background (lists, key blocks). */
+  cardBordered: {
+    backgroundColor: THEME.colors.white,
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: THEME.colors.border,
+  },
+  /** Soft fill without border — metric tiles on white sections. */
+  cardSurface: {
+    backgroundColor: THEME.colors.surface,
+    borderRadius: 20,
+    overflow: 'hidden',
   },
 });
 

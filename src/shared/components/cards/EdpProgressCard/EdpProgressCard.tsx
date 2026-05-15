@@ -24,8 +24,7 @@ export function EdpProgressCard(props: EdpProgressCardProps): React.ReactElement
   const accent = props.progressAccent;
 
   return (
-    <View style={[edpCardBase.card, styles.card]}>
-      <View style={edpCardBase.shimmer} />
+    <View style={[edpCardBase.cardBordered, styles.card]}>
       <View style={styles.top}>
         <Text style={styles.title}>{props.title}</Text>
         <View

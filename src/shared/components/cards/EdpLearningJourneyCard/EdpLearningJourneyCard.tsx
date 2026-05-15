@@ -18,8 +18,7 @@ export interface EdpLearningJourneyCardProps {
 
 export function EdpLearningJourneyCard(props: EdpLearningJourneyCardProps): React.ReactElement {
   return (
-    <View style={[edpCardBase.card, styles.card]}>
-      <View style={edpCardBase.shimmer} />
+    <View style={[edpCardBase.cardBordered, styles.card]}>
       {props.steps.map((step, index) => (
         <EdpJourneyStepRow
           key={step.step}

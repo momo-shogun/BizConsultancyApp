@@ -37,10 +37,9 @@ export function EdpModuleCard(props: EdpModuleCardProps): React.ReactElement {
   return (
     <Pressable
       onPress={props.onPress}
-      style={[edpCardBase.card, styles.card]}
+      style={[edpCardBase.cardBordered, styles.card]}
       disabled={isLocked || props.onPress == null}
     >
-      <View style={edpCardBase.shimmer} />
       <View style={styles.inner}>
         <View style={[styles.iconWrap, { borderColor: accentAlpha(accent, 0.33) }]}>
           <View style={[styles.iconInner, { backgroundColor: accentAlpha(accent, 0.13) }]}>
