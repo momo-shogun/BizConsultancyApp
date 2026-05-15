@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Pressable, StyleSheet, Text, View, StatusBar } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
@@ -11,6 +11,9 @@ interface ScreenHeaderProps {
   onBackPress?: () => void;
   onSearchPress?: () => void;
   headerColor?: string;
+  showConsultantActions?: boolean;
+  onCallPress?: () => void;
+  onMessagePress?: () => void;
   showLanguageSwitch?: boolean;
   lang?: 'ENG' | 'HI';
   onLangSwitch?: (lang: 'ENG' | 'HI') => void;
@@ -23,6 +26,7 @@ export function ScreenHeader(props: ScreenHeaderProps): React.ReactElement {
   const hasSearch = props.onSearchPress != null;
 
   const isCustomHeader = !!props.headerColor;
+  const showConsultantActions = props.showConsultantActions ?? false;
   const isLang = props.showLanguageSwitch ?? false;
   const lang = props.lang ?? 'ENG';
 
@@ -86,46 +90,46 @@ export function ScreenHeader(props: ScreenHeaderProps): React.ReactElement {
         </Pressable>
       ) : null}
 
-      {true ? (
-     <View style={styles.consultant}>
-  {/* Call Button */}
-  <Pressable
-    accessibilityRole="button"
-    accessibilityLabel="Call"
-    // onPress={props.onCallPress}
-    hitSlop={10}
-    style={[
-      styles.actionButton,
-      styles.callButton,
-      isCustomHeader && styles.actionButtonDark,
-    ]}
-  >
-    <Ionicons
-      name="call"
-      size={18}
-      color={isCustomHeader ? "#fff" : "#16a34a"}
-    />
-  </Pressable>
+      {showConsultantActions ? (
+        <View style={styles.consultant}>
+          {/* Call Button */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Call"
+            onPress={props.onCallPress}
+            hitSlop={10}
+            style={[
+              styles.actionButton,
+              styles.callButton,
+              isCustomHeader && styles.actionButtonDark,
+            ]}
+          >
+            <Ionicons
+              name="call"
+              size={18}
+              color={isCustomHeader ? "#fff" : "#16a34a"}
+            />
+          </Pressable>
 
-  {/* Message Button */}
-  <Pressable
-    accessibilityRole="button"
-    accessibilityLabel="Message"
-    // onPress={props.onMessagePress}
-    hitSlop={10}
-    style={[
-      styles.actionButton,
-      styles.messageButton,
-      isCustomHeader && styles.actionButtonDark,
-    ]}
-  >
-    <Ionicons
-      name="chatbubble-outline"
-      size={18}
-      color={isCustomHeader ? "#fff" : THEME.colors.textPrimary}
-    />
-  </Pressable>
-</View>
+          {/* Message Button */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Message"
+            onPress={props.onMessagePress}
+            hitSlop={10}
+            style={[
+              styles.actionButton,
+              styles.messageButton,
+              isCustomHeader && styles.actionButtonDark,
+            ]}
+          >
+            <Ionicons
+              name="chatbubble-outline"
+              size={18}
+              color={isCustomHeader ? "#fff" : THEME.colors.textPrimary}
+            />
+          </Pressable>
+        </View>
 
       ) : null}
 

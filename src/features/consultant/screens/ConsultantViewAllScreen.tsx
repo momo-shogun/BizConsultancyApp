@@ -393,6 +393,7 @@ export function ConsultantViewAllScreen(): React.ReactElement {
         title="Consultants"
         onBackPress={() => navigation.goBack()}
         onSearchPress={() => setIsSearchOpen((v) => !v)}
+       
       />
 
       {isSearchOpen ? (

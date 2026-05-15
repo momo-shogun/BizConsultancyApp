@@ -29,9 +29,6 @@ const H_PADDING = THEME.spacing[12];
 const SCREEN_CANVAS = '#F4F8F6';
 const SLATE_LINE = '#E2E8F0';
 const SLATE_MUTED = '#64748B';
-/** Max hero photo height so tablets do not get an oversized portrait block. */
-const HERO_PHOTO_MAX = 420;
-
 function isMeaningfulText(value: string | null | undefined): boolean {
   if (value == null || value.trim().length === 0) {
     return false;
@@ -192,9 +189,6 @@ export function ConsultantDetailScreen(): React.ReactElement {
 
   const talkCardWidth = useMemo((): number => Math.min(252, Math.round(width * 0.66)), [width]);
 
-  /** Portrait-friendly height: full image fits inside with `resizeMode="contain"`. */
-  const heroPhotoHeight = useMemo((): number => Math.min(Math.round(width * 1.12), HERO_PHOTO_MAX), [width]);
-
   const expertiseCount =
     detail.skills.length + detail.industries.length + detail.segments.length;
 
@@ -229,7 +223,13 @@ export function ConsultantDetailScreen(): React.ReactElement {
 
   return (
     <SafeAreaWrapper edges={['top']}>
-      <ScreenHeader title="Consultant" onBackPress={() => navigation.goBack()} />
+      <ScreenHeader
+        title="Consultant"
+        onBackPress={() => navigation.goBack()}
+        showConsultantActions
+        onCallPress={() => {}}
+        onMessagePress={() => {}}
+      />
 
       <ScreenWrapper style={styles.screenBg}>
         <ScrollView
@@ -248,46 +248,48 @@ export function ConsultantDetailScreen(): React.ReactElement {
               end={{ x: 1, y: 1 }}
               style={StyleSheet.absoluteFill}
             />
-            <View style={[styles.heroPhotoFrame, { height: heroPhotoHeight }]}>
-              <Image
-                source={{ uri: detail.image }}
-                style={styles.heroPhoto}
-                resizeMode="cover"
-                accessibilityLabel={`Portrait of ${detail.name}`}
-              />
-            </View>
-            <View style={styles.heroIdentity}>
-              <View style={styles.heroTitleRow}>
-                <Text style={styles.heroNameDark} numberOfLines={2}>
-                  {detail.name}
+            <View style={styles.heroRow}>
+              <View style={styles.heroAvatarFrame}>
+                <Image
+                  source={{ uri: detail.image }}
+                  style={styles.heroAvatar}
+                  resizeMode="cover"
+                  accessibilityLabel={`Portrait of ${detail.name}`}
+                />
+              </View>
+              <View style={styles.heroIdentity}>
+                <View style={styles.heroTitleRow}>
+                  <Text style={styles.heroNameDark} numberOfLines={2}>
+                    {detail.name}
+                  </Text>
+                  {detail.verified ? (
+                    <View style={styles.verifiedPillDark} accessibilityLabel="Verified consultant">
+                      <Ionicons name="checkmark-circle" size={14} color={THEME.colors.primary} />
+                      <Text style={styles.verifiedTextDark}>Verified</Text>
+                    </View>
+                  ) : null}
+                </View>
+                <Text style={styles.heroRoleDark} numberOfLines={2}>
+                  {detail.title}
+                  {detail.expertise ? ` · ${detail.expertise}` : ''}
                 </Text>
-                {detail.verified ? (
-                  <View style={styles.verifiedPillDark} accessibilityLabel="Verified consultant">
-                    <Ionicons name="checkmark-circle" size={16} color={THEME.colors.primary} />
-                    <Text style={styles.verifiedTextDark}>Verified</Text>
+                {detail.type ? (
+                  <View style={styles.heroTrustRowDark}>
+                    <Ionicons name="ribbon-outline" size={13} color={THEME.colors.primary} />
+                    <Text style={styles.heroTrustTextDark} numberOfLines={1}>
+                      {detail.type === 'professional' ? 'Professional expert' : detail.type}
+                    </Text>
+                  </View>
+                ) : null}
+                {locationLine.length > 0 ? (
+                  <View style={styles.heroMetaRowDark}>
+                    <Ionicons name="location-outline" size={14} color="#0D9488" />
+                    <Text style={styles.heroMetaDark} numberOfLines={2}>
+                      {locationLine}
+                    </Text>
                   </View>
                 ) : null}
               </View>
-              <Text style={styles.heroRoleDark} numberOfLines={2}>
-                {detail.title}
-                {detail.expertise ? ` · ${detail.expertise}` : ''}
-              </Text>
-              {detail.type ? (
-                <View style={styles.heroTrustRowDark}>
-                  <Ionicons name="ribbon-outline" size={14} color={THEME.colors.primary} />
-                  <Text style={styles.heroTrustTextDark} numberOfLines={1}>
-                    {detail.type === 'professional' ? 'Professional expert' : detail.type}
-                  </Text>
-                </View>
-              ) : null}
-              {locationLine.length > 0 ? (
-                <View style={styles.heroMetaRowDark}>
-                  <Ionicons name="location-outline" size={16} color="#0D9488" />
-                  <Text style={styles.heroMetaDark} numberOfLines={1}>
-                    {locationLine}
-                  </Text>
-                </View>
-              ) : null}
             </View>
           </View>
 
@@ -536,26 +538,16 @@ const styles = StyleSheet.create({
     width: '100%',
     position: 'relative',
     overflow: 'hidden',
+    paddingHorizontal: H_PADDING,
+    paddingTop: THEME.spacing[12],
     paddingBottom: THEME.spacing[8],
   },
-  heroPhotoFrame: {
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    // paddingTop: THEME.spacing[4],
-    // paddingVertical: THEME.spacing[8],
-    // paddingHorizontal: THEME.spacing[12],
-  },
-  heroPhoto: {
-    width: '100%',
-    height: '100%',
-  },
-  heroIdentity: {
-    marginHorizontal: H_PADDING,
-    marginTop: -THEME.spacing[20],
+  heroRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: THEME.spacing[12],
     paddingHorizontal: THEME.spacing[14],
-    paddingTop: THEME.spacing[14],
-    paddingBottom: THEME.spacing[16],
+    paddingVertical: THEME.spacing[14],
     backgroundColor: THEME.colors.white,
     borderRadius: THEME.radius[16],
     borderWidth: 1,
@@ -571,17 +563,36 @@ const styles = StyleSheet.create({
       default: {},
     }),
   },
+  heroAvatarFrame: {
+    width: 80,
+    height: 80,
+    borderRadius: THEME.radius[12],
+    overflow: 'hidden',
+    backgroundColor: '#E2E8F0',
+    borderWidth: 1,
+    borderColor: 'rgba(15,81,50,0.14)',
+  },
+  heroAvatar: {
+    width: '100%',
+    height: '100%',
+  },
+  heroIdentity: {
+    flex: 1,
+    minWidth: 0,
+  },
   heroTitleRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexWrap: 'wrap',
+    alignItems: 'center',
     gap: THEME.spacing[8],
   },
   heroNameDark: {
-    flex: 1,
-    fontSize: THEME.typography.size[24],
+    flexShrink: 1,
+    fontSize: THEME.typography.size[18],
     fontWeight: THEME.typography.weight.bold as '700',
     color: THEME.colors.textPrimary,
-    letterSpacing: -0.4,
+    letterSpacing: -0.3,
+    lineHeight: 24,
   },
   verifiedPillDark: {
     flexDirection: 'row',
@@ -600,16 +611,16 @@ const styles = StyleSheet.create({
     color: THEME.colors.primary,
   },
   heroRoleDark: {
-    marginTop: THEME.spacing[8],
-    fontSize: THEME.typography.size[14],
+    marginTop: THEME.spacing[4],
+    fontSize: THEME.typography.size[12],
     fontWeight: THEME.typography.weight.medium as '500',
     color: THEME.colors.textSecondary,
-    lineHeight: 20,
+    lineHeight: 18,
   },
   heroTrustRowDark: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
     marginTop: THEME.spacing[8],
   },
   heroTrustTextDark: {
@@ -620,8 +631,8 @@ const styles = StyleSheet.create({
   },
   heroMetaRowDark: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+    alignItems: 'flex-start',
+    gap: 5,
     marginTop: THEME.spacing[8],
   },
   heroMetaDark: {
