@@ -13,6 +13,7 @@ import { AppNavigator } from './AppNavigator';
 import { ConsultantDetailScreen } from '@/features/consultant/screens/ConsultantDetailScreen';
 import { ConsultantViewAllScreen } from '@/features/consultant/screens/ConsultantViewAllScreen';
 import WalletScreen  from '@/features/Wallet/screens/WalletScreen';
+import HelpSettingsScreen from '@/features/Profile/screens/User/SettingScreen';
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 export const navigationRef = createNavigationContainerRef<RootStackParamList>();
@@ -47,6 +48,12 @@ export function RootNavigator(): React.ReactElement {
               component={WalletScreen} // Temporary, replace with Wallet screen when available.
               options={{ headerShown: false }}
             />
+             <RootStack.Screen
+              name={ROUTES.Root.HelpSettingsScreen}
+              component={HelpSettingsScreen}
+              options={{ headerShown: false }}
+            />
+            
           </RootStack.Group>
         )}
       </RootStack.Navigator>

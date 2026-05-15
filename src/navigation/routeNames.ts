@@ -6,6 +6,7 @@ export const ROUTES = {
     ConsultantsList: 'Root/ConsultantsList',
     ConsultantDetail: 'Root/ConsultantDetail',
     Wallet: 'Root/Wallet',
+    HelpSettingsScreen: 'Root/HelpSettingsScreen',
   },
   Auth: {
     Splash: 'Auth/Splash',
