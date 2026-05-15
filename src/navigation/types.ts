@@ -24,11 +24,16 @@ export type EdpStackParamList = {
   [ROUTES.Edp.ModuleDetail]: undefined;
 };
 
+export type AccountStackParamList = {
+  [ROUTES.Account.Home]: undefined;
+  [ROUTES.Account.HelpSettings]: undefined;
+};
+
 export type AppTabParamList = {
   [ROUTES.App.Home]: undefined;
   [ROUTES.App.Services]: NavigatorScreenParams<ServicesStackParamList>;
   [ROUTES.App.Edp]: NavigatorScreenParams<EdpStackParamList>;
-  [ROUTES.App.Account]: undefined;
+  [ROUTES.App.Account]: NavigatorScreenParams<AccountStackParamList>;
 };
 
 export type RootStackParamList = {
@@ -37,5 +42,4 @@ export type RootStackParamList = {
   [ROUTES.Root.ConsultantsList]: undefined;
   [ROUTES.Root.ConsultantDetail]: { slug: string };
   [ROUTES.Root.Wallet]: undefined;
-  [ROUTES.Root.HelpSettingsScreen]: undefined;
 };

@@ -6,7 +6,6 @@ export const ROUTES = {
     ConsultantsList: 'Root/ConsultantsList',
     ConsultantDetail: 'Root/ConsultantDetail',
     Wallet: 'Root/Wallet',
-    HelpSettingsScreen: 'Root/HelpSettingsScreen',
   },
   Auth: {
     Splash: 'Auth/Splash',
@@ -32,6 +31,10 @@ export const ROUTES = {
     List: 'App/Services/List',
     Detail: 'App/Services/Detail',
     Onboarding: 'App/Services/Onboarding',
+  },
+  Account: {
+    Home: 'App/Account/Home',
+    HelpSettings: 'App/Account/HelpSettings',
   },
 } as const;
 

@@ -1,15 +1,11 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  SafeAreaView,
-  StatusBar,
-} from 'react-native';
-import { styles } from './HelpSettingsScreen.styles';
-import { SafeAreaWrapper, ScreenHeader } from '@/shared/components';
+import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+
+import { useAuth } from '@/app/providers/AuthProvider';
+import { SafeAreaWrapper, ScreenHeader } from '@/shared/components';
+
+import { styles } from './HelpSettingsScreen.styles';
 
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -25,13 +21,11 @@ interface SettingsRow {
 }
 
 export interface HelpSettingsScreenProps {
-  appVersion: string;
-  onBack?: () => void;
+  appVersion?: string;
   onRowPress?: (id: string) => void;
   onLogout?: () => void;
   onPrivacyPolicy?: () => void;
   onSubscriberAgreement?: () => void;
-  
 }
 
 // ── Config ────────────────────────────────────────────────────────────────────
@@ -174,84 +168,52 @@ const SettingsRowItem: React.FC<{
 );
 
 // ── Main Export ───────────────────────────────────────────────────────────────
-const HelpSettingsScreen: React.FC<HelpSettingsScreenProps> = ({
-  appVersion,
-  onRowPress,
-  onLogout,
-  onPrivacyPolicy,
-  onSubscriberAgreement,
-}) => (
-  
-    <SafeAreaWrapper edges={['top',]} bgColor='white'>   
-     <ScreenHeader
-            title="Help &amp; Settings"
-            onBackPress={()=> {
-          navigation.goBack();
-        }}
-             />
+function HelpSettingsScreen(props: HelpSettingsScreenProps): React.ReactElement {
+  const navigation = useNavigation();
+  const { logout } = useAuth();
+  const appVersion = props.appVersion ?? '1.0.0';
 
+  return (
+    <SafeAreaWrapper edges={['top']} bgColor="white">
+      <ScreenHeader
+        title="Help & Settings"
+        onBackPress={() => navigation.goBack()}
+      />
 
-    {/* Header
-    <View style={styles.header}>
-      <TouchableOpacity style={styles.backBtn} onPress={onBack}>
-        <Text style={styles.backIcon}>←</Text>
-      </TouchableOpacity>
-      <Text style={styles.headerTitle}>Help &amp; Settings</Text>
-    </View> */}
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={styles.menuCard}>
+          <View style={styles.menuCardShimmer} />
+          {SETTINGS_ROWS.map((row, index) => (
+            <SettingsRowItem
+              key={row.id}
+              row={row}
+              isLast={index === SETTINGS_ROWS.length - 1}
+              onPress={() => props.onRowPress?.(row.id)}
+            />
+          ))}
+        </View>
 
-    <ScrollView showsVerticalScrollIndicator={false}>
-      {/* Settings Card */}
-      <View style={styles.menuCard}>
-        <View style={styles.menuCardShimmer} />
-        {SETTINGS_ROWS.map((row, index) => (
-          <SettingsRowItem
-            key={row.id}
-            row={row}
-            isLast={index === SETTINGS_ROWS.length - 1}
-            onPress={() => onRowPress?.(row.id)}
-          />
-        ))}
-      </View>
-
-      {/* Log Out */}
-      <View style={styles.logoutContainer}>
-        <TouchableOpacity style={styles.logoutBtn} onPress={onLogout}>
-          <Text style={styles.logoutText}>Log Out</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Footer */}
-      <View style={styles.footer}>
-        <View style={styles.footerLinks}>
-          <TouchableOpacity onPress={onPrivacyPolicy}>
-            <Text style={styles.footerLink}>Privacy Policy</Text>
-          </TouchableOpacity>
-          <Text style={styles.footerDot}>•</Text>
-          <TouchableOpacity onPress={onSubscriberAgreement}>
-            <Text style={styles.footerLink}>Subscriber Agreement</Text>
+        <View style={styles.logoutContainer}>
+          <TouchableOpacity style={styles.logoutBtn} onPress={props.onLogout ?? logout}>
+            <Text style={styles.logoutText}>Log Out</Text>
           </TouchableOpacity>
         </View>
-        <Text style={styles.footerVersion}>App Version {appVersion}</Text>
-      </View>
-    </ScrollView>
 
-    {/* Bottom Nav */}
-    <View style={styles.bottomNav}>
-      <View style={styles.accentLine} />
-      <TouchableOpacity>
-        <Text style={styles.bottomNavIcon}>🔍</Text>
-      </TouchableOpacity>
-      <TouchableOpacity>
-        <Text style={styles.bottomNavIcon}>T</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.bottomNavItemWrapper}>
-        <View style={styles.bottomNavAvatar}>
-          <Text style={styles.bottomNavAvatarText}>😊</Text>
+        <View style={styles.footer}>
+          <View style={styles.footerLinks}>
+            <TouchableOpacity onPress={props.onPrivacyPolicy}>
+              <Text style={styles.footerLink}>Privacy Policy</Text>
+            </TouchableOpacity>
+            <Text style={styles.footerDot}>•</Text>
+            <TouchableOpacity onPress={props.onSubscriberAgreement}>
+              <Text style={styles.footerLink}>Subscriber Agreement</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.footerVersion}>App Version {appVersion}</Text>
         </View>
-        <Text style={styles.bottomNavLabel}>My Space</Text>
-      </TouchableOpacity>
-    </View>
-  </SafeAreaWrapper>
-);
+      </ScrollView>
+    </SafeAreaWrapper>
+  );
+}
 
 export default HelpSettingsScreen;

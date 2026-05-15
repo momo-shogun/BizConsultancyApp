@@ -29,7 +29,13 @@ export const linking: LinkingOptions<RootStackParamList> = {
               [ROUTES.Services.Onboarding]: ':slug/onboarding',
             },
           },
-          [ROUTES.App.Account]: 'account',
+          [ROUTES.App.Account]: {
+            path: 'account',
+            screens: {
+              [ROUTES.Account.Home]: '',
+              [ROUTES.Account.HelpSettings]: 'settings',
+            },
+          },
         },
       },
       [ROUTES.Root.ConsultantsList]: 'consultants',

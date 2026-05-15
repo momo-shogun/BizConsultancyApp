@@ -8,10 +8,8 @@ import { ROUTES } from '../../routeNames';
 import { PlanckBridgedTabBar } from '../../shared/PlanckBridgedTabBar';
 
 import { HomeDashboardScreen } from '@/features/Home/screens/HomeDashboardScreen';
-import { ProfileScreen as UserProfileScreen } from '@/features/Profile/screens/User/ProfileScreen';
-import { ProfileScreen as ConsultantProfileScreen } from '@/features/Profile/screens/consultant/ProfileScreen';
-import { useAuth } from '@/app/providers/AuthProvider';
 
+import { AccountStackNavigator } from '../../AccountStackNavigator';
 import { ServicesStackNavigator } from '../../ServicesStackNavigator';
 import { plankBarV1TabNavigatorScreenOptions } from './plankBarV1.styles';
 import { EdpStackNavigator } from '../../EdpStackNavigator';
@@ -42,16 +40,6 @@ function getTabBarIcon(
   return <Ionicons name={iconName} size={size} color={color} />;
 }
 
-function AccountScreen(): React.ReactElement {
-  const { state } = useAuth();
-
-  if (state.userType === 'consultant') {
-    return <ConsultantProfileScreen />;
-  }
-
-  return <UserProfileScreen />;
-}
-
 export function PlankBarV1TabNavigator(): React.ReactElement {
   return (
     <PlankTab.Navigator
@@ -76,7 +64,11 @@ export function PlankBarV1TabNavigator(): React.ReactElement {
         component={EdpStackNavigator}
         options={{ title: 'EDP' }}
       />
-      <PlankTab.Screen name={ROUTES.App.Account} component={AccountScreen} options={{ title: 'Account' }} />
+      <PlankTab.Screen
+        name={ROUTES.App.Account}
+        component={AccountStackNavigator}
+        options={{ title: 'Account' }}
+      />
     </PlankTab.Navigator>
   );
 }

@@ -9,7 +9,10 @@ import { styles } from './ProfileScreen.styles';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+
 import { ROUTES } from '@/navigation/routeNames';
+import type { AccountStackParamList } from '@/navigation/types';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type ProfileType = 'user' | 'kids' | 'add';
@@ -128,9 +131,11 @@ function WatchCard({
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
+type AccountNav = NativeStackNavigationProp<AccountStackParamList, typeof ROUTES.Account.Home>;
+
 export function ProfileScreen(): React.ReactElement {
   const { logout } = useAuth();
-  const navigation = useNavigation(); 
+  const navigation = useNavigation<AccountNav>();
   const watchRows: WatchItem[][] = [];
   for (let i = 0; i < WATCH_ITEMS.length; i += 2) {
     watchRows.push(WATCH_ITEMS.slice(i, i + 2));
@@ -144,9 +149,7 @@ export function ProfileScreen(): React.ReactElement {
 <TouchableOpacity
   activeOpacity={0.8}
   style={styles.helpBtn}
-   onPress={() =>
-    navigation.navigate(ROUTES.Root.HelpSettingsScreen)
-  }
+  onPress={() => navigation.navigate(ROUTES.Account.HelpSettings)}
 >
   <Ionicons
     name="settings-outline"
