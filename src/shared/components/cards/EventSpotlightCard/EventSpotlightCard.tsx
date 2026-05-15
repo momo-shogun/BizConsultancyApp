@@ -7,6 +7,17 @@ import { THEME } from '@/constants/theme';
 /** Accent used for pills & favorite control (warm yellow, high contrast). */
 export const EVENT_SPOTLIGHT_ACCENT = '#FFD60A';
 const TAG_TEXT = '#0A0A0A';
+const MAX_TAG_COUNT = 2;
+const MAX_TAG_CHARS_DEFAULT = 34;
+const MAX_TAG_CHARS_COMPACT = 22;
+
+function truncateTagLabel(label: string, maxChars: number): string {
+  const trimmed = label.trim();
+  if (trimmed.length <= maxChars) {
+    return trimmed;
+  }
+  return `${trimmed.slice(0, maxChars - 1).trimEnd()}…`;
+}
 
 export type EventSpotlightItem = {
   /** From API: numeric id. */
@@ -43,9 +54,12 @@ export type EventSpotlightItem = {
   isDeleted?: number;
 };
 
+export type EventSpotlightCardVariant = 'default' | 'compact';
+
 export interface EventSpotlightCardProps {
   item: EventSpotlightItem;
   cardWidth?: DimensionValue;
+  variant?: EventSpotlightCardVariant;
   onPress?: () => void;
 }
 
@@ -98,8 +112,10 @@ function formatTimeRange(startTime?: string, endTime?: string): string {
 export function EventSpotlightCard({
   item,
   cardWidth = 280,
+  variant = 'default',
   onPress,
 }: EventSpotlightCardProps): React.ReactElement {
+  const isCompact = variant === 'compact';
   const FALLBACK_THUMB =
     'https://images.unsplash.com/photo-1556761175-4b46a572b786?auto=format&fit=crop&w=1200&q=80';
 
@@ -109,7 +125,9 @@ export function EventSpotlightCard({
     try {
       const parsed = JSON.parse(raw);
       const arr = typeof parsed === 'string' ? JSON.parse(parsed) : parsed;
-      return Array.isArray(arr) ? (arr as string[]).filter(Boolean).slice(0, 2) : [];
+      return Array.isArray(arr)
+        ? (arr as string[]).filter(Boolean).slice(0, MAX_TAG_COUNT)
+        : [];
     } catch {
       return [];
     }
@@ -168,14 +186,15 @@ export function EventSpotlightCard({
       onPress={onPress}
       style={({ pressed }) => [
         styles.root,
+        isCompact ? styles.rootCompact : null,
         { width: cardWidth },
         pressed && onPress != null ? styles.cardPressed : null,
       ]}
     >
-      <View style={styles.imageWrap}>
+      <View style={[styles.imageWrap, isCompact ? styles.imageWrapCompact : null]}>
         <Image
           source={imageSource}
-          style={styles.image}
+          style={[styles.image, isCompact ? styles.imageCompact : null]}
           resizeMode="cover"
           accessibilityIgnoresInvertColors
           onError={(e) => {
@@ -186,26 +205,39 @@ export function EventSpotlightCard({
         />
         <View style={styles.imageOverlayBottom}>
           <View style={styles.tagRow}>
-            {tags.map((t) => (
-              <View key={t} style={styles.tagPill}>
-                <Text style={styles.tagText} numberOfLines={1}>
-                  {t}
-                </Text>
-              </View>
-            ))}
+            {tags.map((tag, index) => {
+              const label = truncateTagLabel(
+                tag,
+                isCompact ? MAX_TAG_CHARS_COMPACT : MAX_TAG_CHARS_DEFAULT,
+              );
+              return (
+                <View
+                  key={`${tag}-${index}`}
+                  style={[styles.tagPill, isCompact ? styles.tagPillCompact : null]}
+                >
+                  <Text
+                    style={styles.tagText}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
+                    {label}
+                  </Text>
+                </View>
+              );
+            })}
           </View>
         </View>
 
       </View>
 
-      <View style={styles.body}>
-        <Text style={styles.title} numberOfLines={2}>
+      <View style={[styles.body, isCompact ? styles.bodyCompact : null]}>
+        <Text style={[styles.title, isCompact ? styles.titleCompact : null]} numberOfLines={2}>
           {item.name}
         </Text>
         <View style={styles.metaRow}>
           <Ionicons
             name={placeLabel === 'Online' ? 'globe-outline' : 'location-outline'}
-            size={14}
+            size={isCompact ? 12 : 14}
             color="#6B7280"
           />
           <Text style={styles.meta} numberOfLines={1}>
@@ -213,7 +245,7 @@ export function EventSpotlightCard({
           </Text>
         </View>
         <View style={styles.metaRow}>
-          <Ionicons name="time-outline" size={14} color="#6B7280" />
+          <Ionicons name="time-outline" size={isCompact ? 12 : 14} color="#6B7280" />
           <Text style={styles.meta} numberOfLines={1}>
             {scheduleLabel}
           </Text>
@@ -240,7 +272,9 @@ export function EventSpotlightCard({
 EventSpotlightCard.displayName = 'EventSpotlightCard';
 
 const IMAGE_RADIUS = 20;
+const IMAGE_RADIUS_COMPACT = 14;
 const IMAGE_HEIGHT = 124;
+const IMAGE_HEIGHT_COMPACT = 88;
 
 const styles = StyleSheet.create({
   root: {
@@ -259,6 +293,20 @@ const styles = StyleSheet.create({
       },
     }),
   },
+  rootCompact: {
+    marginRight: 0,
+    borderRadius: IMAGE_RADIUS_COMPACT + 2,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: THEME.colors.border,
+    ...Platform.select({
+      ios: {
+        shadowOpacity: 0,
+      },
+      default: {
+        elevation: 0,
+      },
+    }),
+  },
   cardPressed: {
     opacity: 0.94,
     transform: [{ scale: 0.99 }],
@@ -269,10 +317,17 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     position: 'relative',
   },
+  imageWrapCompact: {
+    borderTopLeftRadius: IMAGE_RADIUS_COMPACT,
+    borderTopRightRadius: IMAGE_RADIUS_COMPACT,
+  },
   image: {
     width: '100%',
     height: IMAGE_HEIGHT,
     backgroundColor: '#E5E7EB',
+  },
+  imageCompact: {
+    height: IMAGE_HEIGHT_COMPACT,
   },
   imageOverlayBottom: {
     position: 'absolute',
@@ -287,26 +342,38 @@ const styles = StyleSheet.create({
   },
   tagRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexWrap: 'nowrap',
     gap: 6,
     justifyContent: 'flex-end',
+    width: '100%',
   },
   tagPill: {
+    flexShrink: 1,
+    maxWidth: '48%',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 999,
     backgroundColor: EVENT_SPOTLIGHT_ACCENT,
-    maxWidth: '100%',
+  },
+  tagPillCompact: {
+    maxWidth: '47%',
+    paddingHorizontal: 8,
   },
   tagText: {
     fontSize: 11,
     fontWeight: '700',
     color: TAG_TEXT,
+    flexShrink: 1,
   },
   body: {
     paddingHorizontal: THEME.spacing[12],
     paddingVertical: THEME.spacing[12],
     gap: THEME.spacing[8],
+  },
+  bodyCompact: {
+    paddingHorizontal: THEME.spacing[10],
+    paddingVertical: THEME.spacing[10],
+    gap: THEME.spacing[6],
   },
   title: {
     fontSize: THEME.typography.size[16],
@@ -314,6 +381,10 @@ const styles = StyleSheet.create({
     color: THEME.colors.textPrimary,
     lineHeight: 22,
     letterSpacing: -0.2,
+  },
+  titleCompact: {
+    fontSize: THEME.typography.size[14],
+    lineHeight: 18,
   },
   metaRow: {
     flexDirection: 'row',

@@ -13,6 +13,7 @@ import { AppNavigator } from './AppNavigator';
 import { ConsultantDetailScreen } from '@/features/consultant/screens/ConsultantDetailScreen';
 import { ConsultantViewAllScreen } from '@/features/consultant/screens/ConsultantViewAllScreen';
 import WalletScreen from '@/features/Wallet/screens/WalletScreen';
+import { WorkshopListScreen } from '@/features/Home/screens/WorkshopListScreen';
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 export const navigationRef = createNavigationContainerRef<RootStackParamList>();
@@ -45,6 +46,11 @@ export function RootNavigator(): React.ReactElement {
             <RootStack.Screen
               name={ROUTES.Root.Wallet}
               component={WalletScreen}
+              options={{ headerShown: false }}
+            />
+            <RootStack.Screen
+              name={ROUTES.Root.WorkshopsList}
+              component={WorkshopListScreen}
               options={{ headerShown: false }}
             />
           </RootStack.Group>

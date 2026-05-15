@@ -40,6 +40,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
       },
       [ROUTES.Root.ConsultantsList]: 'consultants',
       [ROUTES.Root.ConsultantDetail]: 'consultant/:slug',
+      [ROUTES.Root.WorkshopsList]: 'workshops',
     },
   },
 };

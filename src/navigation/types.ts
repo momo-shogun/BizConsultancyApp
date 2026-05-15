@@ -42,4 +42,5 @@ export type RootStackParamList = {
   [ROUTES.Root.ConsultantsList]: undefined;
   [ROUTES.Root.ConsultantDetail]: { slug: string };
   [ROUTES.Root.Wallet]: undefined;
+  [ROUTES.Root.WorkshopsList]: undefined;
 };

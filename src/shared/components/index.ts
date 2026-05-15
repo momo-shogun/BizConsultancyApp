@@ -35,6 +35,7 @@ export {
   EventSpotlightCard,
   EVENT_SPOTLIGHT_ACCENT,
   type EventSpotlightCardProps,
+  type EventSpotlightCardVariant,
   type EventSpotlightItem,
 } from './cards/EventSpotlightCard/EventSpotlightCard';
 export { UpcomingBookingCard, type UpcomingBookingCardProps, type UpcomingBookingItem } from './cards/UpcomingBookingCard/UpcomingBookingCard';
