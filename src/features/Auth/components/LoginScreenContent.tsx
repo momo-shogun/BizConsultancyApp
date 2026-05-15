@@ -24,9 +24,11 @@ import heroIllustration from '../../../assets/tuxpi.com.1776427891.jpg';
 
 export interface LoginScreenContentProps {
   roleLabel: string;
-  onContinue: (phoneNumber: string) => void;
+  onContinue: (phoneNumber: string) => void | Promise<void>;
   onSkip?: () => void;
   onBackPress?: () => void;
+  isSubmitting?: boolean;
+  errorMessage?: string | null;
 }
 
 export function LoginScreenContent(
@@ -130,11 +132,20 @@ export function LoginScreenContent(
                 </Text>
               </View>
 
+              {props.errorMessage != null && props.errorMessage.length > 0 ? (
+                <Text style={styles.errorText} accessibilityRole="alert">
+                  {props.errorMessage}
+                </Text>
+              ) : null}
+
               <Button
                 label="Continue"
                 accessibilityLabel="Continue to OTP verification"
                 disabled={!canContinue}
-                onPress={() => props.onContinue(cleanedPhone)}
+                loading={props.isSubmitting ?? false}
+                onPress={() => {
+                  void props.onContinue(cleanedPhone);
+                }}
                 style={styles.button}
               />
 
@@ -276,6 +287,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: THEME.colors.textSecondary,
     lineHeight: 18,
+  },
+
+  errorText: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: THEME.colors.danger,
+    marginBottom: THEME.spacing[12],
   },
 
   button: {

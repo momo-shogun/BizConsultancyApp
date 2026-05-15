@@ -159,23 +159,23 @@ export const styles = StyleSheet.create({
   },
   heroBadgeText: {
     fontSize: THEME.typography.size[11],
-    fontWeight: THEME.typography.weight.medium,
+    fontWeight: '700',
     color: THEME.colors.accentAmber,
     letterSpacing: 0.2,
   },
   heroTitle: {
-    fontSize: THEME.typography.size[24],
-    fontWeight: THEME.typography.weight.bold,
+    fontSize: THEME.typography.size[22],
+    fontWeight: '800',
     color: THEME.colors.white,
-    lineHeight: 32,
-    letterSpacing: -0.5,
+    lineHeight: 26,
+    letterSpacing: -0.35,
     marginBottom: THEME.spacing[10],
   },
   heroSubtitle: {
     fontSize: THEME.typography.size[12],
-    fontWeight: THEME.typography.weight.regular,
-    color: 'rgba(255,255,255,0.62)',
-    lineHeight: 19,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.72)',
+    lineHeight: 17,
     marginBottom: THEME.spacing[20],
   },
   heroActions: {
@@ -191,7 +191,8 @@ export const styles = StyleSheet.create({
   },
   heroBtnPrimaryText: {
     fontSize: THEME.typography.size[13],
-    fontWeight: THEME.typography.weight.semiBold,
+    fontWeight: '800',
+    letterSpacing: 0.2,
     color: HERO_BG,
   },
   heroBtnSecondary: {
@@ -205,7 +206,8 @@ export const styles = StyleSheet.create({
   },
   heroBtnSecondaryText: {
     fontSize: THEME.typography.size[13],
-    fontWeight: THEME.typography.weight.medium,
+    fontWeight: '700',
+    letterSpacing: 0.2,
     color: THEME.colors.white,
   },
 
@@ -225,14 +227,14 @@ export const styles = StyleSheet.create({
   },
   stripVal: {
     fontSize: THEME.typography.size[18],
-    fontWeight: THEME.typography.weight.bold,
+    fontWeight: '800',
     color: THEME.colors.white,
-    letterSpacing: -0.3,
+    letterSpacing: -0.2,
   },
   stripLbl: {
     fontSize: THEME.typography.size[10],
-    fontWeight: THEME.typography.weight.regular,
-    color: 'rgba(255,255,255,0.5)',
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.55)',
     marginTop: 2,
   },
 
@@ -263,15 +265,16 @@ export const styles = StyleSheet.create({
   },
   progressCardTitle: {
     fontSize: THEME.typography.size[14],
-    fontWeight: THEME.typography.weight.semiBold,
-    color: THEME.colors.black,
-    letterSpacing: -0.2,
+    fontWeight: '800',
+    color: THEME.colors.textPrimary,
+    lineHeight: 18,
+    letterSpacing: -0.15,
   },
   progressCardSub: {
-    fontSize: THEME.typography.size[11],
-    fontWeight: THEME.typography.weight.regular,
-    color: "grey",
-    marginTop: 2,
+    fontSize: THEME.typography.size[12],
+    lineHeight: 16,
+    color: THEME.colors.textSecondary,
+    marginTop: THEME.spacing[8],
   },
   progressBadge: {
     borderWidth: 1,
@@ -280,8 +283,8 @@ export const styles = StyleSheet.create({
     paddingVertical: THEME.spacing[4],
   },
   progressBadgeText: {
-    fontSize: THEME.typography.size[13],
-    fontWeight: THEME.typography.weight.bold,
+    fontSize: THEME.typography.size[11],
+    fontWeight: '700',
   },
   progressBarBg: {
     height: 5,
@@ -311,14 +314,15 @@ export const styles = StyleSheet.create({
     borderRightColor: 'rgba(255,255,255,0.1)',
   },
   progressMetaVal: {
-    fontSize: THEME.typography.size[13],
-    fontWeight: THEME.typography.weight.semiBold,
-    color: THEME.colors.black,
+    fontSize: THEME.typography.size[14],
+    fontWeight: '800',
+    color: THEME.colors.textPrimary,
+    letterSpacing: -0.15,
   },
   progressMetaLbl: {
-    fontSize: THEME.typography.size[10],
-    fontWeight: THEME.typography.weight.regular,
-    color: 'grey',
+    fontSize: THEME.typography.size[12],
+    lineHeight: 16,
+    color: THEME.colors.textSecondary,
     marginTop: 2,
   },
 
@@ -330,40 +334,35 @@ export const styles = StyleSheet.create({
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: THEME.spacing[12],
-  },
-  sectionHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    marginBottom: THEME.spacing[8],
     gap: THEME.spacing[8],
   },
-  sectionAccentBar: {
-    width: 4,
-    height: 22,
-    borderRadius: 2,
-    backgroundColor: THEME.colors.accentAmber,
-  },
   sectionTitle: {
-    fontSize: THEME.typography.size[20],
-    fontWeight: THEME.typography.weight.bold,
+    fontSize: THEME.typography.size[15],
+    fontWeight: '800',
     color: THEME.colors.textPrimary,
-    letterSpacing: -0.4,
+    letterSpacing: -0.2,
+  },
+  sectionLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth * 2,
+    backgroundColor: 'rgba(15,23,42,0.1)',
+    borderRadius: 1,
   },
   sectionCountBadge: {
     backgroundColor: `rgba(245,158,11,0.18)`,
     borderRadius: THEME.radius.full,
     paddingHorizontal: THEME.spacing[8],
-    paddingVertical: 2,
+    paddingVertical: 4,
   },
   sectionCountText: {
-    fontSize: THEME.typography.size[11],
-    fontWeight: THEME.typography.weight.semiBold,
+    fontSize: THEME.typography.size[10],
+    fontWeight: '700',
     color: THEME.colors.accentAmber,
   },
   sectionAction: {
     fontSize: THEME.typography.size[12],
-    fontWeight: THEME.typography.weight.medium,
+    fontWeight: '700',
     color: THEME.colors.primary,
   },
 
@@ -410,15 +409,16 @@ export const styles = StyleSheet.create({
     color: THEME.colors.black,
   },
   statValue: {
-    fontSize: THEME.typography.size[22],
-    fontWeight: THEME.typography.weight.bold,
-    color: THEME.colors.black,
-    letterSpacing: -0.5,
+    fontSize: THEME.typography.size[14],
+    fontWeight: '800',
+    color: THEME.colors.textPrimary,
+    lineHeight: 18,
+    letterSpacing: -0.15,
   },
   statLabel: {
-    fontSize: THEME.typography.size[11],
-    fontWeight: THEME.typography.weight.regular,
-    color: THEME.colors.black,
+    fontSize: THEME.typography.size[12],
+    lineHeight: 16,
+    color: THEME.colors.textSecondary,
   },
   statRow: {
   flexDirection: 'row',
@@ -475,14 +475,15 @@ statTextContainer: {
     minWidth: 0,
   },
   moduleName: {
-    fontSize: THEME.typography.size[13],
-    fontWeight: THEME.typography.weight.semiBold,
-    color: THEME.colors.black,
+    fontSize: THEME.typography.size[14],
+    fontWeight: '800',
+    color: THEME.colors.textPrimary,
+    lineHeight: 18,
+    letterSpacing: -0.15,
     marginBottom: THEME.spacing[4],
-    letterSpacing: -0.1,
   },
   moduleNameLocked: {
-    color: 'grey',
+    color: THEME.colors.textSecondary,
   },
   moduleMeta: {
     flexDirection: 'row',
@@ -491,9 +492,9 @@ statTextContainer: {
     marginBottom: THEME.spacing[8],
   },
   moduleMetaText: {
-    fontSize: THEME.typography.size[11],
-    fontWeight: THEME.typography.weight.regular,
-    color: 'grey',
+    fontSize: THEME.typography.size[12],
+    lineHeight: 16,
+    color: THEME.colors.textSecondary,
   },
   moduleMetaDot: {
     fontSize: THEME.typography.size[11],
@@ -517,7 +518,7 @@ statTextContainer: {
   },
   moduleStatusText: {
     fontSize: THEME.typography.size[10],
-    fontWeight: THEME.typography.weight.semiBold,
+    fontWeight: '700',
     letterSpacing: 0.2,
   },
 
@@ -570,16 +571,16 @@ statTextContainer: {
   },
   journeyTitle: {
     fontSize: THEME.typography.size[14],
-    fontWeight: THEME.typography.weight.semiBold,
-    color: THEME.colors.black,
+    fontWeight: '800',
+    color: THEME.colors.textPrimary,
+    lineHeight: 18,
+    letterSpacing: -0.15,
     marginBottom: THEME.spacing[4],
-    letterSpacing: -0.2,
   },
   journeyDesc: {
     fontSize: THEME.typography.size[12],
-    fontWeight: THEME.typography.weight.regular,
-    color: 'grey',
-    lineHeight: 18,
+    lineHeight: 16,
+    color: THEME.colors.textSecondary,
   },
 
   // FAQ
@@ -598,10 +599,11 @@ statTextContainer: {
   },
   faqQuestion: {
     flex: 1,
-    fontSize: THEME.typography.size[13],
-    fontWeight: THEME.typography.weight.medium,
-    color: THEME.colors.black,
-    lineHeight: 19,
+    fontSize: THEME.typography.size[14],
+    fontWeight: '800',
+    color: THEME.colors.textPrimary,
+    lineHeight: 18,
+    letterSpacing: -0.15,
   },
   faqChevron: {
     fontSize: THEME.typography.size[18],
@@ -617,9 +619,8 @@ statTextContainer: {
   },
   faqAnswerText: {
     fontSize: THEME.typography.size[12],
-    fontWeight: THEME.typography.weight.regular,
-    color: 'rgba(255,255,255,0.48)',
-    lineHeight: 19,
+    lineHeight: 16,
+    color: THEME.colors.textSecondary,
   },
 
   // CTA section
@@ -637,10 +638,10 @@ statTextContainer: {
     ...CARD_SHADOW,
   },
   ctaPrimaryText: {
-    fontSize: THEME.typography.size[15],
-    fontWeight: THEME.typography.weight.semiBold,
+    fontSize: THEME.typography.size[13],
+    fontWeight: '800',
     color: THEME.colors.white,
-    letterSpacing: -0.2,
+    letterSpacing: 0.2,
   },
   ctaSecondary: {
     backgroundColor: "white",
@@ -653,10 +654,10 @@ statTextContainer: {
     ...CARD_SHADOW,
   },
   ctaSecondaryText: {
-    fontSize: THEME.typography.size[15],
-    fontWeight: THEME.typography.weight.medium,
+    fontSize: THEME.typography.size[13],
+    fontWeight: '700',
     color: THEME.colors.primary,
-    letterSpacing: -0.2,
+    letterSpacing: 0.2,
   },
 
   // Bottom nav

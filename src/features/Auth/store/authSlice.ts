@@ -1,21 +1,17 @@
-import {
-  createSlice,
-  PayloadAction,
-} from '@reduxjs/toolkit';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
-import { AuthState, User } from './authTypes';
+import type { AuthState, LoginSession, User } from './authTypes';
 
 const initialState: AuthState = {
   user: null,
   token: null,
   isAuthenticated: false,
+  loginSession: null,
 };
 
 export const authSlice = createSlice({
   name: 'auth',
-
   initialState,
-
   reducers: {
     setCredentials: (
       state,
@@ -29,15 +25,21 @@ export const authSlice = createSlice({
       state.isAuthenticated = true;
     },
 
-    logout: state => {
+    setLoginSession: (state, action: PayloadAction<LoginSession>) => {
+      state.loginSession = action.payload;
+    },
+
+    clearLoginSession: (state) => {
+      state.loginSession = null;
+    },
+
+    logout: (state) => {
       state.user = null;
       state.token = null;
       state.isAuthenticated = false;
+      state.loginSession = null;
     },
   },
 });
 
-export const {
-  setCredentials,
-  logout,
-} = authSlice.actions;
+export const { setCredentials, setLoginSession, clearLoginSession, logout } = authSlice.actions;

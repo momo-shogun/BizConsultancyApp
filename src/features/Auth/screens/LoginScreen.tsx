@@ -8,6 +8,7 @@ import type { AuthStackParamList } from '@/navigation/types';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { navigationRef } from '@/navigation/RootNavigator';
 import { Button, EmptyState, ScreenWrapper, SafeAreaWrapper } from '@/shared/components';
+import { useLoginFlow } from '@/features/Auth/hooks/useLoginFlow';
 import { LoginScreenContent as UserLoginScreenContent } from '@/features/Auth/User/screens/LoginScreenContent';
 import { LoginScreenContent as ConsultantLoginScreenContent } from '@/features/Auth/Consultant/screens/LoginScreenContent';
 
@@ -16,6 +17,7 @@ type Nav = NativeStackNavigationProp<AuthStackParamList, typeof ROUTES.Auth.Logi
 export function LoginScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
   const { state, completeOnboarding } = useAuth();
+  const { submitMobile, isLoading, error } = useLoginFlow();
 
   const onSkip = (): void => {
     completeOnboarding();
@@ -28,8 +30,11 @@ export function LoginScreen(): React.ReactElement {
     }
   };
 
-  const onContinue = (contact: string): void => {
-    navigation.navigate(ROUTES.Auth.OtpVerification, { contact });
+  const onContinue = async (contact: string): Promise<void> => {
+    const success = await submitMobile(contact);
+    if (success) {
+      navigation.navigate(ROUTES.Auth.OtpVerification, { contact });
+    }
   };
 
   if (!state.userType) {
@@ -54,12 +59,16 @@ export function LoginScreen(): React.ReactElement {
       onContinue={onContinue}
       onSkip={onSkip}
       onBackPress={() => navigation.goBack()}
+      isSubmitting={isLoading}
+      errorMessage={error}
     />
   ) : (
     <ConsultantLoginScreenContent
       onContinue={onContinue}
       onSkip={onSkip}
       onBackPress={() => navigation.goBack()}
+      isSubmitting={isLoading}
+      errorMessage={error}
     />
   );
 }

@@ -8,19 +8,12 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  StatusBar,
   Pressable,
-  Alert,
 } from 'react-native';
 import Animated, {
-  FadeInDown,
-  FadeInUp,
   interpolate,
   useAnimatedStyle,
   useSharedValue,
-  withDelay,
-  withSequence,
-  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 import { styles, ACCENT_BLUE, ACCENT_GREEN, ACCENT_PURPLE, ACCENT_AMBER } from './EDPScreen.styles';
@@ -66,7 +59,6 @@ interface ProgressMeta {
 export interface EDPScreenProps {
   onBack?: () => void;
   onShare?: () => void;
- // onGetStarted?: () => void;
   onContinueLearning?: () => void;
   onTalkToExpert?: () => void;
   onModulePress?: (moduleId: string) => void;
@@ -179,44 +171,19 @@ const MODULE_STATUS_LABEL: Record<ModuleItem['status'], string> = {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-
 function PressableCard({
   children,
   onPress,
   style,
-  entering,
 }: {
   children: React.ReactNode;
   onPress?: () => void;
   style?: object;
-  entering?: typeof FadeInDown;
 }) {
-  const scale = useSharedValue(1);
-  const glow = useSharedValue(0);
-
-  const animStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-    opacity: interpolate(glow.value, [0, 1], [1, 0.85]),
-  }));
-
-  const handlePressIn = () => {
-    scale.value = withSequence(
-      withTiming(0.97, { duration: 80 }),
-      withSpring(1, { damping: 12, stiffness: 200 }),
-    );
-    glow.value = withSequence(
-      withTiming(1, { duration: 200 }),
-      withTiming(0, { duration: 600 }),
-    );
-  };
-
   return (
-    <Animated.View entering={entering} style={[animStyle, style]}>
-      <Pressable onPress={onPress} onPressIn={handlePressIn}>
-        {children}
-      </Pressable>
-    </Animated.View>
+    <Pressable onPress={onPress} style={style} android_ripple={{ color: 'rgba(255,255,255,0.08)' }}>
+      {children}
+    </Pressable>
   );
 }
 
@@ -232,55 +199,49 @@ function SectionHeader({
   actionLabel?: string;
 }) {
   return (
-    <Animated.View entering={FadeInUp.duration(400).springify()} style={styles.sectionHeader}>
-      <View style={styles.sectionHeaderLeft}>
-        <View style={styles.sectionAccentBar} />
-        <Text style={styles.sectionTitle}>{title}</Text>
-        {count !== undefined && (
-          <View style={styles.sectionCountBadge}>
-            <Text style={styles.sectionCountText}>{count}</Text>
-          </View>
-        )}
-      </View>
-      {onAction && (
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      {count !== undefined ? (
+        <View style={styles.sectionCountBadge}>
+          <Text style={styles.sectionCountText}>{count}</Text>
+        </View>
+      ) : null}
+      <View style={styles.sectionLine} />
+      {onAction ? (
         <TouchableOpacity onPress={onAction} activeOpacity={0.7}>
           <Text style={styles.sectionAction}>{actionLabel ?? 'View all'}</Text>
         </TouchableOpacity>
-      )}
-    </Animated.View>
+      ) : null}
+    </View>
   );
 }
 
-function StatCard({ item, index }: { item: StatItem; index: number }) {
+function StatCard({ item }: { item: StatItem }) {
   return (
     <PressableCard style={styles.statCard}>
-  <View style={[styles.statCardShimmer,]} />
-
-  <View style={styles.statRow}>
-    <View style={[styles.statIconWrap, { borderColor: item.accent + '55' }]}>
-      <View style={[styles.statIconInner, { backgroundColor: item.accent + '22' }]}>
-        <Text style={[styles.statIconText, { color: item.accent }]}>
-          {item.icon}
-        </Text>
+      <View style={styles.statCardShimmer} />
+      <View style={styles.statRow}>
+        <View style={[styles.statIconWrap, { borderColor: item.accent + '55' }]}>
+          <View style={[styles.statIconInner, { backgroundColor: item.accent + '22' }]}>
+            <Text style={[styles.statIconText, { color: item.accent }]}>
+              {item.icon}
+            </Text>
+          </View>
+        </View>
+        <View style={styles.statTextContainer}>
+          <Text style={styles.statValue}>{item.value}</Text>
+          <Text style={styles.statLabel}>{item.label}</Text>
+        </View>
       </View>
-    </View>
-
-    <View style={styles.statTextContainer}>
-      <Text style={styles.statValue}>{item.value}</Text>
-      <Text style={styles.statLabel}>{item.label}</Text>
-    </View>
-  </View>
-</PressableCard>
+    </PressableCard>
   );
 }
 
 function ModuleCard({
   item,
-  index,
   onPress,
 }: {
   item: ModuleItem;
-  index: number;
   onPress?: (id: string) => void;
 }) {
   const accent = MODULE_ACCENT[item.status];
@@ -288,11 +249,9 @@ function ModuleCard({
 
   return (
     <PressableCard
-    //  entering={FadeInDown.delay(index * 120).springify().damping(14) as typeof FadeInDown}
       onPress={() => !isLocked && onPress?.(item.id)}
       style={styles.moduleCard}
     >
-      <View  />
       <View style={styles.moduleCardInner}>
         <View style={[styles.moduleIconWrap, { borderColor: accent + '55' }]}>
           <View style={[styles.moduleIconInner, { backgroundColor: accent + '22' }]}>
@@ -329,16 +288,13 @@ function ModuleCard({
   );
 }
 
-function JourneyStepRow({ step, index }: { step: JourneyStep; index: number }) {
+function JourneyStepRow({ step }: { step: JourneyStep }) {
   const accentColor = step.isLast ? ACCENT_AMBER : ACCENT_GREEN;
   return (
-    <Animated.View
-      entering={FadeInDown.delay(index * 120).springify().damping(14)}
-      style={styles.journeyRow}
-    >
+    <View style={styles.journeyRow}>
       <View style={styles.journeyLeft}>
         <View style={[styles.journeyCircle, { borderColor: accentColor, backgroundColor: accentColor + '22' }]}>
-          <Text style={[styles.journeyStepNum, { color: "black" }]}>{step.step}</Text>
+          <Text style={[styles.journeyStepNum, { color: 'black' }]}>{step.step}</Text>
         </View>
         {!step.isLast && <View style={styles.journeyLine} />}
       </View>
@@ -346,16 +302,14 @@ function JourneyStepRow({ step, index }: { step: JourneyStep; index: number }) {
         <Text style={styles.journeyTitle}>{step.title}</Text>
         <Text style={styles.journeyDesc}>{step.description}</Text>
       </View>
-    </Animated.View>
+    </View>
   );
 }
 
-function FaqRow({ item, index }: { item: FaqItem; index: number }) {
+function FaqRow({ item }: { item: FaqItem }) {
   const [open, setOpen] = useState(false);
   const rotateVal = useSharedValue(0);
-
-  const rowOpacities = useSharedValue(0);
-  const rowTranslates = useSharedValue(-20);
+  const answerOpacity = useSharedValue(0);
 
   const iconStyle = useAnimatedStyle(() => ({
     transform: [
@@ -366,38 +320,28 @@ function FaqRow({ item, index }: { item: FaqItem; index: number }) {
   }));
 
   const answerStyle = useAnimatedStyle(() => ({
-    opacity: rowOpacities.value,
-    transform: [{ translateX: rowTranslates.value }],
+    opacity: answerOpacity.value,
   }));
 
   const toggle = useCallback(() => {
-    if (!open) {
-      rotateVal.value = withSpring(1, { damping: 14 });
-      rowOpacities.value = withDelay(0, withTiming(1, { duration: 300 }));
-      rowTranslates.value = withDelay(0, withSpring(0, { damping: 15 }));
-    } else {
-      rotateVal.value = withSpring(0, { damping: 14 });
-      rowOpacities.value = withTiming(0, { duration: 150 });
-      rowTranslates.value = withTiming(-20, { duration: 150 });
-    }
-    setOpen((v) => !v);
-  }, [open, rotateVal, rowOpacities, rowTranslates]);
+    const nextOpen = !open;
+    rotateVal.value = withTiming(nextOpen ? 1 : 0, { duration: 200 });
+    answerOpacity.value = withTiming(nextOpen ? 1 : 0, { duration: 200 });
+    setOpen(nextOpen);
+  }, [open, rotateVal, answerOpacity]);
 
   return (
-    <Animated.View
-      entering={FadeInDown.delay(index * 120).springify().damping(14)}
-      style={styles.faqCard}
-    >
+    <View style={styles.faqCard}>
       <TouchableOpacity onPress={toggle} activeOpacity={0.8} style={styles.faqRow}>
         <Text style={styles.faqQuestion}>{item.question}</Text>
         <Animated.Text style={[styles.faqChevron, iconStyle]}>⌄</Animated.Text>
       </TouchableOpacity>
-      {open && (
+      {open ? (
         <Animated.View style={[styles.faqAnswer, answerStyle]}>
           <Text style={styles.faqAnswerText}>{item.answer}</Text>
         </Animated.View>
-      )}
-    </Animated.View>
+      ) : null}
+    </View>
   );
 }
 
@@ -405,207 +349,155 @@ function CtaButton({
   label,
   variant,
   onPress,
-  index,
 }: {
   label: string;
   variant: 'primary' | 'secondary';
   onPress?: () => void;
-  index: number;
 }) {
-  const scale = useSharedValue(1);
-  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-
-  const handlePressIn = () => {
-    scale.value = withSequence(
-      withTiming(0.97, { duration: 80 }),
-      withSpring(1, { damping: 12, stiffness: 200 }),
-    );
-  };
-
   return (
-    <Animated.View
-      entering={FadeInDown.delay(index * 120).springify().damping(14)}
-      style={animStyle}
+    <Pressable
+      onPress={onPress}
+      style={variant === 'primary' ? styles.ctaPrimary : styles.ctaSecondary}
+      android_ripple={{ color: 'rgba(255,255,255,0.12)' }}
     >
-      <Pressable
-        onPress={onPress}
-        onPressIn={handlePressIn}
-        style={variant === 'primary' ? styles.ctaPrimary : styles.ctaSecondary}
-      >
-        <Text style={variant === 'primary' ? styles.ctaPrimaryText : styles.ctaSecondaryText}>
-          {label}
-        </Text>
-      </Pressable>
-    </Animated.View>
+      <Text style={variant === 'primary' ? styles.ctaPrimaryText : styles.ctaSecondaryText}>
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function EDPScreen({
-  onBack,
-  onShare,
   onContinueLearning,
   onTalkToExpert,
   onModulePress,
   onViewAllModules,
 }: EDPScreenProps) {
-    const navigation = useNavigation<NavigationProp<EdpStackParamList>>();
+  const navigation = useNavigation<NavigationProp<EdpStackParamList>>();
 
-  const onGetStarted = () => {
+  const onGetStarted = (): void => {
     navigation.navigate(ROUTES.Edp.Modules);
   };
 
   return (
-    <SafeAreaWrapper edges={['top',]} bgColor='#0F5132'>     
- {/* <StatusBar  backgroundColor="#fe1414" /> */}
+    <SafeAreaWrapper edges={['top']} bgColor="#0F5132">
+      <View style={styles.root}>
+        <ScreenHeader title="EDP Programme" headerColor="#0F5132" onSearchPress={() => {}} />
 
-    <View style={styles.root}>
-      <ScreenHeader title="EDP Programme" headerColor="#0F5132" onSearchPress={() => {}} />
-
-      {/* ── Top bar ──
-      <Animated.View entering={FadeInUp.duration(400).springify()} style={styles.topBar}>
-        <TouchableOpacity onPress={onBack} activeOpacity={0.8} style={styles.navIconBtn}>
-          <Text style={styles.navIconText}>←</Text>
-        </TouchableOpacity>
-        <View style={styles.topBarCenter}>
-          <Text style={styles.topBarTitle}>EDP Programme</Text>
-          <Text style={styles.topBarSub}>Entrepreneurship Development</Text>
-        </View>
-        <TouchableOpacity onPress={onShare} activeOpacity={0.8} style={styles.navIconBtn}>
-          <Text style={styles.navIconText}>↗</Text>
-        </TouchableOpacity>
-      </Animated.View> */}
-
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {/* ── Hero ── */}
-        <Animated.View entering={FadeInDown.delay(60).springify()} style={styles.heroBlock}>
-          <View style={styles.heroBadge}>
-            <Text style={styles.heroBadgeText}>✦  Government certified programme</Text>
-          </View>
-          <Text style={styles.heroTitle}>Build a compliant,{'\n'}sustainable business</Text>
-          <Text style={styles.heroSubtitle}>
-            Module-by-module learning — video lectures, downloads, and assessments toward certification.
-          </Text>
-          <View style={styles.heroActions}>
-            <TouchableOpacity onPress={onGetStarted} activeOpacity={0.8} style={styles.heroBtnPrimary}>
-              <Text style={styles.heroBtnPrimaryText}>Get started</Text>
-            </TouchableOpacity>
-            <TouchableOpacity activeOpacity={0.8} style={styles.heroBtnSecondary}>
-              <Text style={styles.heroBtnSecondaryText}>Ask a question</Text>
-            </TouchableOpacity>
-          </View>
-        </Animated.View>
-
-        {/* ── Stats strip ── */}
-        <Animated.View entering={FadeInDown.delay(120).springify()} style={styles.statsStrip}>
-          {[
-            { label: 'Hours', value: '100+' },
-            { label: 'Modules', value: '8' },
-            { label: 'Resources', value: '23' },
-            { label: 'Assessments', value: '5' },
-          ].map((s, i) => (
-            <View key={s.label} style={[styles.stripItem, i < 3 && styles.stripItemBorder]}>
-              <Text style={styles.stripVal}>{s.value}</Text>
-              <Text style={styles.stripLbl}>{s.label}</Text>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          <View style={styles.heroBlock}>
+            <View style={styles.heroBadge}>
+              <Text style={styles.heroBadgeText}>✦  Government certified programme</Text>
             </View>
-          ))}
-        </Animated.View>
-
-        {/* ── Progress card ── */}
-        <Animated.View entering={FadeInDown.delay(180).springify().damping(14)} style={styles.progressCard}>
-          <View style={[styles.progressCardShimmer, { backgroundColor: ACCENT_GREEN }]} />
-          <View style={styles.progressCardTop}>
-            <View>
-              <Text style={styles.progressCardTitle}>Your learning progress</Text>
-              <Text style={styles.progressCardSub}>Module II — 1 lecture remaining</Text>
-            </View>
-            <View style={[styles.progressBadge, { backgroundColor: ACCENT_GREEN + '38', borderColor: ACCENT_GREEN + '55' }]}>
-              <Text style={[styles.progressBadgeText, { color: ACCENT_GREEN }]}>25%</Text>
+            <Text style={styles.heroTitle}>Build a compliant,{'\n'}sustainable business</Text>
+            <Text style={styles.heroSubtitle}>
+              Module-by-module learning — video lectures, downloads, and assessments toward certification.
+            </Text>
+            <View style={styles.heroActions}>
+              <TouchableOpacity onPress={onGetStarted} activeOpacity={0.8} style={styles.heroBtnPrimary}>
+                <Text style={styles.heroBtnPrimaryText}>Get started</Text>
+              </TouchableOpacity>
+              <TouchableOpacity activeOpacity={0.8} style={styles.heroBtnSecondary}>
+                <Text style={styles.heroBtnSecondaryText}>Ask a question</Text>
+              </TouchableOpacity>
             </View>
           </View>
-          <View style={styles.progressBarBg}>
-            <View style={[styles.progressBarFill, { backgroundColor: ACCENT_GREEN }]} />
-          </View>
-          <View style={styles.progressMeta}>
-            {PROGRESS_META.map((m, i) => (
-              <View key={m.label} style={[styles.progressMetaItem, i < 2 && styles.progressMetaItemBorder]}>
-                <Text style={styles.progressMetaVal}>{m.value}</Text>
-                <Text style={styles.progressMetaLbl}>{m.label}</Text>
+
+          <View style={styles.statsStrip}>
+            {[
+              { label: 'Hours', value: '100+' },
+              { label: 'Modules', value: '8' },
+              { label: 'Resources', value: '23' },
+              { label: 'Assessments', value: '5' },
+            ].map((s, i) => (
+              <View key={s.label} style={[styles.stripItem, i < 3 && styles.stripItemBorder]}>
+                <Text style={styles.stripVal}>{s.value}</Text>
+                <Text style={styles.stripLbl}>{s.label}</Text>
               </View>
             ))}
           </View>
-        </Animated.View>
 
-        {/* ── Overview stats ── */}
-        <View style={styles.section}>
-          <SectionHeader title="Programme overview" count={4} />
-          <View style={styles.statGrid}>
-            {STAT_ITEMS.map((item, index) => (
-              <StatCard key={item.label} item={item} index={index} />
-            ))}
+          <View style={styles.progressCard}>
+            <View style={[styles.progressCardShimmer, { backgroundColor: ACCENT_GREEN }]} />
+            <View style={styles.progressCardTop}>
+              <View>
+                <Text style={styles.progressCardTitle}>Your learning progress</Text>
+                <Text style={styles.progressCardSub}>Module II — 1 lecture remaining</Text>
+              </View>
+              <View style={[styles.progressBadge, { backgroundColor: ACCENT_GREEN + '38', borderColor: ACCENT_GREEN + '55' }]}>
+                <Text style={[styles.progressBadgeText, { color: ACCENT_GREEN }]}>25%</Text>
+              </View>
+            </View>
+            <View style={styles.progressBarBg}>
+              <View style={[styles.progressBarFill, { backgroundColor: ACCENT_GREEN }]} />
+            </View>
+            <View style={styles.progressMeta}>
+              {PROGRESS_META.map((m, i) => (
+                <View key={m.label} style={[styles.progressMetaItem, i < 2 && styles.progressMetaItemBorder]}>
+                  <Text style={styles.progressMetaVal}>{m.value}</Text>
+                  <Text style={styles.progressMetaLbl}>{m.label}</Text>
+                </View>
+              ))}
+            </View>
           </View>
-        </View>
 
-        {/* ── Modules ── */}
-        <View style={styles.section}>
-          <SectionHeader
-            title="Curriculum"
-            count={MODULE_ITEMS.length}
-            onAction={onViewAllModules}
-            actionLabel="View all"
-          />
-          {MODULE_ITEMS.map((item, index) => (
-            <ModuleCard
-              key={item.id}
-              item={item}
-              index={index}
-              onPress={onModulePress}
+          <View style={styles.section}>
+            <SectionHeader title="Programme overview" count={4} />
+            <View style={styles.statGrid}>
+              {STAT_ITEMS.map((item) => (
+                <StatCard key={item.label} item={item} />
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.section}>
+            <SectionHeader
+              title="Curriculum"
+              count={MODULE_ITEMS.length}
+              onAction={onViewAllModules}
+              actionLabel="View all"
             />
-          ))}
-        </View>
-
-        {/* ── Journey ── */}
-        <View style={styles.section}>
-          <SectionHeader title="Learning journey" />
-          <View style={styles.journeyCard}>
-            <View style={[styles.journeyCardShimmer,]} />
-            {JOURNEY_STEPS.map((step, index) => (
-              <JourneyStepRow key={step.step} step={step} index={index} />
+            {MODULE_ITEMS.map((item) => (
+              <ModuleCard key={item.id} item={item} onPress={onModulePress} />
             ))}
           </View>
-        </View>
 
-        {/* ── FAQ ── */}
-        <View style={styles.section}>
-          <SectionHeader title="Quick answers" count={FAQ_ITEMS.length} />
-          {FAQ_ITEMS.map((item, index) => (
-            <FaqRow key={item.id} item={item} index={index} />
-          ))}
-        </View>
+          <View style={styles.section}>
+            <SectionHeader title="Learning journey" />
+            <View style={styles.journeyCard}>
+              <View style={styles.journeyCardShimmer} />
+              {JOURNEY_STEPS.map((step) => (
+                <JourneyStepRow key={step.step} step={step} />
+              ))}
+            </View>
+          </View>
 
-        {/* ── CTAs ── */}
-        <View style={styles.ctaSection}>
-          <CtaButton
-            label="Continue learning"
-            variant="primary"
-            onPress={onContinueLearning}
-            index={0}
-          />
-          <CtaButton
-            label="Talk to an expert"
-            variant="secondary"
-            onPress={onTalkToExpert}
-            index={1}
-          />
-        </View>
+          <View style={styles.section}>
+            <SectionHeader title="Quick answers" count={FAQ_ITEMS.length} />
+            {FAQ_ITEMS.map((item) => (
+              <FaqRow key={item.id} item={item} />
+            ))}
+          </View>
 
-      </ScrollView>
-    </View>
+          <View style={styles.ctaSection}>
+            <CtaButton
+              label="Continue learning"
+              variant="primary"
+              onPress={onContinueLearning}
+            />
+            <CtaButton
+              label="Talk to an expert"
+              variant="secondary"
+              onPress={onTalkToExpert}
+            />
+          </View>
+        </ScrollView>
+      </View>
     </SafeAreaWrapper>
-   
   );
 }
