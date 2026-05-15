@@ -174,7 +174,7 @@ function HelpSettingsScreen(props: HelpSettingsScreenProps): React.ReactElement 
   const appVersion = props.appVersion ?? '1.0.0';
 
   return (
-    <SafeAreaWrapper edges={['top']} bgColor="white">
+    <SafeAreaWrapper edges={['top', 'bottom']} bgColor="white">
       <ScreenHeader
         title="Help & Settings"
         onBackPress={() => navigation.goBack()}

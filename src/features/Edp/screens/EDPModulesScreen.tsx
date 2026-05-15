@@ -294,7 +294,7 @@ const EDPModulesScreen = ({ onBack, onOpenModule }: EDPModulesScreenProps) => {
 
   return (
     
-    <SafeAreaWrapper edges={['top']} bgColor='black' isLight = {true}>
+    <SafeAreaWrapper edges={['top', 'bottom']} bgColor='black' isLight = {true}>
       
       <ScreenHeader
         title="EDP Modules"
