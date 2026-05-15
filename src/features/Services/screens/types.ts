@@ -5,7 +5,6 @@ export interface TextSegment {
 
   value: string;
 
-  color?: string;
 }
 
 export interface AboutParagraph {

@@ -5,6 +5,7 @@ import Edp from '@/features/Edp/screens/Edp';
 import EDPModulesScreen from '@/features/Edp/screens/EDPModulesScreen';
 import { ROUTES } from './routeNames';
 import type { EdpStackParamList } from './types';
+import ModuleVideoScreen from '@/features/Edp/screens/EdpVideoScreen';
 
 const Stack = createNativeStackNavigator<EdpStackParamList>();
 
@@ -13,7 +14,7 @@ export function EdpStackNavigator(): React.ReactElement {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name={ROUTES.Edp.Main} component={Edp} />
       <Stack.Screen name={ROUTES.Edp.Modules} component={EDPModulesScreen} />
-      
+        <Stack.Screen name={ROUTES.Edp.ModuleDetail} component={ModuleVideoScreen} />
     </Stack.Navigator>
   );
 }

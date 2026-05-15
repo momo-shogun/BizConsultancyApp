@@ -1,3 +1,4 @@
+import { COLORS } from '@/constants/colors';
 import { StyleSheet, Dimensions } from 'react-native';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -12,37 +13,18 @@ export const THEME = {
     border: '#E5E7EF',
     accentAmber: '#F59E0B',
     accentGreen: '#34D399',
-    accentBlue: '#38BDF8',
-    accentPurple: '#A78BFA',
     surface: '#F6F7FB',
-    darkCard: '#0F2A1A',
     brandDark: '#0B3D2C',
     brandGreen: '#0F5132',
     brandGreenLight: '#F1FAF5',
+    brandGreenBorder: '#d0ead8',
   },
   spacing: {
-    0: 0,
-    4: 4,
-    8: 8,
-    10: 10,
-    12: 12,
-    14: 14,
-    16: 16,
-    20: 20,
-    24: 24,
+    0: 0, 4: 4, 8: 8, 10: 10, 12: 12,
+    14: 14, 16: 16, 20: 20, 24: 24,
   },
   typography: {
-    size: {
-      10: 10,
-      11: 11,
-      12: 12,
-      13: 13,
-      14: 14,
-      16: 16,
-      18: 18,
-      20: 20,
-      22: 22,
-    },
+    size: { 10: 10, 11: 11, 12: 12, 13: 13, 14: 14, 16: 16, 18: 18, 20: 20 },
     weight: {
       regular: '400' as const,
       medium: '500' as const,
@@ -50,17 +32,12 @@ export const THEME = {
       bold: '700' as const,
     },
   },
-  radius: {
-    sm: 8,
-    md: 11,
-    lg: 13,
-    xl: 20,
-    full: 999,
-  },
+  radius: { sm: 8, md: 11, lg: 13, xl: 20, full: 999 },
 };
 
 export const styles = StyleSheet.create({
-  // ─── Root ─────────────────────────────────────────────────────────────────
+
+  // ─── Root ──────────────────────────────────────────────────────────────────
   safeArea: {
     flex: 1,
     backgroundColor: THEME.colors.brandDark,
@@ -70,7 +47,7 @@ export const styles = StyleSheet.create({
     backgroundColor: THEME.colors.white,
   },
 
-  // ─── Status Bar ───────────────────────────────────────────────────────────
+  // ─── Status Bar ────────────────────────────────────────────────────────────
   statusBar: {
     backgroundColor: THEME.colors.brandDark,
     flexDirection: 'row',
@@ -91,13 +68,45 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  // ─── Video Player ─────────────────────────────────────────────────────────
+  // ─── Video Player ──────────────────────────────────────────────────────────
   videoWrap: {
     width: SCREEN_WIDTH,
-    height: 210,
-    backgroundColor: '#111',
+    height: SCREEN_WIDTH * 9 / 16,
+    backgroundColor: '#000',
     position: 'relative',
   },
+// styles mein ye update karo
+
+controlBtn: {
+  width: 52,        // 36 → 52
+  height: 52,
+  borderRadius: 26,
+  borderWidth: 1.5,
+  borderColor: 'rgba(255,255,255,0.55)',
+  alignItems: 'center',
+  justifyContent: 'center',
+},
+controlBtnLg: {
+  width: 64,        // 44 → 64
+  height: 64,
+  borderRadius: 32,
+  borderWidth: 1.5,
+  borderColor: 'rgba(255,255,255,0.55)',
+  alignItems: 'center',
+  justifyContent: 'center',
+},
+backBtn: {
+  position: 'absolute',
+  top: 10,
+  left: 12,
+  zIndex: 10,
+  width: 30,
+  height: 30,
+  borderRadius: 15,
+  backgroundColor: 'rgba(0,0,0,0.5)',
+  alignItems: 'center',
+  justifyContent: 'center',
+},
   videoPlaceholder: {
     width: '100%',
     height: '100%',
@@ -111,60 +120,29 @@ export const styles = StyleSheet.create({
   },
   videoTopBar: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
+    top: 0, left: 0, right: 0,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: THEME.spacing[14],
     paddingTop: THEME.spacing[10],
   },
-  backBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   videoTimestamp: {
-    fontSize: THEME.typography.size[11],
+    fontSize: 12,
     color: 'rgba(255,255,255,0.75)',
     fontWeight: THEME.typography.weight.medium,
   },
   videoControls: {
     position: 'absolute',
-    top: '50%',
-    left: '50%',
+    top: '50%', left: '50%',
     transform: [{ translateX: -65 }, { translateY: -22 }],
     flexDirection: 'row',
     alignItems: 'center',
     gap: THEME.spacing[20],
   },
-  controlBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.55)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  controlBtnLg: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.55)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   seekContainer: {
     position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+    bottom: 0, left: 0, right: 0,
     paddingHorizontal: THEME.spacing[14],
     paddingBottom: THEME.spacing[10],
   },
@@ -174,20 +152,17 @@ export const styles = StyleSheet.create({
     borderRadius: 2,
     marginBottom: THEME.spacing[4],
   },
+
   seekFill: {
     height: '100%',
     backgroundColor: THEME.colors.white,
-    width: '23%',
     borderRadius: 2,
     position: 'relative',
   },
   seekDot: {
     position: 'absolute',
-    right: -4,
-    top: -3,
-    width: 9,
-    height: 9,
-    borderRadius: 5,
+    right: -4, top: -3,
+    width: 9, height: 9, borderRadius: 5,
     backgroundColor: THEME.colors.white,
   },
   seekLabels: {
@@ -199,7 +174,7 @@ export const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.5)',
   },
 
-  // ─── Body ─────────────────────────────────────────────────────────────────
+  // ─── Body ──────────────────────────────────────────────────────────────────
   body: {
     backgroundColor: THEME.colors.white,
     paddingHorizontal: THEME.spacing[16],
@@ -217,13 +192,44 @@ export const styles = StyleSheet.create({
     lineHeight: 18,
     marginBottom: THEME.spacing[14],
   },
+
+  // stat cards
+  statRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+    marginBottom: 4,
+  },
+  box: {
+    flex: 1,
+    borderRadius: 16,
+    padding: 14,
+  },
+  boxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    marginBottom: 4,
+  },
+  boxLabel: {
+    fontSize: 11,
+    color: '#888',
+    fontWeight: '500',
+    marginBottom: 3,
+  },
+  boxValue: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1a1a1a',
+  },
+
   divider: {
     height: 0.5,
     backgroundColor: THEME.colors.border,
-    marginBottom: THEME.spacing[14],
+    marginVertical: THEME.spacing[14],
   },
 
-  // ─── Supporting Materials Card ────────────────────────────────────────────
+  // ─── Supporting Materials ──────────────────────────────────────────────────
   supportCard: {
     backgroundColor: THEME.colors.white,
     borderWidth: 0.5,
@@ -241,16 +247,12 @@ export const styles = StyleSheet.create({
     elevation: 2,
   },
   supportIconWrap: {
-    width: 40,
-    height: 40,
+    width: 40, height: 40,
     borderRadius: THEME.radius.sm,
-    backgroundColor: THEME.colors.brandGreen,
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: '#e76f51',
+    alignItems: 'center', justifyContent: 'center',
   },
-  supportInfo: {
-    flex: 1,
-  },
+  supportInfo: { flex: 1 },
   supportTitle: {
     fontSize: THEME.typography.size[13],
     fontWeight: THEME.typography.weight.semiBold,
@@ -262,16 +264,57 @@ export const styles = StyleSheet.create({
     color: THEME.colors.textSecondary,
   },
   downloadBtn: {
-    width: 30,
-    height: 30,
+    width: 30, height: 30,
     borderRadius: THEME.radius.sm,
     borderWidth: 0.5,
     borderColor: THEME.colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
   },
 
-  // ─── Section Header ───────────────────────────────────────────────────────
+  // ─── Module Progress Bar ───────────────────────────────────────────────────
+  moduleProgressWrap: {
+    marginBottom: THEME.spacing[16],
+    paddingVertical: THEME.spacing[12],
+    paddingHorizontal: THEME.spacing[14],
+    backgroundColor: THEME.colors.surface,
+    borderRadius: THEME.radius.md,
+    borderWidth: 0.5,
+    borderColor: THEME.colors.border,
+  },
+  moduleProgressMeta: {
+    fontSize: THEME.typography.size[12],
+    color: THEME.colors.textSecondary,
+    marginBottom: THEME.spacing[8],
+  },
+  moduleProgressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: THEME.spacing[8],
+  },
+  moduleProgressLabel: {
+    fontSize: THEME.typography.size[12],
+    color: THEME.colors.textSecondary,
+  },
+  moduleProgressTrack: {
+    flex: 1, height: 4,
+    backgroundColor: THEME.colors.border,
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
+  moduleProgressFill: {
+    height: '100%',
+    backgroundColor: THEME.colors.brandGreen,
+    borderRadius: 999,
+  },
+  moduleProgressPct: {
+    fontSize: THEME.typography.size[12],
+    fontWeight: THEME.typography.weight.semiBold,
+    color: THEME.colors.brandGreen,
+    minWidth: 28,
+    textAlign: 'right',
+  },
+
+  // ─── Section Header ────────────────────────────────────────────────────────
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -284,9 +327,7 @@ export const styles = StyleSheet.create({
     gap: THEME.spacing[8],
   },
   sectionAccentBar: {
-    width: 4,
-    height: 22,
-    borderRadius: 2,
+    width: 4, height: 22, borderRadius: 2,
     backgroundColor: THEME.colors.accentAmber,
   },
   sectionTitle: {
@@ -311,89 +352,172 @@ export const styles = StyleSheet.create({
     color: THEME.colors.accentAmber,
     fontWeight: THEME.typography.weight.semiBold,
   },
+  progressRingWrap: { width: 20, height: 20 },
 
-  // ─── Lesson Rows ──────────────────────────────────────────────────────────
-  lessonRow: {
+  // ─── Lesson List container ─────────────────────────────────────────────────
+  lessonList: {
+    // no padding; cards handle their own spacing
+  },
+
+  // ─── OTT Lesson Card ───────────────────────────────────────────────────────
+  lessonCard: {
+    paddingTop: THEME.spacing[14],
+  },
+  lessonCardLast: {
+    paddingBottom: THEME.spacing[8],
+  },
+  lessonCardActive: {
+    // subtle left green bar effect via borderLeft not supported in RN;
+    // we use background tint below the nowPlayingPill instead
+  },
+
+  // "Now playing" green pill at top of active card
+  nowPlayingPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: THEME.spacing[10],
-    paddingVertical: THEME.spacing[10],
-    borderBottomWidth: 0.5,
-    borderBottomColor: THEME.colors.border,
+    gap: 5,
+    marginBottom: THEME.spacing[8],
   },
-  lessonRowLast: {
-    borderBottomWidth: 0,
-  },
-  lessonIconDone: {
-    width: 30,
-    height: 30,
-    borderRadius: THEME.radius.sm,
-    backgroundColor: THEME.colors.brandGreenLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  lessonIconActive: {
-    width: 30,
-    height: 30,
-    borderRadius: THEME.radius.sm,
+  nowPlayingDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
     backgroundColor: THEME.colors.brandGreen,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
-  lessonIconLocked: {
-    width: 30,
-    height: 30,
-    borderRadius: THEME.radius.sm,
-    backgroundColor: THEME.colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  lessonTitle: {
-    flex: 1,
-    fontSize: THEME.typography.size[13],
-    fontWeight: THEME.typography.weight.medium,
-    color: THEME.colors.textPrimary,
-  },
-  lessonTitleActive: {
-    flex: 1,
-    fontSize: THEME.typography.size[13],
+  nowPlayingText: {
+    fontSize: THEME.typography.size[11],
     fontWeight: THEME.typography.weight.semiBold,
     color: THEME.colors.brandGreen,
+    letterSpacing: 0.2,
+    textTransform: 'uppercase',
   },
-  lessonTitleMuted: {
-    flex: 1,
-    fontSize: THEME.typography.size[13],
-    fontWeight: THEME.typography.weight.regular,
-    color: THEME.colors.textMuted,
+
+  // Top row inside a card
+  lessonCardRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
   },
-  lessonDuration: {
-    fontSize: THEME.typography.size[11],
-    color: THEME.colors.textMuted,
-  },
-  checkBadge: {
-    width: 20,
-    height: 20,
+
+  // Thumbnail
+  thumbWrap: {
+    width: 100,
+    height: 68,
     borderRadius: 10,
+    overflow: 'hidden',
+    flexShrink: 0,
+    position: 'relative',
+  },
+  thumbImage: {
+    width: '100%',
+    height: '100%',
+  },
+  thumbPlaceholder: {
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  thumbPlayOverlay: {
+    ...StyleSheet.absoluteFill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  thumbPlayBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.7)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  thumbPlayBtnActive: {
+    backgroundColor: THEME.colors.brandGreen,
+    borderColor: THEME.colors.brandGreen,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+  },
+  thumbLockOverlay: {
+    ...StyleSheet.absoluteFill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.45)',
+  },
+  thumbDoneBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
     backgroundColor: THEME.colors.brandGreen,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  activeRowWrap: {
-    backgroundColor: THEME.colors.surface,
-    borderWidth: 0.5,
-    borderColor: THEME.colors.border,
-    borderRadius: THEME.radius.md,
-    paddingHorizontal: THEME.spacing[10],
-    marginHorizontal: -4,
-    marginVertical: THEME.spacing[4],
+
+  // Info column
+  lessonCardInfo: {
+    flex: 1,
+    paddingTop: 2,
   },
-  lockedRow: {
-    opacity: 0.5,
+  lessonCardTitle: {
+    fontSize: THEME.typography.size[13],
+    fontWeight: THEME.typography.weight.semiBold,
+    color: THEME.colors.textPrimary,
+    lineHeight: 18,
+    marginBottom: 5,
+  },
+  lessonCardTitleActive: {
+    color: THEME.colors.brandGreen,
+  },
+  lessonCardTitleLocked: {
+    color: THEME.colors.textMuted,
+    fontWeight: THEME.typography.weight.regular,
+  },
+  lessonCardMeta: {
+    fontSize: THEME.typography.size[11],
+    color: THEME.colors.textSecondary,
   },
 
-  // ─── Progress Ring container ───────────────────────────────────────────────
-  progressRingWrap: {
-    width: 20,
-    height: 20,
+  // Action button (download / lock)
+  lessonCardActionBtn: {
+    paddingTop: 4,
+    flexShrink: 0,
+  },
+  downloadCircle: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: THEME.colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  downloadArrow: {
+    fontSize: 14,
+    color: THEME.colors.textSecondary,
+    fontWeight: THEME.typography.weight.semiBold,
+  },
+
+  // Description
+  lessonCardDesc: {
+    fontSize: THEME.typography.size[12],
+    color: THEME.colors.textSecondary,
+    lineHeight: 18,
+    marginTop: THEME.spacing[8],
+  },
+  lessonCardDescLocked: {
+    color: THEME.colors.textMuted,
+    opacity: 0.7,
+  },
+
+  // Divider between cards
+  lessonCardDivider: {
+    height: 0.5,
+    backgroundColor: THEME.colors.border,
+    marginTop: THEME.spacing[14],
   },
 });

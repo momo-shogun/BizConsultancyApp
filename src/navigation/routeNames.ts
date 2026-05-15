@@ -25,6 +25,7 @@ export const ROUTES = {
   Edp: {
     Main: 'Edp/Main',
     Modules: 'Edp/Modules',
+    ModuleDetail: 'Edp/ModuleDetail',
   },
   Services: {
     List: 'App/Services/List',

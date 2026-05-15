@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
+
 import {
   View,
   Text,
@@ -10,6 +11,7 @@ import {
 } from 'react-native';
 import { styles, THEME } from './EDPModulesScreen.styles';
 import { SafeAreaWrapper, ScreenHeader } from '@/shared/components';
+import { ROUTES } from '@/navigation/routeNames';
 
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -328,7 +330,8 @@ const EDPModulesScreen = ({ onBack, onOpenModule }: EDPModulesScreenProps) => {
             <ModuleCard
               key={item.id}
               item={item}
-              onPress={() => onOpenModule?.(item.id)}
+             // onPress={() => onOpenModule?.(item.id)}
+               onPress={() => navigation.navigate(ROUTES.Edp.ModuleDetail)}
             />
           ))}
         </View>

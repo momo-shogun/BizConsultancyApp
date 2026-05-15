@@ -21,6 +21,7 @@ export type ServicesStackParamList = {
 export type EdpStackParamList = {
   [ROUTES.Edp.Main]: undefined;
   [ROUTES.Edp.Modules]: undefined;
+  [ROUTES.Edp.ModuleDetail]: undefined;
 };
 
 export type AppTabParamList = {
