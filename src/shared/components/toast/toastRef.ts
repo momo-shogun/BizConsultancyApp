@@ -2,7 +2,7 @@ import type { ToastConfig, ToastContextValue } from './toast.types';
 
 let ref: ToastContextValue | null = null;
 
-export function setToastRef(toast: ToastContextValue) {
+export function setToastRef(toast: ToastContextValue | null): void {
   ref = toast;
 }
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path, Circle } from 'react-native-svg';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import type { ToastProps, ToastVariant } from './toast.types';
 import {
@@ -15,107 +15,12 @@ import {
 const ANIM_DURATION = 260;
 const DEFAULT_DURATION = 3500;
 
-function SuccessIcon({ color: _color }: { color: string }) {
-  return (
-    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M20 6L9 17l-5-5"
-        stroke="#FFFFFF"
-        strokeWidth={2.5}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
-
-function ErrorIcon({ color: _color }: { color: string }) {
-  return (
-    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M18 6L6 18M6 6l12 12"
-        stroke="#FFFFFF"
-        strokeWidth={2.5}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
-
-function WarningIcon({ color: _color }: { color: string }) {
-  return (
-    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M12 9v4M12 17h.01"
-        stroke="#FFFFFF"
-        strokeWidth={2.5}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <Path
-        d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
-        stroke="#FFFFFF"
-        strokeWidth={1.75}
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
-
-function InfoIcon({ color: _color }: { color: string }) {
-  return (
-    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-      <Circle cx={12} cy={12} r={10} stroke="#FFFFFF" strokeWidth={1.75} />
-      <Path
-        d="M12 16v-4M12 8h.01"
-        stroke="#FFFFFF"
-        strokeWidth={2.5}
-        strokeLinecap="round"
-      />
-    </Svg>
-  );
-}
-
-function AlertIcon({ color: _color }: { color: string }) {
-  return (
-    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
-        stroke="#FFFFFF"
-        strokeWidth={1.75}
-        strokeLinejoin="round"
-      />
-      <Path
-        d="M12 9v4M12 17h.01"
-        stroke="#FFFFFF"
-        strokeWidth={2.5}
-        strokeLinecap="round"
-      />
-    </Svg>
-  );
-}
-
-function CloseIcon({ color }: { color: string }) {
-  return (
-    <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M18 6L6 18M6 6l12 12"
-        stroke={color}
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
-
-const ICON_MAP: Record<ToastVariant, React.FC<{ color: string }>> = {
-  success: SuccessIcon,
-  error: ErrorIcon,
-  warning: WarningIcon,
-  info: InfoIcon,
-  alert: AlertIcon,
+const ICON_MAP: Record<ToastVariant, React.ComponentProps<typeof Ionicons>['name']> = {
+  success: 'checkmark',
+  error: 'close',
+  warning: 'warning',
+  info: 'information-circle',
+  alert: 'alert',
 };
 
 export function Toast({
@@ -136,6 +41,21 @@ export function Toast({
     new Animated.Value(position === 'top' ? -30 : 30),
   ).current;
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleDismiss = (): void => {
+    Animated.parallel([
+      Animated.timing(opacity, {
+        toValue: 0,
+        duration: ANIM_DURATION,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateY, {
+        toValue: position === 'top' ? -30 : 30,
+        duration: ANIM_DURATION,
+        useNativeDriver: true,
+      }),
+    ]).start(() => onDismiss());
+  };
 
   useEffect(() => {
     if (visible) {
@@ -167,30 +87,14 @@ export function Toast({
         clearTimeout(timerRef.current);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, duration]);
-
-  const handleDismiss = () => {
-    Animated.parallel([
-      Animated.timing(opacity, {
-        toValue: 0,
-        duration: ANIM_DURATION,
-        useNativeDriver: true,
-      }),
-      Animated.timing(translateY, {
-        toValue: position === 'top' ? -30 : 30,
-        duration: ANIM_DURATION,
-        useNativeDriver: true,
-      }),
-    ]).start(() => onDismiss());
-  };
 
   if (!visible) {
     return null;
   }
 
   const theme = variantThemes[variant];
-  const IconComponent = ICON_MAP[variant];
+  const iconName = ICON_MAP[variant];
   const topOffset = position === 'top' ? insets.top + 8 : undefined;
 
   return (
@@ -207,7 +111,7 @@ export function Toast({
     >
       <View style={[s.container, getVariantContainerStyle(variant)]}>
         <View style={[s.iconCircle, { backgroundColor: theme.icon }]}>
-          <IconComponent color={theme.icon} />
+          <Ionicons name={iconName} size={20} color="#FFFFFF" />
         </View>
 
         <View style={s.body}>
@@ -253,7 +157,7 @@ export function Toast({
             style={({ pressed }) => [s.closeButton, pressed && s.closePressed]}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <CloseIcon color={theme.message} />
+            <Ionicons name="close" size={16} color={theme.message} />
           </Pressable>
         ) : null}
       </View>

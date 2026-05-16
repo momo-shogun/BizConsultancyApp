@@ -231,6 +231,11 @@ export function normalizePublicConsultant(raw: unknown): ConsultantDetail | null
   return null;
 }
 
+function displayOrPlaceholder(value: string | undefined, placeholder = '—'): string {
+  const trimmed = value?.trim() ?? '';
+  return trimmed.length > 0 ? trimmed : placeholder;
+}
+
 export function mapConsultantDetailToCardItem(detail: ConsultantDetail): TopConsultantItem {
   const primaryRate =
     detail.videoRate > 0 ? detail.videoRate : detail.audioRate > 0 ? detail.audioRate : detail.rate;
@@ -238,14 +243,23 @@ export function mapConsultantDetailToCardItem(detail: ConsultantDetail): TopCons
   return {
     id: detail.id,
     slug: detail.slug,
-    name: detail.name,
-    role: detail.title,
-    bio: detail.profile.profileSummary?.trim() ?? '',
-    specialty: detail.expertise || detail.industries[0] || 'Consultation',
-    experienceLabel: detail.experience,
+    name: displayOrPlaceholder(detail.name, 'Consultant'),
+    role: displayOrPlaceholder(detail.title, 'Advisor'),
+    bio: displayOrPlaceholder(detail.profile.profileSummary, 'Profile summary not available yet.'),
+    specialty: displayOrPlaceholder(
+      detail.expertise || detail.industries[0],
+      'Consultation',
+    ),
+    experienceLabel: displayOrPlaceholder(detail.experience),
     rateLabel: formatRupee(primaryRate),
     photoUri: detail.image,
   };
+}
+
+/** Skip rows the API returned without a usable identity. */
+export function isRenderableConsultantCard(item: TopConsultantItem): boolean {
+  const name = item.name.trim();
+  return item.id.trim().length > 0 && name.length > 0 && name !== '—';
 }
 
 /** @deprecated Use normalizePublicConsultant + mapConsultantDetailToCardItem */

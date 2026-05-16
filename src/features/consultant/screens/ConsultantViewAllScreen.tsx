@@ -1,6 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   FlatList,
   ListRenderItem,
   Pressable,
@@ -16,10 +15,15 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { THEME } from '@/constants/theme';
 import { useGetPublicConsultantsQuery } from '@/features/consultant/api/consultantApi';
-import { mapConsultantDetailToCardItem } from '@/features/consultant/utils/consultantMappers';
+import {
+  isRenderableConsultantCard,
+  mapConsultantDetailToCardItem,
+} from '@/features/consultant/utils/consultantMappers';
+import { getApiErrorMessage } from '@/utils/apiError';
 import { ROUTES } from '@/navigation/routeNames';
 import type { RootStackParamList } from '@/navigation/types';
 import {
+  ContentPlaceholder,
   EmptyState,
   FilterChipsBar,
   FilterSheet,
@@ -31,11 +35,14 @@ import {
   TopConsultantCard,
   type TopConsultantItem,
 } from '@/shared/components';
+import { showGlobalError } from '@/shared/components/toast';
 
 const LIST_GAP = THEME.spacing[10];
 const H_PADDING = THEME.spacing[12];
 
 const SEARCH_DEBOUNCE_MS = 400;
+const PLACEHOLDER_CARD_COUNT = 6;
+const PLACEHOLDER_KEYS = Array.from({ length: PLACEHOLDER_CARD_COUNT }, (_, i) => `placeholder-${i}`);
 
 type SortMode = 'recommended' | 'name' | 'rate_low' | 'rate_high';
 
@@ -146,14 +153,39 @@ export function ConsultantViewAllScreen(): React.ReactElement {
     return {};
   }, [debouncedSearch]);
 
-  const { data: apiConsultants, isLoading } = useGetPublicConsultantsQuery(listQuery);
+  const {
+    data: apiConsultants,
+    isLoading,
+    isFetching,
+    isError,
+    error,
+  } = useGetPublicConsultantsQuery(listQuery);
+
+  const lastToastErrorRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!isError) {
+      lastToastErrorRef.current = null;
+      return;
+    }
+    const message = getApiErrorMessage(error, 'Could not load consultants. Please try again.');
+    if (lastToastErrorRef.current === message) {
+      return;
+    }
+    lastToastErrorRef.current = message;
+    showGlobalError(message, 'Unable to load consultants');
+  }, [error, isError]);
 
   const consultantItems = useMemo((): TopConsultantItem[] => {
     if (apiConsultants == null) {
       return [];
     }
-    return apiConsultants.map(mapConsultantDetailToCardItem);
+    return apiConsultants
+      .map(mapConsultantDetailToCardItem)
+      .filter(isRenderableConsultantCard);
   }, [apiConsultants]);
+
+  const showPlaceholders = (isLoading || isFetching) && consultantItems.length === 0;
 
   useFocusEffect(
     useCallback(() => {
@@ -274,7 +306,7 @@ export function ConsultantViewAllScreen(): React.ReactElement {
 
   const keyExtractor = useCallback((item: TopConsultantItem): string => item.id, []);
 
-  const renderItem = useCallback<ListRenderItem<TopConsultantItem>>(
+  const renderConsultantItem = useCallback<ListRenderItem<TopConsultantItem>>(
     ({ item }) => (
       <View style={styles.cardCell}>
         <TopConsultantCard
@@ -296,6 +328,15 @@ export function ConsultantViewAllScreen(): React.ReactElement {
       </View>
     ),
     [cardWidth, navigation],
+  );
+
+  const renderPlaceholderItem = useCallback<ListRenderItem<string>>(
+    () => (
+      <View style={styles.cardCell}>
+        <ContentPlaceholder variant="consultant-card" cardWidth={cardWidth} />
+      </View>
+    ),
+    [cardWidth],
   );
 
   const ListHeader = useCallback(
@@ -352,28 +393,49 @@ export function ConsultantViewAllScreen(): React.ReactElement {
       ) : null}
 
       <ScreenWrapper>
-        {isLoading && consultantItems.length === 0 ? (
-          <View style={styles.loadingWrap}>
-            <ActivityIndicator size="large" color={THEME.colors.primary} />
-          </View>
-        ) : null}
-        <FlatList
-          data={filteredSorted}
-          keyExtractor={keyExtractor}
-          numColumns={2}
-          renderItem={renderItem}
-          ListHeaderComponent={ListHeader}
-          columnWrapperStyle={styles.columnWrap}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          ListEmptyComponent={
-            <EmptyState
-              title="No consultants match"
-              description="Try adjusting filters or search keywords."
-            />
-          }
-        />
+        {showPlaceholders ? (
+          <FlatList
+            data={PLACEHOLDER_KEYS}
+            keyExtractor={(key) => key}
+            numColumns={2}
+            renderItem={renderPlaceholderItem}
+            ListHeaderComponent={ListHeader}
+            columnWrapperStyle={styles.columnWrap}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          />
+        ) : (
+          <FlatList
+            data={filteredSorted}
+            keyExtractor={keyExtractor}
+            numColumns={2}
+            renderItem={renderConsultantItem}
+            ListHeaderComponent={ListHeader}
+            columnWrapperStyle={styles.columnWrap}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            ListEmptyComponent={
+              <EmptyState
+                title={
+                  isError
+                    ? 'Consultants unavailable'
+                    : consultantItems.length === 0
+                      ? 'No consultants yet'
+                      : 'No consultants match'
+                }
+                description={
+                  isError
+                    ? 'Pull to refresh or check your connection.'
+                    : consultantItems.length === 0
+                      ? 'New experts will appear here once they are onboarded.'
+                      : 'Try adjusting filters or search keywords.'
+                }
+              />
+            }
+          />
+        )}
 
         <FilterSheet
           visible={isFilterOpen}
@@ -397,10 +459,6 @@ export function ConsultantViewAllScreen(): React.ReactElement {
 export default ConsultantViewAllScreen;
 
 const styles = StyleSheet.create({
-  loadingWrap: {
-    paddingVertical: THEME.spacing[16],
-    alignItems: 'center',
-  },
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',

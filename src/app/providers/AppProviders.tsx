@@ -5,6 +5,8 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { store, persistor } from '@/store';
 
+import { ToastProvider } from '@/shared/components/toast';
+
 import { AuthProvider } from './AuthProvider';
 
 export function AppProviders(props: React.PropsWithChildren): React.ReactElement {
@@ -12,7 +14,9 @@ export function AppProviders(props: React.PropsWithChildren): React.ReactElement
     <SafeAreaProvider>
       <Provider store={store}>
         <PersistGate loading={null} persistor={persistor}>
-          <AuthProvider>{props.children}</AuthProvider>
+          <ToastProvider>
+            <AuthProvider>{props.children}</AuthProvider>
+          </ToastProvider>
         </PersistGate>
       </Provider>
     </SafeAreaProvider>
