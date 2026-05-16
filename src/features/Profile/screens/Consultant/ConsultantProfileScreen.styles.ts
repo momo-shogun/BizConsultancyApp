@@ -2,9 +2,22 @@ import { Platform, StyleSheet } from 'react-native';
 
 import { THEME } from '@/constants/theme';
 
+/** Brand green — use sparingly (primary CTA only). */
 export const CONSULTANT_ACCENT = THEME.colors.primary;
-export const CONSULTANT_ACCENT_SOFT = 'rgba(15,81,50,0.10)';
-export const CONSULTANT_CANVAS = '#F4F8F6';
+export const CONSULTANT_CANVAS = '#F8FAFC';
+const SLATE_LINE = '#E2E8F0';
+const SLATE_MUTED = '#64748B';
+
+const CARD_SHADOW_RESET = Platform.select({
+  ios: {
+    shadowColor: 'transparent',
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  android: { elevation: 0 },
+  default: {},
+});
 
 export const styles = StyleSheet.create({
   screen: {
@@ -20,9 +33,7 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: THEME.spacing[12],
     paddingVertical: THEME.spacing[10],
-    backgroundColor: THEME.colors.background,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: THEME.colors.border,
+    backgroundColor: CONSULTANT_CANVAS,
   },
   pageTitle: {
     fontSize: THEME.typography.size[18],
@@ -37,43 +48,27 @@ export const styles = StyleSheet.create({
     paddingHorizontal: THEME.spacing[10],
     paddingVertical: THEME.spacing[8],
     borderRadius: THEME.radius[12],
-    backgroundColor: CONSULTANT_ACCENT_SOFT,
+    backgroundColor: THEME.colors.white,
     borderWidth: 1,
-    borderColor: 'rgba(15,81,50,0.16)',
+    borderColor: SLATE_LINE,
   },
   settingsBtnText: {
     fontSize: THEME.typography.size[12],
-    fontWeight: THEME.typography.weight.bold as '700',
-    color: CONSULTANT_ACCENT,
-    letterSpacing: 0.15,
+    fontWeight: THEME.typography.weight.semibold as '600',
+    color: THEME.colors.textPrimary,
+    letterSpacing: 0.1,
   },
   subscriptionCard: {
     marginHorizontal: THEME.spacing[12],
     marginTop: THEME.spacing[10],
-    borderRadius: THEME.radius[16],
-    overflow: 'hidden',
+    marginBottom: 0,
+    borderRadius: 0,
+    borderWidth: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: '#000000',
     backgroundColor: THEME.colors.white,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: THEME.colors.border,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#0F172A',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.06,
-        shadowRadius: 12,
-      },
-      android: { elevation: 2 },
-      default: {},
-    }),
-  },
-  subscriptionShimmer: {
-    height: 2,
-    backgroundColor: CONSULTANT_ACCENT,
-    opacity: 0.35,
-  },
-  subscriptionInner: {
     padding: THEME.spacing[14],
-    gap: THEME.spacing[10],
+    ...CARD_SHADOW_RESET,
   },
   subscriptionRow: {
     flexDirection: 'row',
@@ -94,13 +89,13 @@ export const styles = StyleSheet.create({
   subscriptionPlanText: {
     fontSize: THEME.typography.size[14],
     fontWeight: THEME.typography.weight.bold as '700',
-    color: CONSULTANT_ACCENT,
+    color: THEME.colors.textPrimary,
     letterSpacing: -0.15,
   },
   subscriptionChevron: {
     fontSize: THEME.typography.size[12],
     fontWeight: THEME.typography.weight.bold as '700',
-    color: CONSULTANT_ACCENT,
+    color: SLATE_MUTED,
   },
   subscriptionPhone: {
     fontSize: THEME.typography.size[12],
@@ -118,7 +113,7 @@ export const styles = StyleSheet.create({
   upgradeBtnText: {
     fontSize: THEME.typography.size[12],
     fontWeight: THEME.typography.weight.bold as '700',
-    color: THEME.colors.textPrimary,
+    color: '#92400E',
     letterSpacing: 0.2,
   },
   section: {
@@ -129,20 +124,6 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: THEME.spacing[12],
     marginBottom: THEME.spacing[8],
-  },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: THEME.spacing[12],
-    marginBottom: THEME.spacing[8],
-    gap: THEME.spacing[8],
-  },
-  sectionHeaderTitleRow: {
-    flex: 1,
-    minWidth: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
   },
   sectionTitle: {
     fontSize: 15,
@@ -157,117 +138,71 @@ export const styles = StyleSheet.create({
     marginLeft: THEME.spacing[10],
     borderRadius: 1,
   },
-  editRow: {
+  statsGrid: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: THEME.spacing[4],
-    paddingHorizontal: THEME.spacing[8],
-    paddingVertical: THEME.spacing[4],
-    borderRadius: THEME.radius[8],
-    backgroundColor: CONSULTANT_ACCENT_SOFT,
-  },
-  editText: {
-    fontSize: THEME.typography.size[12],
-    fontWeight: THEME.typography.weight.bold as '700',
-    color: CONSULTANT_ACCENT,
-  },
-  profilesPanel: {
-    marginHorizontal: THEME.spacing[12],
-    paddingVertical: THEME.spacing[14],
-    paddingHorizontal: THEME.spacing[12],
-    borderRadius: THEME.radius[16],
-    backgroundColor: THEME.colors.white,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: THEME.colors.border,
-  },
-  profilesRow: {
-    flexDirection: 'row',
-    gap: THEME.spacing[20],
-    alignItems: 'flex-start',
     flexWrap: 'wrap',
+    paddingHorizontal: THEME.spacing[12],
+    gap: THEME.spacing[10],
   },
-  profileItem: {
-    alignItems: 'center',
+  statCard: {
+    marginBottom: 0,
+    borderLeftWidth: 3,
+    padding: THEME.spacing[12],
+    minHeight: 128,
+    justifyContent: 'space-between',
+    overflow: 'hidden',
+  },
+  statCardTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
     gap: THEME.spacing[8],
   },
-  profileAvatarRing: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: 'rgba(15,81,50,0.22)',
+  statIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: THEME.radius[12],
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  profileAvatarInner: {
+  statLabel: {
     flex: 1,
-    backgroundColor: '#0B3D2C',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  profileEmoji: {
-    fontSize: 28,
-  },
-  profileKidsBadge: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: CONSULTANT_ACCENT,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(15,81,50,0.3)',
-  },
-  profileKidsText: {
-    color: THEME.colors.white,
-    fontSize: 10,
+    minWidth: 0,
+    fontSize: 11,
     fontWeight: THEME.typography.weight.bold as '700',
-    letterSpacing: 0.6,
-  },
-  addProfileCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    borderWidth: 1.5,
-    borderColor: 'rgba(15,81,50,0.35)',
-    borderStyle: 'dashed',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: CONSULTANT_ACCENT_SOFT,
-  },
-  addProfilePlus: {
-    fontSize: THEME.typography.size[24],
-    color: CONSULTANT_ACCENT,
-    lineHeight: 28,
-    fontWeight: THEME.typography.weight.bold as '700',
-  },
-  profileName: {
-    fontSize: THEME.typography.size[12],
-    fontWeight: THEME.typography.weight.semibold as '600',
     color: THEME.colors.textSecondary,
-    textAlign: 'center',
+    textTransform: 'uppercase',
+    letterSpacing: 0.55,
+    lineHeight: 15,
+    paddingTop: 2,
+  },
+  statValue: {
+    marginTop: THEME.spacing[10],
+    fontSize: 22,
+    fontWeight: THEME.typography.weight.bold as '700',
+    color: THEME.colors.textPrimary,
+    letterSpacing: -0.5,
+  },
+  statValueMuted: {
+    color: '#64748B',
+  },
+  statSubtitle: {
+    marginTop: THEME.spacing[4],
+    fontSize: THEME.typography.size[12],
+    lineHeight: 16,
+    fontWeight: THEME.typography.weight.medium as '500',
+    color: '#94A3B8',
   },
   notificationCard: {
     marginHorizontal: THEME.spacing[12],
-    borderRadius: THEME.radius[16],
+    marginBottom: 0,
+    padding: 0,
     overflow: 'hidden',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(15,81,50,0.14)',
-    backgroundColor: THEME.colors.white,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#0F172A',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-      default: {},
-    }),
   },
   notificationShimmer: {
     height: 2,
-    backgroundColor: CONSULTANT_ACCENT,
-    opacity: 0.3,
+    backgroundColor: '#3B82F6',
+    opacity: 0.45,
   },
   notificationInner: {
     flexDirection: 'row',
@@ -303,7 +238,7 @@ export const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: CONSULTANT_ACCENT,
+    backgroundColor: '#0F172A',
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: THEME.spacing[8],
@@ -314,24 +249,14 @@ export const styles = StyleSheet.create({
     paddingHorizontal: THEME.spacing[12],
     marginBottom: THEME.spacing[10],
   },
-  watchCard: {
+  watchCardPressable: {
     flex: 1,
     minWidth: 0,
-    borderRadius: THEME.radius[16],
+  },
+  watchCard: {
+    marginBottom: 0,
+    padding: 0,
     overflow: 'hidden',
-    backgroundColor: THEME.colors.white,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: THEME.colors.border,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOpacity: 0.06,
-        shadowRadius: 8,
-        shadowOffset: { width: 0, height: 3 },
-      },
-      android: { elevation: 2 },
-      default: {},
-    }),
   },
   watchCardSpacer: {
     flex: 1,
@@ -369,7 +294,7 @@ export const styles = StyleSheet.create({
   },
   watchProgressFill: {
     height: 3,
-    backgroundColor: CONSULTANT_ACCENT,
+    backgroundColor: '#3B82F6',
     borderRadius: 2,
   },
   watchCardMeta: {
@@ -398,6 +323,6 @@ export const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: CONSULTANT_ACCENT_SOFT,
+    backgroundColor: '#F1F5F9',
   },
 });
