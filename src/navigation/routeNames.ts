@@ -7,6 +7,7 @@ export const ROUTES = {
     ConsultantDetail: 'Root/ConsultantDetail',
     Wallet: 'Root/Wallet',
     WorkshopsList: 'Root/WorkshopsList',
+    ConsultationOnboarding: 'Root/ConsultationOnboarding',
   },
   Auth: {
     Splash: 'Auth/Splash',

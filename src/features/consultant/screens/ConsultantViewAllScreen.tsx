@@ -338,8 +338,9 @@ export function ConsultantViewAllScreen(): React.ReactElement {
             })
           }
           onBookPress={() =>
-            navigation.navigate(ROUTES.Root.ConsultantDetail, {
-              slug: item.slug ?? item.id,
+            navigation.navigate(ROUTES.Root.ConsultationOnboarding, {
+              consultantSlug: item.slug ?? item.id,
+              consultantName: item.name,
             })
           }
         />

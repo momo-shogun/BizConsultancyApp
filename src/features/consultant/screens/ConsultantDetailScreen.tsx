@@ -307,6 +307,15 @@ export function ConsultantDetailScreen(): React.ReactElement {
     openExternalUrl(youtubeEmbedToWatchUrl(detail.expertVideoUrl));
   }, [detail]);
 
+  const onBookConsultation = useCallback((): void => {
+    navigation.navigate(ROUTES.Root.ConsultationOnboarding, {
+      consultantSlug: slug,
+      consultantName: detail?.name,
+      city: detail?.city ?? undefined,
+      problemCategory: detail?.category,
+    });
+  }, [detail?.category, detail?.city, detail?.name, navigation, slug]);
+
   const onOpenTalk = useCallback((talk: ConsultantExpertTalk): void => {
     openExternalUrl(youtubeEmbedToWatchUrl(talk.url));
   }, []);
@@ -625,7 +634,7 @@ export function ConsultantDetailScreen(): React.ReactElement {
           ]}
         >
           <Pressable
-            onPress={() => undefined}
+            onPress={onBookConsultation}
             style={({ pressed }) => [styles.bookBtn, pressed && styles.bookBtnPressed]}
             accessibilityRole="button"
             accessibilityLabel="Book consultation"
