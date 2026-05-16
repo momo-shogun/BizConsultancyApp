@@ -7,10 +7,7 @@ import type { AccountStackParamList } from '@/navigation/types';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { SafeAreaWrapper, ScreenHeader } from '@/shared/components';
 
-import { styles } from './HelpSettingsScreen.styles';
-import { ROUTES } from '@/navigation/routeNames';
-
-
+import { styles } from './ConsultantHelpSettingsScreen.styles';
 // ── Types ─────────────────────────────────────────────────────────────────────
 type RowType = 'navigate' | 'expand';
 
@@ -23,7 +20,7 @@ interface SettingsRow {
   type: RowType;
 }
 
-export interface HelpSettingsScreenProps {
+export interface ConsultantHelpSettingsScreenProps {
   appVersion?: string;
   onRowPress?: (id: string) => void;
   onLogout?: () => void;
@@ -185,10 +182,17 @@ const SettingsRowItem: React.FC<{
 );
 
 // ── Main Export ───────────────────────────────────────────────────────────────
-function HelpSettingsScreen(props: HelpSettingsScreenProps): React.ReactElement {
+export function ConsultantHelpSettingsScreen(props: ConsultantHelpSettingsScreenProps): React.ReactElement {
   const navigation = useNavigation<NavigationProp<AccountStackParamList>>();
   const { logout } = useAuth();
   const appVersion = props.appVersion ?? '1.0.0';
+
+  const handleRowPress = (rowId: string): void => {
+    props.onRowPress?.(rowId);
+    if (rowId === 'membership') {
+      return;
+    }
+  };
 
   return (
     <SafeAreaWrapper edges={['top', 'bottom']} bgColor="white">
@@ -205,11 +209,7 @@ function HelpSettingsScreen(props: HelpSettingsScreenProps): React.ReactElement 
               key={row.id}
               row={row}
               isLast={index === SETTINGS_ROWS.length - 1}
-               onPress={() => {
-      if (row.id === 'membership') {
-        navigation.navigate(ROUTES.Account.Membership);
-      }
-    }}
+              onPress={() => handleRowPress(row.id)}
             />
           ))}
         </View>
@@ -236,5 +236,3 @@ function HelpSettingsScreen(props: HelpSettingsScreenProps): React.ReactElement 
     </SafeAreaWrapper>
   );
 }
-
-export default HelpSettingsScreen;

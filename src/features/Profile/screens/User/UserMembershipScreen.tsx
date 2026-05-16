@@ -4,7 +4,7 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-nati
 import { THEME } from '@/constants/theme';
 import { SafeAreaWrapper, ScreenHeader, ScreenWrapper } from '@/shared/components';
 
-import { styles } from './MembershipScreen.styles';
+import { styles } from './UserMembershipScreen.styles';
 import { AccountStackParamList } from '@/navigation/types';
 import { NavigationProp, useNavigation } from '@react-navigation/native';
 
@@ -388,7 +388,7 @@ function PlanCard({
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
-export function MembershipScreen(): React.ReactElement {
+export function UserMembershipScreen(): React.ReactElement {
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>(
     () => buildInitialSelections(PLANS),
   );

@@ -11,7 +11,7 @@ import { getStackTabScreenOptions } from '../../tabBar/tabBarVisibility';
 
 import { HomeDashboardScreen } from '@/features/Home/screens/HomeDashboardScreen';
 
-import { AccountStackNavigator } from '../../AccountStackNavigator';
+import { AccountTabHost } from '../../account/AccountTabHost';
 import { ServicesStackNavigator } from '../../ServicesStackNavigator';
 import { plankBarV1TabNavigatorScreenOptions } from './plankBarV1.styles';
 import { EdpStackNavigator } from '../../EdpStackNavigator';
@@ -83,7 +83,7 @@ export function PlankBarV1TabNavigator(): React.ReactElement {
       />
       <PlankTab.Screen
         name={ROUTES.App.Account}
-        component={AccountStackNavigator}
+        component={AccountTabHost}
         options={({ route }) => ({
           title: 'Account',
           ...getStackTabScreenOptions(route),

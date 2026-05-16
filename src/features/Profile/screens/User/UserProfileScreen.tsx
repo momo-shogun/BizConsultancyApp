@@ -5,7 +5,7 @@ import { useAuth } from '@/app/providers/AuthProvider';
 import { THEME } from '@/constants/theme';
 import { SafeAreaWrapper, ScreenHeader, ScreenWrapper } from '@/shared/components';
 
-import { styles } from './ProfileScreen.styles';
+import { styles } from './UserProfileScreen.styles';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
@@ -133,7 +133,7 @@ function WatchCard({
 // ── Main export ───────────────────────────────────────────────────────────────
 type AccountNav = NativeStackNavigationProp<AccountStackParamList, typeof ROUTES.Account.Home>;
 
-export function ProfileScreen(): React.ReactElement {
+export function UserProfileScreen(): React.ReactElement {
   const { logout } = useAuth();
   const navigation = useNavigation<AccountNav>();
   const watchRows: WatchItem[][] = [];

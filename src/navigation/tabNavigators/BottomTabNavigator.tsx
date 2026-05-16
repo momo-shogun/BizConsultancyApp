@@ -9,7 +9,7 @@ import { HomeDashboardScreen } from '@/features/Home/screens/HomeDashboardScreen
 import { ServicesStackNavigator } from '../ServicesStackNavigator';
 import { BookingsScreen } from '@/features/Bookings/screens/BookingsScreen';
 import Edp from '@/features/Edp/screens/Edp';
-import { AccountStackNavigator } from '../AccountStackNavigator';
+import { AccountTabHost } from '../account/AccountTabHost';
 
 const Tab = createBottomTabNavigator<AppTabParamList>();
 
@@ -59,7 +59,7 @@ export function BottomTabNavigator(): React.ReactElement {
       />
       <Tab.Screen
         name={ROUTES.App.Account}
-        component={AccountStackNavigator}
+        component={AccountTabHost}
         options={{ title: 'Account' }}
       />
     </Tab.Navigator>

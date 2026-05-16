@@ -7,7 +7,7 @@ import type { AccountStackParamList } from '@/navigation/types';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { SafeAreaWrapper, ScreenHeader } from '@/shared/components';
 
-import { styles } from './HelpSettingsScreen.styles';
+import { styles } from './UserHelpSettingsScreen.styles';
 import { ROUTES } from '@/navigation/routeNames';
 
 
@@ -23,7 +23,7 @@ interface SettingsRow {
   type: RowType;
 }
 
-export interface HelpSettingsScreenProps {
+export interface UserHelpSettingsScreenProps {
   appVersion?: string;
   onRowPress?: (id: string) => void;
   onLogout?: () => void;
@@ -169,7 +169,7 @@ const SettingsRowItem: React.FC<{
 );
 
 // ── Main Export ───────────────────────────────────────────────────────────────
-function HelpSettingsScreen(props: HelpSettingsScreenProps): React.ReactElement {
+export function UserHelpSettingsScreen(props: UserHelpSettingsScreenProps): React.ReactElement {
   const navigation = useNavigation<NavigationProp<AccountStackParamList>>();
   const { logout } = useAuth();
   const appVersion = props.appVersion ?? '1.0.0';
@@ -220,5 +220,3 @@ function HelpSettingsScreen(props: HelpSettingsScreenProps): React.ReactElement 
     </SafeAreaWrapper>
   );
 }
-
-export default HelpSettingsScreen;
