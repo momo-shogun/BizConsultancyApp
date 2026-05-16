@@ -1,7 +1,6 @@
 import React, { useCallback, useMemo } from 'react';
 import {
   ActivityIndicator,
-  Image,
   Linking,
   Platform,
   Pressable,
@@ -22,7 +21,7 @@ import { usePublicConsultantDetail } from '@/features/consultant/hooks/usePublic
 import type { ConsultantDetail, ConsultantExpertTalk } from '@/features/consultant/types/consultantDetail.types';
 import { ROUTES } from '@/navigation/routeNames';
 import type { RootStackParamList } from '@/navigation/types';
-import { SafeAreaWrapper, ScreenHeader, ScreenWrapper } from '@/shared/components';
+import { RemoteImage, SafeAreaWrapper, ScreenHeader, ScreenWrapper } from '@/shared/components';
 import { youtubeEmbedToWatchUrl } from '@/utils/youtubeUrl';
 
 const H_PADDING = THEME.spacing[16];
@@ -378,8 +377,10 @@ export function ConsultantDetailScreen(): React.ReactElement {
                     style={styles.avatarRing}
                   >
                     <View style={styles.avatarInner}>
-                      <Image
-                        source={{ uri: detail.image }}
+                      <RemoteImage
+                        uri={detail.image}
+                        placeholderVariant="avatar"
+                        placeholderName={detail.name}
                         style={styles.avatarImage}
                         resizeMode="cover"
                         accessibilityLabel={`Portrait of ${detail.name}`}
@@ -584,7 +585,13 @@ export function ConsultantDetailScreen(): React.ReactElement {
                       accessibilityLabel={`Play talk: ${talk.title}`}
                     >
                       <View style={styles.talkMedia}>
-                        <Image source={{ uri: talk.thumbnail }} style={styles.talkThumb} resizeMode="cover" />
+                        <RemoteImage
+                          uri={talk.thumbnail}
+                          placeholderVariant="media"
+                          style={styles.talkThumb}
+                          resizeMode="cover"
+                          accessibilityLabel={`Thumbnail for ${talk.title}`}
+                        />
                         <LinearGradient
                           colors={['transparent', 'rgba(11,15,25,0.92)']}
                           style={styles.talkThumbGrad}

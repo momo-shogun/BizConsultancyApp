@@ -1,6 +1,5 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import {
-  Image,
   Platform,
   Pressable,
   StyleSheet,
@@ -11,6 +10,8 @@ import {
 import LinearGradient from 'react-native-linear-gradient';
 
 import { THEME } from '@/constants/theme';
+import { resolveConsultantImageUrl } from '@/features/consultant/utils/consultantMedia';
+import { RemoteImage } from '@/shared/components/media/RemoteImage';
 
 export interface TopConsultantItem {
   id: string;
@@ -22,7 +23,7 @@ export interface TopConsultantItem {
   specialty: string;
   experienceLabel: string;
   rateLabel: string;
-  photoUri?: string;
+  photoUri?: string | null;
 }
 
 export interface TopConsultantCardProps {
@@ -34,16 +35,6 @@ export interface TopConsultantCardProps {
   showSpecialtyInMeta?: boolean;
   /** Bio clamp lines (dense lists often use 1). Default 2. */
   bioNumberOfLines?: 1 | 2;
-}
-
-const FALLBACK_PHOTO =
-  'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&auto=format&fit=crop&q=80';
-
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  const first = parts[0]?.[0] ?? '';
-  const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? '') : '';
-  return (first + last).toUpperCase();
 }
 
 function resolveCardHeight(width: DimensionValue): number {
@@ -68,14 +59,10 @@ export function TopConsultantCard({
 
   const cardHeight = resolveCardHeight(cardWidth);
 
-  const initialUri = useMemo(() => {
-    const uri = item.photoUri?.trim();
-    if (!uri) return FALLBACK_PHOTO;
-    return uri.startsWith('http') ? uri : FALLBACK_PHOTO;
-  }, [item.photoUri]);
-
-  const [photoUri, setPhotoUri] = useState(initialUri);
-  const hasPhoto = Boolean(initialUri);
+  const imageUri = useMemo(
+    () => resolveConsultantImageUrl(item.photoUri),
+    [item.photoUri],
+  );
 
   const metaLine = (
     showSpecialtyInMeta
@@ -85,23 +72,15 @@ export function TopConsultantCard({
     .filter(Boolean)
     .join(' · ');
 
-  const photoContent = hasPhoto ? (
-    <Image
-      source={{ uri: photoUri }}
-      style={styles.bgImage}
-      resizeMode="cover"
-      accessibilityIgnoresInvertColors
-      onError={() => setPhotoUri(FALLBACK_PHOTO)}
-    />
-  ) : (
-    <View style={styles.photoFallback}>
-      <Text style={styles.photoInitials}>{initials(item.name)}</Text>
-    </View>
-  );
-
   return (
     <View style={[styles.root, { width: cardWidth, minHeight: cardHeight }]}>
-      {photoContent}
+      <RemoteImage
+        uri={imageUri}
+        placeholderVariant="card"
+        placeholderName={item.name}
+        style={styles.bgImage}
+        accessibilityLabel={`Photo of ${item.name}`}
+      />
 
       {/* Soft vignette so the frosted panel blends into the photo */}
       <LinearGradient
@@ -200,18 +179,6 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
     width: '100%',
     height: '100%',
-  },
-  photoFallback: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: THEME.colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  photoInitials: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: THEME.colors.textSecondary,
-    letterSpacing: 2,
   },
   vignette: {
     ...StyleSheet.absoluteFill,

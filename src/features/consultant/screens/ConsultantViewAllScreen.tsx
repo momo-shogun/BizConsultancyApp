@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   FlatList,
   ListRenderItem,
   Pressable,
@@ -15,6 +16,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { THEME } from '@/constants/theme';
 import { useGetPublicConsultantsQuery } from '@/features/consultant/api/consultantApi';
+import { CONSULTANT_LIST_PAGE_SIZE } from '@/features/consultant/constants/pagination';
 import {
   isRenderableConsultantCard,
   mapConsultantDetailToCardItem,
@@ -140,21 +142,30 @@ export function ConsultantViewAllScreen(): React.ReactElement {
     },
   }));
   const [debouncedSearch, setDebouncedSearch] = useState<string>('');
+  const [page, setPage] = useState<number>(1);
 
   useEffect(() => {
     const handle = setTimeout(() => setDebouncedSearch(searchQuery.trim()), SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(handle);
   }, [searchQuery]);
 
-  const listQuery = useMemo(() => {
-    if (debouncedSearch.length >= 2) {
-      return { search: debouncedSearch };
-    }
-    return {};
+  useEffect(() => {
+    setPage(1);
   }, [debouncedSearch]);
 
+  const listQuery = useMemo(() => {
+    const base: { page: string; limit: string; search?: string } = {
+      page: String(page),
+      limit: String(CONSULTANT_LIST_PAGE_SIZE),
+    };
+    if (debouncedSearch.length >= 2) {
+      base.search = debouncedSearch;
+    }
+    return base;
+  }, [debouncedSearch, page]);
+
   const {
-    data: apiConsultants,
+    data: consultantsPage,
     isLoading,
     isFetching,
     isError,
@@ -177,15 +188,22 @@ export function ConsultantViewAllScreen(): React.ReactElement {
   }, [error, isError]);
 
   const consultantItems = useMemo((): TopConsultantItem[] => {
-    if (apiConsultants == null) {
-      return [];
-    }
-    return apiConsultants
-      .map(mapConsultantDetailToCardItem)
-      .filter(isRenderableConsultantCard);
-  }, [apiConsultants]);
+    const rows = consultantsPage?.items ?? [];
+    return rows.map(mapConsultantDetailToCardItem).filter(isRenderableConsultantCard);
+  }, [consultantsPage?.items]);
 
-  const showPlaceholders = (isLoading || isFetching) && consultantItems.length === 0;
+  const hasMore = consultantsPage?.hasMore ?? false;
+  const isInitialLoading = (isLoading || isFetching) && page === 1 && consultantItems.length === 0;
+  const isLoadingMore = isFetching && page > 1 && consultantItems.length > 0;
+
+  const showPlaceholders = isInitialLoading;
+
+  const loadMore = useCallback((): void => {
+    if (!hasMore || isFetching) {
+      return;
+    }
+    setPage((prev) => prev + 1);
+  }, [hasMore, isFetching]);
 
   useFocusEffect(
     useCallback(() => {
@@ -355,6 +373,18 @@ export function ConsultantViewAllScreen(): React.ReactElement {
     [chipItems, onSortPress, sortLabel],
   );
 
+  const ListFooter = useCallback((): React.ReactElement | null => {
+    if (!isLoadingMore) {
+      return null;
+    }
+    return (
+      <View style={styles.footerLoader}>
+        <ActivityIndicator size="small" color={THEME.colors.primary} />
+        <Text style={styles.footerLoaderText}>Loading more…</Text>
+      </View>
+    );
+  }, [isLoadingMore]);
+
   return (
     <SafeAreaWrapper edges={['top', 'bottom']}>
       <ScreenHeader
@@ -412,10 +442,13 @@ export function ConsultantViewAllScreen(): React.ReactElement {
             numColumns={2}
             renderItem={renderConsultantItem}
             ListHeaderComponent={ListHeader}
+            ListFooterComponent={ListFooter}
             columnWrapperStyle={styles.columnWrap}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
+            onEndReached={loadMore}
+            onEndReachedThreshold={0.35}
             ListEmptyComponent={
               <EmptyState
                 title={
@@ -508,5 +541,18 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     maxWidth: '50%',
+  },
+  footerLoader: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: THEME.spacing[8],
+    paddingVertical: THEME.spacing[16],
+  },
+  footerLoaderText: {
+    fontSize: THEME.typography.size[12],
+    fontWeight: THEME.typography.weight.medium as '500',
+    color: THEME.colors.textSecondary,
   },
 });

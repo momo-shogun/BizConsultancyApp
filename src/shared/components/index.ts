@@ -24,6 +24,8 @@ export {
   type ContentPlaceholderProps,
   type ContentPlaceholderVariant,
 } from './feedback/ContentPlaceholder';
+export { ImagePlaceholder, type ImagePlaceholderProps, type ImagePlaceholderVariant } from './media/ImagePlaceholder';
+export { RemoteImage, type RemoteImageProps } from './media/RemoteImage';
 export { ToastProvider, showGlobalToast, showGlobalError } from './toast';
 
 export { OTPInput } from './otp/OTPInput';

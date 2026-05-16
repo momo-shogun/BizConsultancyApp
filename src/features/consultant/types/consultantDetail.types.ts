@@ -5,7 +5,7 @@ export interface ConsultantExpertTalk {
   title: string;
   url: string;
   duration: number;
-  thumbnail: string;
+  thumbnail: string | null;
   type: string;
   amount: string;
   category?: { id: number; name: string; slug: string };
@@ -35,7 +35,7 @@ export interface ConsultantDetail {
   expertise: string;
   category: string;
   type: string;
-  image: string;
+  image: string | null;
   experience: string;
   rate: number;
   audioRate: number;

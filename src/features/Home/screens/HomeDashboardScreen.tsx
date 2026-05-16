@@ -169,14 +169,18 @@ function navigateToConsultantDetail(item: TopConsultantItem): void {
 }
 
 export function HomeDashboardScreen(): React.ReactElement {
-  const { data: apiConsultants } = useGetPublicConsultantsQuery({ limit: '2' });
+  const { data: consultantsPage } = useGetPublicConsultantsQuery({
+    page: '1',
+    limit: '2',
+  });
 
   const topConsultantItems = useMemo((): TopConsultantItem[] => {
-    if (apiConsultants != null && apiConsultants.length > 0) {
-      return apiConsultants.map(mapConsultantDetailToCardItem);
+    const rows = consultantsPage?.items ?? [];
+    if (rows.length > 0) {
+      return rows.map(mapConsultantDetailToCardItem);
     }
     return HOME_TOP_CONSULTANTS_DEMO_ITEMS;
-  }, [apiConsultants]);
+  }, [consultantsPage?.items]);
   const homeInterestItems = useMemo(() => HOME_INTEREST_ITEMS, []);
 
   const onInterestViewAll = useCallback((): void => {

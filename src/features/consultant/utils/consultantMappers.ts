@@ -60,7 +60,7 @@ function mapExpertTalks(raw: unknown): ConsultantExpertTalk[] {
       thumbnail:
         typeof item.thumbnail === 'string'
           ? resolveConsultantImageUrl(item.thumbnail)
-          : resolveConsultantImageUrl(undefined),
+          : null,
       type: typeof item.type === 'string' ? item.type : 'free',
       amount: typeof item.amount === 'string' ? item.amount : '0',
     });

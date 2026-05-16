@@ -1,5 +1,7 @@
 /** Public consultant API shapes (OpenAPI-aligned). */
 
+import type { ConsultantDetail } from './consultantDetail.types';
+
 export interface PublicConsultantsQuery {
   page?: string;
   limit?: string;
@@ -7,6 +9,14 @@ export interface PublicConsultantsQuery {
   segmentId?: string;
   industryId?: string;
   search?: string;
+}
+
+export interface PublicConsultantsPageResult {
+  items: ConsultantDetail[];
+  page: number;
+  limit: number;
+  hasMore: boolean;
+  total?: number;
 }
 
 export interface AvailableSlotsQuery {
