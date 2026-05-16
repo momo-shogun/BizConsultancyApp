@@ -1,4 +1,7 @@
 import React, { useCallback, useMemo } from 'react';
+
+import { useGetPublicConsultantsQuery } from '@/features/consultant/api/consultantApi';
+import { mapConsultantDetailToCardItem } from '@/features/consultant/utils/consultantMappers';
 import { StyleSheet, View } from 'react-native';
 
 import { THEME } from '@/constants/theme';
@@ -159,7 +162,21 @@ const HOME_MEMBERSHIP_PLANS_DEMO_ITEMS: MembershipPlanItem[] = [
   },
 ];
 
+function navigateToConsultantDetail(item: TopConsultantItem): void {
+  navigationRef.navigate(ROUTES.Root.ConsultantDetail, {
+    slug: item.slug ?? item.id,
+  });
+}
+
 export function HomeDashboardScreen(): React.ReactElement {
+  const { data: apiConsultants } = useGetPublicConsultantsQuery({ limit: '2' });
+
+  const topConsultantItems = useMemo((): TopConsultantItem[] => {
+    if (apiConsultants != null && apiConsultants.length > 0) {
+      return apiConsultants.map(mapConsultantDetailToCardItem);
+    }
+    return HOME_TOP_CONSULTANTS_DEMO_ITEMS;
+  }, [apiConsultants]);
   const homeInterestItems = useMemo(() => HOME_INTEREST_ITEMS, []);
 
   const onInterestViewAll = useCallback((): void => {
@@ -225,10 +242,10 @@ export function HomeDashboardScreen(): React.ReactElement {
             <TopConsultantsSection
               title="Top consultants"
               cardWidth={HOME_TOP_CONSULTANTS_CARD_WIDTH}
-              items={HOME_TOP_CONSULTANTS_DEMO_ITEMS}
+              items={topConsultantItems}
               onViewAllPress={onTopConsultantsViewAll}
-              onItemPress={(item) => console.log('Open consultant', item.id)}
-              onBookPress={(item) => console.log('Book consultation', item.id)}
+              onItemPress={navigateToConsultantDetail}
+              onBookPress={navigateToConsultantDetail}
             />
             <RecommendedServicesSection
               title="Recommended services"

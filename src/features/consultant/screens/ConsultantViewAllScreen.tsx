@@ -1,5 +1,6 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   FlatList,
   ListRenderItem,
   Pressable,
@@ -14,6 +15,8 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { THEME } from '@/constants/theme';
+import { useGetPublicConsultantsQuery } from '@/features/consultant/api/consultantApi';
+import { mapConsultantDetailToCardItem } from '@/features/consultant/utils/consultantMappers';
 import { ROUTES } from '@/navigation/routeNames';
 import type { RootStackParamList } from '@/navigation/types';
 import {
@@ -32,108 +35,7 @@ import {
 const LIST_GAP = THEME.spacing[10];
 const H_PADDING = THEME.spacing[12];
 
-const DEMO_CONSULTANTS: TopConsultantItem[] = [
-  {
-    id: '3',
-    slug: 'r-k-saxena',
-    name: 'R K Saxena',
-    role: 'Project Manager',
-    bio: 'Textile & apparel · business mentorship.',
-    specialty: 'Agriculture',
-    experienceLabel: '48+ years',
-    rateLabel: '₹354',
-    photoUri:
-      'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=600&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'consultant-lata-moorjani',
-    name: 'CA Lata Moorjani',
-    role: 'Business Analyst',
-    bio: 'Compliance, GST & growth for SMEs.',
-    specialty: 'Startup Nurturing & Funding',
-    experienceLabel: '5+ years',
-    rateLabel: '₹354',
-    photoUri:
-      'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'consultant-aman-verma',
-    name: 'Aman Verma',
-    role: 'Funding & Pitch Advisor',
-    bio: 'Seed rounds, decks & investor prep.',
-    specialty: 'Funding & Pitch',
-    experienceLabel: '8+ years',
-    rateLabel: '₹499',
-    photoUri:
-      'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=600&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'consultant-priya-nair',
-    name: 'Priya Nair',
-    role: 'Tax & Compliance Lead',
-    bio: 'Direct tax, TP & MCA filings.',
-    specialty: 'Tax & compliance',
-    experienceLabel: '12+ years',
-    rateLabel: '₹650',
-    photoUri:
-      'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=600&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'consultant-rohit-khanna',
-    name: 'Rohit Khanna',
-    role: 'IP & Legal Counsel',
-    bio: 'Trademarks, contracts & product legal.',
-    specialty: 'IP & legal',
-    experienceLabel: '9+ years',
-    rateLabel: '₹720',
-    photoUri:
-      'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=600&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'consultant-sneha-pillai',
-    name: 'Sneha Pillai',
-    role: 'Operations Consultant',
-    bio: 'SOPs, vendors & cost control.',
-    specialty: 'Business incorporation',
-    experienceLabel: '6+ years',
-    rateLabel: '₹420',
-    photoUri:
-      'https://images.unsplash.com/photo-1594744803329-e58b31de8bf5?w=600&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'consultant-vikram-seth',
-    name: 'Vikram Seth',
-    role: 'MCA & Secretarial',
-    bio: 'Board papers, ROC & governance.',
-    specialty: 'MCA ready',
-    experienceLabel: '11+ years',
-    rateLabel: '₹580',
-    photoUri:
-      'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=600&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'consultant-ananya-roy',
-    name: 'Ananya Roy',
-    role: 'Growth Marketing Advisor',
-    bio: 'GTM, funnels & retention.',
-    specialty: 'Expert-led growth',
-    experienceLabel: '4+ years',
-    rateLabel: '₹1,850',
-    photoUri:
-      'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=600&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'consultant-karan-mehra',
-    name: 'Karan Mehra',
-    role: 'Financial Modelling',
-    bio: 'Models, scenarios & unit economics.',
-    specialty: '₹7,000+ advisory',
-    experienceLabel: '7+ years',
-    rateLabel: '₹7,200',
-    photoUri:
-      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&auto=format&fit=crop&q=80',
-  },
-];
+const SEARCH_DEBOUNCE_MS = 400;
 
 type SortMode = 'recommended' | 'name' | 'rate_low' | 'rate_high';
 
@@ -230,6 +132,28 @@ export function ConsultantViewAllScreen(): React.ReactElement {
       price: null,
     },
   }));
+  const [debouncedSearch, setDebouncedSearch] = useState<string>('');
+
+  useEffect(() => {
+    const handle = setTimeout(() => setDebouncedSearch(searchQuery.trim()), SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(handle);
+  }, [searchQuery]);
+
+  const listQuery = useMemo(() => {
+    if (debouncedSearch.length >= 2) {
+      return { search: debouncedSearch };
+    }
+    return {};
+  }, [debouncedSearch]);
+
+  const { data: apiConsultants, isLoading } = useGetPublicConsultantsQuery(listQuery);
+
+  const consultantItems = useMemo((): TopConsultantItem[] => {
+    if (apiConsultants == null) {
+      return [];
+    }
+    return apiConsultants.map(mapConsultantDetailToCardItem);
+  }, [apiConsultants]);
 
   useFocusEffect(
     useCallback(() => {
@@ -278,7 +202,10 @@ export function ConsultantViewAllScreen(): React.ReactElement {
 
   const filteredSorted = useMemo((): TopConsultantItem[] => {
     const { category, timeline, price } = filters.selected;
-    let rows = DEMO_CONSULTANTS.filter((item) => matchesSearch(item, searchQuery));
+    const useLocalSearch = debouncedSearch.length < 2;
+    let rows = consultantItems.filter((item) =>
+      useLocalSearch ? matchesSearch(item, searchQuery) : true,
+    );
     rows = rows.filter((item) => matchesCategoryFilter(item, category));
     rows = rows.filter((item) => matchesTimelineFilter(item, timeline));
     rows = rows.filter((item) => matchesPriceFilter(item, price));
@@ -293,7 +220,7 @@ export function ConsultantViewAllScreen(): React.ReactElement {
       next.sort((a, b) => parseRateRupee(b.rateLabel) - parseRateRupee(a.rateLabel));
     }
     return next;
-  }, [filters.selected, searchQuery, selectedChips, sortMode]);
+  }, [consultantItems, debouncedSearch, filters.selected, searchQuery, selectedChips, sortMode]);
 
   const toggleChip = useCallback((id: string): void => {
     setSelectedChips((prev) => {
@@ -425,6 +352,11 @@ export function ConsultantViewAllScreen(): React.ReactElement {
       ) : null}
 
       <ScreenWrapper>
+        {isLoading && consultantItems.length === 0 ? (
+          <View style={styles.loadingWrap}>
+            <ActivityIndicator size="large" color={THEME.colors.primary} />
+          </View>
+        ) : null}
         <FlatList
           data={filteredSorted}
           keyExtractor={keyExtractor}
@@ -465,6 +397,10 @@ export function ConsultantViewAllScreen(): React.ReactElement {
 export default ConsultantViewAllScreen;
 
 const styles = StyleSheet.create({
+  loadingWrap: {
+    paddingVertical: THEME.spacing[16],
+    alignItems: 'center',
+  },
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',

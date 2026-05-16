@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo } from 'react';
 import {
+  ActivityIndicator,
   Image,
   Linking,
   Platform,
@@ -17,7 +18,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { THEME } from '@/constants/theme';
-import { getConsultantDetail } from '@/features/consultant/data/consultantDetailDemo';
+import { usePublicConsultantDetail } from '@/features/consultant/hooks/usePublicConsultantDetail';
 import type { ConsultantDetail, ConsultantExpertTalk } from '@/features/consultant/types/consultantDetail.types';
 import { ROUTES } from '@/navigation/routeNames';
 import type { RootStackParamList } from '@/navigation/types';
@@ -280,41 +281,66 @@ export function ConsultantDetailScreen(): React.ReactElement {
   const insets = useSafeAreaInsets();
 
   const slug = route.params.slug;
-  const detail = useMemo((): ConsultantDetail => getConsultantDetail(slug), [slug]);
+  const { detail, isLoading } = usePublicConsultantDetail(slug);
 
   const talkCardWidth = useMemo((): number => Math.min(252, Math.round(width * 0.66)), [width]);
 
   const expertiseCount =
-    detail.skills.length + detail.industries.length + detail.segments.length;
+    detail != null
+      ? detail.skills.length + detail.industries.length + detail.segments.length
+      : 0;
 
   const locationLine = useMemo((): string => {
+    if (detail == null) {
+      return '';
+    }
     const parts: string[] = [];
     if (isMeaningfulText(detail.city)) parts.push(detail.city);
     if (isMeaningfulText(detail.state)) parts.push(detail.state);
     if (isMeaningfulText(detail.pincode)) parts.push(detail.pincode);
     return parts.join(' · ');
-  }, [detail.city, detail.pincode, detail.state]);
+  }, [detail]);
 
   const onOpenIntroVideo = useCallback((): void => {
+    if (detail == null) {
+      return;
+    }
     openExternalUrl(youtubeEmbedToWatchUrl(detail.expertVideoUrl));
-  }, [detail.expertVideoUrl]);
+  }, [detail]);
 
   const onOpenTalk = useCallback((talk: ConsultantExpertTalk): void => {
     openExternalUrl(youtubeEmbedToWatchUrl(talk.url));
   }, []);
 
   const onOpenWebsite = useCallback((): void => {
+    if (detail == null) {
+      return;
+    }
     const w = detail.profile.websiteUrl;
     if (isMeaningfulText(w)) {
       openExternalUrl(w ?? '');
     }
-  }, [detail.profile.websiteUrl]);
+  }, [detail]);
 
-  const showRates = detail.audioRate > 0 || detail.videoRate > 0;
-  const isKnownProfile = detail.slug === 'r-k-saxena';
+  const showRates = (detail?.audioRate ?? 0) > 0 || (detail?.videoRate ?? 0) > 0;
+  const isKnownProfile = detail?.slug === 'r-k-saxena';
 
-  const profileFactItems = useMemo(() => collectProfileFacts(detail), [detail]);
+  const profileFactItems = useMemo(
+    () => (detail != null ? collectProfileFacts(detail) : []),
+    [detail],
+  );
   const showCredentialsSection = profileFactItems.length > 0 || !isKnownProfile;
+
+  if (isLoading || detail == null) {
+    return (
+      <SafeAreaWrapper edges={['top']}>
+        <ScreenHeader title="Consultant" onBackPress={() => navigation.goBack()} />
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator size="large" color={THEME.colors.primary} />
+        </View>
+      </SafeAreaWrapper>
+    );
+  }
 
   return (
     <SafeAreaWrapper edges={['top']}>
@@ -616,6 +642,12 @@ export function ConsultantDetailScreen(): React.ReactElement {
 export default ConsultantDetailScreen;
 
 const styles = StyleSheet.create({
+  loadingWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: THEME.spacing[32],
+  },
   screenBg: {
     flex: 1,
     backgroundColor: SCREEN_CANVAS,

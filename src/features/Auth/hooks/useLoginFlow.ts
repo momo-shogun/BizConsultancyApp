@@ -70,6 +70,7 @@ export function useLoginFlow(): UseLoginFlowResult {
 
         return true;
       } catch (err: unknown) {
+        console.log('[Login API] login flow failed', err);
         setError(getErrorMessage(err));
         return false;
       }
