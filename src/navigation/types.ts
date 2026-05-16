@@ -27,6 +27,7 @@ export type EdpStackParamList = {
 export type AccountStackParamList = {
   [ROUTES.Account.Home]: undefined;
   [ROUTES.Account.HelpSettings]: undefined;
+  [ROUTES.Account.Membership]: undefined;
 };
 
 export type AppTabParamList = {

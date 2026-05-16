@@ -1,11 +1,14 @@
 import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import type { NavigationProp } from '@react-navigation/native';
+import type { AccountStackParamList } from '@/navigation/types';
 
 import { useAuth } from '@/app/providers/AuthProvider';
 import { SafeAreaWrapper, ScreenHeader } from '@/shared/components';
 
 import { styles } from './HelpSettingsScreen.styles';
+import { ROUTES } from '@/navigation/routeNames';
 
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -137,8 +140,6 @@ const SETTINGS_ROWS: SettingsRow[] = [
 ];
 
 
- const navigation = useNavigation();
-
 // ── Sub-components ────────────────────────────────────────────────────────────
 const SettingsRowItem: React.FC<{
   row: SettingsRow;
@@ -169,7 +170,7 @@ const SettingsRowItem: React.FC<{
 
 // ── Main Export ───────────────────────────────────────────────────────────────
 function HelpSettingsScreen(props: HelpSettingsScreenProps): React.ReactElement {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp<AccountStackParamList>>();
   const { logout } = useAuth();
   const appVersion = props.appVersion ?? '1.0.0';
 
@@ -188,7 +189,11 @@ function HelpSettingsScreen(props: HelpSettingsScreenProps): React.ReactElement 
               key={row.id}
               row={row}
               isLast={index === SETTINGS_ROWS.length - 1}
-              onPress={() => props.onRowPress?.(row.id)}
+               onPress={() => {
+      if (row.id === 'membership') {
+        navigation.navigate(ROUTES.Account.Membership);
+      }
+    }}
             />
           ))}
         </View>

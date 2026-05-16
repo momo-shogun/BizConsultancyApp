@@ -36,6 +36,7 @@ export const ROUTES = {
   Account: {
     Home: 'App/Account/Home',
     HelpSettings: 'App/Account/HelpSettings',
+    Membership: 'App/Account/MembershipScreen',
   },
 } as const;
 

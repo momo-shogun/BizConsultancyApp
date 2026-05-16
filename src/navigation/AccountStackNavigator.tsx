@@ -8,6 +8,7 @@ import { ProfileScreen as UserProfileScreen } from '@/features/Profile/screens/U
 
 import { ROUTES } from './routeNames';
 import type { AccountStackParamList } from './types';
+import { MembershipScreen } from '@/features/Profile/screens/User/MemberShipScreen';
 
 const Stack = createNativeStackNavigator<AccountStackParamList>();
 
@@ -39,6 +40,11 @@ export function AccountStackNavigator(): React.ReactElement {
       <Stack.Screen
         name={ROUTES.Account.HelpSettings}
         component={HelpSettingsScreen}
+        options={{ headerShown: false }}
+      />
+       <Stack.Screen
+        name={ROUTES.Account.Membership}
+        component={MembershipScreen}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>
