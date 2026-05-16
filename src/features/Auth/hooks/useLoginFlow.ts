@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 
 import { useAuth } from '@/app/providers/AuthProvider';
 import { useSendOtpMutation, useVerifyNumberMutation } from '@/features/Auth/api/authApi';
-import { setLoginSession } from '@/features/Auth/store/authSlice';
+import { setAuthProfile, setLoginSession } from '@/features/Auth/store/authSlice';
 import type { AuthRole } from '@/features/Auth/types/authApi.types';
 import { useAppDispatch } from '@/store/typedHooks';
 
@@ -58,6 +58,14 @@ export function useLoginFlow(): UseLoginFlowResult {
             mobile,
             role,
             isRegistered: verifyResult.verified,
+          }),
+        );
+
+        const apiName = verifyResult.user?.name?.trim();
+        dispatch(
+          setAuthProfile({
+            accountRole: role,
+            ...(apiName != null && apiName.length > 0 ? { displayName: apiName } : {}),
           }),
         );
 

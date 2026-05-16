@@ -4,7 +4,11 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { useAuth } from '@/app/providers/AuthProvider';
+import { setAuthProfile } from '@/features/Auth/store/authSlice';
+import { establishProfileSession } from '@/features/Auth/store/authThunks';
+import { selectLoggedInMobile } from '@/features/Auth/store/authSelectors';
 import { ROUTES } from '@/navigation/routeNames';
+import { useAppDispatch } from '@/store/typedHooks';
 import type { AuthStackParamList } from '@/navigation/types';
 import { Button, EmptyState, SafeAreaWrapper, ScreenWrapper } from '@/shared/components';
 import { ProfileSetupScreenContent as UserProfileSetupContent } from '@/features/Auth/User/screens/ProfileSetupScreenContent';
@@ -14,7 +18,32 @@ type Nav = NativeStackNavigationProp<AuthStackParamList, typeof ROUTES.Auth.Prof
 
 export function ProfileSetupScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
+  const dispatch = useAppDispatch();
+  const mobile = useAppSelector(selectLoggedInMobile);
   const { state, completeOnboarding } = useAuth();
+
+  const handleFinish = async (fullName: string): Promise<void> => {
+    const role = state.userType ?? 'consultant';
+    const phone = mobile ?? '';
+
+    dispatch(
+      setAuthProfile({
+        displayName: fullName,
+        accountRole: role,
+        ...(phone.length > 0 ? { mobile: phone } : {}),
+      }),
+    );
+
+    await dispatch(
+      establishProfileSession({
+        mobile: phone,
+        role,
+        displayName: fullName,
+      }),
+    ).unwrap();
+
+    completeOnboarding();
+  };
 
   if (!state.userType) {
     const next = state.authIntent ?? 'login';
@@ -35,9 +64,9 @@ export function ProfileSetupScreen(): React.ReactElement {
   }
 
   return state.userType === 'user' ? (
-    <UserProfileSetupContent onFinish={completeOnboarding} onBackPress={() => navigation.goBack()} />
+    <UserProfileSetupContent onFinish={handleFinish} onBackPress={() => navigation.goBack()} />
   ) : (
-    <ConsultantProfileSetupContent onFinish={completeOnboarding} onBackPress={() => navigation.goBack()} />
+    <ConsultantProfileSetupContent onFinish={handleFinish} onBackPress={() => navigation.goBack()} />
   );
 }
 

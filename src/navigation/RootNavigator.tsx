@@ -2,7 +2,8 @@ import React from 'react';
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-import { useAuth } from '@/app/providers/AuthProvider';
+import { selectIsAuthenticated } from '@/features/Auth/store/authSelectors';
+import { useAppSelector } from '@/store/typedHooks';
 
 import { linking } from './linking';
 import { ROUTES } from './routeNames';
@@ -19,15 +20,18 @@ const RootStack = createNativeStackNavigator<RootStackParamList>();
 export const navigationRef = createNavigationContainerRef<RootStackParamList>();
 
 export function RootNavigator(): React.ReactElement {
-  const { state } = useAuth();
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const tracking = useRouteTracking(navigationRef);
 
   return (
-    <NavigationContainer ref={navigationRef} linking={linking} onReady={tracking.onReady} onStateChange={tracking.onStateChange}>
+    <NavigationContainer
+      ref={navigationRef}
+      linking={linking}
+      onReady={tracking.onReady}
+      onStateChange={tracking.onStateChange}
+    >
       <RootStack.Navigator screenOptions={{ headerShown: false }}>
-        {!state.isAuthenticated ? (
-          <RootStack.Screen name={ROUTES.Root.Auth} component={AuthNavigator} />
-        ) : (
+        {isAuthenticated ? (
           <RootStack.Group>
             <RootStack.Screen name={ROUTES.Root.App} component={AppNavigator} />
             <RootStack.Screen
@@ -54,9 +58,10 @@ export function RootNavigator(): React.ReactElement {
               options={{ headerShown: false }}
             />
           </RootStack.Group>
+        ) : (
+          <RootStack.Screen name={ROUTES.Root.Auth} component={AuthNavigator} />
         )}
       </RootStack.Navigator>
     </NavigationContainer>
   );
 }
-

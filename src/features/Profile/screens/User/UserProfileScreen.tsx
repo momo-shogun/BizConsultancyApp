@@ -1,9 +1,10 @@
 import React from 'react';
 import { Image, ImageBackground, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 
-import { useAuth } from '@/app/providers/AuthProvider';
 import { THEME } from '@/constants/theme';
 import { SafeAreaWrapper, ScreenHeader, ScreenWrapper } from '@/shared/components';
+
+import { ProfileAccountCard } from '@/features/Profile/components/ProfileAccountCard';
 
 import { styles } from './UserProfileScreen.styles';
 import LinearGradient from 'react-native-linear-gradient';
@@ -106,9 +107,6 @@ function WatchCard({
         <Text style={[styles.watchThumbnail, { color: item.titleColor }]}>
           {item.title}
         </Text>
-        <View style={styles.watchPlayOverlay}>
-          <Text style={styles.watchPlayIcon}>▶</Text>
-        </View>
       </View>
 
       <View style={styles.watchProgressTrack}>
@@ -134,7 +132,6 @@ function WatchCard({
 type AccountNav = NativeStackNavigationProp<AccountStackParamList, typeof ROUTES.Account.Home>;
 
 export function UserProfileScreen(): React.ReactElement {
-  const { logout } = useAuth();
   const navigation = useNavigation<AccountNav>();
   const watchRows: WatchItem[][] = [];
   for (let i = 0; i < WATCH_ITEMS.length; i += 2) {
@@ -144,52 +141,27 @@ export function UserProfileScreen(): React.ReactElement {
   return (
     <SafeAreaWrapper edges={['top', 'bottom']}>
       <View style={styles.headerRow}>
-  <ScreenHeader title="My Profile" />
+        <ScreenHeader title="My Profile" />
 
-<TouchableOpacity
-  activeOpacity={0.8}
-  style={styles.helpBtn}
-  onPress={() => navigation.navigate(ROUTES.Account.HelpSettings)}
->
-  <Ionicons
-    name="settings-outline"
-    size={18}
-    color="#A855F7"
-  />
-  <Text style={styles.helpText}>
-    Help & Settings
-  </Text>
-</TouchableOpacity>
-</View>
+        <TouchableOpacity
+          activeOpacity={0.8}
+          style={styles.helpBtn}
+          onPress={() => navigation.navigate(ROUTES.Account.HelpSettings)}
+        >
+          <Ionicons
+            name="settings-outline"
+            size={18}
+            color="#A855F7"
+          />
+          <Text style={styles.helpText}>
+            Help & Settings
+          </Text>
+        </TouchableOpacity>
+      </View>
       <ScreenWrapper style={styles.screen}>
         <ScrollView showsVerticalScrollIndicator={false}>
 
-          {/* ── Subscription card ─────────────────────────── */}
-          <View style={styles.subscriptionCard}>
-            <View/>
-            <View style={styles.subscriptionInner}>
-              <View style={styles.subscriptionRow}>
-                <View style={styles.subscriptionLeft}>
-                  <View style={styles.subscriptionPlanRow}>
-                    <Text style={styles.subscriptionPlanText}>
-                      Mobile 28 days (Airtel)
-                    </Text>
-                    <Text style={styles.subscriptionChevron}>▾</Text>
-                  </View>
-                  <Text style={styles.subscriptionPhone}>+91 9794204560</Text>
-                </View>
-
-                <LinearGradient
-  colors={['#ffedd8', '#f3d5b5' ,'#e7bc91']}
-  start={{ x: 0, y: 0 }}
-  end={{ x: 1, y: 1 }}
-  style={styles.upgradeBtn}
->
-  <Text>Upgrade</Text>
-</LinearGradient>
-              </View>
-            </View>
-          </View>
+          <ProfileAccountCard accountRole="user" />
 
           {/* ── Profiles ──────────────────────────────────── */}
           <View style={{ gap: THEME.spacing[16], marginTop: THEME.spacing[20] }}>
@@ -214,144 +186,144 @@ export function UserProfileScreen(): React.ReactElement {
             </View>
           </View>
           <View style={styles.paddingTop}>
-     <View style={styles.sectionHeaderLeft}>
-                <View style={styles.sectionAccentBar} />
-                <Text style={styles.sectionTitle}>Notification</Text>
-              </View>
+            <View style={styles.sectionHeaderLeft}>
+              <View style={styles.sectionAccentBar} />
+              <Text style={styles.sectionTitle}>Notification</Text>
+            </View>
           </View>
 
-                  
+
 
           {/* ── Jeeto banner ──────────────────────────────── */}
-<TouchableOpacity activeOpacity={0.9}>
-  <LinearGradient
-    colors={['#FFF8F3', '#F9F1FF', '#F5EFFF']}
-    start={{ x: 0, y: 0 }}
-    end={{ x: 1, y: 1 }}
-    style={[styles.notificationCard, { marginTop: THEME.spacing[20] }]}
-  >
-    <View style={styles.notificationGlow} />
-
-    <View style={styles.notificationInner}>
-      
-      <Image
-        source={{
-          uri: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg',
-        }}
-        style={styles.videoThumbnail}
-      />
-
-      <View style={styles.notificationContent}>
-        <Text numberOfLines={1} style={styles.videoTitle}>
-          Learn React Native Navigation in 10 Minutes
-        </Text>
-
-        <Text numberOfLines={2} style={styles.videoDescription}>
-          Complete beginner friendly tutorial to understand stack,
-          tabs and screen navigation easily.
-        </Text>
-      </View>
-
-      <View style={styles.arrowBox}>
-        <Ionicons
-          name="chevron-forward"
-          size={20}
-          color="#7C3AED"
-        />
-      </View>
-    </View>
-  </LinearGradient>
-</TouchableOpacity>
-
-          {/* ── Continue watching ──────────────────────────── */}
-          {/* ── Continue watching ──────────────────────────── */}
-<View style={{ gap: THEME.spacing[20] }}>
-
-  <View style={styles.paddingTop}>
-    <View style={styles.sectionHeaderLeft}>
-      <View style={styles.sectionAccentBar} />
-
-      <Text style={styles.sectionTitle}>
-        Continue Watching for Aparna Dewal
-      </Text>
-    </View>
-  </View>
-
-  {watchRows.map((row, rowIndex) => (
-    <View key={rowIndex} style={styles.watchRow}>
-      {row.map((item) => (
-        <TouchableOpacity
-          key={item.id}
-          activeOpacity={0.9}
-          style={styles.watchCard}
-        >
-          {/* Thumbnail */}
-          <ImageBackground
-            source={{ uri: item.thumbnail }}
-            style={styles.watchThumbnail}
-            imageStyle={styles.watchThumbnailImage}
-          >
-            {/* Dark overlay */}
+          <TouchableOpacity activeOpacity={0.9}>
             <LinearGradient
-              colors={[
-                'rgba(0,0,0,0.05)',
-                'rgba(0,0,0,0.65)',
-              ]}
-              style={styles.watchThumbnailOverlay}
-            />
+              colors={['#FFF8F3', '#F9F1FF', '#F5EFFF']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={[styles.notificationCard, { marginTop: THEME.spacing[20] }]}
+            >
+              <View style={styles.notificationGlow} />
 
-            {/* Play Button */}
-            <View style={styles.watchPlayOverlay}>
-              <Ionicons
-                name="play"
-                size={12}
-                color="#fff"
-              />
+              <View style={styles.notificationInner}>
+
+                <Image
+                  source={{
+                    uri: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg',
+                  }}
+                  style={styles.videoThumbnail}
+                />
+
+                <View style={styles.notificationContent}>
+                  <Text numberOfLines={1} style={styles.videoTitle}>
+                    Learn React Native Navigation in 10 Minutes
+                  </Text>
+
+                  <Text numberOfLines={2} style={styles.videoDescription}>
+                    Complete beginner friendly tutorial to understand stack,
+                    tabs and screen navigation easily.
+                  </Text>
+                </View>
+
+                <View style={styles.arrowBox}>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={20}
+                    color="#7C3AED"
+                  />
+                </View>
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+
+          {/* ── Continue watching ──────────────────────────── */}
+          {/* ── Continue watching ──────────────────────────── */}
+          <View style={{ gap: THEME.spacing[20] }}>
+
+            <View style={styles.paddingTop}>
+              <View style={styles.sectionHeaderLeft}>
+                <View style={styles.sectionAccentBar} />
+
+                <Text style={styles.sectionTitle}>
+                  Continue Watching for Aparna Dewal
+                </Text>
+              </View>
             </View>
-          </ImageBackground>
 
-          {/* Progress */}
-          <View style={styles.watchProgressTrack}>
-            <View
-              style={[
-                styles.watchProgressFill,
-                { width: `${item.progress}%` },
-              ]}
-            />
+            {watchRows.map((row, rowIndex) => (
+              <View key={rowIndex} style={styles.watchRow}>
+                {row.map((item) => (
+                  <TouchableOpacity
+                    key={item.id}
+                    activeOpacity={0.9}
+                    style={styles.watchCard}
+                  >
+                    {/* Thumbnail */}
+                    <ImageBackground
+                      source={{ uri: item.thumbnail }}
+                      style={styles.watchThumbnail}
+                      imageStyle={styles.watchThumbnailImage}
+                    >
+                      {/* Dark overlay */}
+                      <LinearGradient
+                        colors={[
+                          'rgba(0,0,0,0.05)',
+                          'rgba(0,0,0,0.65)',
+                        ]}
+                        style={styles.watchThumbnailOverlay}
+                      />
+
+                      {/* Play Button */}
+                      <View style={styles.watchPlayOverlay}>
+                        <Ionicons
+                          name="play"
+                          size={12}
+                          color="#fff"
+                        />
+                      </View>
+                    </ImageBackground>
+
+                    {/* Progress */}
+                    <View style={styles.watchProgressTrack}>
+                      <View
+                        style={[
+                          styles.watchProgressFill,
+                          { width: `${item.progress}%` },
+                        ]}
+                      />
+                    </View>
+
+                    {/* Meta */}
+                    <View style={styles.watchCardMeta}>
+                      <View style={{ flex: 1 }}>
+                        <Text
+                          numberOfLines={1}
+                          style={styles.watchCardTitle}
+                        >
+                          {item.title}
+                        </Text>
+
+                        <Text style={styles.watchCardSubLabel}>
+                          {item.remaining}
+                        </Text>
+                      </View>
+
+                      <TouchableOpacity style={styles.watchMoreBtn}>
+                        <Ionicons
+                          name="ellipsis-vertical"
+                          size={16}
+                          color="#A1A1AA"
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+
+                {row.length === 1 ? (
+                  <View style={styles.watchCardSpacer} />
+                ) : null}
+              </View>
+            ))}
           </View>
-
-          {/* Meta */}
-          <View style={styles.watchCardMeta}>
-            <View style={{ flex: 1 }}>
-              <Text
-                numberOfLines={1}
-                style={styles.watchCardTitle}
-              >
-                {item.title}
-              </Text>
-
-              <Text style={styles.watchCardSubLabel}>
-                {item.remaining}
-              </Text>
-            </View>
-
-            <TouchableOpacity style={styles.watchMoreBtn}>
-              <Ionicons
-                name="ellipsis-vertical"
-                size={16}
-                color="#A1A1AA"
-              />
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      ))}
-
-      {row.length === 1 ? (
-        <View style={styles.watchCardSpacer} />
-      ) : null}
-    </View>
-  ))}
-</View>
 
         </ScrollView>
       </ScreenWrapper>

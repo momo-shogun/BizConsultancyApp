@@ -25,8 +25,11 @@ import lightLogo from '@/assets/lightlogo.png';
 export interface OTPVerificationScreenContentProps {
   roleLabel: string;
   contact: string;
-  onVerified: () => void;
+  onVerified: (otp: string) => void;
+  onResendOtp?: () => void;
   onBackPress?: () => void;
+  isResending?: boolean;
+  resendCooldownSeconds?: number;
 }
 
 export function OTPVerificationScreenContent(
@@ -46,6 +49,17 @@ export function OTPVerificationScreenContent(
   }, [contact]);
 
   const canVerify = otp.length === 6;
+  const cooldown = props.resendCooldownSeconds ?? 0;
+  const canResend = cooldown <= 0 && !props.isResending;
+
+  const handleResend = (): void => {
+    if (!canResend || props.onResendOtp == null) {
+      return;
+    }
+    setOtp('');
+    hiddenInputRef.current?.focus();
+    props.onResendOtp();
+  };
 
   return (
     <SafeAreaWrapper edges={['top', 'bottom']}>
@@ -82,19 +96,36 @@ export function OTPVerificationScreenContent(
 
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Resend code"
-              onPress={() => undefined}
-              style={({ pressed }) => [styles.resend, pressed ? styles.resendPressed : null]}
+              accessibilityLabel={
+                cooldown > 0 ? `Resend code in ${cooldown} seconds` : 'Resend code'
+              }
+              onPress={handleResend}
+              disabled={!canResend}
+              style={({ pressed }) => [
+                styles.resend,
+                !canResend ? styles.resendDisabled : null,
+                pressed && canResend ? styles.resendPressed : null,
+              ]}
               hitSlop={8}
             >
-              <Ionicons name="refresh" size={16} color={THEME.colors.textPrimary} />
-              <Text style={styles.resendText}>Resend code</Text>
+              <Ionicons
+                name="refresh"
+                size={16}
+                color={canResend ? THEME.colors.textPrimary : THEME.colors.textSecondary}
+              />
+              <Text style={[styles.resendText, !canResend ? styles.resendTextDisabled : null]}>
+                {props.isResending
+                  ? 'Sending…'
+                  : cooldown > 0
+                    ? `Resend code in ${cooldown}s`
+                    : 'Resend code'}
+              </Text>
             </Pressable>
 
             <TextInput
               accessibilityLabel="Hidden OTP input"
               value={otp}
-              onChangeText={(t) => setOtp(t.replace(/\\D/g, '').slice(0, 6))}
+              onChangeText={(t) => setOtp(t.replace(/\D/g, '').slice(0, 6))}
               keyboardType="number-pad"
               textContentType="oneTimeCode"
               style={styles.hiddenInput}
@@ -128,7 +159,7 @@ export function OTPVerificationScreenContent(
                 accessibilityRole="button"
                 accessibilityLabel="Verify OTP"
                 disabled={!canVerify}
-                onPress={props.onVerified}
+                onPress={() => props.onVerified(otp)}
                 style={({ pressed }) => [
                   styles.roundBtn,
                   styles.roundBtnPrimary,
@@ -209,10 +240,16 @@ const styles = StyleSheet.create({
   resendPressed: {
     opacity: 0.85,
   },
+  resendDisabled: {
+    opacity: 0.55,
+  },
   resendText: {
     fontSize: THEME.typography.size[14],
     fontWeight: THEME.typography.weight.semibold,
     color: THEME.colors.textPrimary,
+  },
+  resendTextDisabled: {
+    color: THEME.colors.textSecondary,
   },
   flexSpacer: {
     flex: 1,

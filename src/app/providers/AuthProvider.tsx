@@ -1,40 +1,43 @@
 import React, { createContext, useCallback, useContext, useMemo, useReducer } from 'react';
 
-interface AuthState {
-  isAuthenticated: boolean;
+import { authApi } from '@/features/Auth/api/authApi';
+import { establishSession, logout as logoutAuth } from '@/features/Auth/store/authSlice';
+import { selectAccountRole, selectIsAuthenticated } from '@/features/Auth/store/authSelectors';
+import { useAppDispatch, useAppSelector } from '@/store/typedHooks';
+
+interface AuthFlowState {
   userType: 'user' | 'consultant' | null;
   authIntent: 'login' | 'signup' | null;
 }
 
-type AuthAction =
-  | { type: 'AUTH/COMPLETE_ONBOARDING' }
-  | { type: 'AUTH/LOGOUT' }
+type AuthFlowAction =
   | {
       type: 'AUTH/SET_ACCOUNT_CONTEXT';
       payload: { userType: 'user' | 'consultant' | null; authIntent: 'login' | 'signup' | null };
-    };
+    }
+  | { type: 'AUTH/CLEAR_FLOW' };
 
 interface AuthContextValue {
-  state: AuthState;
+  flow: AuthFlowState;
   completeOnboarding: () => void;
   logout: () => void;
-  selectAccountContext: (input: { userType: 'user' | 'consultant'; authIntent: 'login' | 'signup' }) => void;
+  selectAccountContext: (input: {
+    userType: 'user' | 'consultant';
+    authIntent: 'login' | 'signup';
+  }) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-function authReducer(state: AuthState, action: AuthAction): AuthState {
+function authFlowReducer(state: AuthFlowState, action: AuthFlowAction): AuthFlowState {
   switch (action.type) {
-    case 'AUTH/COMPLETE_ONBOARDING':
-      return { ...state, isAuthenticated: true };
-    case 'AUTH/LOGOUT':
-      return { ...state, isAuthenticated: false, userType: null, authIntent: null };
     case 'AUTH/SET_ACCOUNT_CONTEXT':
       return {
-        ...state,
         userType: action.payload.userType,
         authIntent: action.payload.authIntent,
       };
+    case 'AUTH/CLEAR_FLOW':
+      return { userType: null, authIntent: null };
     default: {
       const _exhaustive: never = action;
       return state;
@@ -43,23 +46,25 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
 }
 
 export function AuthProvider(props: React.PropsWithChildren): React.ReactElement {
-  const [state, dispatch] = useReducer(authReducer, {
-    isAuthenticated: false,
+  const dispatch = useAppDispatch();
+  const [flow, dispatchFlow] = useReducer(authFlowReducer, {
     userType: null,
     authIntent: null,
   });
 
   const completeOnboarding = useCallback((): void => {
-    dispatch({ type: 'AUTH/COMPLETE_ONBOARDING' });
-  }, []);
+    dispatch(establishSession());
+  }, [dispatch]);
 
   const logout = useCallback((): void => {
-    dispatch({ type: 'AUTH/LOGOUT' });
-  }, []);
+    dispatchFlow({ type: 'AUTH/CLEAR_FLOW' });
+    dispatch(logoutAuth());
+    dispatch(authApi.util.resetApiState());
+  }, [dispatch]);
 
   const selectAccountContext = useCallback(
     (input: { userType: 'user' | 'consultant'; authIntent: 'login' | 'signup' }): void => {
-      dispatch({
+      dispatchFlow({
         type: 'AUTH/SET_ACCOUNT_CONTEXT',
         payload: { userType: input.userType, authIntent: input.authIntent },
       });
@@ -67,23 +72,48 @@ export function AuthProvider(props: React.PropsWithChildren): React.ReactElement
     [],
   );
 
-  const value = useMemo<AuthContextValue>(() => {
-    return {
-      state,
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      flow,
       completeOnboarding,
       logout,
       selectAccountContext,
-    };
-  }, [state, completeOnboarding, logout, selectAccountContext]);
+    }),
+    [flow, completeOnboarding, logout, selectAccountContext],
+  );
 
   return <AuthContext.Provider value={value}>{props.children}</AuthContext.Provider>;
 }
 
-export function useAuth(): AuthContextValue {
-  const value = useContext(AuthContext);
-  if (!value) {
+export function useAuth(): {
+  state: {
+    isAuthenticated: boolean;
+    userType: 'user' | 'consultant' | null;
+    authIntent: 'login' | 'signup' | null;
+  };
+  completeOnboarding: () => void;
+  logout: () => void;
+  selectAccountContext: (input: {
+    userType: 'user' | 'consultant';
+    authIntent: 'login' | 'signup';
+  }) => void;
+} {
+  const context = useContext(AuthContext);
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const accountRole = useAppSelector(selectAccountRole);
+
+  if (context == null) {
     throw new Error('useAuth must be used within AuthProvider');
   }
-  return value;
-}
 
+  return {
+    state: {
+      isAuthenticated,
+      userType: context.flow.userType ?? accountRole,
+      authIntent: context.flow.authIntent,
+    },
+    completeOnboarding: context.completeOnboarding,
+    logout: context.logout,
+    selectAccountContext: context.selectAccountContext,
+  };
+}

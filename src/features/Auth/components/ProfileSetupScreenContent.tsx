@@ -8,7 +8,7 @@ export interface ProfileSetupScreenContentProps {
   roleLabel: string;
   companyLabel: string;
   companyPlaceholder: string;
-  onFinish: () => void;
+  onFinish: (fullName: string) => void | Promise<void>;
   onBackPress?: () => void;
 }
 
@@ -50,7 +50,7 @@ export function ProfileSetupScreenContent(props: ProfileSetupScreenContentProps)
               label="Finish"
               accessibilityLabel="Finish profile setup"
               disabled={!canFinish}
-              onPress={props.onFinish}
+              onPress={() => props.onFinish(fullName.trim())}
             />
           </ScrollWrapper>
         </ScreenWrapper>

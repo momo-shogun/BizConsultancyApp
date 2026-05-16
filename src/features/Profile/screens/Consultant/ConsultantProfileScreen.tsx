@@ -16,6 +16,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { THEME } from '@/constants/theme';
 import { ROUTES } from '@/navigation/routeNames';
 import type { AccountStackParamList } from '@/navigation/types';
+import { ProfileAccountCard } from '@/features/Profile/components/ProfileAccountCard';
 import { SafeAreaWrapper, ScreenWrapper } from '@/shared/components';
 import { Card } from '@/shared/components/card';
 
@@ -211,27 +212,7 @@ export function ConsultantProfileScreen(): React.ReactElement {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          <Card style={styles.subscriptionCard}>
-            <View style={styles.subscriptionRow}>
-              <View style={styles.subscriptionLeft}>
-                <View style={styles.subscriptionPlanRow}>
-                  <Text style={styles.subscriptionPlanText} numberOfLines={1}>
-                    Mobile 28 days (Airtel)
-                  </Text>
-                  <Text style={styles.subscriptionChevron}>▾</Text>
-                </View>
-                <Text style={styles.subscriptionPhone}>+91 9794204560</Text>
-              </View>
-              <LinearGradient
-                colors={['#FEF3C7', '#FDE68A', '#FCD34D']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.upgradeBtn}
-              >
-                <Text style={styles.upgradeBtnText}>Upgrade</Text>
-              </LinearGradient>
-            </View>
-          </Card>
+          <ProfileAccountCard accountRole="consultant" style={styles.subscriptionCard} />
 
           <View style={styles.section}>
             <SectionHeading title="Business overview" />

@@ -1,10 +1,14 @@
 import { baseApi } from '@/services/api/baseApi';
 
 import type {
+  RefreshTokenDto,
+  RefreshTokenResponseDto,
   SendOtpDto,
   SendOtpResponseDto,
   VerifyNumberDto,
   VerifyNumberResponseDto,
+  VerifyOtpDto,
+  VerifyOtpResponseDto,
 } from '../types/authApi.types';
 
 function logLoginApi(
@@ -54,7 +58,46 @@ export const authApi = baseApi.injectEndpoints({
         }
       },
     }),
+    verifyOtp: build.mutation<VerifyOtpResponseDto, VerifyOtpDto>({
+      query: (body) => ({
+        url: 'frontend/verify-otp',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Auth'],
+      async onQueryStarted(arg, { queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          logLoginApi('POST frontend/verify-otp', { request: arg, response: data });
+        } catch (error: unknown) {
+          logLoginApi('POST frontend/verify-otp', { error });
+        }
+      },
+    }),
+    refreshToken: build.mutation<RefreshTokenResponseDto, RefreshTokenDto>({
+      query: (body) => ({
+        url: 'frontend/refresh-token',
+        method: 'POST',
+        body,
+      }),
+      async onQueryStarted(arg, { queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          logLoginApi('POST frontend/refresh-token', {
+            request: { refreshToken: '[redacted]' },
+            response: data,
+          });
+        } catch (error: unknown) {
+          logLoginApi('POST frontend/refresh-token', { error });
+        }
+      },
+    }),
   }),
 });
 
-export const { useVerifyNumberMutation, useSendOtpMutation } = authApi;
+export const {
+  useVerifyNumberMutation,
+  useSendOtpMutation,
+  useVerifyOtpMutation,
+  useRefreshTokenMutation,
+} = authApi;
