@@ -163,6 +163,8 @@ function StatusBarRow() {
 
 
 import { WebView } from 'react-native-webview';
+import { ScreenHeader } from '@/shared/components';
+import { EDP_HERO_BG } from '../data/edpLandingData';
 
 function VideoPlayer({ onBack }: { onBack?: () => void }) {
   const videoHtml = `
@@ -447,7 +449,7 @@ const navigation = useNavigation();
 
   return (
      <SafeAreaWrapper edges={['top']} bgColor='black' isLight = {true}>
-  
+      <ScreenHeader title="EDP Programme" headerColor={EDP_HERO_BG} onBackPress={() => {}} />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
