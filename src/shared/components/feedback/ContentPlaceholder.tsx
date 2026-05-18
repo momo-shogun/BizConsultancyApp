@@ -9,7 +9,12 @@ import {
 
 import { THEME } from '@/constants/theme';
 
-export type ContentPlaceholderVariant = 'line' | 'block' | 'circle' | 'consultant-card';
+export type ContentPlaceholderVariant =
+  | 'line'
+  | 'block'
+  | 'circle'
+  | 'consultant-card'
+  | 'service-card';
 
 export interface ContentPlaceholderProps {
   variant?: ContentPlaceholderVariant;
@@ -63,6 +68,29 @@ function ShimmerBlock(props: {
   );
 }
 
+function ServiceCardPlaceholder(): React.ReactElement {
+  return (
+    <View style={styles.serviceCard}>
+      <ShimmerBlock style={styles.serviceHeader} />
+      <View style={styles.serviceBody}>
+        <View style={styles.serviceTitleRow}>
+          <View style={styles.serviceTitleCol}>
+            <ShimmerBlock style={styles.serviceTitleLine} />
+            <ShimmerBlock style={[styles.serviceTitleLine, { width: '72%' }]} />
+          </View>
+          <ShimmerBlock style={styles.serviceBadge} />
+        </View>
+        <ShimmerBlock style={styles.serviceSummaryLine} />
+        <ShimmerBlock style={[styles.serviceSummaryLine, { width: '88%' }]} />
+        <View style={styles.serviceFooter}>
+          <ShimmerBlock style={styles.servicePrice} />
+          <ShimmerBlock style={styles.serviceCta} />
+        </View>
+      </View>
+    </View>
+  );
+}
+
 function ConsultantCardPlaceholder(props: { cardWidth: number }): React.ReactElement {
   const cardHeight = resolveCardHeight(props.cardWidth);
   const panelHeight = Math.round(cardHeight * 0.42);
@@ -96,6 +124,14 @@ export function ContentPlaceholder({
     return (
       <View style={style} testID={testID}>
         <ConsultantCardPlaceholder cardWidth={cardWidth} />
+      </View>
+    );
+  }
+
+  if (variant === 'service-card') {
+    return (
+      <View style={style} testID={testID}>
+        <ServiceCardPlaceholder />
       </View>
     );
   }
@@ -181,6 +217,62 @@ const styles = StyleSheet.create({
     marginTop: THEME.spacing[4],
     height: 34,
     width: '55%',
+    borderRadius: THEME.radius[12],
+  },
+  serviceCard: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: THEME.colors.white,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: THEME.colors.border,
+  },
+  serviceHeader: {
+    height: 44,
+    width: '100%',
+    borderRadius: 0,
+  },
+  serviceBody: {
+    padding: THEME.spacing[14],
+    gap: THEME.spacing[10],
+  },
+  serviceTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: THEME.spacing[10],
+  },
+  serviceTitleCol: {
+    flex: 1,
+    gap: THEME.spacing[8],
+  },
+  serviceTitleLine: {
+    height: 16,
+    width: '100%',
+    borderRadius: THEME.radius[6],
+  },
+  serviceBadge: {
+    width: 72,
+    height: 24,
+    borderRadius: 999,
+  },
+  serviceSummaryLine: {
+    height: 12,
+    width: '100%',
+    borderRadius: THEME.radius[6],
+  },
+  serviceFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: THEME.spacing[4],
+  },
+  servicePrice: {
+    height: 18,
+    width: '38%',
+    borderRadius: THEME.radius[6],
+  },
+  serviceCta: {
+    height: 36,
+    width: 108,
     borderRadius: THEME.radius[12],
   },
 });

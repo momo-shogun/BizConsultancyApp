@@ -42,6 +42,7 @@ import ComplianceSection from './components/compliance/ComplianceSection';
 import FAQSection from './components/faq/faq';
 import RecommendedServicesSection from './components/RecommendedServicesSection/RecommendedServicesSection';
 import { ProcessSection } from './components/process/ProcessSection';
+import { ServiceDetailSkeleton } from './components/ServiceDetailSkeleton';
 
 type ServiceDetailRouteProp = RouteProp<
   ServicesStackParamList,
@@ -126,9 +127,14 @@ export function ServiceDetailScreen(): React.ReactElement {
 
   if (isLoading) {
     return (
-      <SafeAreaWrapper edges={['bottom']}>
-        <ScreenWrapper style={styles.missWrap}>
-          <EmptyState title="Loading service" description="Please wait…" />
+      <SafeAreaWrapper edges={['bottom', 'top']} bgColor="#0F5132" isLight>
+        <ScreenWrapper style={styles.flex}>
+          <ScrollWrapper
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <ServiceDetailSkeleton />
+          </ScrollWrapper>
         </ScreenWrapper>
       </SafeAreaWrapper>
     );

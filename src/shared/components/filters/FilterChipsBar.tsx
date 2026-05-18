@@ -23,17 +23,19 @@ export function FilterChipsBar(props: FilterChipsBarProps): React.ReactElement {
 
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Sort"
-        onPress={onSortPress}
-        hitSlop={8}
-        style={({ pressed }) => [styles.controlChip, pressed ? styles.pressed : null]}
-      >
-        <Ionicons name="swap-vertical" size={16} color={THEME.colors.textPrimary} />
-        <Text style={styles.controlText}>Sort</Text>
-        <Ionicons name="chevron-down" size={16} color={THEME.colors.textSecondary} />
-      </Pressable>
+      {onSortPress != null ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Sort"
+          onPress={onSortPress}
+          hitSlop={8}
+          style={({ pressed }) => [styles.controlChip, pressed ? styles.pressed : null]}
+        >
+          <Ionicons name="swap-vertical" size={16} color={THEME.colors.textPrimary} />
+          <Text style={styles.controlText}>Sort</Text>
+          <Ionicons name="chevron-down" size={16} color={THEME.colors.textSecondary} />
+        </Pressable>
+      ) : null}
 
       <Pressable
         accessibilityRole="button"
