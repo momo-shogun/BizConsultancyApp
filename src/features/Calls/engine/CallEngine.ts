@@ -1,4 +1,8 @@
+import { StackActions } from '@react-navigation/native';
+
 import { OUTGOING_RING_TIMEOUT_MS } from '@/constants/calls';
+import { navigationRef } from '@/navigation/RootNavigator';
+import { ROUTES } from '@/navigation/routeNames';
 import { store } from '@/store';
 import { callsApi } from '../api/callsApi';
 import { callSocketService } from '../services/callSocketService';
@@ -6,6 +10,7 @@ import { agoraMediaService } from '../services/agoraMediaService';
 import {
   resetCallState,
   setCallError,
+  setCallOutcome,
   setCallPhase,
   setCallSession,
   setIncomingCall,
@@ -13,9 +18,12 @@ import {
   setReconnecting,
   setRemoteMuted,
   setSpeakerOn,
+  startConnectedTimer,
   updateCredentials,
 } from '../store/callSlice';
+import type { CallOutcome } from '../store/callSlice';
 import type {
+  CallEndedPayload,
   CallIncomingPayload,
   CallType,
   PersistedCallCredentials,
@@ -24,38 +32,49 @@ import { CallReliabilityManager } from './CallReliabilityManager';
 import { syncCallSession } from './CallStateSyncService';
 import { transitionCallPhase, type CallPhase } from './callStateMachine';
 
-type NavigateFn = (screen: 'OutgoingCall' | 'InCall', params: { sessionId: number }) => void;
+type CallScreen = 'IncomingCall' | 'OutgoingCall' | 'InCall';
+type NavigateFn = (screen: CallScreen, params: { sessionId: number }) => void;
 
 class CallEngineImpl {
   private reliability = new CallReliabilityManager();
   private navigate: NavigateFn | null = null;
   private ringTimeout: ReturnType<typeof setTimeout> | null = null;
   private syncTimer: ReturnType<typeof setInterval> | null = null;
+  private teardownTimer: ReturnType<typeof setTimeout> | null = null;
+  private handlersBound = false;
 
   setNavigator(navigate: NavigateFn): void {
     this.navigate = navigate;
   }
 
   bindSocketHandlers(): void {
+    if (this.handlersBound) {
+      return;
+    }
     const token = store.getState().auth.token;
     if (token == null || token.length === 0) {
       return;
     }
+    this.handlersBound = true;
     callSocketService.connect(token, {
       onIncoming: (p) => this.handleIncoming(p),
       onAccepted: (p) => {
         void this.handleAccepted(p.sessionId);
       },
-      onDeclined: () => this.handleRemoteEnd(),
-      onEnded: () => this.handleRemoteEnd(),
+      onDeclined: (p) => this.handleRemoteEnd(p, 'declined'),
+      onEnded: (p) => this.handleRemoteEnd(p, 'ended'),
       onMute: (p) => {
         store.dispatch(setRemoteMuted(p.muted));
       },
     });
   }
 
+  unbindSocketHandlers(): void {
+    this.handlersBound = false;
+  }
+
   private getCallState() {
-    return store.getState().call;
+    return store.getState().call!;
   }
 
   private applyPhase(event: Parameters<typeof transitionCallPhase>[1]): CallPhase {
@@ -72,6 +91,53 @@ class CallEngineImpl {
     }
   }
 
+  private clearTeardownTimer(): void {
+    if (this.teardownTimer != null) {
+      clearTimeout(this.teardownTimer);
+      this.teardownTimer = null;
+    }
+  }
+
+  private scheduleTeardown(delayMs: number, popNavigation = true): void {
+    this.clearTeardownTimer();
+    this.teardownTimer = setTimeout(() => {
+      if (popNavigation && navigationRef.isReady()) {
+        navigationRef.goBack();
+      }
+      this.teardown();
+    }, delayMs);
+  }
+
+  private routeForScreen(screen: CallScreen): string {
+    if (screen === 'IncomingCall') {
+      return ROUTES.Root.IncomingCall;
+    }
+    if (screen === 'OutgoingCall') {
+      return ROUTES.Root.OutgoingCall;
+    }
+    return ROUTES.Root.InCall;
+  }
+
+  private navigateToCallScreen(screen: CallScreen, sessionId: number): void {
+    if (this.navigate != null) {
+      this.navigate(screen, { sessionId });
+      return;
+    }
+    if (!navigationRef.isReady()) {
+      return;
+    }
+    navigationRef.navigate(this.routeForScreen(screen) as never, { sessionId });
+  }
+
+  private replaceCallScreen(screen: CallScreen, sessionId: number): void {
+    if (!navigationRef.isReady()) {
+      return;
+    }
+    navigationRef.dispatch(
+      StackActions.replace(this.routeForScreen(screen) as never, { sessionId }),
+    );
+  }
+
   private startSyncTimer(sessionId: number): void {
     this.stopSyncTimer();
     this.syncTimer = setInterval(() => {
@@ -86,9 +152,16 @@ class CallEngineImpl {
     }
   }
 
+  private showOutcomeThenEnd(outcome: CallOutcome, delayMs = 2200): void {
+    store.dispatch(setCallOutcome(outcome));
+    store.dispatch(setCallPhase('ended'));
+    this.scheduleTeardown(delayMs);
+  }
+
   async startOutgoing(calleeUserId: number, callType: CallType, remoteName: string): Promise<void> {
     store.dispatch(resetCallState());
     this.reliability.reset();
+    this.clearTeardownTimer();
     store.dispatch(setCallPhase('outgoing_initiating'));
     store.dispatch(setCallError(null));
 
@@ -128,28 +201,27 @@ class CallEngineImpl {
       void this.endCall('missed_timeout');
     }, OUTGOING_RING_TIMEOUT_MS);
 
-    this.navigate?.('OutgoingCall', { sessionId: data.sessionId });
+    this.navigateToCallScreen('OutgoingCall', data.sessionId);
 
-    agoraMediaService.setListeners({
-      onConnectionState: (state) => {
-        if (state === 'connected') {
-          this.applyPhase('AGORA_JOINED');
-        }
-      },
-    });
+    agoraMediaService.setListeners({});
 
-    await agoraMediaService.join({
-      appId: data.appId,
-      channelName: data.channelName,
-      token: data.rtcToken,
-      uid: data.uid,
-      callType: data.callType,
-    });
+    try {
+      await agoraMediaService.join({
+        appId: data.appId,
+        channelName: data.channelName,
+        token: data.rtcToken,
+        uid: data.uid,
+        callType: data.callType,
+      });
+    } catch {
+      store.dispatch(setCallError('Could not connect audio'));
+    }
   }
 
   async startOutgoingFromBooking(bookingId: number, remoteName: string): Promise<void> {
     store.dispatch(resetCallState());
     this.reliability.reset();
+    this.clearTeardownTimer();
     store.dispatch(setCallPhase('outgoing_initiating'));
 
     const result = await store.dispatch(
@@ -183,24 +255,41 @@ class CallEngineImpl {
     );
     this.applyPhase('INITIATE_OK');
     callSocketService.setActiveCallId(data.sessionId);
-    this.navigate?.('OutgoingCall', { sessionId: data.sessionId });
 
-    await agoraMediaService.join({
-      appId: data.appId,
-      channelName: data.channelName,
-      token: data.rtcToken,
-      uid: data.uid,
-      callType: data.callType,
-    });
+    this.ringTimeout = setTimeout(() => {
+      void this.endCall('missed_timeout');
+    }, OUTGOING_RING_TIMEOUT_MS);
+
+    this.navigateToCallScreen('OutgoingCall', data.sessionId);
+
+    agoraMediaService.setListeners({});
+    try {
+      await agoraMediaService.join({
+        appId: data.appId,
+        channelName: data.channelName,
+        token: data.rtcToken,
+        uid: data.uid,
+        callType: data.callType,
+      });
+    } catch {
+      store.dispatch(setCallError('Could not connect audio'));
+    }
   }
 
   handleIncoming(payload: CallIncomingPayload): void {
-    if (
-      !this.reliability.shouldApply(payload.eventId, payload.eventVersion)
-    ) {
+    if (payload.status !== 'initiated' && payload.status !== 'ringing') {
+      return;
+    }
+
+    if (!this.reliability.shouldApply(payload.eventId, payload.eventVersion)) {
       return;
     }
     this.reliability.markApplied(payload.eventId, payload.eventVersion);
+
+    const state = this.getCallState();
+    if (state.phase === 'incoming_ringing' && state.sessionId === payload.sessionId) {
+      return;
+    }
 
     const callType = (payload.callType === 'video' ? 'video' : 'voice') as CallType;
     store.dispatch(
@@ -208,10 +297,11 @@ class CallEngineImpl {
         sessionId: payload.sessionId,
         callType,
         callerUserId: payload.callerUserId,
-        remoteDisplayName: 'Caller',
+        remoteDisplayName: 'Incoming caller',
       }),
     );
     callSocketService.setActiveCallId(payload.sessionId);
+    this.navigateToCallScreen('IncomingCall', payload.sessionId);
   }
 
   private async handleAccepted(sessionId: number): Promise<void> {
@@ -219,9 +309,14 @@ class CallEngineImpl {
     if (state.sessionId !== sessionId) {
       return;
     }
+    if (state.phase === 'in_call' && state.connectedAtMs != null) {
+      return;
+    }
     this.clearRingTimeout();
+    store.dispatch(startConnectedTimer());
     this.applyPhase('ACCEPT_OK');
-    this.navigate?.('InCall', { sessionId });
+    this.applyPhase('AGORA_JOINED');
+    this.replaceCallScreen('InCall', sessionId);
     this.startSyncTimer(sessionId);
   }
 
@@ -230,10 +325,17 @@ class CallEngineImpl {
     if (sessionId == null) {
       return;
     }
+    const phase = this.getCallState().phase;
+    if (phase !== 'incoming_ringing') {
+      return;
+    }
+
+    store.dispatch(setCallPhase('connecting_media'));
 
     const result = await store.dispatch(callsApi.endpoints.acceptCall.initiate(sessionId));
     if ('error' in result) {
       store.dispatch(setCallError('Could not accept call'));
+      store.dispatch(setCallPhase('incoming_ringing'));
       return;
     }
 
@@ -248,19 +350,29 @@ class CallEngineImpl {
       mode: 'incoming',
     };
     store.dispatch(updateCredentials(credentials));
-    this.applyPhase('ACCEPT_OK');
     this.clearRingTimeout();
-    this.navigate?.('InCall', { sessionId });
-    this.startSyncTimer(sessionId);
+    store.dispatch(startConnectedTimer());
 
-    await agoraMediaService.join({
-      appId: data.appId,
-      channelName: data.channelName,
-      token: data.rtcToken,
-      uid: data.uid,
-      callType: data.callType,
-    });
+    agoraMediaService.setListeners({});
+
+    try {
+      await agoraMediaService.join({
+        appId: data.appId,
+        channelName: data.channelName,
+        token: data.rtcToken,
+        uid: data.uid,
+        callType: data.callType,
+      });
+    } catch {
+      store.dispatch(setCallError('Could not connect audio'));
+      store.dispatch(setCallPhase('incoming_ringing'));
+      return;
+    }
+
+    this.applyPhase('ACCEPT_OK');
     this.applyPhase('AGORA_JOINED');
+    this.replaceCallScreen('InCall', sessionId);
+    this.startSyncTimer(sessionId);
   }
 
   async declineIncoming(): Promise<void> {
@@ -269,13 +381,14 @@ class CallEngineImpl {
       return;
     }
     await store.dispatch(callsApi.endpoints.declineCall.initiate(sessionId));
-    this.teardown();
+    this.showOutcomeThenEnd('rejected');
   }
 
   async endCall(
     endReason: 'ended_by_user' | 'ended_by_consultant' | 'caller_cancelled' | 'missed_timeout' = 'ended_by_user',
   ): Promise<void> {
-    const sessionId = this.getCallState().sessionId;
+    const state = this.getCallState();
+    const sessionId = state.sessionId;
     if (sessionId == null) {
       this.teardown();
       return;
@@ -285,16 +398,61 @@ class CallEngineImpl {
     await store.dispatch(
       callsApi.endpoints.endCall.initiate({ sessionId, body: { endReason } }),
     );
+
+    if (state.phase === 'outgoing_ringing' || state.phase === 'outgoing_initiating') {
+      this.showOutcomeThenEnd(endReason === 'missed_timeout' ? 'missed' : 'rejected');
+      return;
+    }
     this.teardown();
   }
 
-  private handleRemoteEnd(): void {
-    this.applyPhase('ENDED');
-    this.teardown();
+  private handleRemoteEnd(payload: CallEndedPayload, kind: 'declined' | 'ended'): void {
+    const state = this.getCallState();
+    if (state.sessionId == null || payload.sessionId !== state.sessionId) {
+      return;
+    }
+
+    const terminal = ['ended', 'declined', 'missed', 'failed'];
+    if (
+      payload.status != null &&
+      payload.status.length > 0 &&
+      !terminal.includes(payload.status)
+    ) {
+      return;
+    }
+
+    const mode = state.credentials?.mode;
+
+    if (
+      mode === 'incoming' &&
+      (state.phase === 'incoming_ringing' || state.phase === 'connecting_media')
+    ) {
+      const outcome: CallOutcome =
+        kind === 'declined' ? 'rejected' : payload.status === 'missed' ? 'missed' : 'missed';
+      this.showOutcomeThenEnd(outcome);
+      return;
+    }
+
+    if (state.phase === 'outgoing_ringing' || state.phase === 'outgoing_initiating') {
+      const outcome: CallOutcome =
+        kind === 'declined' ? 'rejected' : payload.status === 'missed' ? 'missed' : 'rejected';
+      this.showOutcomeThenEnd(outcome);
+      return;
+    }
+
+    if (state.phase === 'in_call' || state.phase === 'reconnecting') {
+      this.teardown();
+      if (navigationRef.isReady()) {
+        navigationRef.goBack();
+      }
+    }
   }
 
   async reconnectMedia(): Promise<void> {
     const callState = this.getCallState();
+    if (callState.phase !== 'in_call' && callState.phase !== 'connecting_media') {
+      return;
+    }
     const sessionId = callState.sessionId;
     const creds = callState.credentials;
     if (sessionId == null) {
@@ -349,6 +507,7 @@ class CallEngineImpl {
 
   teardown(): void {
     this.clearRingTimeout();
+    this.clearTeardownTimer();
     this.stopSyncTimer();
     callSocketService.setActiveCallId(null);
     void agoraMediaService.leave();

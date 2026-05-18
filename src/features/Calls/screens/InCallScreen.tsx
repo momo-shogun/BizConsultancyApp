@@ -1,15 +1,16 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import type { RootStackParamList } from '@/navigation/types';
-import { useAppSelector } from '@/store/typedHooks';
+import { useAppDispatch, useAppSelector } from '@/store/typedHooks';
 
 import { CallController } from '../controllers/CallController';
 import { callEngine } from '../engine/CallEngine';
 import { startNetworkTransitionHandler, stopNetworkTransitionHandler } from '../engine/NetworkTransitionHandler';
+import { setElapsedSeconds } from '../store/callSlice';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Root/InCall'>;
 
@@ -25,16 +26,17 @@ function formatDuration(seconds: number): string {
 
 export function InCallScreen({ route, navigation }: Props): React.ReactElement {
   const insets = useSafeAreaInsets();
+  const dispatch = useAppDispatch();
   const { sessionId } = route.params;
   const remoteName = useAppSelector((s) => s.call.remoteDisplayName);
   const localMuted = useAppSelector((s) => s.call.localMuted);
   const speakerOn = useAppSelector((s) => s.call.speakerOn);
   const reconnecting = useAppSelector((s) => s.call.reconnecting);
   const elapsedSeconds = useAppSelector((s) => s.call.elapsedSeconds);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const connectedAtMs = useAppSelector((s) => s.call.connectedAtMs);
+  const phase = useAppSelector((s) => s.call.phase);
 
   useEffect(() => {
-    callEngine.bindSocketHandlers();
     startNetworkTransitionHandler({
       onNetworkChange: () => {
         void callEngine.reconnectMedia();
@@ -46,23 +48,27 @@ export function InCallScreen({ route, navigation }: Props): React.ReactElement {
   }, []);
 
   useEffect(() => {
-    timerRef.current = setInterval(() => {
-      // elapsed tracked via simple local tick — engine can extend later
+    if (connectedAtMs == null) {
+      return;
+    }
+    const tick = setInterval(() => {
+      const secs = Math.max(0, Math.floor((Date.now() - connectedAtMs) / 1000));
+      dispatch(setElapsedSeconds(secs));
     }, 1000);
-    return () => {
-      if (timerRef.current != null) {
-        clearInterval(timerRef.current);
-      }
-    };
-  }, [sessionId]);
+    return () => clearInterval(tick);
+  }, [connectedAtMs, dispatch]);
+
+  useEffect(() => {
+    if (phase === 'idle') {
+      navigation.goBack();
+    }
+  }, [navigation, phase]);
 
   return (
     <View style={[styles.root, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }]}>
       <Text style={styles.timer}>{formatDuration(elapsedSeconds)}</Text>
       <Text style={styles.name}>{remoteName}</Text>
-      <Text style={styles.status}>
-        {reconnecting ? 'Reconnecting…' : 'Connected'}
-      </Text>
+      <Text style={styles.status}>{reconnecting ? 'Reconnecting…' : 'Connected'}</Text>
 
       <View style={styles.controls}>
         <Pressable
@@ -98,11 +104,13 @@ const styles = StyleSheet.create({
   },
   timer: {
     marginTop: 12,
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.6)',
+    fontSize: 32,
+    fontWeight: '600',
+    color: '#fff',
+    fontVariant: ['tabular-nums'],
   },
   name: {
-    marginTop: 32,
+    marginTop: 24,
     fontSize: 24,
     fontWeight: '700',
     color: '#fff',
@@ -110,7 +118,7 @@ const styles = StyleSheet.create({
   status: {
     marginTop: 8,
     fontSize: 15,
-    color: 'rgba(255,255,255,0.7)',
+    color: '#4ADE80',
   },
   controls: {
     position: 'absolute',

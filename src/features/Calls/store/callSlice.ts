@@ -3,6 +3,8 @@ import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type { CallPhase } from '../engine/callStateMachine';
 import type { CallType, PersistedCallCredentials } from '../types/callApi.types';
 
+export type CallOutcome = 'none' | 'rejected' | 'missed' | 'connected';
+
 export interface CallUiState {
   phase: CallPhase;
   sessionId: number | null;
@@ -17,6 +19,10 @@ export interface CallUiState {
   lastEventVersion: number;
   errorMessage: string | null;
   incomingCallerUserId: number | null;
+  /** Shown on full-screen call UI after remote end / decline. */
+  callOutcome: CallOutcome;
+  /** When connected timer started (ms). */
+  connectedAtMs: number | null;
 }
 
 const initialState: CallUiState = {
@@ -33,6 +39,8 @@ const initialState: CallUiState = {
   lastEventVersion: 0,
   errorMessage: null,
   incomingCallerUserId: null,
+  callOutcome: 'none',
+  connectedAtMs: null,
 };
 
 export const callSlice = createSlice({
@@ -72,9 +80,20 @@ export const callSlice = createSlice({
       state.sessionId = action.payload.sessionId;
       state.callType = action.payload.callType;
       state.incomingCallerUserId = action.payload.callerUserId;
+      state.callOutcome = 'none';
+      state.elapsedSeconds = 0;
+      state.connectedAtMs = null;
       if (action.payload.remoteDisplayName != null) {
         state.remoteDisplayName = action.payload.remoteDisplayName;
       }
+    },
+    setCallOutcome: (state, action: PayloadAction<CallOutcome>) => {
+      state.callOutcome = action.payload;
+    },
+    startConnectedTimer: (state) => {
+      state.connectedAtMs = Date.now();
+      state.callOutcome = 'connected';
+      state.elapsedSeconds = 0;
     },
     setRemoteMuted: (state, action: PayloadAction<boolean>) => {
       state.remoteMuted = action.payload;
@@ -116,4 +135,6 @@ export const {
   setLastEventVersion,
   setCallError,
   updateCredentials,
+  setCallOutcome,
+  startConnectedTimer,
 } = callSlice.actions;

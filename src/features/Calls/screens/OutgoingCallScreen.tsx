@@ -5,40 +5,56 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import type { RootStackParamList } from '@/navigation/types';
-import { useAppSelector } from '@/store/typedHooks';
+import { useAppDispatch, useAppSelector } from '@/store/typedHooks';
 
 import { CallController } from '../controllers/CallController';
-import { callEngine } from '../engine/CallEngine';
+import { setElapsedSeconds } from '../store/callSlice';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Root/OutgoingCall'>;
 
-export function OutgoingCallScreen({ route, navigation }: Props): React.ReactElement {
+function formatDuration(seconds: number): string {
+  const m = Math.floor(seconds / 60)
+    .toString()
+    .padStart(2, '0');
+  const s = Math.floor(seconds % 60)
+    .toString()
+    .padStart(2, '0');
+  return `${m}:${s}`;
+}
+
+export function OutgoingCallScreen({ navigation }: Props): React.ReactElement {
   const insets = useSafeAreaInsets();
-  const { sessionId } = route.params;
+  const dispatch = useAppDispatch();
   const remoteName = useAppSelector((s) => s.call.remoteDisplayName);
   const phase = useAppSelector((s) => s.call.phase);
+  const callOutcome = useAppSelector((s) => s.call.callOutcome);
+  const elapsedSeconds = useAppSelector((s) => s.call.elapsedSeconds);
+  const connectedAtMs = useAppSelector((s) => s.call.connectedAtMs);
+
+  const isAccepted = connectedAtMs != null;
+  const showRejected =
+    phase === 'ended' && (callOutcome === 'rejected' || callOutcome === 'missed');
 
   useEffect(() => {
-    const unsub = navigation.addListener('beforeRemove', () => {
-      if (phase !== 'ended' && phase !== 'idle') {
-        void CallController.endCall();
-      }
-    });
-    return unsub;
-  }, [navigation, phase]);
+    if (!isAccepted || connectedAtMs == null) {
+      return;
+    }
+    const tick = setInterval(() => {
+      const secs = Math.max(0, Math.floor((Date.now() - connectedAtMs) / 1000));
+      dispatch(setElapsedSeconds(secs));
+    }, 1000);
+    return () => clearInterval(tick);
+  }, [connectedAtMs, dispatch, isAccepted]);
 
-  useEffect(() => {
-    callEngine.bindSocketHandlers();
-    const onAccepted = (): void => {
-      navigation.replace('Root/InCall', { sessionId });
-    };
-    const interval = setInterval(() => {
-      if (phase === 'in_call' || phase === 'connecting_media') {
-        onAccepted();
-      }
-    }, 500);
-    return () => clearInterval(interval);
-  }, [navigation, phase, sessionId]);
+  const statusText = showRejected
+    ? callOutcome === 'missed'
+      ? 'No answer'
+      : 'Rejected'
+    : isAccepted
+      ? 'Connected'
+      : phase === 'outgoing_initiating'
+        ? 'Starting call…'
+        : 'Calling…';
 
   return (
     <View style={[styles.root, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }]}>
@@ -46,21 +62,26 @@ export function OutgoingCallScreen({ route, navigation }: Props): React.ReactEle
         <Ionicons name="person" size={48} color="#fff" />
       </View>
       <Text style={styles.name}>{remoteName}</Text>
-      <Text style={styles.status}>
-        {phase === 'outgoing_initiating' ? 'Starting call…' : 'Calling…'}
-      </Text>
-      <ActivityIndicator size="large" color="#fff" style={styles.spinner} />
+      <Text style={[styles.status, showRejected ? styles.statusRejected : null]}>{statusText}</Text>
 
-      <Pressable
-        style={styles.endBtn}
-        onPress={() => {
-          void CallController.endCall().then(() => navigation.goBack());
-        }}
-        accessibilityRole="button"
-        accessibilityLabel="End call"
-      >
-        <Ionicons name="call" size={28} color="#fff" style={styles.endIcon} />
-      </Pressable>
+      {isAccepted ? (
+        <Text style={styles.timer}>{formatDuration(elapsedSeconds)}</Text>
+      ) : showRejected ? null : (
+        <ActivityIndicator size="large" color="#fff" style={styles.spinner} />
+      )}
+
+      {!showRejected ? (
+        <Pressable
+          style={styles.endBtn}
+          onPress={() => {
+            void CallController.endCall().then(() => navigation.goBack());
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="End call"
+        >
+          <Ionicons name="call" size={28} color="#fff" style={styles.endIcon} />
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -90,6 +111,18 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 16,
     color: 'rgba(255,255,255,0.75)',
+  },
+  statusRejected: {
+    color: '#FCA5A5',
+    fontWeight: '700',
+    fontSize: 20,
+  },
+  timer: {
+    marginTop: 16,
+    fontSize: 28,
+    fontWeight: '600',
+    color: '#fff',
+    fontVariant: ['tabular-nums'],
   },
   spinner: {
     marginTop: 24,

@@ -16,6 +16,7 @@ import { ConsultantViewAllScreen } from '@/features/consultant/screens/Consultan
 import WalletScreen from '@/features/Wallet/screens/WalletScreen';
 import { WorkshopListScreen } from '@/features/Home/screens/WorkshopListScreen';
 import { ConsultationOnboardingScreen } from '@/features/Consultation/screens/ConsultationOnboardingScreen';
+import { IncomingCallScreen } from '@/features/Calls/screens/IncomingCallScreen';
 import { OutgoingCallScreen } from '@/features/Calls/screens/OutgoingCallScreen';
 import { InCallScreen } from '@/features/Calls/screens/InCallScreen';
 import WorkshopDetailsScreen from '@/features/Home/screens/WorkshopDetailsScreen';
@@ -72,14 +73,31 @@ export function RootNavigator(): React.ReactElement {
               options={{ headerShown: false }}
             />
             <RootStack.Screen
+              name={ROUTES.Root.IncomingCall}
+              component={IncomingCallScreen}
+              options={{
+                headerShown: false,
+                presentation: 'fullScreenModal',
+                gestureEnabled: false,
+              }}
+            />
+            <RootStack.Screen
               name={ROUTES.Root.OutgoingCall}
               component={OutgoingCallScreen}
-              options={{ headerShown: false, presentation: 'fullScreenModal' }}
+              options={{
+                headerShown: false,
+                presentation: 'fullScreenModal',
+                gestureEnabled: false,
+              }}
             />
             <RootStack.Screen
               name={ROUTES.Root.InCall}
               component={InCallScreen}
-              options={{ headerShown: false, presentation: 'fullScreenModal' }}
+              options={{
+                headerShown: false,
+                presentation: 'fullScreenModal',
+                gestureEnabled: false,
+              }}
             />
           </RootStack.Group>
         ) : (

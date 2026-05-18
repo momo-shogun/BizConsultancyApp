@@ -64,6 +64,7 @@ export type RootStackParamList = {
     language?: string;
     price?: number;
   };
+  [ROUTES.Root.IncomingCall]: { sessionId: number };
   [ROUTES.Root.OutgoingCall]: { sessionId: number };
   [ROUTES.Root.InCall]: { sessionId: number };
 };

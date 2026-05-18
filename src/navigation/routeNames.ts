@@ -12,6 +12,7 @@ export const ROUTES = {
     WorkshopsList: 'Root/WorkshopsList',
      WorkshopsDetail: 'Root/WorkshopDetailsScreen',
     ConsultationOnboarding: 'Root/ConsultationOnboarding',
+    IncomingCall: 'Root/IncomingCall',
     OutgoingCall: 'Root/OutgoingCall',
     InCall: 'Root/InCall',
   },
