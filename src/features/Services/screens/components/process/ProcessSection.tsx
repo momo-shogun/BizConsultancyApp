@@ -114,11 +114,7 @@ function ProcessStepCard({
             {step.description.length > 0 ? (
               <Text style={styles.stepDescription}>{step.description}</Text>
             ) : null}
-
-            <View style={styles.stepFooterRow}>
-              <View style={styles.stepStatusDot} />
-              <Text style={styles.stepStatusText}>Simple & guided process</Text>
-            </View>
+            
           </LinearGradient>
         </Pressable>
       </View>
