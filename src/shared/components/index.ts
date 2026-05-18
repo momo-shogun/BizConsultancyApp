@@ -3,6 +3,15 @@ export { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 export { Input } from './ui/Input/Input';
 export { ScreenHeader } from './ui/ScreenHeader/ScreenHeader';
 
+export {
+  PremiumHorizontalTabBar,
+  premiumTabPalette,
+  type PremiumHorizontalTabBarProps,
+  type PremiumTabBarTheme,
+  type PremiumTabIconName,
+  type PremiumTabItem,
+} from './navigation/PremiumHorizontalTabBar';
+
 export { FilterChipsBar, type FilterChipItem, type FilterChipsBarProps } from './filters/FilterChipsBar';
 export {
   FilterSheet,

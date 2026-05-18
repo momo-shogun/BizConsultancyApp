@@ -1,9 +1,32 @@
-import type { AboutSectionProps, ContentSegment } from '../screens/components/aboutSection/aboutSection';
+import type {
+  AboutSectionProps,
+  ContentSegment,
+  HighlightColor,
+} from '../screens/components/aboutSection/aboutSection';
 import type { AboutSection, TextSegment } from '../screens/types';
+
+function normalizeHighlightColor(raw: string | undefined): HighlightColor {
+  const c = raw?.toLowerCase().trim() ?? '';
+  if (c === 'orange' || c === 'amber' || c === 'red') {
+    return 'orange';
+  }
+  if (
+    c === 'emerald' ||
+    c === 'green' ||
+    c === 'teal' ||
+    c === 'mint'
+  ) {
+    return 'emerald';
+  }
+  return 'blue';
+}
 
 function mapSegment(segment: TextSegment): ContentSegment {
   if (segment.type === 'highlight') {
-    return { text: segment.value, color: 'blue' };
+    return {
+      text: segment.value,
+      color: normalizeHighlightColor(segment.color),
+    };
   }
   return segment.value;
 }

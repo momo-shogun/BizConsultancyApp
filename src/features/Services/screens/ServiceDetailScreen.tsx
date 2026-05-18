@@ -1,6 +1,6 @@
 import React, { useCallback, useLayoutEffect, useMemo, useState } from 'react';
 
-import { Pressable, Text, View, ScrollView } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import type { RouteProp } from '@react-navigation/native';
 
@@ -24,8 +24,8 @@ import {
   ScreenHeader,
   ScreenWrapper,
   ScrollWrapper,
-  SectionHeader,
 } from '@/shared/components';
+import { PremiumHorizontalTabBar } from '@/shared/components/navigation/PremiumHorizontalTabBar';
 
 import { SERVICE_DETAIL_TABS, type DetailTabKey } from './serviceTabs';
 
@@ -305,39 +305,13 @@ export function ServiceDetailScreen(): React.ReactElement {
             </LinearGradient>
           </View>
 
-          <View style={styles.tabBarWrap}>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.tabs}
-            >
-              {SERVICE_DETAIL_TABS.map((tab) => {
-                const isActive = activeTab === tab.key;
-                return (
-                  <Pressable
-                    key={tab.key}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${tab.label} tab`}
-                    onPress={() => setActiveTab(tab.key)}
-                    hitSlop={8}
-                    style={({ pressed }) => [
-                      styles.tab,
-                      isActive ? styles.tabActive : null,
-                      pressed ? styles.tabPressed : null,
-                    ]}
-                  >
-                    {isActive ? <View style={styles.tabActiveIndicator} /> : null}
-                    <Text
-                      numberOfLines={1}
-                      style={[styles.tabText, isActive ? styles.tabTextActive : null]}
-                    >
-                      {tab.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-          </View>
+          <PremiumHorizontalTabBar
+            tabs={SERVICE_DETAIL_TABS}
+            activeKey={activeTab}
+            onTabPress={setActiveTab}
+            theme="light"
+            testID="service-detail-tabs"
+          />
 
           {tabPanel}
 

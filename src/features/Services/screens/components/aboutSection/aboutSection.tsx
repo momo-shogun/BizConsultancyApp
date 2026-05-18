@@ -3,6 +3,7 @@ import {
   View,
   Text,
   StyleProp,
+  TextStyle,
   ViewStyle,
 } from 'react-native';
 import Animated, {
@@ -29,65 +30,39 @@ export interface AboutSectionProps {
   containerStyle?: StyleProp<ViewStyle>;
 }
 
-interface HighlightChipProps {
-  text: string;
-  color: HighlightColor;
-  inline?: boolean;
+function withTrailingSpace(value: string): string {
+  const trimmed = value.trimEnd();
+  return trimmed.length > 0 ? `${trimmed} ` : '';
 }
 
-const HighlightChip = memo(
-  ({ text, color, inline }: HighlightChipProps) => {
-    return (
-      <View
-        style={[
-          styles.highlightChip,
-          inline && styles.inlineHighlightChip,
-          {
-            borderColor: highlightColors[color].border,
-            backgroundColor: highlightColors[color].bg,
-          },
-        ]}
-      >
-        <Text
-          style={[
-            styles.highlightText,
-            {
-              color: highlightColors[color].text,
-            },
-          ]}
-        >
-          {text}
-        </Text>
-      </View>
-    );
-  }
-);
-
-HighlightChip.displayName = 'HighlightChip';
-
-const renderSegments = (
+function renderSegmentNodes(
   segments: ContentSegment[],
-  inline = false
-) => {
+  plainStyle: StyleProp<TextStyle>,
+  highlightBaseStyle: StyleProp<TextStyle>,
+): React.ReactNode[] {
   return segments.map((segment, index) => {
     if (typeof segment === 'string') {
       return (
-        <Text key={`text-${index}`} style={styles.inlineText}>
-          {segment}
+        <Text key={`seg-${index}`} style={plainStyle}>
+          {withTrailingSpace(segment)}
         </Text>
       );
     }
 
+    const palette = highlightColors[segment.color];
     return (
-      <HighlightChip
-        key={`highlight-${index}`}
-        text={segment.text}
-        color={segment.color}
-        inline={inline}
-      />
+      <Text
+        key={`seg-${index}`}
+        style={[
+          highlightBaseStyle,
+          { color: palette.text },
+        ]}
+      >
+        {withTrailingSpace(segment.text)}
+      </Text>
     );
   });
-};
+}
 
 export const AboutSection = memo(
   ({
@@ -104,42 +79,37 @@ export const AboutSection = memo(
         <View style={styles.gradientGlowBottom} />
 
         <View style={styles.card}>
-          {/* Badge */}
-          <Animated.View
-            entering={FadeInDown.delay(80).duration(500)}
-            style={styles.badge}
-          >
-            <Text style={styles.badgeText}>
-              About this service
-            </Text>
-          </Animated.View>
-
-          {/* Title */}
           <Animated.View
             entering={FadeInDown.delay(140).duration(550)}
           >
             <Text style={styles.title}>
-              {titleSegments && titleSegments.length > 0
-                ? renderSegments(titleSegments)
+              {titleSegments != null && titleSegments.length > 0
+                ? renderSegmentNodes(
+                    titleSegments,
+                    styles.titlePlainSegment,
+                    styles.titleHighlightSegment,
+                  )
                 : title}
             </Text>
           </Animated.View>
 
-          {/* Intro */}
-          {intro ? (
+          {intro != null && intro !== '' ? (
             <Animated.View
               entering={FadeInDown.delay(220).duration(550)}
               style={styles.introWrapper}
             >
               <Text style={styles.introText}>
                 {Array.isArray(intro)
-                  ? renderSegments(intro, true)
+                  ? renderSegmentNodes(
+                      intro,
+                      styles.introPlainSegment,
+                      styles.introHighlightSegment,
+                    )
                   : intro}
               </Text>
             </Animated.View>
           ) : null}
 
-          {/* Paragraphs */}
           <View style={styles.paragraphsContainer}>
             {paragraphs.map((paragraph, index) => (
               <Animated.View
@@ -150,15 +120,21 @@ export const AboutSection = memo(
               >
                 <Text style={styles.paragraphText}>
                   {Array.isArray(paragraph)
-                    ? renderSegments(paragraph, true)
+                    ? renderSegmentNodes(
+                        paragraph,
+                        styles.paragraphPlainSegment,
+                        styles.paragraphHighlightSegment,
+                      )
                     : paragraph}
                 </Text>
               </Animated.View>
             ))}
           </View>
 
-          {/* Tagline */}
-          {tagline ? (
+          {tagline != null &&
+          (typeof tagline === 'string'
+            ? tagline.length > 0
+            : tagline.length > 0) ? (
             <Animated.View
               entering={FadeInDown.delay(420).duration(550)}
               style={styles.taglineContainer}
@@ -167,7 +143,11 @@ export const AboutSection = memo(
 
               <Text style={styles.taglineText}>
                 {Array.isArray(tagline)
-                  ? renderSegments(tagline, true)
+                  ? renderSegmentNodes(
+                      tagline,
+                      styles.taglinePlainSegment,
+                      styles.taglineHighlightSegment,
+                    )
                   : tagline}
               </Text>
             </Animated.View>

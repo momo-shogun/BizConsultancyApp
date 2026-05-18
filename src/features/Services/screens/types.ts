@@ -5,6 +5,8 @@ export interface TextSegment {
 
   value: string;
 
+  /** Optional accent from API (e.g. blue, orange, emerald). */
+  color?: string;
 }
 
 export interface AboutParagraph {

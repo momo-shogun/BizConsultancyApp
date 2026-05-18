@@ -1,6 +1,5 @@
 import {
   Dimensions,
-  Platform,
   StyleSheet,
 } from 'react-native';
 
@@ -56,26 +55,7 @@ export const styles = StyleSheet.create({
     borderRadius: 30,
     paddingHorizontal: 22,
     paddingVertical: 26,
-
-    backgroundColor: '#FFFFFF',
-
-    borderWidth: 1,
-    borderColor: 'rgba(15,23,42,0.06)',
-
-    ...Platform.select({
-      ios: {
-        shadowColor: '#0F172A',
-        shadowOpacity: 0.12,
-        shadowRadius: 24,
-        shadowOffset: {
-          width: 0,
-          height: 10,
-        },
-      },
-      android: {
-        elevation: 7,
-      },
-    }),
+    // backgroundColor: '#FFFFFF',
   },
 
   badge: {
@@ -113,14 +93,29 @@ export const styles = StyleSheet.create({
   title: {
     flexWrap: 'wrap',
 
-    fontSize: 30,
-    lineHeight: 40,
+    fontSize: 24,
+    lineHeight: 32,
 
     fontWeight: '800',
-    letterSpacing: -1,
+    letterSpacing: -0.6,
 
     color: '#0F172A',
-    marginBottom: 18,
+    marginBottom: 16,
+  },
+
+  titlePlainSegment: {
+    fontSize: 24,
+    lineHeight: 32,
+    fontWeight: '800',
+    letterSpacing: -0.6,
+    color: '#0F172A',
+  },
+
+  titleHighlightSegment: {
+    fontSize: 24,
+    lineHeight: 32,
+    fontWeight: '800',
+    letterSpacing: -0.6,
   },
 
   introWrapper: {
@@ -133,6 +128,19 @@ export const styles = StyleSheet.create({
 
     color: '#475569',
     fontWeight: '500',
+  },
+
+  introPlainSegment: {
+    fontSize: 16,
+    lineHeight: 29,
+    color: '#475569',
+    fontWeight: '500',
+  },
+
+  introHighlightSegment: {
+    fontSize: 16,
+    lineHeight: 29,
+    fontWeight: '700',
   },
 
   paragraphsContainer: {
@@ -176,34 +184,29 @@ export const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  inlineText: {
+  paragraphPlainSegment: {
     fontSize: 15.5,
     lineHeight: 28,
     color: '#64748B',
+    fontWeight: '500',
   },
 
-  highlightChip: {
-    alignSelf: 'flex-start',
-
-    borderWidth: 1.5,
-    borderStyle: 'dashed',
-
-    borderRadius: 12,
-
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-
-    marginHorizontal: 2,
-  },
-
-  inlineHighlightChip: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-
-  highlightText: {
-    fontSize: 14.5,
+  paragraphHighlightSegment: {
+    fontSize: 15.5,
+    lineHeight: 28,
     fontWeight: '700',
-    letterSpacing: -0.2,
+  },
+
+  taglinePlainSegment: {
+    fontSize: 15.5,
+    lineHeight: 27,
+    color: '#334155',
+    fontWeight: '700',
+  },
+
+  taglineHighlightSegment: {
+    fontSize: 15.5,
+    lineHeight: 27,
+    fontWeight: '800',
   },
 });

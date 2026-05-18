@@ -77,9 +77,14 @@ function mapTextSegments(raw: unknown): TextSegment[] {
     if (!isRecord(item) || typeof item.value !== 'string') {
       continue;
     }
+    const color =
+      typeof item.color === 'string' && item.color.trim().length > 0
+        ? item.color.trim()
+        : undefined;
     segments.push({
       type: item.type === 'highlight' ? 'highlight' : 'plain',
       value: item.value,
+      ...(color != null ? { color } : {}),
     });
   }
   return segments;
