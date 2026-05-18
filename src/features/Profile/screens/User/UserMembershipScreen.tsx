@@ -57,11 +57,11 @@ const PLANS: Plan[] = [
     gstNote: 'GST Inclusive • 365 Days',
     ctaLabel: 'Start with Executive',
     features: [
-      { icon: { variant: 'glyph', content: '✓' },  label: 'Verified\nConsultant' },
+      { icon: { variant: 'glyph', content: '✓' }, label: 'Verified\nConsultant' },
       { icon: { variant: 'glyph', content: '📁' }, label: 'Document\nLocker' },
       { icon: { variant: 'glyph', content: '🎙' }, label: 'Webinar &\nWorkshop' },
       { icon: { variant: 'glyph', content: '🎬' }, label: 'Expert\nTalk Shoot' },
-      { icon: { variant: 'glyph', content: '▶' },  label: 'Intro\nVideo' },
+      { icon: { variant: 'glyph', content: '▶' }, label: 'Intro\nVideo' },
     ],
     featureList: [
       'Verified Consultant Status',
@@ -85,11 +85,11 @@ const PLANS: Plan[] = [
     gstNote: 'GST Inclusive • 365 Days',
     ctaLabel: 'Start with Silver',
     features: [
-      { icon: { variant: 'glyph', content: '✓' },  label: 'Verified\nConsultant' },
-      { icon: { variant: 'pill', content: '1K' },   label: 'Wallet\nCredit' },
+      { icon: { variant: 'glyph', content: '✓' }, label: 'Verified\nConsultant' },
+      { icon: { variant: 'pill', content: '1K' }, label: 'Wallet\nCredit' },
       { icon: { variant: 'glyph', content: '🎬' }, label: 'Biz Profile\nVideo' },
       { icon: { variant: 'glyph', content: '🔥' }, label: 'Hot\nLeads' },
-      { icon: { variant: 'tag', content: '5' },     label: 'Subject\nVideos' },
+      { icon: { variant: 'tag', content: '5' }, label: 'Subject\nVideos' },
     ],
     featureList: [
       'Verified Consultant Status',
@@ -116,9 +116,9 @@ const PLANS: Plan[] = [
     gstNote: 'GST Inclusive • 730 Days',
     ctaLabel: 'Start with Gold',
     features: [
-      { icon: { variant: 'pill', content: '2K' },   label: 'Wallet\nCredit' },
+      { icon: { variant: 'pill', content: '2K' }, label: 'Wallet\nCredit' },
       { icon: { variant: 'glyph', content: '🎯' }, label: 'Workshop\n& Events' },
-      { icon: { variant: 'tag', content: '10' },    label: 'Subject\nVideos' },
+      { icon: { variant: 'tag', content: '10' }, label: 'Subject\nVideos' },
       { icon: { variant: 'glyph', content: '📸' }, label: 'Product\nShoot (10)' },
       { icon: { variant: 'glyph', content: '💼' }, label: 'CRM\nFacility' },
     ],
@@ -402,7 +402,7 @@ export function UserMembershipScreen(): React.ReactElement {
   function handleCardPress(planId: string): void {
     setActivePlanId(planId);
   }
-const navigation = useNavigation<NavigationProp<AccountStackParamList>>();
+  const navigation = useNavigation<NavigationProp<AccountStackParamList>>();
   const activePlan = PLANS.find((p) => p.id === activePlanId) ?? PLANS[0];
   const activeOptionId = selectedOptions[activePlan?.id ?? ''] ?? '';
   const activeOption = activePlan?.priceOptions.find((o) => o.id === activeOptionId);
@@ -413,11 +413,11 @@ const navigation = useNavigation<NavigationProp<AccountStackParamList>>();
   const footerAccent = accentColor(activePlan.nameStyle);
 
   return (
-       <SafeAreaWrapper edges={['top', 'bottom']} bgColor="white">
-         <ScreenHeader
-           title="Membership"
-           onBackPress={() => navigation.goBack()}
-         />
+    <SafeAreaWrapper edges={['top', 'bottom']} bgColor="white">
+      <ScreenHeader
+        title="Membership"
+        onBackPress={() => navigation.goBack()}
+      />
       <ScreenWrapper style={styles.screen}>
 
         <ScrollView

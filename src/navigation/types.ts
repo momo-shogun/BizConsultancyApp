@@ -28,6 +28,12 @@ export type AccountStackParamList = {
   [ROUTES.Account.Home]: undefined;
   [ROUTES.Account.HelpSettings]: undefined;
   [ROUTES.Account.Membership]: undefined;
+  [ROUTES.Account.EditProfile]: undefined;
+    [ROUTES.Account.ConsultantBankDetailsScreen]: undefined;
+    [ROUTES.Account.ExpertVideosScreen]: undefined;
+     [ROUTES.Account.TransactionHis]: undefined;
+        [ROUTES.Account.CreditsScreen]: undefined;
+     
 };
 
 export type AppTabParamList = {

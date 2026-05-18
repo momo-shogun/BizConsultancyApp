@@ -8,6 +8,13 @@ export const COLORS = {
   border: '#E5E7EF',
   accentBlue: '#38BDF8',
   accentPurple: '#A78BFA',
+    accentAmber: '#FBBF24',
+    bgDark: '#0F172A',
+    bgGreen: '#0F2A1A',
+    bgPurple: '#1A0F2E',
+    blue: '#38BDF8',
+    green: '#34D399',
+    purple: '#A78BFA',
   /** Brand primary (logo forest green) */
   primary: '#0F5132',
    accentGreen: '#34D399',

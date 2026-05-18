@@ -1,3 +1,6 @@
+import { ConsultantBankDetailsScreen } from "@/features/Profile/screens/Consultant/Consultantbankdetailsscreen ";
+import CreditsScreen from "@/features/Profile/screens/Consultant/CreditsScreen";
+
 export const ROUTES = {
   Root: {
     Auth: 'Root/Auth',
@@ -38,6 +41,13 @@ export const ROUTES = {
     Home: 'App/Account/Home',
     HelpSettings: 'App/Account/HelpSettings',
     Membership: 'App/Account/MembershipScreen',
+    EditProfile: 'App/Account/EditProfile',
+    ConsultantBankDetailsScreen: 'App/Account/ConsultantBankDetailsScreen',
+    ExpertVideosScreen: 'App/Account/ExpertVideosScreen',
+        TransactionHis: 'App/Account/TransactionHistory',
+        CreditsScreen: 'App/Account/CreditsScreen',
+        
+        
   },
 } as const;
 

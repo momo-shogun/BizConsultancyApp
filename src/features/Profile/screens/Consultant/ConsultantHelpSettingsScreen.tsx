@@ -2,12 +2,14 @@ import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NavigationProp } from '@react-navigation/native';
+import { ROUTES } from '@/navigation/routeNames';
 import type { AccountStackParamList } from '@/navigation/types';
 
 import { useAuth } from '@/app/providers/AuthProvider';
 import { SafeAreaWrapper, ScreenHeader } from '@/shared/components';
 
 import { styles } from './ConsultantHelpSettingsScreen.styles';
+import { navigationRef } from '@/navigation/RootNavigator';
 // ── Types ─────────────────────────────────────────────────────────────────────
 type RowType = 'navigate' | 'expand';
 
@@ -66,7 +68,7 @@ const SETTINGS_ROWS: SettingsRow[] = [
     id: 'profile',
     icon: '👤',
     iconBgColor: 'rgba(59,130,246,0.13)',
-    title: 'My Profile',
+    title: 'Edit Profile',
     subtitle: 'Update your personal details',
     type: 'navigate',
   },
@@ -192,6 +194,28 @@ export function ConsultantHelpSettingsScreen(props: ConsultantHelpSettingsScreen
     if (rowId === 'membership') {
       return;
     }
+    if (rowId === 'profile') {
+      navigation.navigate(ROUTES.Account.EditProfile);
+      return;
+    }
+    if (rowId === "wallet"){
+      //  navigation.navigate(ROUTES.Root.WorkshopsList);
+        navigationRef.navigate(ROUTES.Root.Wallet);
+      return;
+    }
+    if (rowId === "bankDetails"){
+        navigation.navigate(ROUTES.Account.ConsultantBankDetailsScreen);
+      return;
+    }
+    if (rowId === "expertVideo"){
+        navigation.navigate(ROUTES.Account.ExpertVideosScreen);
+      return;
+    }
+     if (rowId === "bizCredits"){
+        navigation.navigate(ROUTES.Account.CreditsScreen);
+      return;
+    }
+
   };
 
   return (

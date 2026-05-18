@@ -12,7 +12,7 @@ import { plankBarV1TabNavigatorScreenOptions } from '../tabNavigators/plankBarV1
 export const TAB_BAR_HIDDEN_ROUTES: Readonly<Record<string, readonly string[]>> = {
   [ROUTES.App.Edp]: [ROUTES.Edp.Modules],
   [ROUTES.App.Services]: [ROUTES.Services.Detail],
-  [ROUTES.App.Account]: [ROUTES.Account.HelpSettings,ROUTES.Account.Membership],
+  [ROUTES.App.Account]: [ROUTES.Account.HelpSettings,ROUTES.Account.Membership ,ROUTES.Account.EditProfile , ROUTES.Account.ConsultantBankDetailsScreen , ROUTES.Account.ExpertVideosScreen , ROUTES.Account.CreditsScreen , ROUTES.Account.ConsultantBankDetailsScreen],
   // [ROUTES.App.Account]:[ROUTES.Account.Membership]
 } as const;
 
