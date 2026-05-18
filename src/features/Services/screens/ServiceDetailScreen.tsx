@@ -78,6 +78,48 @@ export function ServiceDetailScreen(): React.ReactElement {
 
   const aboutUi = useMemo(() => mapAboutToUiProps(item?.about), [item?.about]);
 
+  const tabPanel = useMemo((): React.ReactElement | null => {
+    if (item == null) {
+      return null;
+    }
+
+    switch (activeTab) {
+      case 'about':
+        return aboutUi != null ? <AboutSection {...aboutUi} /> : null;
+      case 'eligibility':
+        // Prerequisites tab ← API `eligibility` (badge, title, items, …)
+        if (item.eligibility == null || item.eligibility.items.length === 0) {
+          return (
+            <View style={styles.tabEmptyWrap}>
+              <EmptyState
+                title="No prerequisites"
+                description="Prerequisite details are not available for this service yet."
+              />
+            </View>
+          );
+        }
+        return <EligibilitySection eligibility={item.eligibility} />;
+      case 'process':
+        return item.process != null ? <ProcessSection process={item.process} /> : null;
+      case 'documents':
+        return item.documents != null ? (
+          <DocumentCategories documents={item.documents} />
+        ) : null;
+      case 'benefits':
+        return item.benefits != null ? <BenefitsSection benefits={item.benefits} /> : null;
+      case 'idealFor':
+        return item.idealFor != null ? <IdealForSection idealFor={item.idealFor} /> : null;
+      case 'compliance':
+        return item.compliance != null ? (
+          <ComplianceSection compliance={item.compliance} />
+        ) : null;
+      case 'faqs':
+        return item.faqs != null ? <FAQSection faqs={item.faqs} /> : null;
+      default:
+        return null;
+    }
+  }, [activeTab, aboutUi, item]);
+
   if (isLoading) {
     return (
       <SafeAreaWrapper edges={['bottom']}>
@@ -297,41 +339,7 @@ export function ServiceDetailScreen(): React.ReactElement {
             </ScrollView>
           </View>
 
-          {activeTab === 'about' && aboutUi != null ? <AboutSection {...aboutUi} /> : null}
-
-          {activeTab === 'eligibility' && item.eligibility ? (
-            <EligibilitySection item={item.eligibility} activeTab={activeTab} />
-          ) : null}
-
-          {activeTab === 'process' && item.process ? (
-            <ProcessSection process={item.process} />
-          ) : null}
-
-          {activeTab === 'documents' &&
-            item.documents ? (
-            <DocumentCategories
-              documents={item.documents}
-            />
-          ) : null}
-
-          {activeTab === 'benefits' &&
-            item.benefits ? (
-            <BenefitsSection benefits={item.benefits} />
-          ) : null}
-
-          {activeTab === 'idealFor' &&
-            item.idealFor ? (
-            <IdealForSection idealFor={item.idealFor} />
-          ) : null}
-
-          {activeTab === 'compliance' &&
-            item.compliance ? (
-            <ComplianceSection compliance={item.compliance} />
-          ) : null}
-
-          {activeTab === 'faqs' && item.faqs ? (
-            <FAQSection faqs={item.faqs} />
-          ) : null}
+          {tabPanel}
 
           {item.recommendedServices != null ? (
             <RecommendedServicesSection

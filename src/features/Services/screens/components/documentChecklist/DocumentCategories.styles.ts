@@ -1,163 +1,124 @@
 import { StyleSheet } from 'react-native';
 
+import { THEME } from '@/constants/theme';
+
+const BLUE = '#1D4ED8';
+const SLATE_600 = '#475569';
+const SLATE_900 = '#0F172A';
+
 export const styles = StyleSheet.create({
   container: {
-    padding: 16,
-    paddingBottom: 40,
-    backgroundColor: '#F8FAFC',
+    paddingHorizontal: THEME.spacing[16],
+    paddingBottom: THEME.spacing[8],
+    gap: THEME.spacing[10],
   },
-
-  // Hero
-  heroCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 28,
-    padding: 22,
-    marginBottom: 20,
-
+  badge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: THEME.spacing[10],
+    paddingVertical: THEME.spacing[4],
+    borderRadius: 999,
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  badgeText: {
+    fontSize: THEME.typography.size[12],
+    fontWeight: THEME.typography.weight.bold as '700',
+    letterSpacing: 0.8,
+    color: BLUE,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'baseline',
+    gap: 4,
+  },
+  title: {
+    fontSize: THEME.typography.size[18],
+    fontWeight: THEME.typography.weight.bold as '700',
+    color: SLATE_900,
+    lineHeight: 24,
+  },
+  titleHighlight: {
+    fontSize: THEME.typography.size[18],
+    fontWeight: THEME.typography.weight.bold as '700',
+    color: BLUE,
+    lineHeight: 24,
+  },
+  card: {
+    borderRadius: 14,
+    backgroundColor: THEME.colors.white,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-
-    shadowColor: '#0F172A',
-    shadowOffset: {
-      width: 0,
-      height: 10,
-    },
-    shadowOpacity: 0.06,
-    shadowRadius: 20,
-    elevation: 3,
+    overflow: 'hidden',
   },
-
-  heroBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#DBEAFE',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
-    marginBottom: 14,
+  categoryBlock: {
+    paddingHorizontal: THEME.spacing[12],
+    paddingVertical: THEME.spacing[10],
   },
-
-  heroBadgeText: {
-    color: '#1D4ED8',
-    fontSize: 12,
-    fontWeight: '700',
+  categoryBlockBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
   },
-
-  heroTitle: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#0F172A',
-    letterSpacing: -0.8,
-  },
-
-  heroSubtitle: {
-    marginTop: 8,
-    fontSize: 14,
-    lineHeight: 22,
-    color: '#64748B',
-  },
-
-  // Category Card
-  categoryCard: {
-    borderRadius: 24,
-    padding: 18,
-    marginBottom: 16,
-    borderWidth: 1,
-  },
-
-  categoryTop: {
+  categoryHeader: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-
-  categoryAccent: {
-    width: 6,
-    borderRadius: 999,
-    alignSelf: 'stretch',
-    marginRight: 14,
-  },
-
-  categoryTextWrap: {
-    flex: 1,
-  },
-
-  categoryTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#0F172A',
-    letterSpacing: -0.4,
-  },
-
-  categorySubtitle: {
-    marginTop: 4,
-    fontSize: 13,
-    lineHeight: 20,
-    color: '#475569',
-  },
-
-  countBadge: {
-    minWidth: 42,
-    height: 42,
-    borderRadius: 14,
-    justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 12,
+    gap: THEME.spacing[8],
+    marginBottom: THEME.spacing[8],
   },
-
-  countText: {
-    fontSize: 15,
-    fontWeight: '700',
-  },
-
-  // Documents
-  documentsWrap: {
-    marginTop: 18,
-    gap: 10,
-  },
-
-  documentRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-
-    backgroundColor: '#FFFFFFCC',
-    borderRadius: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-  },
-
-  documentDot: {
+  categoryDot: {
     width: 8,
     height: 8,
-    borderRadius: 999,
-    marginTop: 6,
-    marginRight: 12,
+    borderRadius: 4,
   },
-
-  documentText: {
+  categoryTitle: {
     flex: 1,
-    fontSize: 14,
-    lineHeight: 22,
-    color: '#1E293B',
-    fontWeight: '500',
+    fontSize: THEME.typography.size[14],
+    fontWeight: THEME.typography.weight.semibold as '600',
+    color: SLATE_900,
   },
-
-  // Empty State
+  countPill: {
+    paddingHorizontal: THEME.spacing[8],
+    paddingVertical: 2,
+    borderRadius: 999,
+  },
+  countText: {
+    fontSize: THEME.typography.size[12],
+    fontWeight: THEME.typography.weight.bold as '700',
+  },
+  docList: {
+    gap: 6,
+  },
+  docRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: THEME.spacing[8],
+  },
+  docIcon: {
+    marginTop: 2,
+  },
+  docText: {
+    flex: 1,
+    fontSize: THEME.typography.size[12],
+    lineHeight: 18,
+    color: SLATE_600,
+    fontWeight: THEME.typography.weight.medium as '500',
+  },
   emptyContainer: {
-    padding: 24,
+    paddingHorizontal: THEME.spacing[16],
+    paddingVertical: THEME.spacing[20],
     alignItems: 'center',
-    justifyContent: 'center',
   },
-
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#0F172A',
-    marginBottom: 6,
+    fontSize: THEME.typography.size[16],
+    fontWeight: THEME.typography.weight.bold as '700',
+    color: SLATE_900,
+    marginBottom: 4,
   },
-
   emptySubtitle: {
-    fontSize: 14,
-    color: '#64748B',
+    fontSize: THEME.typography.size[12],
+    color: SLATE_600,
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 18,
   },
 });

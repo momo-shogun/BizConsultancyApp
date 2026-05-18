@@ -33,11 +33,17 @@ export const servicesApi = baseApi.injectEndpoints({
       query: (slug) => ({
         url: `public/service-pages/${encodeURIComponent(slug)}`,
       }),
-      transformResponse: (response: unknown): ServicePage => {
+      transformResponse: (response: unknown, _meta, slug): ServicePage => {
+        if (__DEV__) {
+          console.log(`[ServiceDetail] GET public/service-pages/${slug} — raw response`, response);
+        }
         const row = unwrapPublicServicePageRecord(response);
         const page = row != null ? mapPublicServiceToServicePage(row) : null;
         if (page == null) {
           throw new Error('Invalid service page response');
+        }
+        if (__DEV__) {
+          console.log(`[ServiceDetail] GET public/service-pages/${slug} — mapped`, page);
         }
         return page;
       },

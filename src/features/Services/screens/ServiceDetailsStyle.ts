@@ -9,6 +9,10 @@ export const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
   },
+  tabEmptyWrap: {
+    paddingHorizontal: THEME.spacing[16],
+    paddingVertical: THEME.spacing[24],
+  },
   scrollContent: {
     paddingBottom: THEME.spacing[24],
     gap: THEME.spacing[20],

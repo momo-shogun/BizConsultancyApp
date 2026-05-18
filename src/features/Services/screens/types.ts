@@ -173,12 +173,22 @@ export interface ServicePage extends RecommendedServiceItem {
   };
 
   process?: {
+    badge?: string;
+
     title?: string;
+
+    titleHighlight?: string;
 
     steps?: ProcessStep[];
   };
 
   documents?: {
+    badge?: string;
+
+    title?: string;
+
+    titleHighlight?: string;
+
     categories: DocumentCategory[];
   };
 
@@ -187,7 +197,11 @@ export interface ServicePage extends RecommendedServiceItem {
   };
 
   eligibility?: {
+    badge?: string;
+
     title: string;
+
+    titleHighlight?: string;
 
     description?: string;
 

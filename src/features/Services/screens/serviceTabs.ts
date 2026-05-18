@@ -4,6 +4,7 @@
  */
 export const SERVICE_DETAIL_TABS = [
   { key: 'about', label: 'About Us', apiSection: 'about' },
+  /** UI: Prerequisites — content from API `eligibility` */
   { key: 'eligibility', label: 'Prerequisites', apiSection: 'eligibility' },
   { key: 'benefits', label: 'Key Benefits', apiSection: 'benefits' },
   { key: 'idealFor', label: 'Ideal For', apiSection: 'idealFor' },

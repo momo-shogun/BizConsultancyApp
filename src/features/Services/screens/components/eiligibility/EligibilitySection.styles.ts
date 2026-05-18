@@ -1,119 +1,135 @@
 import { StyleSheet } from 'react-native';
+
 import { THEME } from '@/constants/theme';
+
+const BLUE = '#1D4ED8';
+const BLUE_SOFT = '#EFF6FF';
+const BLUE_BORDER = '#BFDBFE';
+const SLATE_600 = '#475569';
+const SLATE_900 = '#0F172A';
+
+export const eligibilityColors = {
+  blue: BLUE,
+  blueSoft: BLUE_SOFT,
+  blueBorder: BLUE_BORDER,
+  slate600: SLATE_600,
+  slate900: SLATE_900,
+} as const;
 
 export const styles = StyleSheet.create({
   container: {
-    padding: THEME.spacing[16],
-    gap: THEME.spacing[14],
+    paddingHorizontal: THEME.spacing[16],
+    paddingBottom: THEME.spacing[8],
+    gap: THEME.spacing[16],
   },
-
-  /** HEADER */
-  header: {
+  badge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: THEME.spacing[12],
+    paddingVertical: THEME.spacing[8],
+    borderRadius: 999,
+    backgroundColor: BLUE_SOFT,
+    borderWidth: 1,
+    borderColor: BLUE_BORDER,
+  },
+  badgeText: {
+    fontSize: THEME.typography.size[12],
+    fontWeight: THEME.typography.weight.bold as '700',
+    letterSpacing: 1.2,
+    color: BLUE,
+  },
+  titleRow: {
     flexDirection: 'row',
-    gap: THEME.spacing[10],
-    alignItems: 'center',
+    flexWrap: 'wrap',
+    alignItems: 'baseline',
+    gap: 4,
   },
-
-  accentBar: {
-    width: 4,
-    height: 26,
-    borderRadius: 2,
-    backgroundColor: THEME.colors.accentAmber,
-  },
-
   title: {
     fontSize: THEME.typography.size[20],
-    fontWeight: THEME.typography.weight.bold,
-    color: THEME.colors.textPrimary,
+    fontWeight: THEME.typography.weight.bold as '700',
+    color: SLATE_900,
+    lineHeight: 30,
   },
-
-  subtitle: {
-    fontSize: THEME.typography.size[12],
-    color: THEME.colors.textSecondary,
-    marginTop: 2,
+  titleHighlight: {
+    fontSize: THEME.typography.size[20],
+    fontWeight: THEME.typography.weight.bold as '700',
+    color: BLUE,
+    lineHeight: 30,
   },
-
-  /** LIST */
-  list: {
-    gap: THEME.spacing[12],
-    marginTop: THEME.spacing[8],
+  descriptionCard: {
+    padding: THEME.spacing[14],
+    borderRadius: 14,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
-
-  /** ROW */
+  description: {
+    fontSize: THEME.typography.size[14],
+    lineHeight: 22,
+    color: SLATE_600,
+  },
+  listCard: {
+    borderRadius: 16,
+    backgroundColor: THEME.colors.white,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    overflow: 'hidden',
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 14,
-    borderRadius: 16,
-    backgroundColor: THEME.colors.background,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.18,
-    shadowRadius: 10,
-    elevation: 5,
+    paddingHorizontal: THEME.spacing[14],
+    paddingVertical: THEME.spacing[14],
+    gap: THEME.spacing[12],
   },
-
+  rowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
   iconWrap: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: BLUE_SOFT,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-  },
-
-  iconInner: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: 'rgba(245,158,11,0.12)',
-    justifyContent: 'center',
+    borderColor: BLUE_BORDER,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-
-  content: {
+  rowIndex: {
+    fontSize: THEME.typography.size[12],
+    fontWeight: THEME.typography.weight.bold as '700',
+    color: BLUE,
+  },
+  rowContent: {
     flex: 1,
-    marginLeft: 10,
+    gap: 2,
   },
-
   rowTitle: {
     fontSize: THEME.typography.size[14],
-    fontWeight: THEME.typography.weight.semibold,
-    color: THEME.colors.textPrimary,
+    fontWeight: THEME.typography.weight.semibold as '600',
+    color: SLATE_900,
+    lineHeight: 20,
   },
-
   rowDesc: {
     fontSize: THEME.typography.size[12],
-    color: THEME.colors.textSecondary,
-    marginTop: 2,
+    lineHeight: 18,
+    color: SLATE_600,
   },
-
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: THEME.colors.accentAmber,
-    opacity: 0.8,
-  },
-
-  /** TRUST BAR */
-  trustBar: {
-    marginTop: THEME.spacing[16],
+  footer: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'center',
+    gap: THEME.spacing[16],
+    paddingTop: THEME.spacing[4],
+  },
+  footerItem: {
+    flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
-
-  trustItem: {
-    fontSize: 11,
-    color: THEME.colors.textSecondary,
-  },
-
-  trustDivider: {
-    color: 'rgba(255,255,255,0.2)',
+  footerText: {
+    fontSize: THEME.typography.size[12],
+    color: SLATE_600,
+    fontWeight: THEME.typography.weight.medium as '500',
   },
 });

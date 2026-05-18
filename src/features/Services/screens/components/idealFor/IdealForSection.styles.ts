@@ -1,136 +1,97 @@
-import {
-  Dimensions,
-  StyleSheet,
-} from 'react-native';
+import { StyleSheet } from 'react-native';
 
-const SCREEN_WIDTH = Dimensions.get('window').width;
+import { THEME } from '@/constants/theme';
 
-// tighter spacing + compact cards
-const CARD_WIDTH = (SCREEN_WIDTH - 40) / 2;
+const BLUE = '#1D4ED8';
+const SLATE_600 = '#475569';
+const SLATE_900 = '#0F172A';
 
 export const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 14,
-    paddingTop: 10,
-    paddingBottom: 32,
-    backgroundColor: '#F8FAFC',
+    paddingHorizontal: THEME.spacing[16],
+    paddingBottom: THEME.spacing[8],
+    gap: THEME.spacing[10],
   },
-
-  // Header
-  headerContainer: {
-    marginBottom: 18,
+  badge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: THEME.spacing[10],
+    paddingVertical: THEME.spacing[4],
+    borderRadius: 999,
+    backgroundColor: '#F5F3FF',
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
   },
-
-  sectionTitle: {
-    fontSize: 25,
-    lineHeight: 31,
-    fontWeight: '700',
-    color: '#0F172A',
-    letterSpacing: -0.7,
+  badgeText: {
+    fontSize: THEME.typography.size[12],
+    fontWeight: THEME.typography.weight.bold as '700',
+    letterSpacing: 0.8,
+    color: '#6D28D9',
   },
-
-  sectionSubtitle: {
-    marginTop: 8,
-
-    fontSize: 13,
-    lineHeight: 21,
-
-    color: '#64748B',
-    fontWeight: '500',
-  },
-
-  // Grid
-  grid: {
+  titleRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    gap: 4,
   },
-
-  // Card
+  title: {
+    fontSize: THEME.typography.size[18],
+    fontWeight: THEME.typography.weight.bold as '700',
+    color: SLATE_900,
+    lineHeight: 24,
+  },
+  titleHighlight: {
+    fontSize: THEME.typography.size[18],
+    fontWeight: THEME.typography.weight.bold as '700',
+    color: BLUE,
+    lineHeight: 24,
+  },
   card: {
-    width: CARD_WIDTH,
-
-    borderRadius: 20,
-    overflow: 'hidden',
-
+    borderRadius: 14,
+    backgroundColor: THEME.colors.white,
     borderWidth: 1,
-
-    marginBottom: 12,
-
-    shadowColor: '#0F172A',
-    shadowOffset: {
-      width: 0,
-      height: 5,
-    },
-    shadowOpacity: 0.035,
-    shadowRadius: 12,
-
-    elevation: 2,
+    borderColor: '#E2E8F0',
+    overflow: 'hidden',
   },
-
-  // Image
-  imageWrapper: {
-    position: 'relative',
+  row: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: THEME.spacing[12],
+    paddingHorizontal: THEME.spacing[12],
+    paddingVertical: THEME.spacing[12],
   },
-
-  image: {
-    width: '100%',
-    height: 108,
-    backgroundColor: '#E2E8F0',
+  rowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
   },
-
-  imageAccent: {
-    position: 'absolute',
-
-    left: 10,
-    bottom: -2,
-
-    width: 42,
-    height: 5,
-
-    borderRadius: 999,
+  thumbWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
-
-  // Content
-  content: {
-    paddingHorizontal: 12,
-    paddingTop: 10,
-    paddingBottom: 12,
+  rowBody: {
+    flex: 1,
+    gap: 4,
+    paddingTop: 2,
   },
-
-  tag: {
-    alignSelf: 'flex-start',
-
-    paddingHorizontal: 7,
-    paddingVertical: 4,
-
-    borderRadius: 999,
-    marginBottom: 8,
+  rowIndex: {
+    fontSize: THEME.typography.size[12],
+    fontWeight: THEME.typography.weight.bold as '700',
+    color: '#7C3AED',
+    marginBottom: 2,
   },
-
-  tagText: {
-    fontSize: 9,
-    fontWeight: '700',
-    letterSpacing: 0.25,
+  rowTitle: {
+    fontSize: THEME.typography.size[14],
+    fontWeight: THEME.typography.weight.semibold as '600',
+    color: SLATE_900,
+    lineHeight: 20,
   },
-
-  cardTitle: {
-    fontSize: 14.5,
-    lineHeight: 19,
-
-    fontWeight: '700',
-    color: '#0F172A',
-
-    letterSpacing: -0.25,
-  },
-
-  cardDescription: {
-    marginTop: 6,
-
-    fontSize: 11.5,
+  rowDescription: {
+    fontSize: THEME.typography.size[12],
     lineHeight: 18,
-
-    color: '#475569',
-    fontWeight: '500',
+    color: SLATE_600,
   },
 });

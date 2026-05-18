@@ -1,184 +1,110 @@
 import React from 'react';
-import {
-  Image,
-  ScrollView,
-  Text,
-  View,
-} from 'react-native';
+import { Text, View } from 'react-native';
 
-import Animated, {
-  FadeInDown,
-  FadeInUp,
-} from 'react-native-reanimated';
+import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 
+import { RemoteImage } from '@/shared/components';
+
+import type { IdealForSection as IdealForSectionData, TextSegment } from '../../types';
 import { styles } from './IdealForSection.styles';
 
-interface TitleSegment {
-  type: 'plain' | 'highlight';
-  value: string;
-  color?: string;
-}
-
-interface IdealForItem {
-  image: string;
-  title: string;
-  description: string;
-}
-
-interface IdealForData {
-  titleSegments?: TitleSegment[];
-  items: IdealForItem[];
-}
-
 interface IdealForSectionProps {
-  idealFor: IdealForData;
+  idealFor: IdealForSectionData;
 }
 
-const HIGHLIGHT_COLORS: Record<string, string> = {
-  blue: '#2563EB',
-  green: '#059669',
-  orange: '#EA580C',
-  purple: '#7C3AED',
-};
+const ROW_ACCENTS = ['#7C3AED', '#2563EB', '#059669', '#EA580C'] as const;
 
-const CARD_ACCENTS = [
-  {
-    background: '#EFF6FF',
-    border: '#BFDBFE',
-    accent: '#2563EB',
-  },
-  {
-    background: '#ECFDF5',
-    border: '#A7F3D0',
-    accent: '#059669',
-  },
-  {
-    background: '#FFF7ED',
-    border: '#FED7AA',
-    accent: '#EA580C',
-  },
-  {
-    background: '#F5F3FF',
-    border: '#DDD6FE',
-    accent: '#7C3AED',
-  },
-];
+function SectionHeader({ idealFor }: { idealFor: IdealForSectionData }): React.ReactElement {
+  const segments = idealFor.titleSegments ?? [];
 
-const IdealForSection: React.FC<IdealForSectionProps> = ({
-  idealFor,
-}) => {
-  if (!idealFor?.items?.length) {
+  return (
+    <>
+      <Animated.View entering={FadeInUp.duration(280)}>
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>IDEAL FOR</Text>
+        </View>
+      </Animated.View>
+      <Animated.View entering={FadeInUp.delay(30).duration(280)}>
+        {segments.length > 0 ? (
+          <View style={styles.titleRow}>
+            {segments.map((segment: TextSegment, index: number) => (
+              <Text
+                key={`${segment.value}-${index}`}
+                style={segment.type === 'highlight' ? styles.titleHighlight : styles.title}
+              >
+                {segment.value}
+              </Text>
+            ))}
+          </View>
+        ) : (
+          <Text style={styles.title}>Who is this ideal for?</Text>
+        )}
+      </Animated.View>
+    </>
+  );
+}
+
+function IdealForRow({
+  item,
+  index,
+  isLast,
+}: {
+  item: IdealForSectionData['items'][number];
+  index: number;
+  isLast: boolean;
+}): React.ReactElement {
+  const accent = ROW_ACCENTS[index % ROW_ACCENTS.length];
+  const hasDescription = item.description.trim().length > 0;
+
+  return (
+    <Animated.View
+      entering={FadeInDown.delay(70 + index * 45).duration(280)}
+      style={[styles.row, isLast ? null : styles.rowBorder]}
+    >
+      <View style={[styles.thumbWrap, { borderColor: `${accent}40` }]}>
+        <RemoteImage
+          uri={item.image}
+          resizeMode="cover"
+          placeholderVariant="card"
+          accessibilityLabel={item.title}
+        />
+      </View>
+      <View style={styles.rowBody}>
+        <Text style={[styles.rowIndex, { color: accent }]}>
+          {String(index + 1).padStart(2, '0')}
+        </Text>
+        <Text style={styles.rowTitle}>{item.title}</Text>
+        {hasDescription ? (
+          <Text style={styles.rowDescription} numberOfLines={3}>
+            {item.description}
+          </Text>
+        ) : null}
+      </View>
+    </Animated.View>
+  );
+}
+
+function IdealForSection({ idealFor }: IdealForSectionProps): React.ReactElement | null {
+  if (!idealFor.items.length) {
     return null;
   }
 
   return (
-    <ScrollView
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={styles.container}
-    >
-      {/* Header */}
-      <Animated.View entering={FadeInUp.duration(400)}>
-        <View style={styles.headerContainer}>
-          <Text style={styles.sectionTitle}>
-            {idealFor.titleSegments?.map((segment, index) => {
-              const color =
-                segment.type === 'highlight'
-                  ? HIGHLIGHT_COLORS[segment.color || 'blue']
-                  : '#0F172A';
+    <View style={styles.container}>
+      <SectionHeader idealFor={idealFor} />
 
-              return (
-                <Text
-                  key={`${segment.value}-${index}`}
-                  style={{ color }}
-                >
-                  {segment.value}{' '}
-                </Text>
-              );
-            })}
-          </Text>
-
-          <Text style={styles.sectionSubtitle}>
-            Find out who can benefit the most from this
-            service and business structure.
-          </Text>
-        </View>
+      <Animated.View entering={FadeInUp.delay(60).duration(300)} style={styles.card}>
+        {idealFor.items.map((item, index) => (
+          <IdealForRow
+            key={`${item.title}-${index}`}
+            item={item}
+            index={index}
+            isLast={index === idealFor.items.length - 1}
+          />
+        ))}
       </Animated.View>
-
-      {/* Grid */}
-      <View style={styles.grid}>
-        {idealFor.items.map((item, index) => {
-          const palette =
-            CARD_ACCENTS[index % CARD_ACCENTS.length];
-
-          return (
-            <Animated.View
-              key={`${item.title}-${index}`}
-              entering={FadeInDown.delay(index * 80).springify()}
-              style={[
-                styles.card,
-                {
-                  backgroundColor: palette.background,
-                  borderColor: palette.border,
-                },
-              ]}
-            >
-              {/* Image */}
-              <View style={styles.imageWrapper}>
-                <Image
-                  source={{ uri: item.image }}
-                  style={styles.image}
-                  resizeMode="cover"
-                />
-
-                <View
-                  style={[
-                    styles.imageAccent,
-                    {
-                      backgroundColor: palette.accent,
-                    },
-                  ]}
-                />
-              </View>
-
-              {/* Content */}
-              <View style={styles.content}>
-                <View
-                  style={[
-                    styles.tag,
-                    {
-                      backgroundColor: `${palette.accent}15`,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.tagText,
-                      {
-                        color: palette.accent,
-                      },
-                    ]}
-                  >
-                    Ideal For
-                  </Text>
-                </View>
-
-                <Text style={styles.cardTitle}>
-                  {item.title}
-                </Text>
-
-                <Text
-                  numberOfLines={4}
-                  style={styles.cardDescription}
-                >
-                  {item.description}
-                </Text>
-              </View>
-            </Animated.View>
-          );
-        })}
-      </View>
-    </ScrollView>
+    </View>
   );
-};
+}
 
 export default IdealForSection;

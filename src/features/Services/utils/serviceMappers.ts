@@ -199,12 +199,12 @@ function mapProcessSteps(raw: unknown): ProcessStep[] {
   return steps;
 }
 
-function mapDocumentCategories(raw: unknown): DocumentCategory[] {
-  if (!isRecord(raw) || !Array.isArray(raw.categories)) {
+function mapDocumentCategoryList(categoriesRaw: unknown): DocumentCategory[] {
+  if (!Array.isArray(categoriesRaw)) {
     return [];
   }
   const categories: DocumentCategory[] = [];
-  for (const row of raw.categories) {
+  for (const row of categoriesRaw) {
     if (!isRecord(row) || typeof row.title !== 'string') {
       continue;
     }
@@ -217,6 +217,34 @@ function mapDocumentCategories(raw: unknown): DocumentCategory[] {
     });
   }
   return categories;
+}
+
+function mapDocumentsSection(raw: unknown): ServicePage['documents'] {
+  if (!isRecord(raw)) {
+    return undefined;
+  }
+  const categories = mapDocumentCategoryList(raw.categories);
+  if (categories.length === 0) {
+    return undefined;
+  }
+
+  const titleParts = mapTextSegments(raw.titleSegments);
+  let title = '';
+  let titleHighlight = '';
+  for (const seg of titleParts) {
+    if (seg.type === 'highlight') {
+      titleHighlight += seg.value;
+    } else {
+      title += seg.value;
+    }
+  }
+
+  return {
+    badge: typeof raw.badge === 'string' ? raw.badge : undefined,
+    title: title.trim() || undefined,
+    titleHighlight: titleHighlight.trim() || undefined,
+    categories,
+  };
 }
 
 function mapBenefitItems(raw: unknown): BenefitItem[] {
@@ -383,26 +411,35 @@ export function mapPublicServiceToServicePage(raw: unknown): ServicePage | null 
     idealFor: mapIdealFor(raw.idealFor),
     ourPackage: mapOurPackage(raw.ourPackage),
     process: isRecord(raw.process)
-      ? {
-          title:
-            typeof raw.process.title === 'string'
-              ? [raw.process.title, raw.process.titleHighlight]
-                  .filter((part): part is string => typeof part === 'string' && part.length > 0)
-                  .join(' ')
-              : undefined,
-          steps: mapProcessSteps(raw.process.steps),
-        }
+      ? (() => {
+          const steps = mapProcessSteps(raw.process.steps);
+          if (steps.length === 0) {
+            return undefined;
+          }
+          return {
+            badge: typeof raw.process.badge === 'string' ? raw.process.badge : undefined,
+            title: typeof raw.process.title === 'string' ? raw.process.title.trim() : '',
+            titleHighlight:
+              typeof raw.process.titleHighlight === 'string'
+                ? raw.process.titleHighlight.trim()
+                : undefined,
+            steps,
+          };
+        })()
       : undefined,
-    documents: isRecord(raw.documents)
-      ? { categories: mapDocumentCategories(raw.documents) }
-      : undefined,
+    documents: mapDocumentsSection(raw.documents),
     benefits: isRecord(raw.benefits) ? { items: mapBenefitItems(raw.benefits) } : undefined,
     eligibility: isRecord(raw.eligibility)
       ? {
-          title: typeof raw.eligibility.title === 'string' ? raw.eligibility.title : '',
+          badge: typeof raw.eligibility.badge === 'string' ? raw.eligibility.badge : undefined,
+          title: typeof raw.eligibility.title === 'string' ? raw.eligibility.title.trim() : '',
+          titleHighlight:
+            typeof raw.eligibility.titleHighlight === 'string'
+              ? raw.eligibility.titleHighlight.trim()
+              : undefined,
           description:
             typeof raw.eligibility.description === 'string'
-              ? raw.eligibility.description
+              ? raw.eligibility.description.trim()
               : undefined,
           items: mapEligibilityItems(raw.eligibility),
         }
