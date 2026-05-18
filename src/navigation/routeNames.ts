@@ -1,6 +1,3 @@
-import { ConsultantBankDetailsScreen } from "@/features/Profile/screens/Consultant/Consultantbankdetailsscreen ";
-import CreditsScreen from "@/features/Profile/screens/Consultant/CreditsScreen";
-
 export const ROUTES = {
   Root: {
     Auth: 'Root/Auth',
