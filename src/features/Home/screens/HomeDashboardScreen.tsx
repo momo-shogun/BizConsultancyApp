@@ -6,6 +6,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { THEME } from '@/constants/theme';
+import { CallController } from '@/features/Calls/controllers/CallController';
 import { useGetPublicConsultantsQuery } from '@/features/consultant/api/consultantApi';
 import { mapConsultantDetailToCardItem } from '@/features/consultant/utils/consultantMappers';
 import { DEMO_WORKSHOPS } from '@/features/Home/data/demoWorkshops';
@@ -238,7 +239,19 @@ export function HomeDashboardScreen(): React.ReactElement {
               items={HOME_UPCOMING_BOOKINGS_DEMO_ITEMS}
               onViewAllPress={onBookingsViewAll}
               onItemPress={(item) => console.log('Open booking', item.id)}
-              onJoinCallPress={(item) => console.log('Join call', item.id)}
+              onJoinCallPress={(item) => {
+                const bookingId = Number.parseInt(item.id.replace(/\D/g, ''), 10);
+                if (!Number.isFinite(bookingId) || bookingId <= 0) {
+                  return;
+                }
+                void CallController.startOutgoingFromBooking(bookingId, item.consultantName).then(
+                  (err) => {
+                    if (err != null) {
+                      console.warn('Join call:', err);
+                    }
+                  },
+                );
+              }}
             />
             <TopConsultantsSection
               title="Top consultants"

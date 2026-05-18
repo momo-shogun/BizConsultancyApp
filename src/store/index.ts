@@ -4,10 +4,12 @@ import MMKVStorage from 'react-native-mmkv-storage';
 
 import { authSlice } from '@/features/Auth/store/authSlice';
 import type { AuthState } from '@/features/Auth/store/authTypes';
+import { callSlice } from '@/features/Calls/store/callSlice';
 import { baseApi } from '@/services/api/baseApi';
 import '@/features/Auth/api/authApi';
 import '@/features/consultant/api/consultantApi';
 import '@/features/Services/api/servicesApi';
+import '@/features/Calls/api/callsApi';
 
 const MMKV = new MMKVStorage.Loader().initialize();
 
@@ -33,6 +35,7 @@ const persistConfig = {
 
 const appReducer = combineReducers({
   auth: authSlice.reducer,
+  call: callSlice.reducer,
   [baseApi.reducerPath]: baseApi.reducer,
 });
 

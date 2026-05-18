@@ -16,6 +16,8 @@ import { ConsultantViewAllScreen } from '@/features/consultant/screens/Consultan
 import WalletScreen from '@/features/Wallet/screens/WalletScreen';
 import { WorkshopListScreen } from '@/features/Home/screens/WorkshopListScreen';
 import { ConsultationOnboardingScreen } from '@/features/Consultation/screens/ConsultationOnboardingScreen';
+import { OutgoingCallScreen } from '@/features/Calls/screens/OutgoingCallScreen';
+import { InCallScreen } from '@/features/Calls/screens/InCallScreen';
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 export const navigationRef = createNavigationContainerRef<RootStackParamList>();
@@ -62,6 +64,16 @@ export function RootNavigator(): React.ReactElement {
               name={ROUTES.Root.ConsultationOnboarding}
               component={ConsultationOnboardingScreen}
               options={{ headerShown: false }}
+            />
+            <RootStack.Screen
+              name={ROUTES.Root.OutgoingCall}
+              component={OutgoingCallScreen}
+              options={{ headerShown: false, presentation: 'fullScreenModal' }}
+            />
+            <RootStack.Screen
+              name={ROUTES.Root.InCall}
+              component={InCallScreen}
+              options={{ headerShown: false, presentation: 'fullScreenModal' }}
             />
           </RootStack.Group>
         ) : (

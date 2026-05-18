@@ -1,6 +1,7 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Linking,
   Platform,
   Pressable,
@@ -21,6 +22,7 @@ import { usePublicConsultantDetail } from '@/features/consultant/hooks/usePublic
 import type { ConsultantDetail, ConsultantExpertTalk } from '@/features/consultant/types/consultantDetail.types';
 import { ROUTES } from '@/navigation/routeNames';
 import type { RootStackParamList } from '@/navigation/types';
+import { CallController } from '@/features/Calls/controllers/CallController';
 import { RemoteImage, SafeAreaWrapper, ScreenHeader, ScreenWrapper } from '@/shared/components';
 import { youtubeEmbedToWatchUrl } from '@/utils/youtubeUrl';
 
@@ -281,6 +283,7 @@ export function ConsultantDetailScreen(): React.ReactElement {
 
   const slug = route.params.slug;
   const { detail, isLoading } = usePublicConsultantDetail(slug);
+  const [callStarting, setCallStarting] = useState(false);
 
   const talkCardWidth = useMemo((): number => Math.min(252, Math.round(width * 0.66)), [width]);
 
@@ -330,6 +333,19 @@ export function ConsultantDetailScreen(): React.ReactElement {
     }
   }, [detail]);
 
+  const onCallPress = useCallback((): void => {
+    if (detail == null || callStarting) {
+      return;
+    }
+    setCallStarting(true);
+    void CallController.startOutgoingToConsultant(detail).then((err) => {
+      setCallStarting(false);
+      if (err != null) {
+        Alert.alert('Call', err);
+      }
+    });
+  }, [callStarting, detail]);
+
   const showRates = (detail?.audioRate ?? 0) > 0 || (detail?.videoRate ?? 0) > 0;
   const isKnownProfile = detail?.slug === 'r-k-saxena';
 
@@ -356,7 +372,7 @@ export function ConsultantDetailScreen(): React.ReactElement {
         title="Consultant"
         onBackPress={() => navigation.goBack()}
         showConsultantActions
-        onCallPress={() => {}}
+        onCallPress={onCallPress}
         onMessagePress={() => {}}
       />
 

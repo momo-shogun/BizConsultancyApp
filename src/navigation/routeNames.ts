@@ -11,6 +11,8 @@ export const ROUTES = {
     Wallet: 'Root/Wallet',
     WorkshopsList: 'Root/WorkshopsList',
     ConsultationOnboarding: 'Root/ConsultationOnboarding',
+    OutgoingCall: 'Root/OutgoingCall',
+    InCall: 'Root/InCall',
   },
   Auth: {
     Splash: 'Auth/Splash',
