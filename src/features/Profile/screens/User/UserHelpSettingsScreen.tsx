@@ -193,8 +193,14 @@ export function UserHelpSettingsScreen(props: UserHelpSettingsScreenProps): Reac
       if (row.id === 'membership') {
         navigation.navigate(ROUTES.Account.Membership);
       }
+      if (row.id === 'feedback') {
+        navigation.navigate(ROUTES.Account.addReview);
+      }
+      if (row.id === 'guide') {
+        navigation.navigate(ROUTES.Account.userGuide);
+      }
     }}
-            />
+     />
           ))}
         </View>
 

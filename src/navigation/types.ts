@@ -33,6 +33,8 @@ export type AccountStackParamList = {
     [ROUTES.Account.ExpertVideosScreen]: undefined;
      [ROUTES.Account.TransactionHis]: undefined;
         [ROUTES.Account.CreditsScreen]: undefined;
+        [ROUTES.Account.addReview]: undefined;
+        [ROUTES.Account.userGuide]: undefined;
      
 };
 
@@ -50,6 +52,7 @@ export type RootStackParamList = {
   [ROUTES.Root.ConsultantDetail]: { slug: string };
   [ROUTES.Root.Wallet]: undefined;
   [ROUTES.Root.WorkshopsList]: undefined;
+  [ROUTES.Root.WorkshopsDetail]: undefined;
   [ROUTES.Root.ConsultationOnboarding]: {
     consultantSlug?: string;
     consultantName?: string;

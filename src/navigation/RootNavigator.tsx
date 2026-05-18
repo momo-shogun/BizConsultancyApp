@@ -18,6 +18,7 @@ import { WorkshopListScreen } from '@/features/Home/screens/WorkshopListScreen';
 import { ConsultationOnboardingScreen } from '@/features/Consultation/screens/ConsultationOnboardingScreen';
 import { OutgoingCallScreen } from '@/features/Calls/screens/OutgoingCallScreen';
 import { InCallScreen } from '@/features/Calls/screens/InCallScreen';
+import WorkshopDetailsScreen from '@/features/Home/screens/WorkshopDetailsScreen';
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 export const navigationRef = createNavigationContainerRef<RootStackParamList>();
@@ -58,6 +59,11 @@ export function RootNavigator(): React.ReactElement {
             <RootStack.Screen
               name={ROUTES.Root.WorkshopsList}
               component={WorkshopListScreen}
+              options={{ headerShown: false }}
+            />
+            <RootStack.Screen
+              name={ROUTES.Root.WorkshopsDetail}
+              component={WorkshopDetailsScreen}
               options={{ headerShown: false }}
             />
             <RootStack.Screen

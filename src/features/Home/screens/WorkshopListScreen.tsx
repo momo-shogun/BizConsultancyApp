@@ -29,6 +29,7 @@ import {
   ScreenHeader,
   ScreenWrapper,
 } from '@/shared/components';
+import { ROUTES } from '@/navigation/routeNames';
 
 const LIST_GAP = THEME.spacing[10];
 const H_PADDING = THEME.spacing[16];
@@ -65,7 +66,7 @@ export function WorkshopListScreen(): React.ReactElement {
           item={item}
           cardWidth={cardWidth}
           variant="compact"
-          onPress={() => console.log('Workshop detail', item.id, item.slug)}
+          onPress={() => navigation.navigate(ROUTES.Root.WorkshopsDetail)}
         />
       </View>
     ),

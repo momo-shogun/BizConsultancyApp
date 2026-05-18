@@ -10,6 +10,7 @@ export const ROUTES = {
     ConsultantDetail: 'Root/ConsultantDetail',
     Wallet: 'Root/Wallet',
     WorkshopsList: 'Root/WorkshopsList',
+     WorkshopsDetail: 'Root/WorkshopDetailsScreen',
     ConsultationOnboarding: 'Root/ConsultationOnboarding',
     OutgoingCall: 'Root/OutgoingCall',
     InCall: 'Root/InCall',
@@ -48,8 +49,8 @@ export const ROUTES = {
     ExpertVideosScreen: 'App/Account/ExpertVideosScreen',
         TransactionHis: 'App/Account/TransactionHistory',
         CreditsScreen: 'App/Account/CreditsScreen',
-        
-        
+        addReview: 'App/Account/AddReviewScreen',
+        userGuide: 'App/Account/UserGuideScreen',
   },
 } as const;
 

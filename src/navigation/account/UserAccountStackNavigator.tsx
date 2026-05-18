@@ -8,6 +8,8 @@ import { UserProfileScreen } from '@/features/Profile/screens/User/UserProfileSc
 import { ROUTES } from '../routeNames';
 import type { AccountStackParamList } from '../types';
 import { accountStackScreenOptions } from './accountStackScreenOptions';
+import AddReviewScreen from '@/features/Profile/screens/User/AddReviewScreen';
+import UserGuideScreen from '@/features/Profile/screens/User/UserGuideScreen';
 
 const Stack = createNativeStackNavigator<AccountStackParamList>();
 
@@ -32,6 +34,16 @@ export function UserAccountStackNavigator(): React.ReactElement {
         component={UserMembershipScreen}
         options={{ headerShown: false }}
       />
+      <Stack.Screen
+        name={ROUTES.Account.addReview}
+        component={AddReviewScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+              name={ROUTES.Account.userGuide}
+              component={UserGuideScreen}
+              options={{ headerShown: false }}
+            />
     </Stack.Navigator>
   );
 }
