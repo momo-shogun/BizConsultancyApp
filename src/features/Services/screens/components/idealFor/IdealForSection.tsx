@@ -19,11 +19,6 @@ function SectionHeader({ idealFor }: { idealFor: IdealForSectionData }): React.R
 
   return (
     <>
-      <Animated.View entering={FadeInUp.duration(280)}>
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>IDEAL FOR</Text>
-        </View>
-      </Animated.View>
       <Animated.View entering={FadeInUp.delay(30).duration(280)}>
         {segments.length > 0 ? (
           <View style={styles.titleRow}>

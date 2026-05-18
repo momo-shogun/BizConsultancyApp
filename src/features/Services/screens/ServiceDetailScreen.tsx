@@ -68,6 +68,10 @@ export function ServiceDetailScreen(): React.ReactElement {
     [navigation],
   );
 
+  const handleBack = useCallback((): void => {
+    navigation.goBack();
+  }, [navigation]);
+
   useLayoutEffect(() => {
     if (item != null) {
       navigation.setOptions({
@@ -171,17 +175,19 @@ export function ServiceDetailScreen(): React.ReactElement {
 
               <View style={styles.heroTopRow}>
                 <View style={styles.badgesRow}>
-                  <View style={styles.pillLight}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Go back"
+                    onPress={handleBack}
+                    hitSlop={8}
+                    style={styles.heroBackButton}
+                  >
                     <Ionicons
-                      name="time-outline"
-                      size={14}
-                      color={THEME.colors.textPrimary}
+                      name="chevron-back"
+                      size={22}
+                      color={THEME.colors.white}
                     />
-
-                    <Text style={styles.pillLightText} numberOfLines={1}>
-                      {item.headerRight}
-                    </Text>
-                  </View>
+                  </Pressable>
 
                   {item.badgeLabel ? (
                     <View style={styles.dealChip}>

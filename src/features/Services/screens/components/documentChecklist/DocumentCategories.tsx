@@ -32,11 +32,6 @@ function SectionHeader({ documents }: { documents: DocumentsSectionData }): Reac
 
   return (
     <>
-      <Animated.View entering={FadeInUp.duration(280)}>
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>{badgeLabel.toUpperCase()}</Text>
-        </View>
-      </Animated.View>
       <Animated.View entering={FadeInUp.delay(30).duration(280)}>
         <View style={styles.titleRow}>
           <Text style={styles.title}>{title}</Text>

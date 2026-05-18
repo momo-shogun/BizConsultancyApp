@@ -75,20 +75,15 @@ export const styles = StyleSheet.create({
     // gap: THEME.spacing[8],
     justifyContent: "space-between",
   },
-  pillLight: {
-    flexDirection: 'row',
+  heroBackButton: {
+    width: 40,
+    height: 40,
     alignItems: 'center',
-    gap: THEME.spacing[8],
-    backgroundColor: 'rgba(255,255,255,0.88)',
-    paddingHorizontal: THEME.spacing[12],
-    paddingVertical: THEME.spacing[8],
+    justifyContent: 'center',
     borderRadius: 999,
-    maxWidth: '100%',
-  },
-  pillLightText: {
-    fontSize: THEME.typography.size[12],
-    fontWeight: THEME.typography.weight.semibold as '600',
-    color: THEME.colors.textPrimary,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.28)',
   },
   dealChip: {
     flexDirection: 'row',

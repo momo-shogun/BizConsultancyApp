@@ -36,22 +36,41 @@ const FOOTER_ITEMS: { icon: FeatherIconName; label: string }[] = [
   { icon: 'headphones', label: 'Expert Support' },
 ];
 
+function withTrailingSpace(value: string): string {
+  const trimmed = value.trimEnd();
+  return trimmed.length > 0 ? `${trimmed} ` : '';
+}
+
 function SectionHeader({ process }: { process: ProcessSectionData }): React.ReactElement {
+  const titleBase = (process.title ?? '').trim();
+  const titleHighlight = (process.titleHighlight ?? '').trim();
+  const hasTitleRow = titleBase.length > 0 || titleHighlight.length > 0;
+
   return (
     <Animated.View entering={FadeInUp.duration(500)} style={styles.header}>
-      <LinearGradient
+      {/* <LinearGradient
         colors={[...processGradients.badge]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.badgeGradient}
       >
         <Text style={styles.badgeText}>{(process.badge || 'PROCESS').toUpperCase()}</Text>
-      </LinearGradient>
+      </LinearGradient> */}
 
-      <Text style={styles.title}>
-        {process.title || 'How It '}
-        <Text style={styles.titleHighlight}>{process.titleHighlight || 'Works'}</Text>
-      </Text>
+      {hasTitleRow ? (
+        <Text style={styles.title}>
+          {titleBase.length > 0 ? (
+            <Text style={styles.titlePlainSegment}>
+              {titleHighlight.length > 0
+                ? withTrailingSpace(titleBase)
+                : titleBase}
+            </Text>
+          ) : null}
+          {titleHighlight.length > 0 ? (
+            <Text style={styles.titleHighlightSegment}>{titleHighlight}</Text>
+          ) : null}
+        </Text>
+      ) : null}
 
       {process.subtitle != null && process.subtitle.length > 0 ? (
         <Text style={styles.subtitle}>{process.subtitle}</Text>
@@ -128,7 +147,13 @@ function FooterBadges(): React.ReactElement {
       {FOOTER_ITEMS.map(item => (
         <View key={item.label} style={styles.footerBadge}>
           <Feather name={item.icon} size={14} color={processColors.primary} />
-          <Text style={styles.footerBadgeText}>{item.label}</Text>
+          <Text
+            style={styles.footerBadgeText}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {item.label}
+          </Text>
         </View>
       ))}
     </Animated.View>
