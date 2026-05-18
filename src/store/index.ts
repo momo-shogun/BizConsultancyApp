@@ -7,6 +7,7 @@ import type { AuthState } from '@/features/Auth/store/authTypes';
 import { baseApi } from '@/services/api/baseApi';
 import '@/features/Auth/api/authApi';
 import '@/features/consultant/api/consultantApi';
+import '@/features/Services/api/servicesApi';
 
 const MMKV = new MMKVStorage.Loader().initialize();
 

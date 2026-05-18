@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useMemo, useState } from 'react';
+import React, { useCallback, useLayoutEffect, useMemo, useState } from 'react';
 
 import { Pressable, Text, View, ScrollView } from 'react-native';
 
@@ -27,12 +27,12 @@ import {
   SectionHeader,
 } from '@/shared/components';
 
-import { SERVICE_TABS, type DetailTabKey } from './serviceTabs';
+import { SERVICE_DETAIL_TABS, type DetailTabKey } from './serviceTabs';
 
 import { useServiceBySlug } from '../hooks/useServiceBySlug';
+import { mapAboutToUiProps } from '../utils/serviceAboutUi';
 
 import { styles } from './ServiceDetailsStyle';
-import { OurPackageSection } from './components/Ourpackagesection';
 import { AboutSection } from './components/aboutSection/aboutSection';
 import { EligibilitySection } from './components/eiligibility/EligibilitySection';
 import DocumentCategories from './components/documentChecklist/DocumentCategories';
@@ -41,6 +41,7 @@ import IdealForSection from './components/idealFor/IdealForSection';
 import ComplianceSection from './components/compliance/ComplianceSection';
 import FAQSection from './components/faq/faq';
 import RecommendedServicesSection from './components/RecommendedServicesSection/RecommendedServicesSection';
+import { ProcessSection } from './components/process/ProcessSection';
 
 type ServiceDetailRouteProp = RouteProp<
   ServicesStackParamList,
@@ -55,10 +56,17 @@ export function ServiceDetailScreen(): React.ReactElement {
 
   const slug = route.params.slug;
 
-  const item = useServiceBySlug(slug);
+  const { service: item, isLoading, isError } = useServiceBySlug(slug);
 
   const [activeTab, setActiveTab] =
     useState<DetailTabKey>('about');
+
+  const openRelatedService = useCallback(
+    (targetSlug: string): void => {
+      navigation.navigate(ROUTES.Services.Detail, { slug: targetSlug });
+    },
+    [navigation],
+  );
 
   useLayoutEffect(() => {
     if (item != null) {
@@ -68,47 +76,30 @@ export function ServiceDetailScreen(): React.ReactElement {
     }
   }, [navigation, item]);
 
-  const visibleTabs = useMemo(() => {
-    if (item == null) {
-      return [];
-    }
+  const aboutUi = useMemo(() => mapAboutToUiProps(item?.about), [item?.about]);
 
-    return SERVICE_TABS.filter(tab => {
-      const value = item?.[tab.key as keyof typeof item];
-
-      if (value == null) {
-        return false;
-      }
-
-      if (Array.isArray(value)) {
-        return value.length > 0;
-      }
-
-      if (typeof value === 'object') {
-        return Object.keys(value).length > 0;
-      }
-
-      return true;
-    });
-  }, [item]);
-
-  if (item == null) {
+  if (isLoading) {
     return (
       <SafeAreaWrapper edges={['bottom']}>
         <ScreenWrapper style={styles.missWrap}>
-          <EmptyState
-            title="Service not found"
-            description="This service may have been removed."
-          />
+          <EmptyState title="Loading service" description="Please wait…" />
         </ScreenWrapper>
       </SafeAreaWrapper>
     );
   }
 
-  const handlePressService = (service: { href: string; title: string; description: string; servicePageId: number }): void => {
-    console.log('Pressed recommended service:', service.href);
+  if (item == null || isError) {
+    return (
+      <SafeAreaWrapper edges={['bottom']}>
+        <ScreenWrapper style={styles.missWrap}>
+          <EmptyState
+            title="Service not found"
+            description="We could not load this service. Check the link or try again."
+          />
+        </ScreenWrapper>
+      </SafeAreaWrapper>
+    );
   }
-
 
   return (
     <SafeAreaWrapper edges={['bottom', 'top']}  bgColor='#0F5132' isLight={true}>
@@ -235,132 +226,85 @@ export function ServiceDetailScreen(): React.ReactElement {
 
               {/* --------------------------- QUICK ACTIONS --------------------------- */}
 
-              <View style={styles.quickActions}>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Document checklist"
-                  hitSlop={8}
-                  onPress={() => console.log('Checklist', item.slug)}
-                  style={({ pressed }) => [
-                    styles.quickBtn,
-                    pressed ? styles.quickPressed : null,
-                  ]}
-                >
-                  <Ionicons
-                    name="document-text-outline"
-                    size={16}
-                    color={THEME.colors.white}
-                  />
-
-                  <Text style={styles.quickBtnText}>Checklist</Text>
-                </Pressable>
-
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Talk to an expert"
-                  hitSlop={8}
-                  onPress={() => console.log('Talk to expert', item.slug)}
-                  style={({ pressed }) => [
-                    styles.quickBtn,
-                    pressed ? styles.quickPressed : null,
-                  ]}
-                >
-                  <Ionicons
-                    name="call-outline"
-                    size={16}
-                    color={THEME.colors.white}
-                  />
-
-                  <Text style={styles.quickBtnText}>Talk to expert</Text>
-                </Pressable>
-              </View>
+              {(item.hero?.quickActions?.length ?? 0) > 0 ? (
+                <View style={styles.quickActions}>
+                  {item.hero?.quickActions.map((action) => (
+                    <Pressable
+                      key={action.text}
+                      accessibilityRole="button"
+                      accessibilityLabel={action.text}
+                      hitSlop={8}
+                      onPress={() => {
+                        if (action.text.toLowerCase().includes('expert')) {
+                          navigation.getParent()?.navigate(ROUTES.Root.ConsultantsList);
+                          return;
+                        }
+                        setActiveTab('documents');
+                      }}
+                      style={({ pressed }) => [
+                        styles.quickBtn,
+                        pressed ? styles.quickPressed : null,
+                      ]}
+                    >
+                      <Ionicons
+                        name={
+                          action.text.toLowerCase().includes('expert')
+                            ? 'call-outline'
+                            : 'document-text-outline'
+                        }
+                        size={16}
+                        color={THEME.colors.white}
+                      />
+                      <Text style={styles.quickBtnText}>{action.text}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              ) : null}
             </LinearGradient>
           </View>
 
-          <View>
+          <View style={styles.tabBarWrap}>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.tabs}
             >
-              {visibleTabs.map(tab => (
-                <Pressable
-                  key={tab.key}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${tab.label} tab`}
-                  onPress={() => setActiveTab(tab.key)}
-                  hitSlop={8}
-                  style={({ pressed }) => [
-                    styles.tab,
-                    activeTab === tab.key
-                      ? styles.tabActive
-                      : null,
-                    pressed ? styles.tabPressed : null,
-                  ]}
-                >
-                  <Text
-                    numberOfLines={1}
-                    style={[
-                      styles.tabText,
-                      activeTab === tab.key
-                        ? styles.tabTextActive
-                        : null,
+              {SERVICE_DETAIL_TABS.map((tab) => {
+                const isActive = activeTab === tab.key;
+                return (
+                  <Pressable
+                    key={tab.key}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${tab.label} tab`}
+                    onPress={() => setActiveTab(tab.key)}
+                    hitSlop={8}
+                    style={({ pressed }) => [
+                      styles.tab,
+                      isActive ? styles.tabActive : null,
+                      pressed ? styles.tabPressed : null,
                     ]}
                   >
-                    {tab.label}
-                  </Text>
-                </Pressable>
-              ))}
+                    {isActive ? <View style={styles.tabActiveIndicator} /> : null}
+                    <Text
+                      numberOfLines={1}
+                      style={[styles.tabText, isActive ? styles.tabTextActive : null]}
+                    >
+                      {tab.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
             </ScrollView>
           </View>
 
-          {activeTab === 'about' && item.about ? (
-            <AboutSection
-              title="Why businesses choose our consulting services"
-              titleSegments={[
-                'Why businesses choose ',
-                {
-                  text: 'our consulting',
-                  color: 'blue',
-                },
-                ' services',
-              ]}
-              intro={[
-                'We help startups and enterprises build ',
-                {
-                  text: 'scalable systems',
-                  color: 'emerald',
-                },
-                ' with modern operational workflows.',
-              ]}
-              paragraphs={[
-                [
-                  'Our team focuses on ',
-                  {
-                    text: 'growth strategy',
-                    color: 'orange',
-                  },
-                  ', execution, and long-term business sustainability.',
-                ],
-                'From onboarding to scaling, we create systems that reduce friction and improve efficiency.',
-              ]}
-              tagline={[
-                'Built for ambitious founders who want ',
-                {
-                  text: 'real business momentum',
-                  color: 'emerald',
-                },
-                '.',
-              ]}
-            />
-          ) : null}
+          {activeTab === 'about' && aboutUi != null ? <AboutSection {...aboutUi} /> : null}
 
-          {activeTab === 'ourPackage' && item.ourPackage ? (
-            <OurPackageSection ourPackage={item.ourPackage} />
-          ) : null}
-
-          {activeTab === 'process' && item?.eligibility ? (
+          {activeTab === 'eligibility' && item.eligibility ? (
             <EligibilitySection item={item.eligibility} activeTab={activeTab} />
+          ) : null}
+
+          {activeTab === 'process' && item.process ? (
+            <ProcessSection process={item.process} />
           ) : null}
 
           {activeTab === 'documents' &&
@@ -389,10 +333,12 @@ export function ServiceDetailScreen(): React.ReactElement {
             <FAQSection faqs={item.faqs} />
           ) : null}
 
-          <RecommendedServicesSection
-            recommendedServices={item.recommendedServices}
-            onPressService={handlePressService}
-          />
+          {item.recommendedServices != null ? (
+            <RecommendedServicesSection
+              recommendedServices={item.recommendedServices}
+              onPressService={(service) => openRelatedService(service.slug)}
+            />
+          ) : null}
 
         </ScrollWrapper>
 

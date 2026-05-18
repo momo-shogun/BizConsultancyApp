@@ -1,12 +1,18 @@
 import React, { useCallback, useMemo } from 'react';
-
-import { useGetPublicConsultantsQuery } from '@/features/consultant/api/consultantApi';
-import { mapConsultantDetailToCardItem } from '@/features/consultant/utils/consultantMappers';
 import { StyleSheet, View } from 'react-native';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import type { CompositeNavigationProp } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { THEME } from '@/constants/theme';
-import { DEMO_SERVICES } from '@/features/Services/data/demoServices';
+import { useGetPublicConsultantsQuery } from '@/features/consultant/api/consultantApi';
+import { mapConsultantDetailToCardItem } from '@/features/consultant/utils/consultantMappers';
 import { DEMO_WORKSHOPS } from '@/features/Home/data/demoWorkshops';
+import { useGetPublicServicesQuery } from '@/features/Services/api/servicesApi';
+import { mapPublicServiceToCardItem } from '@/features/Services/utils/serviceMappers';
+import { ROUTES } from '@/navigation/routeNames';
+import type { AppTabParamList, RootStackParamList } from '@/navigation/types';
 import {
   InterestEventsSection,
   SafeAreaWrapper,
@@ -20,42 +26,22 @@ import {
   type TopConsultantItem,
   MembershipPlansSection,
   type MembershipPlanItem,
+  type RecommendedServiceItem,
 } from '@/shared/components';
 import type { HomeCategoryId } from './ZeptoHS/ZeptoHS.types';
 import { ZeptoHS } from './ZeptoHS/ZeptoHS';
-import { ROUTES } from '@/navigation/routeNames';
-import { navigationRef } from '@/navigation/RootNavigator';
+
+type HomeDashboardNavigationProp = CompositeNavigationProp<
+  BottomTabNavigationProp<AppTabParamList, typeof ROUTES.App.Home>,
+  NativeStackNavigationProp<RootStackParamList>
+>;
 
 const HOME_INTEREST_ITEMS: EventSpotlightItem[] = DEMO_WORKSHOPS.slice(0, 2);
 
 const HOME_TOP_CONSULTANTS_CARD_WIDTH = 184;
-
-const HOME_TOP_CONSULTANTS_DEMO_ITEMS: TopConsultantItem[] = [
-  {
-    id: 'consultant-lata-moorjani',
-    name: 'CA Lata Moorjani',
-    role: 'Business Analyst',
-    bio: 'Bringing over 5 years of rich experience to the table, I, C.A. Lata Moorjani stand out as a seasoned financial expert. I am a proficient financial advisor, leveraging my extensive knowledge to assist clients in making informed decisions. My strategic insights help individuals and businesses achieve their financial goals.',
-    specialty: 'Startup Nurturing & Funding',
-    experienceLabel: '5+ years',
-    rateLabel: '₹354',
-    photoUri: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'consultant-aman-verma',
-    name: 'Aman Verma',
-    role: 'Funding & Pitch Advisor',
-    bio: 'Startup funding specialist with 8+ years helping founders raise seed to Series A rounds. Former VC analyst, now working directly with entrepreneurs.',
-    specialty: 'Funding & Pitch',
-    experienceLabel: '8+ years',
-    rateLabel: '₹499',
-    photoUri: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=600&auto=format&fit=crop&q=80',
-  },
-];
-
 const HOME_RECOMMENDED_SERVICES_CARD_WIDTH = 320;
-
 const HOME_TESTIMONIALS_CARD_WIDTH = 260;
+const HOME_MEMBERSHIP_PLANS_CARD_WIDTH = 360;
 
 const HOME_TESTIMONIALS_DEMO_ITEMS: TestimonialItem[] = [
   {
@@ -78,7 +64,6 @@ const HOME_TESTIMONIALS_DEMO_ITEMS: TestimonialItem[] = [
   },
 ];
 
-
 const HOME_UPCOMING_BOOKINGS_DEMO_ITEMS: UpcomingBookingItem[] = [
   {
     id: 'BCG99763',
@@ -99,8 +84,6 @@ const HOME_UPCOMING_BOOKINGS_DEMO_ITEMS: UpcomingBookingItem[] = [
     statusLabel: 'Upcoming',
   },
 ];
-
-const HOME_MEMBERSHIP_PLANS_CARD_WIDTH = 360;
 
 const HOME_MEMBERSHIP_PLANS_DEMO_ITEMS: MembershipPlanItem[] = [
   {
@@ -162,49 +145,64 @@ const HOME_MEMBERSHIP_PLANS_DEMO_ITEMS: MembershipPlanItem[] = [
   },
 ];
 
-function navigateToConsultantDetail(item: TopConsultantItem): void {
-  navigationRef.navigate(ROUTES.Root.ConsultantDetail, {
-    slug: item.slug ?? item.id,
-  });
-}
-
 export function HomeDashboardScreen(): React.ReactElement {
+  const navigation = useNavigation<HomeDashboardNavigationProp>();
+
   const { data: consultantsPage } = useGetPublicConsultantsQuery({
     page: '1',
     limit: '2',
   });
 
+  const { data: publicServices } = useGetPublicServicesQuery({ limit: 6 });
+
   const topConsultantItems = useMemo((): TopConsultantItem[] => {
     const rows = consultantsPage?.items ?? [];
-    if (rows.length > 0) {
-      return rows.map(mapConsultantDetailToCardItem);
-    }
-    return HOME_TOP_CONSULTANTS_DEMO_ITEMS;
+    return rows.map(mapConsultantDetailToCardItem);
   }, [consultantsPage?.items]);
+
+  const recommendedServiceItems = useMemo((): RecommendedServiceItem[] => {
+    const rows = publicServices?.items ?? [];
+    return rows.map(mapPublicServiceToCardItem);
+  }, [publicServices?.items]);
+
   const homeInterestItems = useMemo(() => HOME_INTEREST_ITEMS, []);
 
   const onInterestViewAll = useCallback((): void => {
-    if (!navigationRef.isReady()) {
-      return;
-    }
-    navigationRef.navigate(ROUTES.Root.WorkshopsList);
-  }, []);
+    navigation.navigate(ROUTES.Root.WorkshopsList);
+  }, [navigation]);
 
   const onBookingsViewAll = useCallback(() => {
     console.log('View all bookings');
   }, []);
 
   const onTopConsultantsViewAll = useCallback((): void => {
-    if (!navigationRef.isReady()) {
-      return;
-    }
-    navigationRef.navigate(ROUTES.Root.ConsultantsList);
-    console.log('Navigate to consultants list');
-  }, []);
+    navigation.navigate(ROUTES.Root.ConsultantsList);
+  }, [navigation]);
 
-  const onRecommendedServicesViewAll = useCallback(() => {
-    console.log('View all services');
-  }, []);
+  const onConsultantPress = useCallback(
+    (item: TopConsultantItem): void => {
+      navigation.navigate(ROUTES.Root.ConsultantDetail, {
+        slug: item.slug ?? item.id,
+      });
+    },
+    [navigation],
+  );
+
+  const onRecommendedServicesViewAll = useCallback((): void => {
+    navigation.navigate(ROUTES.App.Services, {
+      screen: ROUTES.Services.List,
+    });
+  }, [navigation]);
+
+  const onServicePress = useCallback(
+    (item: RecommendedServiceItem): void => {
+      navigation.navigate(ROUTES.App.Services, {
+        screen: ROUTES.Services.Detail,
+        params: { slug: item.slug },
+      });
+    },
+    [navigation],
+  );
 
   const onTestimonialsViewAll = useCallback(() => {
     console.log('View all testimonials');
@@ -215,7 +213,7 @@ export function HomeDashboardScreen(): React.ReactElement {
   }, []);
 
   return (
-    <SafeAreaWrapper edges={['top', 'bottom']}  bgColor={'transparent'}>
+    <SafeAreaWrapper edges={['top', 'bottom']} bgColor="transparent">
       <ZeptoHS
         header={{
           backgroundColor: '#E6C8A4',
@@ -235,7 +233,6 @@ export function HomeDashboardScreen(): React.ReactElement {
                 console.log('Workshop clicked', item.id, item.slug)
               }
             />
-            {/* <StatsSection /> */}
             <UpcomingBookingsSection
               title="Upcoming bookings"
               items={HOME_UPCOMING_BOOKINGS_DEMO_ITEMS}
@@ -248,17 +245,17 @@ export function HomeDashboardScreen(): React.ReactElement {
               cardWidth={HOME_TOP_CONSULTANTS_CARD_WIDTH}
               items={topConsultantItems}
               onViewAllPress={onTopConsultantsViewAll}
-              onItemPress={navigateToConsultantDetail}
-              onBookPress={navigateToConsultantDetail}
+              onItemPress={onConsultantPress}
+              onBookPress={onConsultantPress}
             />
             <RecommendedServicesSection
               title="Recommended services"
               cardWidth={HOME_RECOMMENDED_SERVICES_CARD_WIDTH}
-              items={DEMO_SERVICES}
+              items={recommendedServiceItems}
               variant="accentPanel"
               onViewAllPress={onRecommendedServicesViewAll}
-              onItemPress={(item) => console.log('Open service', item.slug)}
-              onCtaPress={(item) => console.log('Get started', item.slug)}
+              onItemPress={onServicePress}
+              onCtaPress={onServicePress}
             />
             <TestimonialsSection
               title="Testimonials"

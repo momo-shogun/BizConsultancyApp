@@ -424,8 +424,7 @@ export const DEMO_SERVICES: ServicePage[] = [
 
       items: [
         {
-          href:
-            '/services/registration-licenses/private-limited-company-incorporation',
+          slug: 'private-limited-company-incorporation',
 
           title: 'ROC Compliance Kit',
 
@@ -436,8 +435,7 @@ export const DEMO_SERVICES: ServicePage[] = [
         },
 
         {
-          href:
-            '/services/registration-licenses/trademark-registration',
+          slug: 'trademark-registration',
 
           title: 'Trademark Registration',
 
@@ -448,8 +446,7 @@ export const DEMO_SERVICES: ServicePage[] = [
         },
 
         {
-          href:
-            '/services/registration-licenses/private-limited-company-incorporation',
+          slug: 'private-limited-company-incorporation',
 
           title: 'GST Compliance Pack',
 
@@ -460,8 +457,7 @@ export const DEMO_SERVICES: ServicePage[] = [
         },
 
         {
-          href:
-            '/services/registration-licenses/private-limited-company-incorporation',
+          slug: 'private-limited-company-incorporation',
 
           title: 'Project Funding and Loan Advisory',
 
@@ -472,8 +468,7 @@ export const DEMO_SERVICES: ServicePage[] = [
         },
 
         {
-          href:
-            '/services/registration-licenses/private-limited-company-incorporation',
+          slug: 'private-limited-company-incorporation',
 
           title: 'Expert Connect',
 

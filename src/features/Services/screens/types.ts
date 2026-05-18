@@ -120,13 +120,13 @@ export interface FAQSection {
 /* -------------------- RECOMMENDED SERVICES -------------------- */
 
 export interface RecommendedServiceCard {
-  href: string;
+  slug: string;
 
   title: string;
 
   description: string;
 
-  servicePageId: number;
+  servicePageId?: number;
 }
 
 export interface RecommendedServicesSection {
@@ -166,7 +166,7 @@ export interface ServicePage extends RecommendedServiceItem {
 
   idealFor?: IdealForSection;
 
-  ourPackage: {
+  ourPackage?: {
     sectionTitle: string;
 
     items: PackageItem[];
@@ -188,6 +188,8 @@ export interface ServicePage extends RecommendedServiceItem {
 
   eligibility?: {
     title: string;
+
+    description?: string;
 
     items: EligibilityItem[];
   };

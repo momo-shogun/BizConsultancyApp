@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { FlatList, ListRenderItem, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, FlatList, ListRenderItem, StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
@@ -19,13 +19,23 @@ import {
   ScreenWrapper,
 } from '@/shared/components';
 
-import { DEMO_SERVICES } from '../data/demoServices';
+import { useGetPublicServicesQuery } from '@/features/Services/api/servicesApi';
+import { mapPublicServiceToCardItem } from '@/features/Services/utils/serviceMappers';
 
 const LIST_SEPARATOR_HEIGHT = THEME.spacing[12];
 
 export function ServicesListingScreen(): React.ReactElement {
   const navigation = useNavigation<NativeStackNavigationProp<ServicesStackParamList>>();
   const [isFilterOpen, setIsFilterOpen] = useState<boolean>(false);
+
+  const { data, isLoading } = useGetPublicServicesQuery({ limit: 50 });
+
+  const serviceItems = useMemo((): RecommendedServiceItem[] => {
+    if (data == null || data.items.length === 0) {
+      return [];
+    }
+    return data.items.map(mapPublicServiceToCardItem);
+  }, [data]);
 
   const filterSections = useMemo<FilterSection[]>(
     () => [
@@ -104,8 +114,13 @@ export function ServicesListingScreen(): React.ReactElement {
     <SafeAreaWrapper edges={['top', 'bottom']}>
       <ScreenHeader title="Services" onSearchPress={() => {}} />
       <ScreenWrapper>
+        {isLoading && serviceItems.length === 0 ? (
+          <View style={styles.loadingWrap}>
+            <ActivityIndicator size="large" color={THEME.colors.primary} />
+          </View>
+        ) : null}
         <FlatList
-          data={DEMO_SERVICES}
+          data={serviceItems}
           keyExtractor={keyExtractor}
           renderItem={renderItem}
           ItemSeparatorComponent={ItemSeparator}
@@ -127,7 +142,9 @@ export function ServicesListingScreen(): React.ReactElement {
             </View>
           }
           ListEmptyComponent={
-            <EmptyState title="No services yet" description="This will be populated from API later." />
+            !isLoading ? (
+              <EmptyState title="No services yet" description="Try adjusting filters or check back later." />
+            ) : null
           }
         />
 
@@ -147,6 +164,10 @@ export function ServicesListingScreen(): React.ReactElement {
 }
 
 const styles = StyleSheet.create({
+  loadingWrap: {
+    paddingVertical: THEME.spacing[24],
+    alignItems: 'center',
+  },
   content: {
     padding: THEME.spacing[16],
     paddingBottom: THEME.spacing[24],

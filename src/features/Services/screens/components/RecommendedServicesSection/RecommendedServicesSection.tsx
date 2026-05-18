@@ -13,25 +13,23 @@ import Animated, {
 
 import { styles } from './RecommendedServicesSection.styles';
 
-interface RecommendedServiceItem {
-  href: string;
+export interface RecommendedServiceCardItem {
+  slug: string;
   title: string;
   description: string;
-  servicePageId: number;
+  servicePageId?: number;
 }
 
 interface RecommendedServicesData {
   title?: string;
   description?: string;
-  items?: RecommendedServiceItem[];
+  items?: RecommendedServiceCardItem[];
 }
 
 interface RecommendedServicesSectionProps {
   recommendedServices?: RecommendedServicesData;
 
-  onPressService?: (
-    item: RecommendedServiceItem
-  ) => void;
+  onPressService?: (item: RecommendedServiceCardItem) => void;
 }
 
 const CARD_COLORS = [
