@@ -346,6 +346,7 @@ class CallEngineImpl {
 
     store.dispatch(startConnectedTimer());
     store.dispatch(setSpeakerOn(true));
+    store.dispatch(setCallMinimized(false));
     agoraMediaService.setSpeakerphone(true);
     this.applyPhase('ACCEPT_OK');
     this.applyPhase('AGORA_JOINED');
@@ -398,6 +399,7 @@ class CallEngineImpl {
 
     store.dispatch(startConnectedTimer());
     store.dispatch(setSpeakerOn(true));
+    store.dispatch(setCallMinimized(false));
     agoraMediaService.setSpeakerphone(true);
     this.applyPhase('ACCEPT_OK');
     this.applyPhase('AGORA_JOINED');
@@ -542,8 +544,8 @@ class CallEngineImpl {
       return;
     }
     store.dispatch(setCallMinimized(true));
-    if (navigationRef.isReady()) {
-      navigationRef.navigate(ROUTES.Root.App as never);
+    if (navigationRef.isReady() && navigationRef.canGoBack()) {
+      navigationRef.goBack();
     }
   }
 

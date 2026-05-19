@@ -1,41 +1,35 @@
 import React, { useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import type { RootStackParamList } from '@/navigation/types';
-import { useAppDispatch, useAppSelector } from '@/store/typedHooks';
+import { useAppSelector } from '@/store/typedHooks';
 
+import { CallAvatar } from '../components/CallAvatar';
+import { InCallControlButton } from '../components/InCallControlButton';
 import { CallController } from '../controllers/CallController';
 import { callEngine } from '../engine/CallEngine';
-import { audioSessionService } from '../services/audioSessionService';
 import { startNetworkTransitionHandler, stopNetworkTransitionHandler } from '../engine/NetworkTransitionHandler';
-import { setElapsedSeconds } from '../store/callSlice';
+import { useCallTimer } from '../hooks/useCallTimer';
+import { audioSessionService } from '../services/audioSessionService';
+import { formatCallDuration } from '../utils/formatCallDuration';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Root/InCall'>;
 
-function formatDuration(seconds: number): string {
-  const m = Math.floor(seconds / 60)
-    .toString()
-    .padStart(2, '0');
-  const s = Math.floor(seconds % 60)
-    .toString()
-    .padStart(2, '0');
-  return `${m}:${s}`;
-}
-
-export function InCallScreen({ route, navigation }: Props): React.ReactElement {
+export function InCallScreen({ navigation }: Props): React.ReactElement {
   const insets = useSafeAreaInsets();
-  const dispatch = useAppDispatch();
-  const { sessionId } = route.params;
   const remoteName = useAppSelector((s) => s.call.remoteDisplayName);
+  const remoteAvatarUrl = useAppSelector((s) => s.call.remoteAvatarUrl);
+  const callType = useAppSelector((s) => s.call.callType);
   const localMuted = useAppSelector((s) => s.call.localMuted);
   const speakerOn = useAppSelector((s) => s.call.speakerOn);
   const reconnecting = useAppSelector((s) => s.call.reconnecting);
-  const elapsedSeconds = useAppSelector((s) => s.call.elapsedSeconds);
-  const connectedAtMs = useAppSelector((s) => s.call.connectedAtMs);
   const phase = useAppSelector((s) => s.call.phase);
+  const isMinimized = useAppSelector((s) => s.call.isMinimized);
+  const elapsedSeconds = useCallTimer();
 
   useEffect(() => {
     audioSessionService.configureForCall();
@@ -54,105 +48,148 @@ export function InCallScreen({ route, navigation }: Props): React.ReactElement {
   }, []);
 
   useEffect(() => {
-    if (connectedAtMs == null) {
-      return;
-    }
-    const tick = setInterval(() => {
-      const secs = Math.max(0, Math.floor((Date.now() - connectedAtMs) / 1000));
-      dispatch(setElapsedSeconds(secs));
-    }, 1000);
-    return () => clearInterval(tick);
-  }, [connectedAtMs, dispatch]);
-
-  useEffect(() => {
-    if (phase === 'idle') {
+    if (phase === 'idle' && !isMinimized) {
       navigation.goBack();
     }
-  }, [navigation, phase]);
+  }, [isMinimized, navigation, phase]);
+
+  const statusText = reconnecting
+    ? 'Reconnecting…'
+    : `Connected · ${formatCallDuration(elapsedSeconds)}`;
+  const callLabel = callType === 'video' ? 'Video call' : 'Voice call';
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }]}>
-      <Text style={styles.timer}>{formatDuration(elapsedSeconds)}</Text>
-      <Text style={styles.name}>{remoteName}</Text>
-      <Text style={styles.status}>{reconnecting ? 'Reconnecting…' : 'Connected'}</Text>
-
-      <View style={styles.controls}>
+    <LinearGradient
+      colors={['#0B3D2C', '#062A1E', '#041912']}
+      style={styles.root}
+    >
+      <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
         <Pressable
-          style={[styles.ctrlBtn, localMuted ? styles.ctrlActive : null]}
-          onPress={() => CallController.setMuted(!localMuted)}
+          style={styles.minimizeBtn}
+          onPress={() => CallController.minimizeCall()}
+          accessibilityRole="button"
+          accessibilityLabel="Minimize call"
         >
-          <Ionicons name={localMuted ? 'mic-off' : 'mic'} size={26} color="#fff" />
+          <Ionicons name="chevron-down" size={28} color="#fff" />
         </Pressable>
-        <Pressable
-          style={[styles.ctrlBtn, speakerOn ? styles.ctrlActive : null]}
-          onPress={() => CallController.setSpeaker(!speakerOn)}
-        >
-          <Ionicons name={speakerOn ? 'volume-high' : 'volume-mute'} size={26} color="#fff" />
-        </Pressable>
-        <Pressable
-          style={styles.endBtn}
-          onPress={() => {
-            void CallController.endCall().then(() => navigation.goBack());
-          }}
-        >
-          <Ionicons name="call" size={28} color="#fff" style={styles.endIcon} />
-        </Pressable>
+        <Text style={styles.topHint}>Swipe down to browse app</Text>
+        <View style={styles.topSpacer} />
       </View>
-    </View>
+
+      <View style={styles.center}>
+        <CallAvatar uri={remoteAvatarUrl} name={remoteName} size={140} />
+        <Text style={styles.name}>{remoteName}</Text>
+        <Text style={styles.callType}>{callLabel}</Text>
+        <View style={styles.statusPill}>
+          <View style={[styles.liveDot, reconnecting ? styles.liveDotWarn : null]} />
+          <Text style={styles.status}>{statusText}</Text>
+        </View>
+      </View>
+
+      <View style={[styles.controls, { paddingBottom: insets.bottom + 28 }]}>
+        <InCallControlButton
+          icon={localMuted ? 'mic-off' : 'mic'}
+          label={localMuted ? 'Unmute' : 'Mute'}
+          active={localMuted}
+          onPress={() => CallController.setMuted(!localMuted)}
+        />
+        <InCallControlButton
+          icon={speakerOn ? 'volume-high' : 'ear'}
+          label="Speaker"
+          active={speakerOn}
+          onPress={() => CallController.setSpeaker(!speakerOn)}
+        />
+        <InCallControlButton
+          icon="call"
+          label="End"
+          variant="danger"
+          onPress={() => {
+            void CallController.endCall();
+          }}
+        />
+      </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#0F172A',
-    alignItems: 'center',
   },
-  timer: {
-    marginTop: 12,
-    fontSize: 32,
-    fontWeight: '600',
-    color: '#fff',
-    fontVariant: ['tabular-nums'],
-  },
-  name: {
-    marginTop: 24,
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  status: {
-    marginTop: 8,
-    fontSize: 15,
-    color: '#4ADE80',
-  },
-  controls: {
-    position: 'absolute',
-    bottom: 40,
+  topBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 20,
+    paddingHorizontal: 16,
+    paddingBottom: 8,
   },
-  ctrlBtn: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+  minimizeBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: 'rgba(255,255,255,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  ctrlActive: {
-    backgroundColor: 'rgba(255,255,255,0.28)',
+  topHint: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 13,
+    fontWeight: '500',
+    color: 'rgba(255,255,255,0.55)',
   },
-  endBtn: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: '#DC2626',
+  topSpacer: {
+    width: 44,
+  },
+  center: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 24,
   },
-  endIcon: {
-    transform: [{ rotate: '135deg' }],
+  name: {
+    marginTop: 28,
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#fff',
+    textAlign: 'center',
+  },
+  callType: {
+    marginTop: 6,
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.55)',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  statusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  liveDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#4ADE80',
+  },
+  liveDotWarn: {
+    backgroundColor: '#FBBF24',
+  },
+  status: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.9)',
+    fontVariant: ['tabular-nums'],
+  },
+  controls: {
+    flexDirection: 'row',
+    justifyContent: 'space-evenly',
+    alignItems: 'flex-end',
+    paddingHorizontal: 16,
   },
 });

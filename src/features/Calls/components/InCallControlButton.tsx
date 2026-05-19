@@ -33,7 +33,12 @@ export function InCallControlButton({
         accessibilityRole="button"
         accessibilityLabel={label}
       >
-        <Ionicons name={icon} size={isDanger ? 28 : 24} color="#fff" />
+        <Ionicons
+          name={icon}
+          size={isDanger ? 28 : 24}
+          color="#fff"
+          style={isDanger ? styles.endIcon : undefined}
+        />
       </Pressable>
       <Text style={styles.label}>{label}</Text>
     </View>
@@ -68,5 +73,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: 'rgba(255,255,255,0.85)',
     textAlign: 'center',
+  },
+  endIcon: {
+    transform: [{ rotate: '135deg' }],
   },
 });

@@ -1,10 +1,12 @@
 import React, { useEffect, useRef } from 'react';
+import { StyleSheet, View } from 'react-native';
 
 import { navigationRef } from '@/navigation/RootNavigator';
 import { ROUTES } from '@/navigation/routeNames';
 import { selectIsAuthenticated } from '@/features/Auth/store/authSelectors';
 import { useAppSelector } from '@/store/typedHooks';
 
+import { CallMinimizedBar } from '../components/CallMinimizedBar';
 import { callEngine } from '../engine/CallEngine';
 import { callWarmupCoordinator } from '../engine/CallWarmupCoordinator';
 import { startNetworkTransitionHandler, stopNetworkTransitionHandler } from '../engine/NetworkTransitionHandler';
@@ -56,5 +58,16 @@ export function CallProvider(props: React.PropsWithChildren): React.ReactElement
     };
   }, [isAuthenticated, token]);
 
-  return <>{props.children}</>;
+  return (
+    <View style={styles.wrap}>
+      {props.children}
+      <CallMinimizedBar />
+    </View>
+  );
 }
+
+const styles = StyleSheet.create({
+  wrap: {
+    flex: 1,
+  },
+});

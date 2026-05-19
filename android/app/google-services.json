@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "840961233547",
+    "project_id": "bizconsultancyapp",
+    "storage_bucket": "bizconsultancyapp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:840961233547:android:c99227e0fb844259f7fa8e",
+        "android_client_info": {
+          "package_name": "com.bizconsultancyapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCLsyN491uI0k4pvE_qrkJkl6fWmVnr6r0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
