@@ -5,16 +5,27 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import type { RootStackParamList } from '@/navigation/types';
+import { ImagePlaceholder, RemoteImage } from '@/shared/components';
 import { useAppSelector } from '@/store/typedHooks';
 
 import { CallController } from '../controllers/CallController';
+import { callRingtoneService } from '../services/callRingtoneService';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Root/IncomingCall'>;
+
+function callTypeLabel(callType: string | null): string {
+  if (callType === 'video') {
+    return 'Video call';
+  }
+  return 'Voice call';
+}
 
 export function IncomingCallScreen({ navigation }: Props): React.ReactElement {
   const insets = useSafeAreaInsets();
   const phase = useAppSelector((s) => s.call.phase);
   const remoteName = useAppSelector((s) => s.call.remoteDisplayName);
+  const remoteAvatarUrl = useAppSelector((s) => s.call.remoteAvatarUrl);
+  const callType = useAppSelector((s) => s.call.callType);
   const callOutcome = useAppSelector((s) => s.call.callOutcome);
   const isRinging = phase === 'incoming_ringing';
   const isConnecting = phase === 'connecting_media';
@@ -38,13 +49,28 @@ export function IncomingCallScreen({ navigation }: Props): React.ReactElement {
     return unsub;
   }, [isRinging, navigation]);
 
+  useEffect(() => {
+    return () => {
+      callRingtoneService.stop();
+    };
+  }, []);
+
   return (
     <View style={[styles.root, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <View style={styles.center}>
         <View style={styles.avatarRing}>
-          <Ionicons name="person" size={56} color="#fff" />
+          {remoteAvatarUrl != null ? (
+            <RemoteImage
+              uri={remoteAvatarUrl}
+              style={styles.avatarImage}
+              placeholderVariant="avatar"
+            />
+          ) : (
+            <ImagePlaceholder variant="avatar" style={styles.avatarImage} />
+          )}
         </View>
         <Text style={styles.name}>{remoteName}</Text>
+        <Text style={styles.callType}>{callTypeLabel(callType)}</Text>
 
         {showResult ? (
           <>
@@ -92,6 +118,8 @@ export function IncomingCallScreen({ navigation }: Props): React.ReactElement {
   );
 }
 
+const AVATAR_SIZE = 120;
+
 const styles = StyleSheet.create({
   root: {
     flex: 1,
@@ -104,14 +132,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   avatarRing: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: AVATAR_SIZE,
+    height: AVATAR_SIZE,
+    borderRadius: AVATAR_SIZE / 2,
+    overflow: 'hidden',
     borderWidth: 3,
     borderColor: 'rgba(255,255,255,0.35)',
+    backgroundColor: 'rgba(255,255,255,0.12)',
+  },
+  avatarImage: {
+    width: AVATAR_SIZE,
+    height: AVATAR_SIZE,
+    borderRadius: AVATAR_SIZE / 2,
   },
   name: {
     marginTop: 28,
@@ -119,6 +151,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#fff',
     textAlign: 'center',
+  },
+  callType: {
+    marginTop: 6,
+    fontSize: 15,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.65)',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
   },
   status: {
     marginTop: 12,

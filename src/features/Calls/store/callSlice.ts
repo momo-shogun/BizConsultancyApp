@@ -11,6 +11,7 @@ export interface CallUiState {
   callType: CallType | null;
   credentials: PersistedCallCredentials | null;
   remoteDisplayName: string;
+  remoteAvatarUrl: string | null;
   remoteMuted: boolean;
   localMuted: boolean;
   speakerOn: boolean;
@@ -23,6 +24,8 @@ export interface CallUiState {
   callOutcome: CallOutcome;
   /** When connected timer started (ms). */
   connectedAtMs: number | null;
+  /** Full-screen call UI hidden; floating bar visible (WhatsApp-style). */
+  isMinimized: boolean;
 }
 
 const initialState: CallUiState = {
@@ -31,6 +34,7 @@ const initialState: CallUiState = {
   callType: null,
   credentials: null,
   remoteDisplayName: 'Expert',
+  remoteAvatarUrl: null,
   remoteMuted: false,
   localMuted: false,
   speakerOn: true,
@@ -41,6 +45,7 @@ const initialState: CallUiState = {
   incomingCallerUserId: null,
   callOutcome: 'none',
   connectedAtMs: null,
+  isMinimized: false,
 };
 
 export const callSlice = createSlice({
@@ -58,6 +63,7 @@ export const callSlice = createSlice({
         callType: CallType;
         credentials: PersistedCallCredentials;
         remoteDisplayName?: string;
+        remoteAvatarUrl?: string | null;
       }>,
     ) => {
       state.sessionId = action.payload.sessionId;
@@ -65,6 +71,9 @@ export const callSlice = createSlice({
       state.credentials = action.payload.credentials;
       if (action.payload.remoteDisplayName != null) {
         state.remoteDisplayName = action.payload.remoteDisplayName;
+      }
+      if (action.payload.remoteAvatarUrl !== undefined) {
+        state.remoteAvatarUrl = action.payload.remoteAvatarUrl;
       }
     },
     setIncomingCall: (
@@ -74,6 +83,7 @@ export const callSlice = createSlice({
         callType: CallType;
         callerUserId: number;
         remoteDisplayName?: string;
+        remoteAvatarUrl?: string | null;
       }>,
     ) => {
       state.phase = 'incoming_ringing';
@@ -85,6 +95,9 @@ export const callSlice = createSlice({
       state.connectedAtMs = null;
       if (action.payload.remoteDisplayName != null) {
         state.remoteDisplayName = action.payload.remoteDisplayName;
+      }
+      if (action.payload.remoteAvatarUrl !== undefined) {
+        state.remoteAvatarUrl = action.payload.remoteAvatarUrl;
       }
     },
     setCallOutcome: (state, action: PayloadAction<CallOutcome>) => {
@@ -119,6 +132,9 @@ export const callSlice = createSlice({
     updateCredentials: (state, action: PayloadAction<PersistedCallCredentials>) => {
       state.credentials = action.payload;
     },
+    setCallMinimized: (state, action: PayloadAction<boolean>) => {
+      state.isMinimized = action.payload;
+    },
   },
 });
 
@@ -137,4 +153,5 @@ export const {
   updateCredentials,
   setCallOutcome,
   startConnectedTimer,
+  setCallMinimized,
 } = callSlice.actions;

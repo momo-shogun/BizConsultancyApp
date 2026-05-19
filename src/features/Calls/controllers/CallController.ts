@@ -70,6 +70,14 @@ export const CallController = {
     callEngine.setSpeaker(on);
   },
 
+  minimizeCall(): void {
+    callEngine.minimizeCall();
+  },
+
+  expandCall(): void {
+    callEngine.expandCall();
+  },
+
   async startOutgoingWithType(
     calleeUserId: number,
     callType: CallType,

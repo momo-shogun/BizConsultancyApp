@@ -86,6 +86,8 @@ export interface CallIncomingPayload {
   callerRole: CallRole;
   calleeUserId: number;
   calleeRole: CallRole;
+  callerName?: string | null;
+  callerThumbnail?: string | null;
   eventId?: string;
   eventVersion?: number;
   timestamp?: number;

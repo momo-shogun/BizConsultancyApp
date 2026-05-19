@@ -7,6 +7,8 @@ import { store } from '@/store';
 import { callsApi } from '../api/callsApi';
 import { callSocketService } from '../services/callSocketService';
 import { agoraMediaService } from '../services/agoraMediaService';
+import { callRingtoneService } from '../services/callRingtoneService';
+import { resolveCallPartyImageUrl } from '../utils/callPartyMedia';
 import {
   resetCallState,
   setCallError,
@@ -17,6 +19,7 @@ import {
   setLocalMuted,
   setReconnecting,
   setRemoteMuted,
+  setCallMinimized,
   setSpeakerOn,
   startConnectedTimer,
   updateCredentials,
@@ -154,6 +157,7 @@ class CallEngineImpl {
   }
 
   private showOutcomeThenEnd(outcome: CallOutcome, delayMs = 2200): void {
+    callRingtoneService.stop();
     store.dispatch(setCallOutcome(outcome));
     store.dispatch(setCallPhase('ended'));
     this.scheduleTeardown(delayMs);
@@ -301,15 +305,20 @@ class CallEngineImpl {
     }
 
     const callType = (payload.callType === 'video' ? 'video' : 'voice') as CallType;
+    const callerName = payload.callerName?.trim();
+    const displayName =
+      callerName != null && callerName.length > 0 ? callerName : 'Incoming caller';
     store.dispatch(
       setIncomingCall({
         sessionId: payload.sessionId,
         callType,
         callerUserId: payload.callerUserId,
-        remoteDisplayName: 'Incoming caller',
+        remoteDisplayName: displayName,
+        remoteAvatarUrl: resolveCallPartyImageUrl(payload.callerThumbnail),
       }),
     );
     callSocketService.setActiveCallId(payload.sessionId);
+    callRingtoneService.start();
     this.navigateToCallScreen('IncomingCall', payload.sessionId);
   }
 
@@ -354,6 +363,7 @@ class CallEngineImpl {
       return;
     }
 
+    callRingtoneService.stop();
     store.dispatch(setCallPhase('connecting_media'));
 
     if (!(await this.ensureMicPermissionOrAbort('incoming_ringing'))) {
@@ -400,6 +410,7 @@ class CallEngineImpl {
     if (sessionId == null) {
       return;
     }
+    callRingtoneService.stop();
     await store.dispatch(callsApi.endpoints.declineCall.initiate(sessionId));
     this.showOutcomeThenEnd('rejected');
   }
@@ -525,7 +536,30 @@ class CallEngineImpl {
     agoraMediaService.setSpeakerphone(enabled);
   }
 
+  minimizeCall(): void {
+    const state = this.getCallState();
+    if (state.phase !== 'in_call' || state.sessionId == null) {
+      return;
+    }
+    store.dispatch(setCallMinimized(true));
+    if (navigationRef.isReady()) {
+      navigationRef.navigate(ROUTES.Root.App as never);
+    }
+  }
+
+  expandCall(): void {
+    const state = this.getCallState();
+    if (state.phase !== 'in_call' || state.sessionId == null) {
+      return;
+    }
+    store.dispatch(setCallMinimized(false));
+    if (navigationRef.isReady()) {
+      navigationRef.navigate(ROUTES.Root.InCall as never, { sessionId: state.sessionId });
+    }
+  }
+
   teardown(): void {
+    callRingtoneService.stop();
     this.clearRingTimeout();
     this.clearTeardownTimer();
     this.stopSyncTimer();
