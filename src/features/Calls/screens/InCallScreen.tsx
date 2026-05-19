@@ -9,6 +9,7 @@ import { useAppDispatch, useAppSelector } from '@/store/typedHooks';
 
 import { CallController } from '../controllers/CallController';
 import { callEngine } from '../engine/CallEngine';
+import { audioSessionService } from '../services/audioSessionService';
 import { startNetworkTransitionHandler, stopNetworkTransitionHandler } from '../engine/NetworkTransitionHandler';
 import { setElapsedSeconds } from '../store/callSlice';
 
@@ -35,6 +36,11 @@ export function InCallScreen({ route, navigation }: Props): React.ReactElement {
   const elapsedSeconds = useAppSelector((s) => s.call.elapsedSeconds);
   const connectedAtMs = useAppSelector((s) => s.call.connectedAtMs);
   const phase = useAppSelector((s) => s.call.phase);
+
+  useEffect(() => {
+    audioSessionService.configureForCall();
+    CallController.setSpeaker(true);
+  }, []);
 
   useEffect(() => {
     startNetworkTransitionHandler({

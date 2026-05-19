@@ -31,6 +31,7 @@ import type {
 import { CallReliabilityManager } from './CallReliabilityManager';
 import { syncCallSession } from './CallStateSyncService';
 import { transitionCallPhase, type CallPhase } from './callStateMachine';
+import { ensureCallMicrophonePermission } from '../utils/callPermissions';
 
 type CallScreen = 'IncomingCall' | 'OutgoingCall' | 'InCall';
 type NavigateFn = (screen: CallScreen, params: { sessionId: number }) => void;
@@ -158,12 +159,43 @@ class CallEngineImpl {
     this.scheduleTeardown(delayMs);
   }
 
+  private async ensureMicPermissionOrAbort(restorePhase?: CallPhase): Promise<boolean> {
+    const granted = await ensureCallMicrophonePermission();
+    if (!granted) {
+      store.dispatch(setCallError('Microphone permission is required for calls'));
+      store.dispatch(setCallPhase(restorePhase ?? 'idle'));
+      return false;
+    }
+    return true;
+  }
+
+  private async joinAgoraFromCredentials(credentials: PersistedCallCredentials): Promise<boolean> {
+    agoraMediaService.setListeners({});
+    try {
+      await agoraMediaService.join({
+        appId: credentials.appId,
+        channelName: credentials.channelName,
+        token: credentials.rtcToken,
+        uid: credentials.uid,
+        callType: credentials.callType,
+      });
+      return true;
+    } catch {
+      store.dispatch(setCallError('Could not connect audio'));
+      return false;
+    }
+  }
+
   async startOutgoing(calleeUserId: number, callType: CallType, remoteName: string): Promise<void> {
     store.dispatch(resetCallState());
     this.reliability.reset();
     this.clearTeardownTimer();
     store.dispatch(setCallPhase('outgoing_initiating'));
     store.dispatch(setCallError(null));
+
+    if (!(await this.ensureMicPermissionOrAbort())) {
+      return;
+    }
 
     const result = await store.dispatch(
       callsApi.endpoints.initiateCall.initiate({ calleeUserId, callType }),
@@ -202,20 +234,6 @@ class CallEngineImpl {
     }, OUTGOING_RING_TIMEOUT_MS);
 
     this.navigateToCallScreen('OutgoingCall', data.sessionId);
-
-    agoraMediaService.setListeners({});
-
-    try {
-      await agoraMediaService.join({
-        appId: data.appId,
-        channelName: data.channelName,
-        token: data.rtcToken,
-        uid: data.uid,
-        callType: data.callType,
-      });
-    } catch {
-      store.dispatch(setCallError('Could not connect audio'));
-    }
   }
 
   async startOutgoingFromBooking(bookingId: number, remoteName: string): Promise<void> {
@@ -223,6 +241,10 @@ class CallEngineImpl {
     this.reliability.reset();
     this.clearTeardownTimer();
     store.dispatch(setCallPhase('outgoing_initiating'));
+
+    if (!(await this.ensureMicPermissionOrAbort())) {
+      return;
+    }
 
     const result = await store.dispatch(
       callsApi.endpoints.initiateCallFromBooking.initiate({ bookingId }),
@@ -261,19 +283,6 @@ class CallEngineImpl {
     }, OUTGOING_RING_TIMEOUT_MS);
 
     this.navigateToCallScreen('OutgoingCall', data.sessionId);
-
-    agoraMediaService.setListeners({});
-    try {
-      await agoraMediaService.join({
-        appId: data.appId,
-        channelName: data.channelName,
-        token: data.rtcToken,
-        uid: data.uid,
-        callType: data.callType,
-      });
-    } catch {
-      store.dispatch(setCallError('Could not connect audio'));
-    }
   }
 
   handleIncoming(payload: CallIncomingPayload): void {
@@ -312,8 +321,23 @@ class CallEngineImpl {
     if (state.phase === 'in_call' && state.connectedAtMs != null) {
       return;
     }
+    const credentials = state.credentials;
+    if (credentials == null) {
+      return;
+    }
+
     this.clearRingTimeout();
+    store.dispatch(setCallPhase('connecting_media'));
+
+    const joined = await this.joinAgoraFromCredentials(credentials);
+    if (!joined) {
+      store.dispatch(setCallPhase('outgoing_ringing'));
+      return;
+    }
+
     store.dispatch(startConnectedTimer());
+    store.dispatch(setSpeakerOn(true));
+    agoraMediaService.setSpeakerphone(true);
     this.applyPhase('ACCEPT_OK');
     this.applyPhase('AGORA_JOINED');
     this.replaceCallScreen('InCall', sessionId);
@@ -331,6 +355,10 @@ class CallEngineImpl {
     }
 
     store.dispatch(setCallPhase('connecting_media'));
+
+    if (!(await this.ensureMicPermissionOrAbort('incoming_ringing'))) {
+      return;
+    }
 
     const result = await store.dispatch(callsApi.endpoints.acceptCall.initiate(sessionId));
     if ('error' in result) {
@@ -351,24 +379,16 @@ class CallEngineImpl {
     };
     store.dispatch(updateCredentials(credentials));
     this.clearRingTimeout();
-    store.dispatch(startConnectedTimer());
 
-    agoraMediaService.setListeners({});
-
-    try {
-      await agoraMediaService.join({
-        appId: data.appId,
-        channelName: data.channelName,
-        token: data.rtcToken,
-        uid: data.uid,
-        callType: data.callType,
-      });
-    } catch {
-      store.dispatch(setCallError('Could not connect audio'));
+    const joined = await this.joinAgoraFromCredentials(credentials);
+    if (!joined) {
       store.dispatch(setCallPhase('incoming_ringing'));
       return;
     }
 
+    store.dispatch(startConnectedTimer());
+    store.dispatch(setSpeakerOn(true));
+    agoraMediaService.setSpeakerphone(true);
     this.applyPhase('ACCEPT_OK');
     this.applyPhase('AGORA_JOINED');
     this.replaceCallScreen('InCall', sessionId);

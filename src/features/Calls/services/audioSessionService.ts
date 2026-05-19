@@ -8,7 +8,8 @@ import { agoraMediaService } from './agoraMediaService';
  */
 export const audioSessionService = {
   configureForCall(): void {
-    // Agora sets playAndRecord via SDK on join; platform-specific native module can hook here.
+    agoraMediaService.refreshVoiceAudio();
+    agoraMediaService.setSpeakerphone(true);
   },
 
   setSpeakerphone(enabled: boolean): void {
