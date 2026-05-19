@@ -39,6 +39,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
         },
       },
       [ROUTES.Root.Search]: 'search',
+      [ROUTES.Root.BizAI]: 'biz-ai',
       [ROUTES.Root.ConsultantsList]: 'consultants',
       [ROUTES.Root.ConsultantDetail]: 'consultant/:slug',
       [ROUTES.Root.WorkshopsList]: 'workshops',

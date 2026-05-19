@@ -20,6 +20,7 @@ import { IncomingCallScreen } from '@/features/Calls/screens/IncomingCallScreen'
 import { OutgoingCallScreen } from '@/features/Calls/screens/OutgoingCallScreen';
 import { InCallScreen } from '@/features/Calls/screens/InCallScreen';
 import WorkshopDetailsScreen from '@/features/Home/screens/WorkshopDetailsScreen';
+import { BizAIScreen } from '@/features/BizAI/screens/BizAIScreen';
 import { SearchScreen } from '@/features/Search/screens/SearchScreen';
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
@@ -66,6 +67,17 @@ export function RootNavigator(): React.ReactElement {
                 animation: 'fade_from_bottom',
                 presentation: 'transparentModal',
                 contentStyle: { backgroundColor: 'transparent' },
+                gestureEnabled: true,
+                fullScreenGestureEnabled: true,
+              }}
+            />
+            <RootStack.Screen
+              name={ROUTES.Root.BizAI}
+              component={BizAIScreen}
+              options={{
+                headerShown: false,
+                animation: 'fade_from_bottom',
+                presentation: 'fullScreenModal',
                 gestureEnabled: true,
                 fullScreenGestureEnabled: true,
               }}

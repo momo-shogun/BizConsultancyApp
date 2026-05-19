@@ -3,11 +3,11 @@ import {
   Image,
   ImageBackground,
   Pressable,
-  ScrollView,
   Text,
   useWindowDimensions,
   View,
 } from 'react-native';
+import Animated from 'react-native-reanimated';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
@@ -16,6 +16,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { THEME } from '@/constants/theme';
 import { ROUTES } from '@/navigation/routeNames';
 import type { AccountStackParamList } from '@/navigation/types';
+import { useBizAIScrollReporter } from '@/features/BizAI/hooks/useBizAIScrollReporter';
 import { ProfileAccountCard } from '@/features/Profile/components/ProfileAccountCard';
 import { SafeAreaWrapper, ScreenWrapper } from '@/shared/components';
 import { Card } from '@/shared/components/card';
@@ -173,6 +174,7 @@ const GRID_H_PADDING = THEME.spacing[12];
 
 export function ConsultantProfileScreen(): React.ReactElement {
   const navigation = useNavigation<AccountNav>();
+  const onBizAiScroll = useBizAIScrollReporter();
   const { width: screenWidth } = useWindowDimensions();
 
   const statCardWidth = useMemo((): number => {
@@ -208,9 +210,11 @@ export function ConsultantProfileScreen(): React.ReactElement {
       </View>
 
       <ScreenWrapper style={styles.screen}>
-        <ScrollView
+        <Animated.ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
+          onScroll={onBizAiScroll}
+          scrollEventThrottle={16}
         >
           <ProfileAccountCard accountRole="consultant" style={styles.subscriptionCard} />
 
@@ -330,7 +334,7 @@ export function ConsultantProfileScreen(): React.ReactElement {
               </View>
             ))}
           </View>
-        </ScrollView>
+        </Animated.ScrollView>
       </ScreenWrapper>
     </SafeAreaWrapper>
   );

@@ -1,9 +1,11 @@
 import React from 'react';
-import { Image, ImageBackground, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Image, ImageBackground, Text, TouchableOpacity, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
 import { THEME } from '@/constants/theme';
 import { SafeAreaWrapper, ScreenHeader, ScreenWrapper } from '@/shared/components';
 
+import { useBizAIScrollReporter } from '@/features/BizAI/hooks/useBizAIScrollReporter';
 import { ProfileAccountCard } from '@/features/Profile/components/ProfileAccountCard';
 
 import { styles } from './UserProfileScreen.styles';
@@ -133,6 +135,7 @@ type AccountNav = NativeStackNavigationProp<AccountStackParamList, typeof ROUTES
 
 export function UserProfileScreen(): React.ReactElement {
   const navigation = useNavigation<AccountNav>();
+  const onBizAiScroll = useBizAIScrollReporter();
   const watchRows: WatchItem[][] = [];
   for (let i = 0; i < WATCH_ITEMS.length; i += 2) {
     watchRows.push(WATCH_ITEMS.slice(i, i + 2));
@@ -159,7 +162,11 @@ export function UserProfileScreen(): React.ReactElement {
         </TouchableOpacity>
       </View>
       <ScreenWrapper style={styles.screen}>
-        <ScrollView showsVerticalScrollIndicator={false}>
+        <Animated.ScrollView
+          showsVerticalScrollIndicator={false}
+          onScroll={onBizAiScroll}
+          scrollEventThrottle={16}
+        >
 
           <ProfileAccountCard accountRole="user" />
 
@@ -325,7 +332,7 @@ export function UserProfileScreen(): React.ReactElement {
             ))}
           </View>
 
-        </ScrollView>
+        </Animated.ScrollView>
       </ScreenWrapper>
     </SafeAreaWrapper>
   );

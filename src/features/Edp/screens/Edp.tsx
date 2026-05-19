@@ -1,7 +1,8 @@
 import React from 'react';
 import { useNavigation } from '@react-navigation/native';
 import type { NavigationProp } from '@react-navigation/native';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
 import { ROUTES } from '@/navigation/routeNames';
 import type { EdpStackParamList } from '@/navigation/types';
@@ -16,6 +17,8 @@ import {
   SafeAreaWrapper,
   ScreenHeader,
 } from '@/shared/components';
+
+import { useBizAIScrollReporter } from '@/features/BizAI/hooks/useBizAIScrollReporter';
 
 import { EdpHeroSection } from '../components/EdpHeroSection';
 import {
@@ -44,6 +47,7 @@ export default function EDPScreen({
   onViewAllModules,
 }: EDPScreenProps): React.ReactElement {
   const navigation = useNavigation<NavigationProp<EdpStackParamList>>();
+  const onBizAiScroll = useBizAIScrollReporter();
 
   const onGetStarted = (): void => {
     navigation.navigate(ROUTES.Edp.Modules);
@@ -54,7 +58,12 @@ export default function EDPScreen({
       <View style={styles.root}>
         <ScreenHeader title="EDP Programme" headerColor={EDP_HERO_BG} onSearchPress={() => {}} />
 
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        <Animated.ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+          onScroll={onBizAiScroll}
+          scrollEventThrottle={16}
+        >
           <EdpHeroSection onGetStarted={onGetStarted} />
 
           <EdpStatsStrip items={EDP_STRIP_STATS} />
@@ -124,7 +133,7 @@ export default function EDPScreen({
               <Text style={styles.ctaSecondaryText}>Talk to an expert</Text>
             </Pressable>
           </View>
-        </ScrollView>
+        </Animated.ScrollView>
       </View>
     </SafeAreaWrapper>
   );

@@ -16,6 +16,8 @@ import { ZeptoTabsSearchBand } from '../../Tabs/ZeptoTabsSearchBand';
 import { THEME } from '@/constants/theme';
 import { darkenHex, ZEPTO_TABS_TRACK_DARKEN } from '@/utils/darkenHex';
 
+import { reportBizAIScroll } from '@/features/BizAI/engine/bizAiScrollBridge';
+
 import { ZeptoHSCategorySpotlight } from './ZeptoHSCategorySpotlight';
 import type { HomeCategoryId, ZeptoHSProps, ZeptoHSShellColors } from './ZeptoHS.types';
 import { ROUTES } from '@/navigation/routeNames';
@@ -121,7 +123,9 @@ export function ZeptoHS(props: ZeptoHSProps): React.ReactElement {
 
   const onScroll = useAnimatedScrollHandler({
     onScroll: (event) => {
-      scrollY.value = event.contentOffset.y;
+      const offsetY = event.contentOffset.y;
+      scrollY.value = offsetY;
+      reportBizAIScroll(offsetY);
     },
   });
 

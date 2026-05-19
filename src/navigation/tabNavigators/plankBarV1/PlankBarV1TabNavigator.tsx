@@ -15,6 +15,7 @@ import { AccountTabHost } from '../../account/AccountTabHost';
 import { ServicesStackNavigator } from '../../ServicesStackNavigator';
 import { plankBarV1TabNavigatorScreenOptions } from './plankBarV1.styles';
 import { EdpStackNavigator } from '../../EdpStackNavigator';
+import { BizAITabOverlay } from '@/features/BizAI/providers/BizAITabOverlay';
 
 const PlankTab = createBottomTabNavigator<AppTabParamList>();
 
@@ -55,6 +56,7 @@ function PlankTabBar(props: BottomTabBarProps): React.ReactElement | null {
 
 export function PlankBarV1TabNavigator(): React.ReactElement {
   return (
+    <BizAITabOverlay>
     <PlankTab.Navigator
       initialRouteName={ROUTES.App.Home}
       screenOptions={({ route }) => ({
@@ -90,5 +92,6 @@ export function PlankBarV1TabNavigator(): React.ReactElement {
         })}
       />
     </PlankTab.Navigator>
+    </BizAITabOverlay>
   );
 }

@@ -70,4 +70,5 @@ export type RootStackParamList = {
   [ROUTES.Root.OutgoingCall]: { sessionId: number };
   [ROUTES.Root.InCall]: { sessionId: number };
   [ROUTES.Root.Search]: SearchScreenParams | undefined;
+  [ROUTES.Root.BizAI]: undefined;
 };

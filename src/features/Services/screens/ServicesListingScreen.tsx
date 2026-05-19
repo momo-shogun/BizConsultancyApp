@@ -9,6 +9,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -31,6 +32,7 @@ import {
   ScreenWrapper,
 } from '@/shared/components';
 
+import { useBizAIScrollReporter } from '@/features/BizAI/hooks/useBizAIScrollReporter';
 import { useGetPublicServicesQuery } from '@/features/Services/api/servicesApi';
 import { mapPublicServiceToCardItem } from '@/features/Services/utils/serviceMappers';
 import {
@@ -56,8 +58,12 @@ const PLACEHOLDER_KEYS = Array.from(
   (_, index) => `service-placeholder-${index}`,
 );
 
+const AnimatedFlatList = Animated.createAnimatedComponent(FlatList<RecommendedServiceItem>);
+const AnimatedPlaceholderFlatList = Animated.createAnimatedComponent(FlatList<string>);
+
 export function ServicesListingScreen(): React.ReactElement {
   const navigation = useNavigation<NativeStackNavigationProp<ServicesStackParamList>>();
+  const onBizAiScroll = useBizAIScrollReporter();
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [debouncedSearch, setDebouncedSearch] = useState<string>('');
@@ -327,7 +333,7 @@ export function ServicesListingScreen(): React.ReactElement {
 
       <ScreenWrapper>
         {isInitialLoading ? (
-          <FlatList
+          <AnimatedPlaceholderFlatList
             data={PLACEHOLDER_KEYS}
             keyExtractor={(key) => key}
             renderItem={renderPlaceholderItem}
@@ -336,9 +342,11 @@ export function ServicesListingScreen(): React.ReactElement {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             ListHeaderComponent={ListHeader}
+            onScroll={onBizAiScroll}
+            scrollEventThrottle={16}
           />
         ) : (
-          <FlatList
+          <AnimatedFlatList
             data={displayItems}
             keyExtractor={keyExtractor}
             renderItem={renderItem}
@@ -347,6 +355,8 @@ export function ServicesListingScreen(): React.ReactElement {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             ListHeaderComponent={ListHeader}
+            onScroll={onBizAiScroll}
+            scrollEventThrottle={16}
             ListEmptyComponent={
               <EmptyState
                 title={hasSearchQuery ? 'No services match' : 'No services found'}

@@ -13,6 +13,7 @@ export const ROUTES = {
     OutgoingCall: 'Root/OutgoingCall',
     InCall: 'Root/InCall',
     Search: 'Root/Search',
+    BizAI: 'Root/BizAI',
   },
   Auth: {
     Splash: 'Auth/Splash',
