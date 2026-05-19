@@ -174,9 +174,35 @@ export const zeptoTabsStyles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
+    height: 48,
     fontSize: 16,
+    lineHeight: Platform.OS === 'ios' ? 20 : 22,
     color: '#111827',
     paddingVertical: 0,
+    paddingHorizontal: 0,
+    margin: 0,
+    ...Platform.select({
+      android: {
+        includeFontPadding: false,
+        textAlignVertical: 'center',
+      },
+    }),
+  },
+  searchTextSlot: {
+    flex: 1,
+    height: 48,
+    justifyContent: 'center',
+  },
+  searchPlaceholderText: {
+    fontSize: 16,
+    lineHeight: Platform.OS === 'ios' ? 20 : 22,
+    color: 'rgba(17,24,39,0.55)',
+    paddingVertical: 0,
+    margin: 0,
+  },
+  searchBarPressed: {
+    opacity: 0.92,
+    transform: [{ scale: 0.988 }],
   },
 });
 

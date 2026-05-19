@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import type { LayoutChangeEvent } from 'react-native';
 import { Platform, StyleSheet, UIManager, View } from 'react-native';
@@ -19,8 +19,10 @@ import { darkenHex, ZEPTO_TABS_TRACK_DARKEN } from '@/utils/darkenHex';
 import { ZeptoHSCategorySpotlight } from './ZeptoHSCategorySpotlight';
 import type { HomeCategoryId, ZeptoHSProps, ZeptoHSShellColors } from './ZeptoHS.types';
 import { ROUTES } from '@/navigation/routeNames';
-import { useNavigation } from 'node_modules/@react-navigation/core/lib/typescript/src/useNavigation';
 import { navigationRef } from '@/navigation/RootNavigator';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '@/navigation/types';
 
 if (
   Platform.OS === 'android' &&
@@ -82,8 +84,8 @@ export function resolveZeptoHSShellColors(
 
 export function ZeptoHS(props: ZeptoHSProps): React.ReactElement {
   const { header, children, testID, style } = props;
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeTopCategoryIndex, setActiveTopCategoryIndex] = useState(0);
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const [activeTopCategoryIndex, setActiveTopCategoryIndex] = React.useState(0);
 
   const activeTopCategoryId: HomeCategoryId =
     (ZEPTO_HS_TOP_CATEGORY_TABS[activeTopCategoryIndex]?.id as HomeCategoryId) ?? 'diagnosis';
@@ -156,6 +158,19 @@ export function ZeptoHS(props: ZeptoHSProps): React.ReactElement {
     tabsBlockH.value = e.nativeEvent.layout.height;
   };
 
+  const onTalkToExpertPress = useCallback((): void => {
+    if (navigationRef.isReady()) {
+      navigationRef.navigate(ROUTES.Root.ConsultantsList);
+    }
+  }, []);
+
+  const onOpenSearch = useCallback((): void => {
+    navigation.navigate(ROUTES.Root.Search, {
+      headerBackground: activeShell.topTabsBackground,
+      accentColor: activeShell.tabLabelColor,
+    });
+  }, [activeShell.tabLabelColor, activeShell.topTabsBackground, navigation]);
+
   const renderedChildren =
     children != null
       ? typeof children === 'function'
@@ -203,6 +218,7 @@ export function ZeptoHS(props: ZeptoHSProps): React.ReactElement {
           categoryId={activeTopCategoryId}
           backgroundColor={activeShell.categoryStripBackground}
           accentColor={activeShell.tabLabelColor}
+          onTalkToExpertPress={onTalkToExpertPress}
         />
 
         {renderedChildren}
@@ -213,8 +229,7 @@ export function ZeptoHS(props: ZeptoHSProps): React.ReactElement {
           <ZeptoTabsSearchBand
             backgroundColor={activeShell.topTabsBackground}
             searchPlaceholder="Search for services, experts..."
-            searchValue={searchQuery}
-            onSearchChange={setSearchQuery}
+            onPress={onOpenSearch}
             testID="zepto_hs_sticky_search"
           />
         </View>

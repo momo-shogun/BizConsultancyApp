@@ -10,6 +10,7 @@ import { CallMinimizedBar } from '../components/CallMinimizedBar';
 import { callEngine } from '../engine/CallEngine';
 import { callWarmupCoordinator } from '../engine/CallWarmupCoordinator';
 import { startNetworkTransitionHandler, stopNetworkTransitionHandler } from '../engine/NetworkTransitionHandler';
+import { startCallPushListeners } from '../services/callFirebaseMessaging';
 
 export function CallProvider(props: React.PropsWithChildren): React.ReactElement {
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
@@ -43,6 +44,7 @@ export function CallProvider(props: React.PropsWithChildren): React.ReactElement
 
     callWarmupCoordinator.onAuthenticated(token);
     callEngine.bindSocketHandlers();
+    const stopPushListeners = startCallPushListeners();
 
     startNetworkTransitionHandler({
       onNetworkChange: () => {
@@ -54,6 +56,7 @@ export function CallProvider(props: React.PropsWithChildren): React.ReactElement
     });
 
     return () => {
+      stopPushListeners();
       stopNetworkTransitionHandler();
     };
   }, [isAuthenticated, token]);

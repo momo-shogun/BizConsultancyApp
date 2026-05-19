@@ -57,6 +57,13 @@ export const callsApi = baseApi.injectEndpoints({
     getCallStatus: build.query<CallSessionStatusResponse, number>({
       query: (sessionId) => `calls/${sessionId}/status`,
     }),
+    registerDeviceToken: build.mutation<{ ok: true }, { token: string; platform: 'ios' | 'android' }>({
+      query: (body) => ({
+        url: 'calls/device-token',
+        method: 'POST',
+        body,
+      }),
+    }),
     syncCall: build.query<CallSyncResponse, { sessionId: number; sinceVersion?: number }>({
       query: ({ sessionId, sinceVersion }) => {
         const q =

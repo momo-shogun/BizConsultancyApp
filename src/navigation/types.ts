@@ -1,5 +1,7 @@
 import type { NavigatorScreenParams } from '@react-navigation/native';
 
+import type { SearchScreenParams } from '@/features/Search/types/search.types';
+
 import { ROUTES } from './routeNames';
 
 export type AuthStackParamList = {
@@ -67,4 +69,5 @@ export type RootStackParamList = {
   [ROUTES.Root.IncomingCall]: { sessionId: number };
   [ROUTES.Root.OutgoingCall]: { sessionId: number };
   [ROUTES.Root.InCall]: { sessionId: number };
+  [ROUTES.Root.Search]: SearchScreenParams | undefined;
 };

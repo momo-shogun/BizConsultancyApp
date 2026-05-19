@@ -11,16 +11,34 @@ import {
   View,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { skipToken } from '@reduxjs/toolkit/query';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { THEME } from '@/constants/theme';
-import { useGetPublicConsultantsQuery } from '@/features/consultant/api/consultantApi';
+import {
+  useGetMasterCategoriesQuery,
+  useGetMasterIndustriesQuery,
+  useGetMasterSegmentsQuery,
+  useGetPublicConsultantsQuery,
+} from '@/features/consultant/api/consultantApi';
 import { CONSULTANT_LIST_PAGE_SIZE } from '@/features/consultant/constants/pagination';
 import {
   isRenderableConsultantCard,
   mapConsultantDetailToCardItem,
 } from '@/features/consultant/utils/consultantMappers';
+import {
+  buildConsultantFilterSections,
+  buildPublicConsultantsListQuery,
+  CONSULTANT_LIST_FILTER_KEYS,
+  CONSULTANT_SEARCH_DEBOUNCE_MS,
+  CONSULTANT_SEARCH_MIN_API_LENGTH,
+  countActiveConsultantFilters,
+  EMPTY_CONSULTANT_LIST_FILTERS,
+  findFilterOptionLabel,
+  mapMasterToFilterOptions,
+  matchesConsultantSearch,
+} from '@/features/consultant/utils/consultantListFilters';
 import { getApiErrorMessage } from '@/utils/apiError';
 import { ROUTES } from '@/navigation/routeNames';
 import type { RootStackParamList } from '@/navigation/types';
@@ -29,6 +47,7 @@ import {
   EmptyState,
   FilterChipsBar,
   FilterSheet,
+  type FilterChipItem,
   type FilterSection,
   type FilterSheetValue,
   SafeAreaWrapper,
@@ -42,16 +61,10 @@ import { showGlobalError } from '@/shared/components/toast';
 const LIST_GAP = THEME.spacing[10];
 const H_PADDING = THEME.spacing[12];
 
-const SEARCH_DEBOUNCE_MS = 400;
 const PLACEHOLDER_CARD_COUNT = 6;
 const PLACEHOLDER_KEYS = Array.from({ length: PLACEHOLDER_CARD_COUNT }, (_, i) => `placeholder-${i}`);
 
 type SortMode = 'recommended' | 'name' | 'rate_low' | 'rate_high';
-
-function parseExperienceYears(label: string): number {
-  const m = label.match(/(\d+)\s*\+/);
-  return m ? Number.parseInt(m[1], 10) : 0;
-}
 
 function parseRateRupee(label: string): number {
   const normalized = label.replace(/[₹,\s]/g, '');
@@ -59,70 +72,16 @@ function parseRateRupee(label: string): number {
   return m ? Number.parseInt(m[1], 10) : 0;
 }
 
-function matchesCategoryFilter(item: TopConsultantItem, categoryId: string | null): boolean {
-  if (categoryId == null) return true;
-  const hay = `${item.specialty} ${item.role} ${item.bio}`.toLowerCase();
-  if (categoryId === 'incorporation') {
-    return hay.includes('incorporation') || hay.includes('startup') || hay.includes('mca');
+function sortConsultants(items: TopConsultantItem[], mode: SortMode): TopConsultantItem[] {
+  const next = [...items];
+  if (mode === 'name') {
+    next.sort((a, b) => a.name.localeCompare(b.name));
+  } else if (mode === 'rate_low') {
+    next.sort((a, b) => parseRateRupee(a.rateLabel) - parseRateRupee(b.rateLabel));
+  } else if (mode === 'rate_high') {
+    next.sort((a, b) => parseRateRupee(b.rateLabel) - parseRateRupee(a.rateLabel));
   }
-  if (categoryId === 'tax') {
-    return hay.includes('tax') || hay.includes('compliance') || hay.includes('gst');
-  }
-  if (categoryId === 'ip') {
-    return hay.includes('ip') || hay.includes('legal') || hay.includes('trademark');
-  }
-  return true;
-}
-
-function matchesTimelineFilter(item: TopConsultantItem, timelineId: string | null): boolean {
-  if (timelineId == null) return true;
-  const years = parseExperienceYears(item.experienceLabel);
-  if (timelineId === 'expert') return years >= 8;
-  if (timelineId === '2-4w') return years >= 4 && years <= 7;
-  if (timelineId === 'mca') {
-    return (
-      item.specialty.toLowerCase().includes('mca') || item.role.toLowerCase().includes('secretarial')
-    );
-  }
-  return true;
-}
-
-function matchesPriceFilter(item: TopConsultantItem, priceId: string | null): boolean {
-  if (priceId == null) return true;
-  const r = parseRateRupee(item.rateLabel);
-  if (priceId === 'under-2k') return r < 2_000;
-  if (priceId === '2k-7k') return r >= 2_000 && r <= 7_000;
-  if (priceId === '7k-plus') return r > 7_000;
-  return true;
-}
-
-function matchesSearch(item: TopConsultantItem, q: string): boolean {
-  const s = q.trim().toLowerCase();
-  if (s.length === 0) return true;
-  return (
-    item.name.toLowerCase().includes(s) ||
-    item.role.toLowerCase().includes(s) ||
-    item.specialty.toLowerCase().includes(s) ||
-    item.bio.toLowerCase().includes(s)
-  );
-}
-
-function matchesChips(
-  item: TopConsultantItem,
-  selected: ReadonlySet<string>,
-): boolean {
-  if (selected.size === 0) return true;
-  let ok = true;
-  if (selected.has('popular')) {
-    ok = ok && parseExperienceYears(item.experienceLabel) >= 8;
-  }
-  if (selected.has('verified')) {
-    ok = ok && item.id.length > 0;
-  }
-  if (selected.has('deals')) {
-    ok = ok && parseRateRupee(item.rateLabel) < 2_000;
-  }
-  return ok;
+  return next;
 }
 
 export function ConsultantViewAllScreen(): React.ReactElement {
@@ -133,36 +92,57 @@ export function ConsultantViewAllScreen(): React.ReactElement {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isFilterOpen, setIsFilterOpen] = useState<boolean>(false);
   const [sortMode, setSortMode] = useState<SortMode>('recommended');
-  const [selectedChips, setSelectedChips] = useState<ReadonlySet<string>>(() => new Set());
-  const [filters, setFilters] = useState<FilterSheetValue>(() => ({
-    selected: {
-      category: null,
-      timeline: null,
-      price: null,
-    },
-  }));
+  const [filters, setFilters] = useState<FilterSheetValue>(EMPTY_CONSULTANT_LIST_FILTERS);
   const [debouncedSearch, setDebouncedSearch] = useState<string>('');
   const [page, setPage] = useState<number>(1);
 
   useEffect(() => {
-    const handle = setTimeout(() => setDebouncedSearch(searchQuery.trim()), SEARCH_DEBOUNCE_MS);
+    const handle = setTimeout(() => setDebouncedSearch(searchQuery.trim()), CONSULTANT_SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(handle);
   }, [searchQuery]);
 
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch]);
+  }, [debouncedSearch, filters]);
 
-  const listQuery = useMemo(() => {
-    const base: { page: string; limit: string; search?: string } = {
-      page: String(page),
-      limit: String(CONSULTANT_LIST_PAGE_SIZE),
-    };
-    if (debouncedSearch.length >= 2) {
-      base.search = debouncedSearch;
-    }
-    return base;
-  }, [debouncedSearch, page]);
+  const selectedCategoryId = filters.selected[CONSULTANT_LIST_FILTER_KEYS.category];
+  const selectedSegmentId = filters.selected[CONSULTANT_LIST_FILTER_KEYS.segment];
+
+  const { data: masterCategories = [] } = useGetMasterCategoriesQuery();
+  const { data: masterSegments = [] } = useGetMasterSegmentsQuery(
+    selectedCategoryId != null ? { categoryId: selectedCategoryId } : skipToken,
+  );
+  const { data: masterIndustries = [] } = useGetMasterIndustriesQuery(
+    selectedCategoryId != null || selectedSegmentId != null
+      ? {
+          ...(selectedCategoryId != null ? { categoryId: selectedCategoryId } : {}),
+          ...(selectedSegmentId != null ? { segmentId: selectedSegmentId } : {}),
+        }
+      : skipToken,
+  );
+
+  const categoryOptions = useMemo(
+    () => mapMasterToFilterOptions(masterCategories),
+    [masterCategories],
+  );
+  const segmentOptions = useMemo(
+    () => mapMasterToFilterOptions(masterSegments),
+    [masterSegments],
+  );
+  const industryOptions = useMemo(
+    () => mapMasterToFilterOptions(masterIndustries),
+    [masterIndustries],
+  );
+
+  const filterSections = useMemo<FilterSection[]>(
+    () => buildConsultantFilterSections(categoryOptions, segmentOptions, industryOptions),
+    [categoryOptions, industryOptions, segmentOptions],
+  );
+
+  const listQuery = useMemo(
+    () => buildPublicConsultantsListQuery(filters, debouncedSearch, page, CONSULTANT_LIST_PAGE_SIZE),
+    [debouncedSearch, filters, page],
+  );
 
   const {
     data: consultantsPage,
@@ -195,8 +175,18 @@ export function ConsultantViewAllScreen(): React.ReactElement {
   const hasMore = consultantsPage?.hasMore ?? false;
   const isInitialLoading = (isLoading || isFetching) && page === 1 && consultantItems.length === 0;
   const isLoadingMore = isFetching && page > 1 && consultantItems.length > 0;
-
   const showPlaceholders = isInitialLoading;
+  const hasSearchQuery = searchQuery.trim().length > 0;
+  const activeFilterCount = useMemo(() => countActiveConsultantFilters(filters), [filters]);
+
+  const displayItems = useMemo((): TopConsultantItem[] => {
+    const useLocalSearch = debouncedSearch.length < CONSULTANT_SEARCH_MIN_API_LENGTH;
+    let rows = consultantItems;
+    if (useLocalSearch && hasSearchQuery) {
+      rows = rows.filter((item) => matchesConsultantSearch(item, searchQuery));
+    }
+    return sortConsultants(rows, sortMode);
+  }, [consultantItems, debouncedSearch, hasSearchQuery, searchQuery, sortMode]);
 
   const loadMore = useCallback((): void => {
     if (!hasMore || isFetching) {
@@ -211,74 +201,58 @@ export function ConsultantViewAllScreen(): React.ReactElement {
     }, [navigation]),
   );
 
-  const filterSections = useMemo<FilterSection[]>(
-    () => [
-      {
-        id: 'category',
-        title: 'Category',
-        options: [
-          { id: 'incorporation', label: 'Business incorporation' },
-          { id: 'tax', label: 'Tax & compliance' },
-          { id: 'ip', label: 'IP & legal' },
-        ],
-      },
-      {
-        id: 'timeline',
-        title: 'Timeline',
-        options: [
-          { id: 'expert', label: 'Expert-led' },
-          { id: '2-4w', label: '2–4 weeks' },
-          { id: 'mca', label: 'MCA ready' },
-        ],
-      },
-      {
-        id: 'price',
-        title: 'Price',
-        options: [
-          { id: 'under-2k', label: 'Under ₹2,000' },
-          { id: '2k-7k', label: '₹2,000–₹7,000' },
-          { id: '7k-plus', label: '₹7,000+' },
-        ],
-      },
-    ],
-    [],
-  );
-
   const cardWidth = useMemo((): number => {
     const gutter = LIST_GAP + 14;
     const inner = width - H_PADDING * 2 - gutter;
     return Math.max(148, Math.floor(inner / 2));
   }, [width]);
 
-  const filteredSorted = useMemo((): TopConsultantItem[] => {
-    const { category, timeline, price } = filters.selected;
-    const useLocalSearch = debouncedSearch.length < 2;
-    let rows = consultantItems.filter((item) =>
-      useLocalSearch ? matchesSearch(item, searchQuery) : true,
-    );
-    rows = rows.filter((item) => matchesCategoryFilter(item, category));
-    rows = rows.filter((item) => matchesTimelineFilter(item, timeline));
-    rows = rows.filter((item) => matchesPriceFilter(item, price));
-    rows = rows.filter((item) => matchesChips(item, selectedChips));
+  const handleFilterChange = useCallback((next: FilterSheetValue): void => {
+    const prevCategory = filters.selected[CONSULTANT_LIST_FILTER_KEYS.category];
+    const nextCategory = next.selected[CONSULTANT_LIST_FILTER_KEYS.category];
+    const prevSegment = filters.selected[CONSULTANT_LIST_FILTER_KEYS.segment];
+    const nextSegment = next.selected[CONSULTANT_LIST_FILTER_KEYS.segment];
 
-    const next = [...rows];
-    if (sortMode === 'name') {
-      next.sort((a, b) => a.name.localeCompare(b.name));
-    } else if (sortMode === 'rate_low') {
-      next.sort((a, b) => parseRateRupee(a.rateLabel) - parseRateRupee(b.rateLabel));
-    } else if (sortMode === 'rate_high') {
-      next.sort((a, b) => parseRateRupee(b.rateLabel) - parseRateRupee(a.rateLabel));
+    if (nextCategory !== prevCategory) {
+      setFilters({
+        selected: {
+          ...next.selected,
+          [CONSULTANT_LIST_FILTER_KEYS.segment]: null,
+          [CONSULTANT_LIST_FILTER_KEYS.industry]: null,
+        },
+      });
+      return;
     }
-    return next;
-  }, [consultantItems, debouncedSearch, filters.selected, searchQuery, selectedChips, sortMode]);
 
-  const toggleChip = useCallback((id: string): void => {
-    setSelectedChips((prev) => {
-      const n = new Set(prev);
-      if (n.has(id)) n.delete(id);
-      else n.add(id);
-      return n;
-    });
+    if (nextSegment !== prevSegment) {
+      setFilters({
+        selected: {
+          ...next.selected,
+          [CONSULTANT_LIST_FILTER_KEYS.industry]: null,
+        },
+      });
+      return;
+    }
+
+    setFilters(next);
+  }, [filters.selected]);
+
+  const clearFilterKey = useCallback((key: string): void => {
+    setFilters((prev) => ({
+      selected: {
+        ...prev.selected,
+        [key]: null,
+        ...(key === CONSULTANT_LIST_FILTER_KEYS.category
+          ? {
+              [CONSULTANT_LIST_FILTER_KEYS.segment]: null,
+              [CONSULTANT_LIST_FILTER_KEYS.industry]: null,
+            }
+          : {}),
+        ...(key === CONSULTANT_LIST_FILTER_KEYS.segment
+          ? { [CONSULTANT_LIST_FILTER_KEYS.industry]: null }
+          : {}),
+      },
+    }));
   }, []);
 
   const onSortPress = useCallback((): void => {
@@ -297,30 +271,73 @@ export function ConsultantViewAllScreen(): React.ReactElement {
     return 'Recommended';
   }, [sortMode]);
 
-  const chipItems = useMemo(
-    () => [
-      {
-        id: 'deals',
-        label: 'Early Bird Deals',
-        leftIconName: 'pricetag-outline' as const,
-        isSelected: selectedChips.has('deals'),
-        onPress: () => toggleChip('deals'),
-      },
-      {
-        id: 'popular',
-        label: 'Popular',
-        isSelected: selectedChips.has('popular'),
-        onPress: () => toggleChip('popular'),
-      },
-      {
-        id: 'verified',
-        label: 'Verified',
-        isSelected: selectedChips.has('verified'),
-        onPress: () => toggleChip('verified'),
-      },
-    ],
-    [selectedChips, toggleChip],
-  );
+  const chipItems = useMemo((): FilterChipItem[] => {
+    const chips: FilterChipItem[] = [];
+
+    const categoryId = filters.selected[CONSULTANT_LIST_FILTER_KEYS.category];
+    const segmentId = filters.selected[CONSULTANT_LIST_FILTER_KEYS.segment];
+    const industryId = filters.selected[CONSULTANT_LIST_FILTER_KEYS.industry];
+
+    const categoryLabel = findFilterOptionLabel(categoryOptions, categoryId);
+    if (categoryLabel != null) {
+      chips.push({
+        id: 'active-category',
+        label: categoryLabel,
+        isSelected: true,
+        onPress: () => clearFilterKey(CONSULTANT_LIST_FILTER_KEYS.category),
+      });
+    }
+
+    const segmentLabel = findFilterOptionLabel(segmentOptions, segmentId);
+    if (segmentLabel != null) {
+      chips.push({
+        id: 'active-segment',
+        label: segmentLabel,
+        isSelected: true,
+        onPress: () => clearFilterKey(CONSULTANT_LIST_FILTER_KEYS.segment),
+      });
+    }
+
+    const industryLabel = findFilterOptionLabel(industryOptions, industryId);
+    if (industryLabel != null) {
+      chips.push({
+        id: 'active-industry',
+        label: industryLabel,
+        isSelected: true,
+        onPress: () => clearFilterKey(CONSULTANT_LIST_FILTER_KEYS.industry),
+      });
+    }
+
+    const quickCategories = categoryOptions.slice(0, 3);
+    for (const option of quickCategories) {
+      if (option.id === categoryId) {
+        continue;
+      }
+      chips.push({
+        id: `quick-${option.id}`,
+        label: option.label,
+        isSelected: false,
+        onPress: () => {
+          setFilters({
+            selected: {
+              ...filters.selected,
+              [CONSULTANT_LIST_FILTER_KEYS.category]: option.id,
+              [CONSULTANT_LIST_FILTER_KEYS.segment]: null,
+              [CONSULTANT_LIST_FILTER_KEYS.industry]: null,
+            },
+          });
+        },
+      });
+    }
+
+    return chips;
+  }, [
+    categoryOptions,
+    clearFilterKey,
+    filters.selected,
+    industryOptions,
+    segmentOptions,
+  ]);
 
   const keyExtractor = useCallback((item: TopConsultantItem): string => item.id, []);
 
@@ -367,11 +384,19 @@ export function ConsultantViewAllScreen(): React.ReactElement {
           chips={chipItems}
         />
         <View style={styles.sortHint}>
+          {activeFilterCount > 0 ? (
+            <Text style={styles.sortHintText}>
+              {activeFilterCount} filter{activeFilterCount === 1 ? '' : 's'} active
+            </Text>
+          ) : null}
           <Text style={styles.sortHintText}>Sort: {sortLabel}</Text>
+          {isFetching && !isLoading ? (
+            <ActivityIndicator size="small" color={THEME.colors.primary} style={styles.fetchingIndicator} />
+          ) : null}
         </View>
       </View>
     ),
-    [chipItems, onSortPress, sortLabel],
+    [activeFilterCount, chipItems, isFetching, isLoading, onSortPress, sortLabel],
   );
 
   const ListFooter = useCallback((): React.ReactElement | null => {
@@ -392,20 +417,20 @@ export function ConsultantViewAllScreen(): React.ReactElement {
         title="Consultants"
         onBackPress={() => navigation.goBack()}
         onSearchPress={() => setIsSearchOpen((v) => !v)}
-       
       />
 
       {isSearchOpen ? (
         <View style={styles.searchRow}>
           <TextInput
             accessibilityLabel="Search consultants"
-            placeholder="Name, role, specialty…"
+            placeholder="Name, designation, skills…"
             placeholderTextColor={THEME.colors.textSecondary}
             value={searchQuery}
             onChangeText={setSearchQuery}
             style={styles.searchInput}
             returnKeyType="search"
             clearButtonMode="while-editing"
+            autoFocus
           />
           <Pressable
             accessibilityRole="button"
@@ -438,7 +463,7 @@ export function ConsultantViewAllScreen(): React.ReactElement {
           />
         ) : (
           <FlatList
-            data={filteredSorted}
+            data={displayItems}
             keyExtractor={keyExtractor}
             numColumns={2}
             renderItem={renderConsultantItem}
@@ -455,16 +480,16 @@ export function ConsultantViewAllScreen(): React.ReactElement {
                 title={
                   isError
                     ? 'Consultants unavailable'
-                    : consultantItems.length === 0
-                      ? 'No consultants yet'
-                      : 'No consultants match'
+                    : hasSearchQuery || activeFilterCount > 0
+                      ? 'No consultants match'
+                      : 'No consultants yet'
                 }
                 description={
                   isError
                     ? 'Pull to refresh or check your connection.'
-                    : consultantItems.length === 0
-                      ? 'New experts will appear here once they are onboarded.'
-                      : 'Try adjusting filters or search keywords.'
+                    : hasSearchQuery || activeFilterCount > 0
+                      ? 'Try different keywords or adjust filters.'
+                      : 'New experts will appear here once they are onboarded.'
                 }
               />
             }
@@ -476,14 +501,10 @@ export function ConsultantViewAllScreen(): React.ReactElement {
           title="Filters"
           sections={filterSections}
           value={filters}
-          onChange={setFilters}
+          onChange={handleFilterChange}
           onClose={() => setIsFilterOpen(false)}
           onApply={() => setIsFilterOpen(false)}
-          onClear={() =>
-            setFilters({
-              selected: { category: null, timeline: null, price: null },
-            })
-          }
+          onClear={() => setFilters(EMPTY_CONSULTANT_LIST_FILTERS)}
         />
       </ScreenWrapper>
     </SafeAreaWrapper>
@@ -527,11 +548,18 @@ const styles = StyleSheet.create({
   },
   sortHint: {
     marginTop: THEME.spacing[8],
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: THEME.spacing[8],
   },
   sortHintText: {
     fontSize: THEME.typography.size[12],
     fontWeight: THEME.typography.weight.medium as '500',
     color: THEME.colors.textSecondary,
+  },
+  fetchingIndicator: {
+    marginLeft: THEME.spacing[4],
   },
   columnWrap: {
     justifyContent: 'space-between',

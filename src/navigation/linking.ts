@@ -38,6 +38,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
           },
         },
       },
+      [ROUTES.Root.Search]: 'search',
       [ROUTES.Root.ConsultantsList]: 'consultants',
       [ROUTES.Root.ConsultantDetail]: 'consultant/:slug',
       [ROUTES.Root.WorkshopsList]: 'workshops',

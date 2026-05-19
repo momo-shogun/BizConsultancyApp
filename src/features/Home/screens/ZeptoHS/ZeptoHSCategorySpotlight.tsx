@@ -17,6 +17,7 @@ export type ZeptoHSCategorySpotlightProps = {
   categoryId: HomeCategoryId;
   backgroundColor: string;
   accentColor: string;
+  onTalkToExpertPress?: () => void;
 };
 
 /** Build `rgba(...)` from `#RRGGBB` for soft overlays on the shell background. */
@@ -288,9 +289,14 @@ const ambient = StyleSheet.create({
 type DiagnosisBannerProps = {
   backgroundColor: string;
   accentColor: string;
+  onTalkToExpertPress?: () => void;
 };
 
-function DiagnosisBanner({ backgroundColor, accentColor }: DiagnosisBannerProps) {
+function DiagnosisBanner({
+  backgroundColor,
+  accentColor,
+  onTalkToExpertPress,
+}: DiagnosisBannerProps) {
   const lottieTx = useRef(new Animated.Value(DIAG_BANNER.lottie.from.tx)).current;
   const lottieTy = useRef(new Animated.Value(DIAG_BANNER.lottie.from.ty)).current;
   const lottieScale = useRef(new Animated.Value(DIAG_BANNER.lottie.from.s)).current;
@@ -392,7 +398,7 @@ function DiagnosisBanner({ backgroundColor, accentColor }: DiagnosisBannerProps)
                   banner.pillPrimary,
                   pressed && banner.pillPressed,
                 ]}
-                onPress={() => console.log('Talk to expert clicked')}
+                onPress={onTalkToExpertPress}
                 accessibilityRole="button"
                 accessibilityLabel="Talk to expert"
                 hitSlop={6}
@@ -629,9 +635,16 @@ export function ZeptoHSCategorySpotlight({
   categoryId,
   backgroundColor,
   accentColor,
+  onTalkToExpertPress,
 }: ZeptoHSCategorySpotlightProps): React.ReactElement {
   if (categoryId === 'diagnosis') {
-    return <DiagnosisBanner backgroundColor={backgroundColor} accentColor={accentColor} />;
+    return (
+      <DiagnosisBanner
+        backgroundColor={backgroundColor}
+        accentColor={accentColor}
+        onTalkToExpertPress={onTalkToExpertPress}
+      />
+    );
   }
 
   else if (categoryId === 'services') {

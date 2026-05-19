@@ -7,12 +7,18 @@ import type {
   PublicConsultantsPageResult,
   PublicConsultantsQuery,
 } from '../types/consultantApi.types';
+import type {
+  MasterDataItem,
+  MasterIndustriesQuery,
+  MasterSegmentsQuery,
+} from '../types/masterData.types';
 import { CONSULTANT_LIST_PAGE_SIZE } from '../constants/pagination';
 import {
   parseAvailableSlotsResponse,
   parsePublicConsultantsPageResponse,
   parseSingleConsultantResponse,
 } from '../utils/consultantApiParsing';
+import { parseMasterDataList } from '../utils/masterDataParsing';
 
 function stableConsultantsQueryKey(queryArgs: PublicConsultantsQuery | void): string {
   const args = queryArgs ?? {};
@@ -81,6 +87,24 @@ export const consultantApi = baseApi.injectEndpoints({
       },
       providesTags: (_result, _err, slug) => [{ type: 'Consultant', id: slug }],
     }),
+    getMasterCategories: build.query<MasterDataItem[], void>({
+      query: () => ({ url: 'public/master-categories' }),
+      transformResponse: (response: unknown): MasterDataItem[] => parseMasterDataList(response),
+    }),
+    getMasterSegments: build.query<MasterDataItem[], MasterSegmentsQuery>({
+      query: ({ categoryId }) => ({
+        url: 'public/master-segments',
+        params: { categoryId },
+      }),
+      transformResponse: (response: unknown): MasterDataItem[] => parseMasterDataList(response),
+    }),
+    getMasterIndustries: build.query<MasterDataItem[], MasterIndustriesQuery>({
+      query: (params) => ({
+        url: 'public/master-industries',
+        params,
+      }),
+      transformResponse: (response: unknown): MasterDataItem[] => parseMasterDataList(response),
+    }),
     getAvailableSlots: build.query<AvailableSlotsResponse, AvailableSlotsQuery>({
       query: ({ slug, date }) => ({
         url: `public/consultants/${encodeURIComponent(slug)}/available-slots`,
@@ -97,6 +121,9 @@ export const consultantApi = baseApi.injectEndpoints({
 export const {
   useGetPublicConsultantsQuery,
   useGetPublicConsultantBySlugQuery,
+  useGetMasterCategoriesQuery,
+  useGetMasterSegmentsQuery,
+  useGetMasterIndustriesQuery,
   useGetAvailableSlotsQuery,
   useLazyGetAvailableSlotsQuery,
 } = consultantApi;

@@ -20,6 +20,7 @@ import { IncomingCallScreen } from '@/features/Calls/screens/IncomingCallScreen'
 import { OutgoingCallScreen } from '@/features/Calls/screens/OutgoingCallScreen';
 import { InCallScreen } from '@/features/Calls/screens/InCallScreen';
 import WorkshopDetailsScreen from '@/features/Home/screens/WorkshopDetailsScreen';
+import { SearchScreen } from '@/features/Search/screens/SearchScreen';
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 export const navigationRef = createNavigationContainerRef<RootStackParamList>();
@@ -56,6 +57,18 @@ export function RootNavigator(): React.ReactElement {
               name={ROUTES.Root.Wallet}
               component={WalletScreen}
               options={{ headerShown: false }}
+            />
+            <RootStack.Screen
+              name={ROUTES.Root.Search}
+              component={SearchScreen}
+              options={{
+                headerShown: false,
+                animation: 'fade_from_bottom',
+                presentation: 'transparentModal',
+                contentStyle: { backgroundColor: 'transparent' },
+                gestureEnabled: true,
+                fullScreenGestureEnabled: true,
+              }}
             />
             <RootStack.Screen
               name={ROUTES.Root.WorkshopsList}

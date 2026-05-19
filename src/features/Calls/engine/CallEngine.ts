@@ -7,6 +7,7 @@ import { store } from '@/store';
 import { callsApi } from '../api/callsApi';
 import { callSocketService } from '../services/callSocketService';
 import { agoraMediaService } from '../services/agoraMediaService';
+import { cancelIncomingCallNotification } from '../services/callNotificationService';
 import { callRingtoneService } from '../services/callRingtoneService';
 import { resolveCallPartyImageUrl } from '../utils/callPartyMedia';
 import {
@@ -365,6 +366,7 @@ class CallEngineImpl {
     }
 
     callRingtoneService.stop();
+    void cancelIncomingCallNotification(sessionId);
     store.dispatch(setCallPhase('connecting_media'));
 
     if (!(await this.ensureMicPermissionOrAbort('incoming_ringing'))) {
@@ -413,6 +415,7 @@ class CallEngineImpl {
       return;
     }
     callRingtoneService.stop();
+    void cancelIncomingCallNotification(sessionId);
     await store.dispatch(callsApi.endpoints.declineCall.initiate(sessionId));
     this.showOutcomeThenEnd('rejected');
   }
@@ -561,7 +564,9 @@ class CallEngineImpl {
   }
 
   teardown(): void {
+    const sessionId = this.getCallState().sessionId;
     callRingtoneService.stop();
+    void cancelIncomingCallNotification(sessionId);
     this.clearRingTimeout();
     this.clearTeardownTimer();
     this.stopSyncTimer();

@@ -12,6 +12,7 @@ export const ROUTES = {
     IncomingCall: 'Root/IncomingCall',
     OutgoingCall: 'Root/OutgoingCall',
     InCall: 'Root/InCall',
+    Search: 'Root/Search',
   },
   Auth: {
     Splash: 'Auth/Splash',
