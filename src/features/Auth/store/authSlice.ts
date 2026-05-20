@@ -12,6 +12,7 @@ const initialState: AuthState = {
   isRestoringSession: true,
   mobile: null,
   displayName: null,
+  email: null,
   accountRole: null,
   loginSession: null,
 };
@@ -40,6 +41,7 @@ export const authSlice = createSlice({
       state.isAuthenticated = true;
       state.mobile = action.payload.user.phone;
       state.displayName = action.payload.user.name;
+      state.email = action.payload.user.email ?? null;
     },
 
     setAuthSession: (state, action: PayloadAction<SetAuthSessionPayload>) => {
@@ -51,6 +53,7 @@ export const authSlice = createSlice({
       state.isAuthenticated = true;
       state.mobile = payload.mobile;
       state.displayName = payload.displayName ?? null;
+      state.email = payload.email ?? null;
       state.accountRole = payload.accountRole;
     },
 
@@ -72,6 +75,7 @@ export const authSlice = createSlice({
         displayName?: string | null;
         accountRole?: AuthRole | null;
         mobile?: string | null;
+        email?: string | null;
       }>,
     ) => {
       if (action.payload.displayName !== undefined) {
@@ -87,6 +91,12 @@ export const authSlice = createSlice({
         state.mobile = action.payload.mobile;
         if (state.user != null) {
           state.user.phone = action.payload.mobile;
+        }
+      }
+      if (action.payload.email !== undefined) {
+        state.email = action.payload.email;
+        if (state.user != null) {
+          state.user.email = action.payload.email;
         }
       }
     },
@@ -109,6 +119,7 @@ export const authSlice = createSlice({
       state.isAuthenticated = false;
       state.mobile = null;
       state.displayName = null;
+      state.email = null;
       state.accountRole = null;
       state.loginSession = null;
     },

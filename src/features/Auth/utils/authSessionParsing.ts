@@ -151,6 +151,9 @@ export function parseAuthSessionPayload(
     readString(nested.mobile) ??
     fallback.mobile;
 
+  const email =
+    (userRecord != null ? readString(userRecord.email) : null) ?? readString(nested.email);
+
   const accountRole =
     normalizeRole(userRecord?.userType) ??
     normalizeRole(nested.role) ??
@@ -171,6 +174,7 @@ export function parseAuthSessionPayload(
     userId: userId.length > 0 ? userId : mobile,
     displayName,
     mobile,
+    email,
     accountRole,
   };
 }

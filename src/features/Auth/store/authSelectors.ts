@@ -20,7 +20,7 @@ export const selectLoggedInMobile = (state: RootState): string | null => state.a
 
 export const selectDisplayName = (state: RootState): string | null => state.auth.displayName;
 
-export const selectAccountRole = (state: RootState): AuthRole | null => state.auth.accountRole;
+export const selectLoggedInEmail = (state: RootState): string | null => state.auth.email ?? null;
 
 export function formatAccountRoleLabel(role: AuthRole | null | undefined): string {
   if (role === 'consultant') {

@@ -1,8 +1,16 @@
 import React, { useEffect } from 'react';
-import { ActivityIndicator, BackHandler, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  BackHandler,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import LinearGradient from 'react-native-linear-gradient';
 
 import type { RootStackParamList } from '@/navigation/types';
 import { ImagePlaceholder, RemoteImage } from '@/shared/components';
@@ -14,38 +22,42 @@ import { callRingtoneService } from '../services/callRingtoneService';
 type Props = NativeStackScreenProps<RootStackParamList, 'Root/IncomingCall'>;
 
 function callTypeLabel(callType: string | null): string {
-  if (callType === 'video') {
-    return 'Video call';
-  }
-  return 'Voice call';
+  return callType === 'video' ? 'Video Call' : 'Voice Call';
 }
 
-export function IncomingCallScreen({ navigation }: Props): React.ReactElement {
+export function IncomingCallScreen({
+  navigation,
+}: Props): React.ReactElement {
   const insets = useSafeAreaInsets();
+
   const phase = useAppSelector((s) => s.call.phase);
   const remoteName = useAppSelector((s) => s.call.remoteDisplayName);
   const remoteAvatarUrl = useAppSelector((s) => s.call.remoteAvatarUrl);
   const callType = useAppSelector((s) => s.call.callType);
   const callOutcome = useAppSelector((s) => s.call.callOutcome);
+
   const isRinging = phase === 'incoming_ringing';
   const isConnecting = phase === 'connecting_media';
   const showResult = phase === 'ended' && callOutcome !== 'none';
 
   useEffect(() => {
-    if (!isRinging) {
-      return;
-    }
-    const sub = BackHandler.addEventListener('hardwareBackPress', () => true);
+    if (!isRinging) return;
+
+    const sub = BackHandler.addEventListener(
+      'hardwareBackPress',
+      () => true,
+    );
+
     return () => sub.remove();
   }, [isRinging]);
 
   useEffect(() => {
     const unsub = navigation.addListener('beforeRemove', (e) => {
-      if (!isRinging) {
-        return;
-      }
+      if (!isRinging) return;
+
       e.preventDefault();
     });
+
     return unsub;
   }, [isRinging, navigation]);
 
@@ -56,166 +68,301 @@ export function IncomingCallScreen({ navigation }: Props): React.ReactElement {
   }, []);
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+    <LinearGradient
+      colors={['#071A14', '#0B3D2C', '#04110D']}
+      style={[
+        styles.root,
+        {
+          paddingTop: insets.top,
+          paddingBottom: insets.bottom,
+        },
+      ]}
+    >
+      <View style={styles.overlayCircleTop} />
+      <View style={styles.overlayCircleBottom} />
+
       <View style={styles.center}>
-        <View style={styles.avatarRing}>
-          {remoteAvatarUrl != null ? (
-            <RemoteImage
-              uri={remoteAvatarUrl}
-              style={styles.avatarImage}
-              placeholderVariant="avatar"
-            />
+        <View style={styles.avatarGlow}>
+          <View style={styles.avatarRing}>
+            {remoteAvatarUrl ? (
+              <RemoteImage
+                uri={remoteAvatarUrl}
+                style={styles.avatarImage}
+                placeholderVariant="avatar"
+              />
+            ) : (
+              <ImagePlaceholder
+                variant="avatar"
+                style={styles.avatarImage}
+              />
+            )}
+          </View>
+        </View>
+
+        <View style={styles.infoCard}>
+          <Text numberOfLines={1} style={styles.name}>
+            {remoteName}
+          </Text>
+
+          <Text style={styles.callType}>
+            {callTypeLabel(callType)}
+          </Text>
+
+          {showResult ? (
+            <>
+              <Text style={styles.resultTitle}>
+                {callOutcome === 'rejected'
+                  ? 'Call Rejected'
+                  : 'Call Ended'}
+              </Text>
+
+              <Text style={styles.resultHint}>
+                Closing...
+              </Text>
+            </>
+          ) : isConnecting ? (
+            <>
+              <Text style={styles.status}>
+                Connecting...
+              </Text>
+
+              <ActivityIndicator
+                size="large"
+                color="#fff"
+                style={styles.spinner}
+              />
+            </>
           ) : (
-            <ImagePlaceholder variant="avatar" style={styles.avatarImage} />
+            <>
+              <Text style={styles.status}>
+                Incoming call
+              </Text>
+
+              <Text style={styles.pulse}>
+                Ringing...
+              </Text>
+            </>
           )}
         </View>
-        <Text style={styles.name}>{remoteName}</Text>
-        <Text style={styles.callType}>{callTypeLabel(callType)}</Text>
-
-        {showResult ? (
-          <>
-            <Text style={styles.resultTitle}>
-              {callOutcome === 'rejected' ? 'Rejected' : 'Call ended'}
-            </Text>
-            <Text style={styles.resultHint}>Closing…</Text>
-          </>
-        ) : isConnecting ? (
-          <>
-            <Text style={styles.status}>Connecting…</Text>
-            <ActivityIndicator size="large" color="#fff" style={styles.spinner} />
-          </>
-        ) : (
-          <>
-            <Text style={styles.status}>Incoming call</Text>
-            <Text style={styles.pulse}>Ringing…</Text>
-          </>
-        )}
       </View>
 
-      {isRinging ? (
-        <View style={[styles.controls, { paddingBottom: insets.bottom + 24 }]}>
+      {isRinging && (
+        <View
+          style={[
+            styles.controls,
+            {
+              paddingBottom: insets.bottom + 28,
+            },
+          ]}
+        >
           <Pressable
-            style={[styles.actionBtn, styles.declineBtn]}
-            onPress={() => void CallController.declineIncoming()}
-            accessibilityRole="button"
-            accessibilityLabel="Decline call"
+            style={[styles.actionWrapper]}
+            onPress={() =>
+              void CallController.declineIncoming()
+            }
           >
-            <Ionicons name="call" size={32} color="#fff" style={styles.declineIcon} />
-            <Text style={styles.actionLabel}>Decline</Text>
+            <View style={[styles.actionBtn, styles.declineBtn]}>
+              <Ionicons
+                name="call"
+                size={30}
+                color="#fff"
+                style={styles.declineIcon}
+              />
+            </View>
+
+            <Text style={styles.actionLabel}>
+              Decline
+            </Text>
           </Pressable>
+
           <Pressable
-            style={[styles.actionBtn, styles.acceptBtn]}
-            onPress={() => void CallController.acceptIncoming()}
-            accessibilityRole="button"
-            accessibilityLabel="Accept call"
+            style={[styles.actionWrapper]}
+            onPress={() =>
+              void CallController.acceptIncoming()
+            }
           >
-            <Ionicons name="call" size={32} color="#fff" />
-            <Text style={styles.actionLabel}>Accept</Text>
+            <View style={[styles.actionBtn, styles.acceptBtn]}>
+              <Ionicons
+                name="call"
+                size={30}
+                color="#fff"
+              />
+            </View>
+
+            <Text style={styles.actionLabel}>
+              Accept
+            </Text>
           </Pressable>
         </View>
-      ) : null}
-    </View>
+      )}
+    </LinearGradient>
   );
 }
 
-const AVATAR_SIZE = 120;
+const AVATAR_SIZE = 148;
 
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#0B3D2C',
+    justifyContent: 'space-between',
   },
+
+  overlayCircleTop: {
+    position: 'absolute',
+    width: 320,
+    height: 320,
+    borderRadius: 160,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    top: -120,
+    right: -100,
+  },
+
+  overlayCircleBottom: {
+    position: 'absolute',
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    bottom: -80,
+    left: -60,
+  },
+
   center: {
     flex: 1,
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
     paddingHorizontal: 24,
   },
+
+  avatarGlow: {
+    shadowColor: '#6EE7B7',
+    shadowOpacity: 0.35,
+    shadowRadius: 28,
+    shadowOffset: {
+      width: 0,
+      height: 10,
+    },
+    elevation: 12,
+  },
+
   avatarRing: {
     width: AVATAR_SIZE,
     height: AVATAR_SIZE,
     borderRadius: AVATAR_SIZE / 2,
-    overflow: 'hidden',
-    borderWidth: 3,
-    borderColor: 'rgba(255,255,255,0.35)',
+    padding: 5,
     backgroundColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.18)',
   },
+
   avatarImage: {
-    width: AVATAR_SIZE,
-    height: AVATAR_SIZE,
+    width: '100%',
+    height: '100%',
     borderRadius: AVATAR_SIZE / 2,
   },
+
+  infoCard: {
+    marginTop: 36,
+    width: '100%',
+    borderRadius: 28,
+    paddingVertical: 28,
+    paddingHorizontal: 24,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center',
+  },
+
   name: {
-    marginTop: 28,
-    fontSize: 26,
+    fontSize: 34,
     fontWeight: '700',
-    color: '#fff',
+    color: '#FFFFFF',
     textAlign: 'center',
+    letterSpacing: 0.3,
   },
+
   callType: {
-    marginTop: 6,
-    fontSize: 15,
+    marginTop: 10,
+    fontSize: 14,
     fontWeight: '600',
-    color: 'rgba(255,255,255,0.65)',
+    color: 'rgba(255,255,255,0.6)',
     textTransform: 'uppercase',
-    letterSpacing: 0.6,
+    letterSpacing: 2,
   },
+
   status: {
-    marginTop: 12,
+    marginTop: 22,
     fontSize: 18,
-    color: 'rgba(255,255,255,0.85)',
+    color: '#E5E7EB',
+    fontWeight: '500',
   },
+
   pulse: {
     marginTop: 8,
     fontSize: 15,
     color: 'rgba(255,255,255,0.55)',
   },
+
   spinner: {
-    marginTop: 20,
+    marginTop: 22,
   },
+
   resultTitle: {
-    marginTop: 16,
-    fontSize: 22,
+    marginTop: 20,
+    fontSize: 24,
     fontWeight: '700',
     color: '#FCA5A5',
   },
+
   resultHint: {
     marginTop: 8,
     fontSize: 14,
-    color: 'rgba(255,255,255,0.6)',
+    color: 'rgba(255,255,255,0.5)',
   },
+
   controls: {
     flexDirection: 'row',
     justifyContent: 'space-evenly',
     alignItems: 'center',
     paddingHorizontal: 32,
   },
+
+  actionWrapper: {
+    alignItems: 'center',
+  },
+
   actionBtn: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 14,
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    elevation: 8,
   },
+
   acceptBtn: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
     backgroundColor: '#22C55E',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
+
   declineBtn: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    backgroundColor: '#DC2626',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: '#EF4444',
   },
+
   declineIcon: {
     transform: [{ rotate: '135deg' }],
   },
+
   actionLabel: {
-    color: '#fff',
-    fontSize: 14,
+    marginTop: 12,
+    color: '#FFFFFF',
+    fontSize: 15,
     fontWeight: '600',
   },
 });

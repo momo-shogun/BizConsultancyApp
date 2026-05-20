@@ -15,10 +15,12 @@ import {
 import type { AuthSessionPayload } from './authTypes';
 
 function buildUserFromSession(payload: AuthSessionPayload) {
+  const rawEmail = payload.email?.trim();
   return {
     id: payload.userId,
     name: payload.displayName?.trim() || 'User',
     phone: payload.mobile,
+    email: rawEmail != null && rawEmail.length > 0 ? rawEmail : null,
   };
 }
 
@@ -156,11 +158,13 @@ export const establishProfileSession = createAsyncThunk<
       userId: payload.mobile,
       displayName: payload.displayName ?? null,
       mobile: payload.mobile,
+      email: null,
       accountRole: payload.role,
       user: {
         id: payload.mobile,
         name: payload.displayName?.trim() || 'User',
         phone: payload.mobile,
+        email: null,
       },
     }),
   );

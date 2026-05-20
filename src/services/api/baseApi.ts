@@ -104,6 +104,10 @@ const baseQueryWithReauth: BaseQueryFn<
             id: parsed.userId,
             name: parsed.displayName?.trim() || state.auth.user?.name || 'User',
             phone: parsed.mobile,
+            email:
+              parsed.email != null && parsed.email.trim().length > 0
+                ? parsed.email.trim()
+                : (state.auth.user?.email ?? null),
           },
         }),
       );

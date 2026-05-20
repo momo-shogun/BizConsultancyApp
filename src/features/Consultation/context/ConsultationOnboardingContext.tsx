@@ -1,4 +1,19 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+
+import {
+  selectDisplayName,
+  selectLoggedInEmail,
+  selectLoggedInMobile,
+} from '@/features/Auth/store/authSelectors';
+import { useAppSelector } from '@/store/typedHooks';
 
 import {
   buildConsultationDateOptions,
@@ -29,7 +44,10 @@ const ConsultationOnboardingContext = createContext<ConsultationOnboardingContex
   null,
 );
 
-function buildInitialForm(params: ConsultationOnboardingRouteParams): ConsultationOnboardingFormState {
+function buildInitialForm(
+  params: ConsultationOnboardingRouteParams,
+  defaults?: { fullName: string; email: string; phone: string },
+): ConsultationOnboardingFormState {
   return {
     consultantSlug: params.consultantSlug,
     consultantName: params.consultantName,
@@ -41,9 +59,9 @@ function buildInitialForm(params: ConsultationOnboardingRouteParams): Consultati
     language: params.language ?? 'Telugu',
     price: params.price ?? 99,
     contact: {
-      fullName: '',
-      email: '',
-      phone: '',
+      fullName: defaults?.fullName ?? '',
+      email: defaults?.email ?? '',
+      phone: defaults?.phone ?? '',
     },
     selectedDateId: null,
     selectedTimeSlotId: null,
@@ -58,9 +76,60 @@ interface ConsultationOnboardingProviderProps {
 export function ConsultationOnboardingProvider(
   props: ConsultationOnboardingProviderProps,
 ): React.ReactElement {
-  const [form, setForm] = useState<ConsultationOnboardingFormState>(() =>
-    buildInitialForm(props.params),
+  const displayName = useAppSelector(selectDisplayName);
+  const mobile = useAppSelector(selectLoggedInMobile);
+  const email = useAppSelector(selectLoggedInEmail);
+
+  const loggedInDefaults = useMemo(
+    () => ({
+      fullName: displayName?.trim() ?? '',
+      phone: mobile != null ? mobile.replace(/\D/g, '').slice(0, 10) : '',
+      email: email?.trim() ?? '',
+    }),
+    [displayName, mobile, email],
   );
+
+  const [form, setForm] = useState<ConsultationOnboardingFormState>(() =>
+    buildInitialForm(props.params, loggedInDefaults),
+  );
+
+  /** If Redux auth hydrates after first paint, merge stored name / phone / email into empty fields once. */
+  const mergedAuthDefaultsRef = useRef<boolean>(false);
+  useEffect(() => {
+    if (mergedAuthDefaultsRef.current) {
+      return;
+    }
+    const hasAny =
+      loggedInDefaults.fullName.length > 0 ||
+      loggedInDefaults.phone.length > 0 ||
+      loggedInDefaults.email.length > 0;
+    if (!hasAny) {
+      return;
+    }
+    mergedAuthDefaultsRef.current = true;
+
+    setForm((prev) => {
+      const nextPhone = prev.contact.phone || loggedInDefaults.phone;
+      const nextName = prev.contact.fullName || loggedInDefaults.fullName;
+      const nextEmail = prev.contact.email || loggedInDefaults.email;
+      if (
+        nextPhone === prev.contact.phone &&
+        nextName === prev.contact.fullName &&
+        nextEmail === prev.contact.email
+      ) {
+        return prev;
+      }
+      return {
+        ...prev,
+        contact: {
+          ...prev.contact,
+          fullName: nextName,
+          phone: nextPhone,
+          email: nextEmail,
+        },
+      };
+    });
+  }, [loggedInDefaults.fullName, loggedInDefaults.phone, loggedInDefaults.email]);
 
   const dateOptions = useMemo(() => buildConsultationDateOptions(), []);
   const timeSlots = useMemo(() => buildConsultationTimeSlots(), []);
