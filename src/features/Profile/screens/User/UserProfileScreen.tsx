@@ -15,8 +15,10 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { THEME } from '@/constants/theme';
 import { ROUTES } from '@/navigation/routeNames';
 import type { AccountStackParamList } from '@/navigation/types';
+import { selectDisplayName } from '@/features/Auth/store/authSelectors';
 import { useBizAIScrollReporter } from '@/features/BizAI/hooks/useBizAIScrollReporter';
 import { ProfileAccountCard } from '@/features/Profile/components/ProfileAccountCard';
+import { useAppSelector } from '@/store/typedHooks';
 import { SafeAreaWrapper, ScreenWrapper } from '@/shared/components';
 import { Card } from '@/shared/components/card';
 
@@ -72,9 +74,23 @@ function SectionHeading(props: { title: string }): React.ReactElement {
   );
 }
 
+function buildContinueWatchingHeading(displayName: string | null): string {
+  const name = displayName?.trim();
+  if (name != null && name.length > 0) {
+    return `Continue Watching for ${name}`;
+  }
+  return 'Continue Watching';
+}
+
 export function UserProfileScreen(): React.ReactElement {
   const navigation = useNavigation<AccountNav>();
   const onBizAiScroll = useBizAIScrollReporter();
+  const displayName = useAppSelector(selectDisplayName);
+
+  const continueWatchingTitle = useMemo(
+    () => buildContinueWatchingHeading(displayName),
+    [displayName],
+  );
 
   const watchRows = useMemo((): WatchItem[][] => {
     const rows: WatchItem[][] = [];
@@ -147,7 +163,7 @@ export function UserProfileScreen(): React.ReactElement {
           </View>
 
           <View style={styles.section}>
-            <SectionHeading title="Continue Watching for Aparna Dewal" />
+            <SectionHeading title={continueWatchingTitle} />
             {watchRows.map((row, rowIndex) => (
               <View key={`watch-row-${rowIndex}`} style={styles.watchRow}>
                 {row.map((item) => (

@@ -16,8 +16,10 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { THEME } from '@/constants/theme';
 import { ROUTES } from '@/navigation/routeNames';
 import type { AccountStackParamList } from '@/navigation/types';
+import { selectDisplayName } from '@/features/Auth/store/authSelectors';
 import { useBizAIScrollReporter } from '@/features/BizAI/hooks/useBizAIScrollReporter';
 import { ProfileAccountCard } from '@/features/Profile/components/ProfileAccountCard';
+import { useAppSelector } from '@/store/typedHooks';
 import { SafeAreaWrapper, ScreenWrapper } from '@/shared/components';
 import { Card } from '@/shared/components/card';
 
@@ -172,10 +174,24 @@ function StatCard(props: StatCardProps): React.ReactElement {
 const GRID_GAP = THEME.spacing[10];
 const GRID_H_PADDING = THEME.spacing[12];
 
+function buildContinueWatchingHeading(displayName: string | null): string {
+  const name = displayName?.trim();
+  if (name != null && name.length > 0) {
+    return `Continue Watching for ${name}`;
+  }
+  return 'Continue Watching';
+}
+
 export function ConsultantProfileScreen(): React.ReactElement {
   const navigation = useNavigation<AccountNav>();
   const onBizAiScroll = useBizAIScrollReporter();
   const { width: screenWidth } = useWindowDimensions();
+  const displayName = useAppSelector(selectDisplayName);
+
+  const continueWatchingTitle = useMemo(
+    () => buildContinueWatchingHeading(displayName),
+    [displayName],
+  );
 
   const statCardWidth = useMemo((): number => {
     const inner = screenWidth - GRID_H_PADDING * 2 - GRID_GAP;
@@ -262,7 +278,7 @@ export function ConsultantProfileScreen(): React.ReactElement {
           </View>
 
           <View style={styles.section}>
-            <SectionHeading title="Continue Watching for Aparna Dewal" />
+            <SectionHeading title={continueWatchingTitle} />
             {watchRows.map((row, rowIndex) => (
               <View key={`watch-row-${rowIndex}`} style={styles.watchRow}>
                 {row.map((item) => (
