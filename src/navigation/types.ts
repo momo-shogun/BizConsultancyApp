@@ -54,7 +54,7 @@ export type RootStackParamList = {
   [ROUTES.Root.ConsultantDetail]: { slug: string };
   [ROUTES.Root.Wallet]: undefined;
   [ROUTES.Root.WorkshopsList]: undefined;
-  [ROUTES.Root.WorkshopsDetail]: undefined;
+  [ROUTES.Root.WorkshopsDetail]: { slug: string };
   [ROUTES.Root.ConsultationOnboarding]: {
     consultantId?: number;
     consultantSlug?: string;

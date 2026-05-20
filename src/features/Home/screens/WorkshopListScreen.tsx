@@ -79,7 +79,9 @@ export function WorkshopListScreen(): React.ReactElement {
           item={item}
           cardWidth={cardWidth}
           variant="compact"
-          onPress={() => navigation.navigate(ROUTES.Root.WorkshopsDetail)}
+          onPress={() =>
+            navigation.navigate(ROUTES.Root.WorkshopsDetail, { slug: item.slug })
+          }
         />
       </View>
     ),

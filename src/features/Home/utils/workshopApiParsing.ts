@@ -27,7 +27,7 @@ function readNumber(value: unknown): number | null {
   return null;
 }
 
-function parseWorkshopRow(raw: unknown): PublicWorkshopApiRow | null {
+export function parseWorkshopRow(raw: unknown): PublicWorkshopApiRow | null {
   if (!isRecord(raw)) {
     return null;
   }
@@ -95,6 +95,13 @@ function tryList(items: unknown[]): PublicWorkshopApiRow[] {
     }
   }
   return result;
+}
+
+export function parsePublicWorkshopDetailResponse(raw: unknown): PublicWorkshopApiRow | null {
+  if (isRecord(raw) && raw.data != null) {
+    return parseWorkshopRow(raw.data);
+  }
+  return parseWorkshopRow(raw);
 }
 
 export function parsePublicWorkshopsResponse(raw: unknown): PublicWorkshopsListResult {

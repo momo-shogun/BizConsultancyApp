@@ -78,7 +78,7 @@ export function HomeDashboardScreen(): React.ReactElement {
   const onWorkshopPress = useCallback(
     (item: EventSpotlightItem): void => {
       if (item.slug.trim().length > 0) {
-        navigation.navigate(ROUTES.Root.WorkshopsDetail);
+        navigation.navigate(ROUTES.Root.WorkshopsDetail, { slug: item.slug });
       }
     },
     [navigation],

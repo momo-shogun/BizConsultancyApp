@@ -4,7 +4,11 @@ import type {
   PublicWorkshopsListResult,
   PublicWorkshopsQuery,
 } from '../types/publicWorkshopApi.types';
-import { parsePublicWorkshopsResponse } from '../utils/workshopApiParsing';
+import {
+  parsePublicWorkshopDetailResponse,
+  parsePublicWorkshopsResponse,
+} from '../utils/workshopApiParsing';
+import type { PublicWorkshopApiRow } from '../types/publicWorkshopApi.types';
 
 export const DEFAULT_HOME_WORKSHOPS_QUERY = {
   page: 1,
@@ -38,7 +42,20 @@ export const workshopsApi = baseApi.injectEndpoints({
             ]
           : [{ type: 'Workshop', id: 'LIST' }],
     }),
+    getPublicWorkshopBySlug: build.query<PublicWorkshopApiRow, string>({
+      query: (slug) => ({
+        url: `public/workshops/${encodeURIComponent(slug)}`,
+      }),
+      transformResponse: (response: unknown): PublicWorkshopApiRow => {
+        const workshop = parsePublicWorkshopDetailResponse(response);
+        if (workshop == null) {
+          throw new Error('Invalid workshop response');
+        }
+        return workshop;
+      },
+      providesTags: (_result, _err, slug) => [{ type: 'Workshop', id: slug }],
+    }),
   }),
 });
 
-export const { useGetPublicWorkshopsQuery } = workshopsApi;
+export const { useGetPublicWorkshopsQuery, useGetPublicWorkshopBySlugQuery } = workshopsApi;
