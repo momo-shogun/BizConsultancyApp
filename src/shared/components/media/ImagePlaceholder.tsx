@@ -11,6 +11,8 @@ export interface ImagePlaceholderProps {
   variant?: ImagePlaceholderVariant;
   /** Optional label for initials (e.g. consultant name). */
   name?: string;
+  /** Shown under the icon for `media` variant (e.g. "Image not available"). */
+  message?: string;
   style?: StyleProp<ViewStyle>;
   accessibilityLabel?: string;
 }
@@ -39,6 +41,7 @@ const VARIANT_CONFIG: Record<
 export function ImagePlaceholder({
   variant = 'card',
   name,
+  message,
   style,
   accessibilityLabel = 'Image unavailable',
 }: ImagePlaceholderProps): React.ReactElement {
@@ -81,6 +84,11 @@ export function ImagePlaceholder({
         {config.showInitials && initials != null ? (
           <Text style={[styles.initials, { color: initialsColor }]}>{initials}</Text>
         ) : null}
+        {variant === 'media' && message != null && message.trim().length > 0 ? (
+          <Text style={styles.mediaMessage} numberOfLines={2}>
+            {message.trim()}
+          </Text>
+        ) : null}
       </View>
     </View>
   );
@@ -121,5 +129,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     letterSpacing: 1.2,
+  },
+  mediaMessage: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.85)',
+    textAlign: 'center',
+    letterSpacing: 0.2,
+    paddingHorizontal: THEME.spacing[8],
   },
 });

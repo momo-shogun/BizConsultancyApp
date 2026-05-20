@@ -16,11 +16,15 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { THEME } from '@/constants/theme';
 import type { RootStackParamList } from '@/navigation/types';
 import {
-  DEMO_WORKSHOPS,
+  DEFAULT_HOME_WORKSHOPS_QUERY,
+  useGetPublicWorkshopsQuery,
+} from '@/features/Home/api/workshopsApi';
+import {
   filterWorkshopsBySession,
   matchesWorkshopSearch,
   type WorkshopSessionFilter,
-} from '@/features/Home/data/demoWorkshops';
+} from '@/features/Home/utils/workshopFilters';
+import { mapPublicWorkshopsToEventSpotlightItems } from '@/features/Home/utils/workshopMappers';
 import {
   EmptyState,
   EventSpotlightCard,
@@ -52,10 +56,19 @@ export function WorkshopListScreen(): React.ReactElement {
     return Math.max(140, Math.floor(inner / 2));
   }, [width]);
 
+  const { data: workshopsPage, isLoading, isError } = useGetPublicWorkshopsQuery(
+    DEFAULT_HOME_WORKSHOPS_QUERY,
+  );
+
+  const allWorkshopItems = useMemo((): EventSpotlightItem[] => {
+    const rows = workshopsPage?.items ?? [];
+    return mapPublicWorkshopsToEventSpotlightItems(rows);
+  }, [workshopsPage?.items]);
+
   const filteredItems = useMemo((): EventSpotlightItem[] => {
-    const bySession = filterWorkshopsBySession(DEMO_WORKSHOPS, sessionFilter);
+    const bySession = filterWorkshopsBySession(allWorkshopItems, sessionFilter);
     return bySession.filter((item) => matchesWorkshopSearch(item, searchQuery));
-  }, [searchQuery, sessionFilter]);
+  }, [allWorkshopItems, searchQuery, sessionFilter]);
 
   const keyExtractor = useCallback((item: EventSpotlightItem): string => String(item.id), []);
 
@@ -153,8 +166,20 @@ export function WorkshopListScreen(): React.ReactElement {
           keyboardShouldPersistTaps="handled"
           ListEmptyComponent={
             <EmptyState
-              title={sessionFilter === 'upcoming' ? 'No upcoming workshops' : 'No past sessions'}
-              description="Try another filter or adjust your search."
+              title={
+                isLoading
+                  ? 'Loading workshops…'
+                  : isError
+                    ? 'Unable to load workshops'
+                    : sessionFilter === 'upcoming'
+                      ? 'No upcoming workshops'
+                      : 'No past sessions'
+              }
+              description={
+                isError
+                  ? 'Check your connection and try again.'
+                  : 'Try another filter or adjust your search.'
+              }
             />
           }
         />

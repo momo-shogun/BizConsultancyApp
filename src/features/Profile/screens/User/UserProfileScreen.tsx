@@ -1,13 +1,6 @@
-import React, { useMemo } from 'react';
-import {
-  Image,
-  ImageBackground,
-  Pressable,
-  Text,
-  View,
-} from 'react-native';
+import React from 'react';
+import { Pressable, Text, View } from 'react-native';
 import Animated from 'react-native-reanimated';
-import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -15,90 +8,17 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { THEME } from '@/constants/theme';
 import { ROUTES } from '@/navigation/routeNames';
 import type { AccountStackParamList } from '@/navigation/types';
-import { selectDisplayName } from '@/features/Auth/store/authSelectors';
 import { useBizAIScrollReporter } from '@/features/BizAI/hooks/useBizAIScrollReporter';
 import { ProfileAccountCard } from '@/features/Profile/components/ProfileAccountCard';
-import { useAppSelector } from '@/store/typedHooks';
 import { SafeAreaWrapper, ScreenWrapper } from '@/shared/components';
-import { Card } from '@/shared/components/card';
 
 import { styles, USER_CANVAS } from './UserProfileScreen.styles';
 
-interface WatchItem {
-  id: string;
-  title: string;
-  label: string;
-  subLabel?: string;
-  remaining?: string;
-  thumbnail?: string;
-  /** 0–1 */
-  progress: number;
-  bgColor: string;
-  titleColor: string;
-}
-
-const WATCH_ITEMS: WatchItem[] = [
-  {
-    id: 'section',
-    title: 'Section Ka — The Only Boy',
-    label: 'S1 E6',
-    remaining: '22m left',
-    progress: 0.4,
-    bgColor: '#2D4A1A',
-    titleColor: '#FF6B9D',
-    thumbnail:
-      'https://images.unsplash.com/photo-1513828583688-c52646db42da?w=640&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'doNotEnter',
-    title: 'Do Not Enter',
-    label: 'Do Not Enter',
-    subLabel: '35m left',
-    remaining: '35m left',
-    progress: 0.65,
-    bgColor: '#1A1A2E',
-    titleColor: THEME.colors.white,
-    thumbnail:
-      'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=640&auto=format&fit=crop&q=80',
-  },
-];
-
 type AccountNav = NativeStackNavigationProp<AccountStackParamList, typeof ROUTES.Account.Home>;
-
-function SectionHeading(props: { title: string }): React.ReactElement {
-  return (
-    <View style={styles.sectionHeader}>
-      <Text style={styles.sectionTitle}>{props.title}</Text>
-      <View style={styles.sectionLine} />
-    </View>
-  );
-}
-
-function buildContinueWatchingHeading(displayName: string | null): string {
-  const name = displayName?.trim();
-  if (name != null && name.length > 0) {
-    return `Continue Watching for ${name}`;
-  }
-  return 'Continue Watching';
-}
 
 export function UserProfileScreen(): React.ReactElement {
   const navigation = useNavigation<AccountNav>();
   const onBizAiScroll = useBizAIScrollReporter();
-  const displayName = useAppSelector(selectDisplayName);
-
-  const continueWatchingTitle = useMemo(
-    () => buildContinueWatchingHeading(displayName),
-    [displayName],
-  );
-
-  const watchRows = useMemo((): WatchItem[][] => {
-    const rows: WatchItem[][] = [];
-    for (let i = 0; i < WATCH_ITEMS.length; i += 2) {
-      rows.push(WATCH_ITEMS.slice(i, i + 2));
-    }
-    return rows;
-  }, []);
 
   return (
     <SafeAreaWrapper
@@ -127,117 +47,6 @@ export function UserProfileScreen(): React.ReactElement {
           scrollEventThrottle={16}
         >
           <ProfileAccountCard accountRole="user" style={styles.subscriptionCard} />
-
-          <View style={styles.section}>
-            <SectionHeading title="Notification" />
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Open notification video"
-              style={({ pressed }) => [pressed ? { opacity: 0.92 } : null]}
-            >
-              <Card style={styles.notificationCard}>
-                <View style={styles.notificationShimmer} />
-                <View style={styles.notificationInner}>
-                  <Image
-                    source={{
-                      uri: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg',
-                    }}
-                    style={styles.videoThumbnail}
-                    resizeMode="cover"
-                  />
-                  <View style={styles.notificationContent}>
-                    <Text numberOfLines={1} style={styles.videoTitle}>
-                      Learn React Native Navigation in 10 Minutes
-                    </Text>
-                    <Text numberOfLines={2} style={styles.videoDescription}>
-                      Complete beginner friendly tutorial to understand stack, tabs and screen
-                      navigation easily.
-                    </Text>
-                  </View>
-                  <View style={styles.arrowBox}>
-                    <Ionicons name="chevron-forward" size={18} color={THEME.colors.white} />
-                  </View>
-                </View>
-              </Card>
-            </Pressable>
-          </View>
-
-          <View style={styles.section}>
-            <SectionHeading title={continueWatchingTitle} />
-            {watchRows.map((row, rowIndex) => (
-              <View key={`watch-row-${rowIndex}`} style={styles.watchRow}>
-                {row.map((item) => (
-                  <Pressable
-                    key={item.id}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Continue watching ${item.title}`}
-                    style={({ pressed }) => [
-                      styles.watchCardPressable,
-                      pressed ? { opacity: 0.92 } : null,
-                    ]}
-                  >
-                    <Card style={styles.watchCard}>
-                      {item.thumbnail ? (
-                        <ImageBackground
-                          source={{ uri: item.thumbnail }}
-                          style={styles.watchThumbnail}
-                          imageStyle={styles.watchThumbnailImage}
-                        >
-                          <LinearGradient
-                            colors={['rgba(0,0,0,0.05)', 'rgba(0,0,0,0.55)']}
-                            style={styles.watchThumbnailOverlay}
-                          />
-                          <View style={styles.watchPlayOverlay}>
-                            <Ionicons name="play" size={12} color={THEME.colors.white} />
-                          </View>
-                        </ImageBackground>
-                      ) : (
-                        <View style={[styles.watchThumbnail, { backgroundColor: item.bgColor }]}>
-                          <LinearGradient
-                            colors={['transparent', 'rgba(0,0,0,0.65)']}
-                            style={styles.watchThumbnailOverlay}
-                          />
-                          <View style={styles.watchPlayOverlay}>
-                            <Ionicons name="play" size={12} color={THEME.colors.white} />
-                          </View>
-                        </View>
-                      )}
-                      <View style={styles.watchProgressTrack}>
-                        <View
-                          style={[
-                            styles.watchProgressFill,
-                            { width: `${Math.round(item.progress * 100)}%` },
-                          ]}
-                        />
-                      </View>
-                      <View style={styles.watchCardMeta}>
-                        <View style={{ flex: 1, minWidth: 0 }}>
-                          <Text numberOfLines={2} style={styles.watchCardTitle}>
-                            {item.title}
-                          </Text>
-                          {item.remaining ? (
-                            <Text style={styles.watchCardSubLabel}>{item.remaining}</Text>
-                          ) : null}
-                        </View>
-                        <Pressable
-                          accessibilityRole="button"
-                          accessibilityLabel="More options"
-                          style={styles.watchMoreBtn}
-                        >
-                          <Ionicons
-                            name="ellipsis-vertical"
-                            size={14}
-                            color="#64748B"
-                          />
-                        </Pressable>
-                      </View>
-                    </Card>
-                  </Pressable>
-                ))}
-                {row.length === 1 ? <View style={styles.watchCardSpacer} /> : null}
-              </View>
-            ))}
-          </View>
         </Animated.ScrollView>
       </ScreenWrapper>
     </SafeAreaWrapper>

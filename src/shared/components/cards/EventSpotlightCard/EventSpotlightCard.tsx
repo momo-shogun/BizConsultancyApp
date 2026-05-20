@@ -1,15 +1,34 @@
-import React, { useMemo, useState } from 'react';
-import { Image, Platform, Pressable, StyleSheet, Text, View, type DimensionValue } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  Image,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  type DimensionValue,
+  type ImageLoadEventData,
+  type NativeSyntheticEvent,
+} from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import { THEME } from '@/constants/theme';
+import { ImagePlaceholder } from '@/shared/components/media/ImagePlaceholder';
+import { resolveAwsImageUrl } from '@/utils/awsImageUrl';
 
-/** Accent used for pills & favorite control (warm yellow, high contrast). */
+/** Accent used for pills on the image overlay. */
 export const EVENT_SPOTLIGHT_ACCENT = '#FFD60A';
 const TAG_TEXT = '#0A0A0A';
 const MAX_TAG_COUNT = 2;
 const MAX_TAG_CHARS_DEFAULT = 34;
 const MAX_TAG_CHARS_COMPACT = 22;
+const DEFAULT_IMAGE_ASPECT = 16 / 9;
+
+function resolveImageAspectRatio(width: number, height: number): number {
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+    return DEFAULT_IMAGE_ASPECT;
+  }
+  return width / height;
+}
 
 function truncateTagLabel(label: string, maxChars: number): string {
   const trimmed = label.trim();
@@ -31,10 +50,10 @@ export type EventSpotlightItem = {
   description: string;
   highlightPoints?: string;
   keywords?: string;
-  startDate: string; // yyyy-mm-dd
-  endDate?: string; // yyyy-mm-dd
-  startTime?: string; // hh:mm:ss
-  endTime?: string; // hh:mm:ss
+  startDate: string;
+  endDate?: string;
+  startTime?: string;
+  endTime?: string;
   place?: string;
   mapLocation?: string;
   contactNumber?: string;
@@ -109,6 +128,14 @@ function formatTimeRange(startTime?: string, endTime?: string): string {
   return st || et || '';
 }
 
+function resolveThumbnailUri(thumbnail: string | undefined): string | null {
+  const trimmed = thumbnail?.trim();
+  if (trimmed == null || trimmed.length === 0) {
+    return null;
+  }
+  return resolveAwsImageUrl(trimmed);
+}
+
 export function EventSpotlightCard({
   item,
   cardWidth = 280,
@@ -116,8 +143,6 @@ export function EventSpotlightCard({
   onPress,
 }: EventSpotlightCardProps): React.ReactElement {
   const isCompact = variant === 'compact';
-  const FALLBACK_THUMB =
-    'https://images.unsplash.com/photo-1556761175-4b46a572b786?auto=format&fit=crop&w=1200&q=80';
 
   const tags = useMemo(() => {
     const raw = (item.highlightPoints ?? '').trim();
@@ -133,25 +158,48 @@ export function EventSpotlightCard({
     }
   }, [item.highlightPoints]);
 
-  const initialThumbUri = useMemo(() => {
-    const thumb = item.thumbnail?.trim();
-    if (!thumb) return FALLBACK_THUMB;
-    if (thumb.startsWith('http://') || thumb.startsWith('https://')) {
-      // Some backends send URLs with unescaped characters; RN Image can fail silently.
-      try {
-        return encodeURI(thumb);
-      } catch {
-        return thumb;
-      }
+  const resolvedThumbUri = useMemo(
+    () => resolveThumbnailUri(item.thumbnail),
+    [item.thumbnail],
+  );
+
+  const [thumbUri, setThumbUri] = useState<string | null>(resolvedThumbUri);
+  const [imageFailed, setImageFailed] = useState(false);
+  const [imageAspectRatio, setImageAspectRatio] = useState<number>(DEFAULT_IMAGE_ASPECT);
+
+  useEffect(() => {
+    setThumbUri(resolvedThumbUri);
+    setImageFailed(false);
+    setImageAspectRatio(DEFAULT_IMAGE_ASPECT);
+  }, [resolvedThumbUri]);
+
+  useEffect(() => {
+    if (thumbUri == null || thumbUri.length === 0) {
+      return undefined;
     }
-    return FALLBACK_THUMB;
-  }, [item.thumbnail]);
 
-  const [thumbUri, setThumbUri] = useState<string>(initialThumbUri);
+    let cancelled = false;
+    Image.getSize(
+      thumbUri,
+      (width, height) => {
+        if (!cancelled) {
+          setImageAspectRatio(resolveImageAspectRatio(width, height));
+        }
+      },
+      () => undefined,
+    );
 
-  const imageSource = useMemo<React.ComponentProps<typeof Image>['source']>(() => {
-    return { uri: thumbUri };
+    return () => {
+      cancelled = true;
+    };
   }, [thumbUri]);
+
+  const handleImageLoad = (event: NativeSyntheticEvent<ImageLoadEventData>): void => {
+    const { width, height } = event.nativeEvent.source;
+    setImageAspectRatio(resolveImageAspectRatio(width, height));
+  };
+
+  const showImage = thumbUri != null && thumbUri.length > 0 && !imageFailed;
 
   const dateLabel = useMemo(
     () => formatDateRange(item.startDate, item.endDate),
@@ -168,12 +216,17 @@ export function EventSpotlightCard({
     return parts.length ? parts.join(' • ') : 'Schedule TBA';
   }, [dateLabel, timeLabel]);
 
-  const feeLabel = useMemo(() => {
+  const { feeLabel, isFree } = useMemo(() => {
     const online = Number(item.onlineFee ?? '0');
     const offline = Number(item.offlineFee ?? '0');
     const fee = online > 0 ? online : offline;
-    if (!Number.isFinite(fee) || fee <= 0) return 'Free';
-    return `₹${fee.toFixed(0)}`;
+    if (!Number.isFinite(fee) || fee <= 0) {
+      return { feeLabel: 'Free', isFree: true };
+    }
+    return {
+      feeLabel: `₹${Math.round(fee).toLocaleString('en-IN')}`,
+      isFree: false,
+    };
   }, [item.offlineFee, item.onlineFee]);
 
   const placeLabel = item.place?.trim() ? item.place.trim() : 'Online';
@@ -191,79 +244,79 @@ export function EventSpotlightCard({
         pressed && onPress != null ? styles.cardPressed : null,
       ]}
     >
-      <View style={[styles.imageWrap, isCompact ? styles.imageWrapCompact : null]}>
-        <Image
-          source={imageSource}
-          style={[styles.image, isCompact ? styles.imageCompact : null]}
-          resizeMode="cover"
-          accessibilityIgnoresInvertColors
-          onError={(e) => {
-            // Network image failed (common during dev / flaky connections) → fall back.
-            console.log('Workshop thumbnail failed', e.nativeEvent?.error, item.thumbnail);
-            setThumbUri(FALLBACK_THUMB);
-          }}
-        />
-        <View style={styles.imageOverlayBottom}>
-          <View style={styles.tagRow}>
-            {tags.map((tag, index) => {
-              const label = truncateTagLabel(
-                tag,
-                isCompact ? MAX_TAG_CHARS_COMPACT : MAX_TAG_CHARS_DEFAULT,
-              );
-              return (
-                <View
-                  key={`${tag}-${index}`}
-                  style={[styles.tagPill, isCompact ? styles.tagPillCompact : null]}
-                >
-                  <Text
-                    style={styles.tagText}
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                  >
-                    {label}
-                  </Text>
+      <View style={[styles.imageWrap, { aspectRatio: imageAspectRatio }]}>
+        {showImage ? (
+          <>
+            <Image
+              source={{ uri: thumbUri }}
+              style={styles.image}
+              resizeMode="contain"
+              accessibilityIgnoresInvertColors
+              onLoad={handleImageLoad}
+              onError={() => {
+                setImageFailed(true);
+              }}
+            />
+            {tags.length > 0 ? (
+              <LinearGradient
+                colors={['transparent', 'rgba(15,23,42,0.45)']}
+                style={styles.imageGradient}
+                pointerEvents="none"
+              />
+            ) : null}
+            {tags.length > 0 ? (
+              <View style={styles.tagOverlay} pointerEvents="none">
+                <View style={styles.tagRow}>
+                  {tags.map((tag, index) => {
+                    const label = truncateTagLabel(
+                      tag,
+                      isCompact ? MAX_TAG_CHARS_COMPACT : MAX_TAG_CHARS_DEFAULT,
+                    );
+                    return (
+                      <View
+                        key={`${tag}-${index}`}
+                        style={[styles.tagPill, isCompact ? styles.tagPillCompact : null]}
+                      >
+                        <Text style={styles.tagText} numberOfLines={1} ellipsizeMode="tail">
+                          {label}
+                        </Text>
+                      </View>
+                    );
+                  })}
                 </View>
-              );
-            })}
-          </View>
-        </View>
-
+              </View>
+            ) : null}
+          </>
+        ) : (
+          <ImagePlaceholder
+            variant="media"
+            message="Image not available"
+            style={styles.imageFill}
+            accessibilityLabel="Image not available"
+          />
+        )}
       </View>
 
       <View style={[styles.body, isCompact ? styles.bodyCompact : null]}>
         <Text style={[styles.title, isCompact ? styles.titleCompact : null]} numberOfLines={2}>
           {item.name}
         </Text>
-        <View style={styles.metaRow}>
-          <Ionicons
-            name={placeLabel === 'Online' ? 'globe-outline' : 'location-outline'}
-            size={isCompact ? 12 : 14}
-            color="#6B7280"
-          />
-          <Text style={styles.meta} numberOfLines={1}>
-            {placeLabel}
-          </Text>
-        </View>
-        <View style={styles.metaRow}>
-          <Ionicons name="time-outline" size={isCompact ? 12 : 14} color="#6B7280" />
-          <Text style={styles.meta} numberOfLines={1}>
-            {scheduleLabel}
-          </Text>
-        </View>
+        <Text style={styles.metaLine} numberOfLines={2}>
+          {placeLabel}
+          {scheduleLabel.length > 0 ? ` · ${scheduleLabel}` : ''}
+        </Text>
 
-        <View style={styles.metaRow}>
-          <View style={styles.typePill}>
-            <Text style={styles.typeText} numberOfLines={1}>
-              {item.type?.toUpperCase() || 'WORKSHOP'}
-            </Text>
-          </View>
-          <View style={styles.feePill}>
-            <Text style={styles.feeText} numberOfLines={1}>
-              {feeLabel}
-            </Text>
-          </View>
+        <View style={[styles.offerStrip, isCompact ? styles.offerStripCompact : null]}>
+          <Text style={styles.offerCaption}>Registration fee</Text>
+          {isFree ? (
+            <Text style={styles.freeBadgeText}>FREE</Text>
+          ) : (
+            <View style={styles.paidPriceRow}>
+              <Text style={styles.paidPrice}>{feeLabel}</Text>
+              <Text style={styles.paidPriceSuffix}>/-</Text>
+            </View>
+          )}
         </View>
-
       </View>
     </Pressable>
   );
@@ -271,39 +324,38 @@ export function EventSpotlightCard({
 
 EventSpotlightCard.displayName = 'EventSpotlightCard';
 
-const IMAGE_RADIUS = 20;
-const IMAGE_RADIUS_COMPACT = 14;
-const IMAGE_HEIGHT = 124;
-const IMAGE_HEIGHT_COMPACT = 88;
+const CARD_RADIUS = 14;
 
 const styles = StyleSheet.create({
   root: {
     marginRight: THEME.spacing[12],
-    backgroundColor: THEME.colors.background,
-    borderRadius: IMAGE_RADIUS + 4,
+    backgroundColor: THEME.colors.white,
+    borderRadius: CARD_RADIUS,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#E0E0E0',
+    overflow: 'hidden',
     ...Platform.select({
       ios: {
-        shadowColor: '#0f172a',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.08,
-        shadowRadius: 10,
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.06,
+        shadowRadius: 6,
       },
       default: {
-        elevation: 3,
+        elevation: 2,
       },
     }),
   },
   rootCompact: {
     marginRight: 0,
-    borderRadius: IMAGE_RADIUS_COMPACT + 2,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: THEME.colors.border,
+    borderRadius: 12,
     ...Platform.select({
       ios: {
-        shadowOpacity: 0,
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
       },
       default: {
-        elevation: 0,
+        elevation: 2,
       },
     }),
   },
@@ -312,33 +364,33 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.99 }],
   },
   imageWrap: {
-    borderTopLeftRadius: IMAGE_RADIUS,
-    borderTopRightRadius: IMAGE_RADIUS,
+    width: '100%',
+    backgroundColor: '#F7F7F7',
     overflow: 'hidden',
     position: 'relative',
+    borderTopLeftRadius: CARD_RADIUS,
+    borderTopRightRadius: CARD_RADIUS,
   },
-  imageWrapCompact: {
-    borderTopLeftRadius: IMAGE_RADIUS_COMPACT,
-    borderTopRightRadius: IMAGE_RADIUS_COMPACT,
+  imageFill: {
+    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
   },
   image: {
+    ...StyleSheet.absoluteFillObject,
     width: '100%',
-    height: IMAGE_HEIGHT,
-    backgroundColor: '#E5E7EB',
+    height: '100%',
   },
-  imageCompact: {
-    height: IMAGE_HEIGHT_COMPACT,
+  imageGradient: {
+    ...StyleSheet.absoluteFillObject,
   },
-  imageOverlayBottom: {
+  tagOverlay: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    paddingHorizontal: 10,
-    paddingBottom: 10,
-    paddingTop: 24,
-    backgroundColor: 'rgba(15,23,42,0.06)',
-    justifyContent: 'flex-end',
+    paddingHorizontal: THEME.spacing[12],
+    paddingBottom: THEME.spacing[12],
   },
   tagRow: {
     flexDirection: 'row',
@@ -350,10 +402,10 @@ const styles = StyleSheet.create({
   tagPill: {
     flexShrink: 1,
     maxWidth: '48%',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-    backgroundColor: EVENT_SPOTLIGHT_ACCENT,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255, 214, 10, 0.95)',
   },
   tagPillCompact: {
     maxWidth: '47%',
@@ -366,64 +418,80 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   body: {
-    paddingHorizontal: THEME.spacing[12],
-    paddingVertical: THEME.spacing[12],
-    gap: THEME.spacing[8],
+    paddingHorizontal: THEME.spacing[14],
+    paddingTop: THEME.spacing[12],
+    paddingBottom: THEME.spacing[12],
+    gap: THEME.spacing[6],
+    backgroundColor: THEME.colors.white,
   },
   bodyCompact: {
-    paddingHorizontal: THEME.spacing[10],
-    paddingVertical: THEME.spacing[10],
+    paddingHorizontal: THEME.spacing[12],
+    paddingTop: THEME.spacing[10],
+    paddingBottom: THEME.spacing[10],
     gap: THEME.spacing[6],
   },
   title: {
-    fontSize: THEME.typography.size[16],
+    fontSize: THEME.typography.size[14],
     fontWeight: THEME.typography.weight.bold as '700',
-    color: THEME.colors.textPrimary,
-    lineHeight: 22,
-    letterSpacing: -0.2,
+    color: '#1A1A1A',
+    lineHeight: 20,
+    letterSpacing: -0.15,
   },
   titleCompact: {
-    fontSize: THEME.typography.size[14],
-    lineHeight: 18,
+    fontSize: 13,
+    lineHeight: 17,
   },
-  metaRow: {
+  metaLine: {
+    fontSize: 11,
+    color: '#757575',
+    lineHeight: 16,
+    fontWeight: THEME.typography.weight.regular as '400',
+  },
+  offerStrip: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    marginTop: THEME.spacing[4],
+    paddingTop: THEME.spacing[10],
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#EEEEEE',
+    gap: THEME.spacing[8],
   },
-  meta: {
-    fontSize: THEME.typography.size[12],
-    color: '#6B7280',
+  offerStripCompact: {
+    marginTop: THEME.spacing[2],
+    paddingTop: THEME.spacing[8],
+  },
+  offerCaption: {
     flex: 1,
-    flexShrink: 1,
+    minWidth: 0,
+    fontSize: 11,
+    fontWeight: THEME.typography.weight.regular as '400',
+    color: '#757575',
     lineHeight: 18,
   },
-  typePill: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-    backgroundColor: 'rgba(37, 99, 235, 0.10)',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(37, 99, 235, 0.22)',
+  freeBadgeText: {
+    flexShrink: 0,
+    fontSize: 15,
+    fontWeight: THEME.typography.weight.bold as '700',
+    color: '#388E3C',
+    lineHeight: 18,
   },
-  typeText: {
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1.2,
-    color: '#1D4ED8',
+  paidPriceRow: {
+    flexShrink: 0,
+    flexDirection: 'row',
+    alignItems: 'baseline',
   },
-  feePill: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(4, 120, 87, 0.22)',
+  paidPrice: {
+    fontSize: 15,
+    fontWeight: THEME.typography.weight.bold as '700',
+    color: '#1A1A1A',
+    letterSpacing: -0.2,
+    lineHeight: 18,
   },
-  feeText: {
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-    color: '#047857',
+  paidPriceSuffix: {
+    fontSize: 11,
+    fontWeight: THEME.typography.weight.medium as '500',
+    color: '#757575',
+    marginLeft: 1,
   },
 });

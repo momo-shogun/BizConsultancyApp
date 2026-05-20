@@ -4,7 +4,11 @@ export const API_BASE_URL = 'http://192.168.0.154:3001/api';
 /** Origin for API-hosted assets (legacy paths only). */
 export const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');
 
-/** S3 public uploads (matches web `NEXT_PUBLIC_AWS_*`). */
+/**
+ * S3 public uploads — match portal `.env`:
+ * `NEXT_PUBLIC_AWS_BUCKET_NAME` / api `AWS_BUCKET_NAME`
+ * `NEXT_PUBLIC_AWS_REGION` / api `AWS_REGION`
+ */
 export const AWS_REGION = 'ap-south-1';
 export const AWS_BUCKET_NAME = 'consultancy-iid-new';
 
