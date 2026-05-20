@@ -38,7 +38,7 @@ export function BizAIScreen(): React.ReactElement {
   const insets = useSafeAreaInsets();
   const { keyboardHeight } = useBizAIKeyboardInset();
 
-  const [inputMode, setInputMode] = useState<BizAIInputMode>('voice');
+  const [inputMode, setInputMode] = useState<BizAIInputMode>('keyboard');
   const [query, setQuery] = useState<string>('');
   const [draft, setDraft] = useState<string>('');
 
@@ -134,7 +134,7 @@ export function BizAIScreen(): React.ReactElement {
         <Animated.View entering={FadeInDown.duration(240)}>
           <Text style={styles.greeting}>{greeting}</Text>
           <Text style={styles.subGreeting}>
-            Tap a suggestion, use your mic, or switch to the keyboard to type.
+            Tap a suggestion or type your question in the keyboard below.
           </Text>
         </Animated.View>
 
@@ -181,9 +181,6 @@ export function BizAIScreen(): React.ReactElement {
       {inputMode === 'voice' ? (
         <View style={[styles.dockHost, { paddingBottom: insets.bottom }]}>
           <BizAIVoiceDock
-            status="idle"
-            partialText=""
-            errorMessage={null}
             onKeyboardPress={openKeyboardMode}
             onMicPress={onMicPress}
             onBrandPress={close}

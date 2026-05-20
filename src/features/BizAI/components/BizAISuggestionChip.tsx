@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.98 }],
   },
   text: {
-    fontSize: THEME.typography.size[13],
+    fontSize: THEME.typography.size[14],
     fontWeight: THEME.typography.weight.medium as '500',
     color: 'rgba(255,255,255,0.92)',
     lineHeight: 18,

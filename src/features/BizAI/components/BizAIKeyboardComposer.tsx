@@ -69,7 +69,7 @@ export function BizAIKeyboardComposer({
           onPress={onVoiceModePress}
           hitSlop={10}
           accessibilityRole="button"
-          accessibilityLabel="Switch to voice input"
+          accessibilityLabel="Voice input coming soon"
           style={({ pressed }) => [styles.sideBtn, pressed && styles.sideBtnPressed]}
         >
           <Ionicons name="chevron-down" size={22} color="rgba(255,255,255,0.88)" />
@@ -131,8 +131,8 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.14)',
     backgroundColor: 'rgba(20,28,45,0.95)',
     paddingLeft: THEME.spacing[4],
-    paddingRight: THEME.spacing[6],
-    paddingVertical: THEME.spacing[6],
+    paddingRight: THEME.spacing[4],
+    paddingVertical: THEME.spacing[4],
     minHeight: 52,
   },
   sideBtn: {
@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   input: {
-    fontSize: THEME.typography.size[15],
+    fontSize: THEME.typography.size[16],
     color: THEME.colors.white,
     paddingVertical: Platform.OS === 'android' ? 6 : 8,
     paddingHorizontal: THEME.spacing[4],
