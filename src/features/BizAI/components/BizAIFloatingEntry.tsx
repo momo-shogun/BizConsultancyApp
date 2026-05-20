@@ -12,7 +12,7 @@ import { THEME } from '@/constants/theme';
 import { ROUTES } from '@/navigation/routeNames';
 import type { RootStackParamList } from '@/navigation/types';
 
-import { useBizAIFloatingMotion } from '../hooks/useBizAIFloatingMotion';
+import { useBizAIFloatingMotion, useBizAIPressMotion } from '../hooks/useBizAIFloatingMotion';
 import { useBizAIVisibility } from '../hooks/useBizAIVisibility';
 
 const TAB_BAR_ESTIMATE = 62;
@@ -24,11 +24,20 @@ function triggerTapHaptic(): void {
   ReactNativeHapticFeedback.trigger(Platform.OS === 'ios' ? 'impactLight' : 'keyboardTap');
 }
 
-export function BizAIFloatingEntry(): React.ReactElement | null {
+export function BizAIFloatingEntry(): React.ReactElement {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const insets = useSafeAreaInsets();
-  const isVisible = useBizAIVisibility();
-  const { containerStyle, orbStyle, glowStyle } = useBizAIFloatingMotion(isVisible);
+  const isTabVisible = useBizAIVisibility();
+  const {
+    hostStyle,
+    hostAnimatedProps,
+    clusterStyle,
+    capsuleStyle,
+    orbStyle,
+    glowStyle,
+    shadowStyle,
+  } = useBizAIFloatingMotion(isTabVisible);
+  const { pressStyle, onPressIn, onPressOut } = useBizAIPressMotion();
 
   const bottomOffset = insets.bottom + TAB_BAR_ESTIMATE + FLOAT_BOTTOM_GAP;
 
@@ -37,57 +46,65 @@ export function BizAIFloatingEntry(): React.ReactElement | null {
     navigation.navigate(ROUTES.Root.BizAI);
   }, [navigation]);
 
-  if (!isVisible) {
-    return null;
-  }
-
   return (
     <Animated.View
-      pointerEvents="box-none"
-      style={[styles.host, { bottom: bottomOffset }, containerStyle]}
+      animatedProps={hostAnimatedProps}
+      style={[styles.host, { bottom: bottomOffset }, hostStyle]}
     >
-      <Pressable
-        onPress={openBizAI}
-        accessibilityRole="button"
-        accessibilityLabel="Open Biz AI assistant"
-        style={({ pressed }) => [styles.pressable, pressed && styles.pressed]}
-      >
-        <View style={styles.capsule}>
-          <LinearGradient
-            colors={['rgba(15,23,42,0.92)', 'rgba(30,41,59,0.88)']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={StyleSheet.absoluteFill}
-          />
-          <View style={styles.capsuleInner}>
-            <Ionicons name="sparkles" size={16} color="#E0E7FF" />
-            <Text style={styles.label}>Biz AI</Text>
-          </View>
-        </View>
-
-        <View style={styles.orbWrap}>
-          <Animated.View style={[styles.glow, glowStyle]}>
-            <LinearGradient
-              colors={GRADIENT_RING}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.glowGradient}
-            />
-          </Animated.View>
-          <Animated.View style={[styles.orb, orbStyle]}>
-            <LinearGradient
-              colors={GRADIENT_RING}
-              start={{ x: 0, y: 0.2 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.orbRing}
+      <Animated.View style={clusterStyle}>
+        <Animated.View style={pressStyle}>
+          <Pressable
+            onPress={openBizAI}
+            onPressIn={onPressIn}
+            onPressOut={onPressOut}
+            accessibilityRole="button"
+            accessibilityLabel="Open Biz AI assistant"
+            style={styles.pressable}
+          >
+            <Animated.View
+              style={[
+                styles.capsule,
+                shadowStyle,
+                styles.capsuleShadowBase,
+              ]}
             >
-              <View style={styles.orbCore}>
-                <Ionicons name="mic-outline" size={22} color={THEME.colors.white} />
-              </View>
-            </LinearGradient>
-          </Animated.View>
-        </View>
-      </Pressable>
+              <LinearGradient
+                colors={['rgba(15,23,42,0.94)', 'rgba(30,41,59,0.9)']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
+              <Animated.View style={[styles.capsuleInner, capsuleStyle]}>
+                <Ionicons name="sparkles" size={16} color="#E0E7FF" />
+                <Text style={styles.label}>Biz AI</Text>
+              </Animated.View>
+            </Animated.View>
+
+            <View style={styles.orbWrap}>
+              <Animated.View style={[styles.glow, glowStyle]}>
+                <LinearGradient
+                  colors={GRADIENT_RING}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.glowGradient}
+                />
+              </Animated.View>
+              <Animated.View style={[styles.orb, orbStyle]}>
+                <LinearGradient
+                  colors={GRADIENT_RING}
+                  start={{ x: 0, y: 0.2 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.orbRing}
+                >
+                  <View style={styles.orbCore}>
+                    <Ionicons name="mic-outline" size={22} color={THEME.colors.white} />
+                  </View>
+                </LinearGradient>
+              </Animated.View>
+            </View>
+          </Pressable>
+        </Animated.View>
+      </Animated.View>
     </Animated.View>
   );
 }
@@ -105,24 +122,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
-  pressed: {
-    opacity: 0.9,
-    transform: [{ scale: 0.97 }],
-  },
   capsule: {
     borderRadius: 999,
     overflow: 'hidden',
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.14)',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.28,
-        shadowRadius: 16,
-      },
-      default: { elevation: 10 },
-    }),
+    borderColor: 'rgba(255,255,255,0.16)',
+  },
+  capsuleShadowBase: {
+    shadowColor: '#0B0F19',
   },
   capsuleInner: {
     flexDirection: 'row',
@@ -144,10 +151,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   glow: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: 26,
-    opacity: 0.5,
-    transform: [{ scale: 1.15 }],
   },
   glowGradient: {
     flex: 1,

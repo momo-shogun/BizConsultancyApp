@@ -6,7 +6,10 @@ import { reportBizAIScroll } from '../engine/bizAiScrollBridge';
 export function useBizAIScrollReporter(): ReturnType<typeof useAnimatedScrollHandler> {
   return useAnimatedScrollHandler({
     onScroll: (event) => {
-      reportBizAIScroll(event.contentOffset.y);
+      reportBizAIScroll({
+        offsetY: event.contentOffset.y,
+        velocityY: event.velocity?.y,
+      });
     },
   });
 }

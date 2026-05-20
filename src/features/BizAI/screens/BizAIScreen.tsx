@@ -1,13 +1,10 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   Keyboard,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
@@ -20,17 +17,28 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { THEME } from '@/constants/theme';
 import { ROUTES } from '@/navigation/routeNames';
 import type { RootStackParamList } from '@/navigation/types';
+import { showGlobalToast } from '@/shared/components/toast';
 
+import { BizAIKeyboardComposer } from '../components/BizAIKeyboardComposer';
 import { BizAISuggestionChip } from '../components/BizAISuggestionChip';
+import { BizAIVoiceDock } from '../components/BizAIVoiceDock';
 import {
   BIZ_AI_GREETINGS,
   BIZ_AI_SHORTCUTS,
   BIZ_AI_SUGGESTIONS,
 } from '../constants/bizAiSuggestions';
+import { useBizAIKeyboardInset } from '../hooks/useBizAIKeyboardInset';
+import type { BizAIInputMode } from '../types/bizAiInput.types';
+
+const VOICE_DOCK_HEIGHT = 176;
+const KEYBOARD_DOCK_HEIGHT = 72;
 
 export function BizAIScreen(): React.ReactElement {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const insets = useSafeAreaInsets();
+  const { keyboardHeight } = useBizAIKeyboardInset();
+
+  const [inputMode, setInputMode] = useState<BizAIInputMode>('voice');
   const [query, setQuery] = useState<string>('');
   const [draft, setDraft] = useState<string>('');
 
@@ -38,6 +46,15 @@ export function BizAIScreen(): React.ReactElement {
     () => BIZ_AI_GREETINGS[Math.floor(Date.now() / 86_400_000) % BIZ_AI_GREETINGS.length],
     [],
   );
+
+  const onMicPress = useCallback((): void => {
+    showGlobalToast({
+      variant: 'info',
+      title: 'Coming soon',
+      message: 'Voice input will be available soon. Use the keyboard for now.',
+      position: 'bottom',
+    });
+  }, []);
 
   const close = useCallback((): void => {
     Keyboard.dismiss();
@@ -67,6 +84,29 @@ export function BizAIScreen(): React.ReactElement {
     [navigation],
   );
 
+  const openKeyboardMode = useCallback((): void => {
+    setInputMode('keyboard');
+  }, []);
+
+  const openVoiceMode = useCallback((): void => {
+    Keyboard.dismiss();
+    setInputMode('voice');
+  }, []);
+
+  const onSend = useCallback((): void => {
+    const trimmed = draft.trim();
+    if (trimmed.length === 0) {
+      return;
+    }
+    setQuery(trimmed);
+    Keyboard.dismiss();
+  }, [draft]);
+
+  const bottomPad =
+    inputMode === 'voice'
+      ? insets.bottom + VOICE_DOCK_HEIGHT
+      : insets.bottom + KEYBOARD_DOCK_HEIGHT + 24;
+
   return (
     <View style={styles.root}>
       <LinearGradient
@@ -75,99 +115,89 @@ export function BizAIScreen(): React.ReactElement {
         style={StyleSheet.absoluteFill}
       />
 
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={0}
-      >
-        <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-          <Pressable onPress={close} hitSlop={12} accessibilityRole="button" accessibilityLabel="Close">
-            <Ionicons name="chevron-down" size={28} color={THEME.colors.white} />
-          </Pressable>
-          <View style={styles.headerTitleWrap}>
-            <Ionicons name="sparkles" size={18} color="#A5B4FC" />
-            <Text style={styles.headerTitle}>Biz AI</Text>
-          </View>
-          <View style={styles.headerSpacer} />
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+        <Pressable onPress={close} hitSlop={12} accessibilityRole="button" accessibilityLabel="Close">
+          <Ionicons name="chevron-down" size={28} color={THEME.colors.white} />
+        </Pressable>
+        <View style={styles.headerTitleWrap}>
+          <Ionicons name="sparkles" size={18} color="#A5B4FC" />
+          <Text style={styles.headerTitle}>Biz AI</Text>
         </View>
+        <View style={styles.headerSpacer} />
+      </View>
 
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={[styles.scroll, { paddingBottom: bottomPad }]}
+      >
+        <Animated.View entering={FadeInDown.duration(240)}>
+          <Text style={styles.greeting}>{greeting}</Text>
+          <Text style={styles.subGreeting}>
+            Tap a suggestion, use your mic, or switch to the keyboard to type.
+          </Text>
+        </Animated.View>
+
+        <Animated.View entering={FadeInDown.delay(80).duration(220)} style={styles.shortcutRow}>
+          {BIZ_AI_SHORTCUTS.map((item) => (
+            <Pressable
+              key={item.id}
+              onPress={() => onShortcutPress(item.id)}
+              style={({ pressed }) => [styles.shortcut, pressed && styles.shortcutPressed]}
+            >
+              <Ionicons name={item.icon} size={16} color="#C7D2FE" />
+              <Text style={styles.shortcutText}>{item.label}</Text>
+            </Pressable>
+          ))}
+        </Animated.View>
+
+        <Text style={styles.sectionLabel}>Suggestions for your business</Text>
         <ScrollView
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 120 }]}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.suggestionRow}
         >
-          <Animated.View entering={FadeInDown.duration(240)}>
-            <Text style={styles.greeting}>{greeting}</Text>
-            <Text style={styles.subGreeting}>
-              Tap a suggestion, type your question, or use voice when available.
-            </Text>
-          </Animated.View>
-
-          <Animated.View entering={FadeInDown.delay(80).duration(220)} style={styles.shortcutRow}>
-            {BIZ_AI_SHORTCUTS.map((item) => (
-              <Pressable
-                key={item.id}
-                onPress={() => onShortcutPress(item.id)}
-                style={({ pressed }) => [styles.shortcut, pressed && styles.shortcutPressed]}
-              >
-                <Ionicons name={item.icon} size={16} color="#C7D2FE" />
-                <Text style={styles.shortcutText}>{item.label}</Text>
-              </Pressable>
-            ))}
-          </Animated.View>
-
-          <Text style={styles.sectionLabel}>Suggestions for your business</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.suggestionRow}
-          >
-            {BIZ_AI_SUGGESTIONS.map((item, index) => (
-              <BizAISuggestionChip
-                key={item.id}
-                item={item}
-                index={index}
-                onPress={() => onSuggestionPress(item.prompt)}
-              />
-            ))}
-          </ScrollView>
-
-          {query.length > 0 ? (
-            <Animated.View entering={FadeIn.duration(200)} style={styles.previewCard}>
-              <Text style={styles.previewLabel}>Your question</Text>
-              <Text style={styles.previewText}>{query}</Text>
-              <Text style={styles.previewHint}>
-                Full AI chat will connect to Biz Assistant API in the next release.
-              </Text>
-            </Animated.View>
-          ) : null}
+          {BIZ_AI_SUGGESTIONS.map((item, index) => (
+            <BizAISuggestionChip
+              key={item.id}
+              item={item}
+              index={index}
+              onPress={() => onSuggestionPress(item.prompt)}
+            />
+          ))}
         </ScrollView>
 
-        <View style={[styles.composer, { paddingBottom: insets.bottom + 12 }]}>
-          <View style={styles.composerInner}>
-            <TextInput
-              value={draft}
-              onChangeText={setDraft}
-              placeholder="Ask about GST, compliance, funding…"
-              placeholderTextColor="rgba(255,255,255,0.45)"
-              style={styles.input}
-              multiline
-              maxLength={500}
-              returnKeyType="send"
-              onSubmitEditing={() => setQuery(draft.trim())}
-            />
-            <Pressable
-              onPress={() => setQuery(draft.trim())}
-              style={({ pressed }) => [styles.sendBtn, pressed && styles.sendPressed]}
-              accessibilityRole="button"
-              accessibilityLabel="Send question"
-            >
-              <Ionicons name="arrow-up" size={20} color={THEME.colors.white} />
-            </Pressable>
-          </View>
-          <Text style={styles.composerHint}>Biz AI · Business consultancy assistant</Text>
+        {query.length > 0 ? (
+          <Animated.View entering={FadeIn.duration(200)} style={styles.previewCard}>
+            <Text style={styles.previewLabel}>Your question</Text>
+            <Text style={styles.previewText}>{query}</Text>
+            <Text style={styles.previewHint}>
+              Full AI chat will connect to Biz Assistant API in the next release.
+            </Text>
+          </Animated.View>
+        ) : null}
+      </ScrollView>
+
+      {inputMode === 'voice' ? (
+        <View style={[styles.dockHost, { paddingBottom: insets.bottom }]}>
+          <BizAIVoiceDock
+            status="idle"
+            partialText=""
+            errorMessage={null}
+            onKeyboardPress={openKeyboardMode}
+            onMicPress={onMicPress}
+            onBrandPress={close}
+          />
         </View>
-      </KeyboardAvoidingView>
+      ) : (
+        <BizAIKeyboardComposer
+          value={draft}
+          onChangeText={setDraft}
+          onSend={onSend}
+          onVoiceModePress={openVoiceMode}
+          keyboardHeight={keyboardHeight}
+        />
+      )}
     </View>
   );
 }
@@ -178,9 +208,6 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: '#0B0F19',
-  },
-  flex: {
-    flex: 1,
   },
   header: {
     flexDirection: 'row',
@@ -246,7 +273,7 @@ const styles = StyleSheet.create({
     fontWeight: THEME.typography.weight.medium as '500',
   },
   sectionLabel: {
-    fontSize: THEME.typography.size[13],
+    fontSize: THEME.typography.size[12],
     fontWeight: THEME.typography.weight.semibold as '600',
     color: 'rgba(255,255,255,0.55)',
     marginBottom: THEME.spacing[12],
@@ -281,50 +308,10 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.45)',
     lineHeight: 18,
   },
-  composer: {
-    paddingHorizontal: THEME.spacing[16],
-    paddingTop: THEME.spacing[8],
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(255,255,255,0.08)',
-    backgroundColor: 'rgba(11,15,25,0.92)',
-  },
-  composerInner: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: THEME.spacing[8],
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    paddingLeft: THEME.spacing[14],
-    paddingRight: THEME.spacing[8],
-    paddingVertical: THEME.spacing[8],
-  },
-  input: {
-    flex: 1,
-    maxHeight: 96,
-    fontSize: THEME.typography.size[15],
-    color: THEME.colors.white,
-    paddingVertical: Platform.OS === 'android' ? 4 : 8,
-    ...Platform.select({
-      android: { includeFontPadding: false, textAlignVertical: 'top' },
-    }),
-  },
-  sendBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: THEME.colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sendPressed: {
-    opacity: 0.85,
-  },
-  composerHint: {
-    marginTop: THEME.spacing[8],
-    textAlign: 'center',
-    fontSize: THEME.typography.size[11],
-    color: 'rgba(255,255,255,0.38)',
+  dockHost: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
 });

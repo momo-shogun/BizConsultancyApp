@@ -8,10 +8,18 @@ export const BIZ_AI_SPRING = {
 } as const;
 
 export const BIZ_AI_MOTION = {
-  /** Scroll offset below which the entry stays subdued. */
-  topInset: 20,
+  /** Scroll offset below which the entry is fully hidden. */
+  topInset: 24,
   /** Minimum scroll depth before full reveal can latch. */
   revealScrollY: 48,
+  /** Expand value below which master visibility is exactly zero. */
+  visibilityHiddenExpand: 0,
+  /** Expand at which fade-in begins (buffers spring overshoot). */
+  visibilityFadeInStart: 0.1,
+  /** Expand at which the entry is fully opaque. */
+  visibilityFullExpand: 0.82,
+  /** Master visibility under this — no hit testing, no display. */
+  visibilityHitTestCutoff: 0.04,
   /** Delta Y per frame — scroll down. */
   scrollDownDelta: 1.5,
   /** Velocity Y (px/s) — scroll down. */

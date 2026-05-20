@@ -125,7 +125,10 @@ export function ZeptoHS(props: ZeptoHSProps): React.ReactElement {
     onScroll: (event) => {
       const offsetY = event.contentOffset.y;
       scrollY.value = offsetY;
-      reportBizAIScroll(offsetY);
+      reportBizAIScroll({
+        offsetY,
+        velocityY: event.velocity?.y,
+      });
     },
   });
 
