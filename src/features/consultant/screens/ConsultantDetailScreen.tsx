@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { THEME } from '@/constants/theme';
 import { usePublicConsultantDetail } from '@/features/consultant/hooks/usePublicConsultantDetail';
 import type { ConsultantDetail, ConsultantExpertTalk } from '@/features/consultant/types/consultantDetail.types';
+import { resolveConsultationFee } from '@/features/Consultation/utils/consultationBooking';
 import { ROUTES } from '@/navigation/routeNames';
 import type { RootStackParamList } from '@/navigation/types';
 import { CallController } from '@/features/Calls/controllers/CallController';
@@ -311,13 +312,23 @@ export function ConsultantDetailScreen(): React.ReactElement {
   }, [detail]);
 
   const onBookConsultation = useCallback((): void => {
+    if (detail == null) {
+      return;
+    }
+    const parsedId = Number(detail.id);
+    const consultationType = 'video' as const;
     navigation.navigate(ROUTES.Root.ConsultationOnboarding, {
+      consultantId: Number.isFinite(parsedId) && parsedId > 0 ? parsedId : undefined,
       consultantSlug: slug,
-      consultantName: detail?.name,
-      city: detail?.city ?? undefined,
-      problemCategory: detail?.category,
+      consultantName: detail.name,
+      consultationType,
+      price: resolveConsultationFee(consultationType, {
+        videoRate: detail.videoRate,
+        audioRate: detail.audioRate,
+        rate: detail.rate,
+      }),
     });
-  }, [detail?.category, detail?.city, detail?.name, navigation, slug]);
+  }, [detail, navigation, slug]);
 
   const onOpenTalk = useCallback((talk: ConsultantExpertTalk): void => {
     openExternalUrl(youtubeEmbedToWatchUrl(talk.url));

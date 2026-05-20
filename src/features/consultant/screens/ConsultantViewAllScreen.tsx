@@ -354,12 +354,17 @@ export function ConsultantViewAllScreen(): React.ReactElement {
               slug: item.slug ?? item.id,
             })
           }
-          onBookPress={() =>
+          onBookPress={() => {
+            const parsedId = Number(item.id);
+            const consultationType = 'video' as const;
             navigation.navigate(ROUTES.Root.ConsultationOnboarding, {
+              consultantId: Number.isFinite(parsedId) && parsedId > 0 ? parsedId : undefined,
               consultantSlug: item.slug ?? item.id,
               consultantName: item.name,
-            })
-          }
+              consultationType,
+              price: parseRateRupee(item.rateLabel) || undefined,
+            });
+          }}
         />
       </View>
     ),

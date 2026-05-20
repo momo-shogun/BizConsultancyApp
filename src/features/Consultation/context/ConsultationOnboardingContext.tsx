@@ -13,9 +13,10 @@ import {
   selectLoggedInEmail,
   selectLoggedInMobile,
 } from '@/features/Auth/store/authSelectors';
-import { useGetAvailableSlotsQuery } from '@/features/consultant/api/consultantApi';
+import { useGetAvailableSlotsQuery, useGetPublicConsultantBySlugQuery } from '@/features/consultant/api/consultantApi';
 import { useAppSelector } from '@/store/typedHooks';
 
+import { mapCallTypeToConsultationType, resolveConsultationFee } from '../utils/consultationBooking';
 import type {
   ConsultationOnboardingFormState,
   ConsultationOnboardingRouteParams,
@@ -46,20 +47,29 @@ const ConsultationOnboardingContext = createContext<ConsultationOnboardingContex
   null,
 );
 
+function resolveConsultationType(
+  params: ConsultationOnboardingRouteParams,
+): ConsultationOnboardingFormState['consultationType'] {
+  if (params.consultationType === 'video' || params.consultationType === 'phone') {
+    return params.consultationType;
+  }
+  return mapCallTypeToConsultationType(params.callType);
+}
+
 function buildInitialForm(
   params: ConsultationOnboardingRouteParams,
   defaults?: { fullName: string; email: string; phone: string },
 ): ConsultationOnboardingFormState {
+  const consultantId =
+    params.consultantId != null && params.consultantId > 0 ? params.consultantId : null;
+
   return {
+    consultantId,
     consultantSlug: params.consultantSlug,
     consultantName: params.consultantName,
-    problemCategory: params.problemCategory ?? 'Consumer Lawyer',
-    problemSubCategory: params.problemSubCategory ?? 'Consumer Law Consultation',
-    consultationType: params.consultationType ?? 'Consult Now',
-    callType: params.callType ?? 'Video Call',
-    city: params.city ?? 'Nizamabad',
-    language: params.language ?? 'Telugu',
-    price: params.price ?? 99,
+    consultationType: resolveConsultationType(params),
+    notes: '',
+    price: params.price ?? 0,
     contact: {
       fullName: defaults?.fullName ?? '',
       email: defaults?.email ?? '',
@@ -106,6 +116,33 @@ export function ConsultationOnboardingProvider(
   );
 
   const consultantSlug = form.consultantSlug?.trim() ?? '';
+
+  const { data: consultantBySlug } = useGetPublicConsultantBySlugQuery(consultantSlug, {
+    skip: consultantSlug.length === 0,
+  });
+
+  useEffect(() => {
+    if (consultantBySlug == null) {
+      return;
+    }
+    const parsedId = Number(consultantBySlug.id);
+    const hasValidId = Number.isFinite(parsedId) && parsedId > 0;
+
+    setForm((prev) => {
+      const resolvedFee = resolveConsultationFee(prev.consultationType, {
+        videoRate: consultantBySlug.videoRate,
+        audioRate: consultantBySlug.audioRate,
+        rate: consultantBySlug.rate,
+      });
+      return {
+        ...prev,
+        consultantId: prev.consultantId ?? (hasValidId ? parsedId : null),
+        consultantName: prev.consultantName ?? consultantBySlug.name,
+        price: resolvedFee > 0 ? resolvedFee : prev.price,
+      };
+    });
+  }, [consultantBySlug]);
+
   const canFetchSlots = consultantSlug.length > 0 && preferredDateParam.length > 0;
 
   const {

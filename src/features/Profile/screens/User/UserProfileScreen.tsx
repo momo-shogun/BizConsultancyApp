@@ -1,31 +1,26 @@
-import React from 'react';
-import { Image, ImageBackground, Text, TouchableOpacity, View } from 'react-native';
+import React, { useMemo } from 'react';
+import {
+  Image,
+  ImageBackground,
+  Pressable,
+  Text,
+  View,
+} from 'react-native';
 import Animated from 'react-native-reanimated';
-
-import { THEME } from '@/constants/theme';
-import { SafeAreaWrapper, ScreenHeader, ScreenWrapper } from '@/shared/components';
-
-import { useBizAIScrollReporter } from '@/features/BizAI/hooks/useBizAIScrollReporter';
-import { ProfileAccountCard } from '@/features/Profile/components/ProfileAccountCard';
-
-import { styles } from './UserProfileScreen.styles';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
+import { THEME } from '@/constants/theme';
 import { ROUTES } from '@/navigation/routeNames';
 import type { AccountStackParamList } from '@/navigation/types';
+import { useBizAIScrollReporter } from '@/features/BizAI/hooks/useBizAIScrollReporter';
+import { ProfileAccountCard } from '@/features/Profile/components/ProfileAccountCard';
+import { SafeAreaWrapper, ScreenWrapper } from '@/shared/components';
+import { Card } from '@/shared/components/card';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-type ProfileType = 'user' | 'kids' | 'add';
-
-interface Profile {
-  id: string;
-  name: string;
-  type: ProfileType;
-  emoji?: string;
-}
+import { styles, USER_CANVAS } from './UserProfileScreen.styles';
 
 interface WatchItem {
   id: string;
@@ -40,22 +35,17 @@ interface WatchItem {
   titleColor: string;
 }
 
-// ── Static data ───────────────────────────────────────────────────────────────
-const PROFILES: Profile[] = [
-  { id: '1', name: 'Ratnesh...', type: 'user', emoji: '😊' },
-  { id: '2', name: 'Kids', type: 'kids' },
-  { id: '3', name: 'Add', type: 'add' },
-];
-
 const WATCH_ITEMS: WatchItem[] = [
   {
     id: 'section',
-    title: 'Section Ka\nThe Only Boy',
+    title: 'Section Ka — The Only Boy',
     label: 'S1 E6',
     remaining: '22m left',
     progress: 0.4,
     bgColor: '#2D4A1A',
     titleColor: '#FF6B9D',
+    thumbnail:
+      'https://images.unsplash.com/photo-1513828583688-c52646db42da?w=640&auto=format&fit=crop&q=80',
   },
   {
     id: 'doNotEnter',
@@ -66,272 +56,172 @@ const WATCH_ITEMS: WatchItem[] = [
     progress: 0.65,
     bgColor: '#1A1A2E',
     titleColor: THEME.colors.white,
+    thumbnail:
+      'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=640&auto=format&fit=crop&q=80',
   },
 ];
 
-// ── Sub-components ────────────────────────────────────────────────────────────
-function ProfileAvatar({ profile }: { profile: Profile }): React.ReactElement {
-  if (profile.type === 'add') {
-    return (
-      <View style={styles.addProfileCircle}>
-        <Text style={styles.addProfilePlus}>+</Text>
-      </View>
-    );
-  }
-
-  if (profile.type === 'kids') {
-    return (
-      <View style={styles.profileKidsBadge}>
-        <Text style={styles.profileKidsText}>KiDS</Text>
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.profileAvatarRing}>
-      <View style={styles.profileAvatarInner}>
-        <Text style={styles.profileEmoji}>{profile.emoji ?? '😊'}</Text>
-      </View>
-    </View>
-  );
-}
-
-function WatchCard({
-  item,
-  onMore,
-}: {
-  item: WatchItem;
-  onMore: () => void;
-}): React.ReactElement {
-  return (
-    <View style={styles.watchCard}>
-      <View style={[styles.watchThumbnail, { backgroundColor: item.bgColor }]}>
-        <Text style={[styles.watchThumbnail, { color: item.titleColor }]}>
-          {item.title}
-        </Text>
-      </View>
-
-      <View style={styles.watchProgressTrack}>
-        <View style={[styles.watchProgressFill, { width: `${item.progress * 100}%` }]} />
-      </View>
-
-      <View style={styles.watchCardMeta}>
-        <View>
-          <Text style={styles.watchCardSubLabel}>{item.label}</Text>
-          {item.subLabel ? (
-            <Text style={styles.watchCardSubLabel}>{item.subLabel}</Text>
-          ) : null}
-        </View>
-        <TouchableOpacity style={styles.watchMoreBtn} onPress={onMore}>
-          <Text style={styles.watchMoreBtn}>•••</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-}
-
-// ── Main export ───────────────────────────────────────────────────────────────
 type AccountNav = NativeStackNavigationProp<AccountStackParamList, typeof ROUTES.Account.Home>;
+
+function SectionHeading(props: { title: string }): React.ReactElement {
+  return (
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionTitle}>{props.title}</Text>
+      <View style={styles.sectionLine} />
+    </View>
+  );
+}
 
 export function UserProfileScreen(): React.ReactElement {
   const navigation = useNavigation<AccountNav>();
   const onBizAiScroll = useBizAIScrollReporter();
-  const watchRows: WatchItem[][] = [];
-  for (let i = 0; i < WATCH_ITEMS.length; i += 2) {
-    watchRows.push(WATCH_ITEMS.slice(i, i + 2));
-  }
+
+  const watchRows = useMemo((): WatchItem[][] => {
+    const rows: WatchItem[][] = [];
+    for (let i = 0; i < WATCH_ITEMS.length; i += 2) {
+      rows.push(WATCH_ITEMS.slice(i, i + 2));
+    }
+    return rows;
+  }, []);
 
   return (
-    <SafeAreaWrapper edges={['top', 'bottom']}>
-      <View style={styles.headerRow}>
-        <ScreenHeader title="My Profile" />
-
-        <TouchableOpacity
-          activeOpacity={0.8}
-          style={styles.helpBtn}
+    <SafeAreaWrapper
+      edges={['top', 'bottom']}
+      bgColor={USER_CANVAS}
+      contentBgColor={USER_CANVAS}
+    >
+      <View style={styles.topBar}>
+        <Text style={styles.pageTitle}>My Profile</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Help and settings"
           onPress={() => navigation.navigate(ROUTES.Account.HelpSettings)}
+          style={({ pressed }) => [styles.settingsBtn, pressed ? { opacity: 0.88 } : null]}
         >
-          <Ionicons
-            name="settings-outline"
-            size={18}
-            color="#A855F7"
-          />
-          <Text style={styles.helpText}>
-            Help & Settings
-          </Text>
-        </TouchableOpacity>
+          <Ionicons name="settings-outline" size={16} color={THEME.colors.textSecondary} />
+          <Text style={styles.settingsBtnText}>Help & Settings</Text>
+        </Pressable>
       </View>
+
       <ScreenWrapper style={styles.screen}>
         <Animated.ScrollView
           showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
           onScroll={onBizAiScroll}
           scrollEventThrottle={16}
         >
+          <ProfileAccountCard accountRole="user" style={styles.subscriptionCard} />
 
-          <ProfileAccountCard accountRole="user" />
-
-          {/* ── Profiles ──────────────────────────────────── */}
-          <View style={{ gap: THEME.spacing[16], marginTop: THEME.spacing[20] }}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionHeaderLeft}>
-                <View style={styles.sectionAccentBar} />
-                <Text style={styles.sectionTitle}>Profiles</Text>
-              </View>
-              <TouchableOpacity style={styles.editRow}>
-                <Text style={styles.editIcon}>✎</Text>
-                <Text style={styles.editText}>Edit</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.profilesRow}>
-              {PROFILES.map((profile) => (
-                <View key={profile.id} style={styles.profileItem}>
-                  <ProfileAvatar profile={profile} />
-                  <Text style={styles.profileName}>{profile.name}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-          <View style={styles.paddingTop}>
-            <View style={styles.sectionHeaderLeft}>
-              <View style={styles.sectionAccentBar} />
-              <Text style={styles.sectionTitle}>Notification</Text>
-            </View>
-          </View>
-
-
-
-          {/* ── Jeeto banner ──────────────────────────────── */}
-          <TouchableOpacity activeOpacity={0.9}>
-            <LinearGradient
-              colors={['#FFF8F3', '#F9F1FF', '#F5EFFF']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={[styles.notificationCard, { marginTop: THEME.spacing[20] }]}
+          <View style={styles.section}>
+            <SectionHeading title="Notification" />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open notification video"
+              style={({ pressed }) => [pressed ? { opacity: 0.92 } : null]}
             >
-              <View style={styles.notificationGlow} />
-
-              <View style={styles.notificationInner}>
-
-                <Image
-                  source={{
-                    uri: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg',
-                  }}
-                  style={styles.videoThumbnail}
-                />
-
-                <View style={styles.notificationContent}>
-                  <Text numberOfLines={1} style={styles.videoTitle}>
-                    Learn React Native Navigation in 10 Minutes
-                  </Text>
-
-                  <Text numberOfLines={2} style={styles.videoDescription}>
-                    Complete beginner friendly tutorial to understand stack,
-                    tabs and screen navigation easily.
-                  </Text>
-                </View>
-
-                <View style={styles.arrowBox}>
-                  <Ionicons
-                    name="chevron-forward"
-                    size={20}
-                    color="#7C3AED"
+              <Card style={styles.notificationCard}>
+                <View style={styles.notificationShimmer} />
+                <View style={styles.notificationInner}>
+                  <Image
+                    source={{
+                      uri: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg',
+                    }}
+                    style={styles.videoThumbnail}
+                    resizeMode="cover"
                   />
+                  <View style={styles.notificationContent}>
+                    <Text numberOfLines={1} style={styles.videoTitle}>
+                      Learn React Native Navigation in 10 Minutes
+                    </Text>
+                    <Text numberOfLines={2} style={styles.videoDescription}>
+                      Complete beginner friendly tutorial to understand stack, tabs and screen
+                      navigation easily.
+                    </Text>
+                  </View>
+                  <View style={styles.arrowBox}>
+                    <Ionicons name="chevron-forward" size={18} color={THEME.colors.white} />
+                  </View>
                 </View>
-              </View>
-            </LinearGradient>
-          </TouchableOpacity>
+              </Card>
+            </Pressable>
+          </View>
 
-          {/* ── Continue watching ──────────────────────────── */}
-          {/* ── Continue watching ──────────────────────────── */}
-          <View style={{ gap: THEME.spacing[20] }}>
-
-            <View style={styles.paddingTop}>
-              <View style={styles.sectionHeaderLeft}>
-                <View style={styles.sectionAccentBar} />
-
-                <Text style={styles.sectionTitle}>
-                  Continue Watching for Aparna Dewal
-                </Text>
-              </View>
-            </View>
-
+          <View style={styles.section}>
+            <SectionHeading title="Continue Watching for Aparna Dewal" />
             {watchRows.map((row, rowIndex) => (
-              <View key={rowIndex} style={styles.watchRow}>
+              <View key={`watch-row-${rowIndex}`} style={styles.watchRow}>
                 {row.map((item) => (
-                  <TouchableOpacity
+                  <Pressable
                     key={item.id}
-                    activeOpacity={0.9}
-                    style={styles.watchCard}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Continue watching ${item.title}`}
+                    style={({ pressed }) => [
+                      styles.watchCardPressable,
+                      pressed ? { opacity: 0.92 } : null,
+                    ]}
                   >
-                    {/* Thumbnail */}
-                    <ImageBackground
-                      source={{ uri: item.thumbnail }}
-                      style={styles.watchThumbnail}
-                      imageStyle={styles.watchThumbnailImage}
-                    >
-                      {/* Dark overlay */}
-                      <LinearGradient
-                        colors={[
-                          'rgba(0,0,0,0.05)',
-                          'rgba(0,0,0,0.65)',
-                        ]}
-                        style={styles.watchThumbnailOverlay}
-                      />
-
-                      {/* Play Button */}
-                      <View style={styles.watchPlayOverlay}>
-                        <Ionicons
-                          name="play"
-                          size={12}
-                          color="#fff"
-                        />
-                      </View>
-                    </ImageBackground>
-
-                    {/* Progress */}
-                    <View style={styles.watchProgressTrack}>
-                      <View
-                        style={[
-                          styles.watchProgressFill,
-                          { width: `${item.progress}%` },
-                        ]}
-                      />
-                    </View>
-
-                    {/* Meta */}
-                    <View style={styles.watchCardMeta}>
-                      <View style={{ flex: 1 }}>
-                        <Text
-                          numberOfLines={1}
-                          style={styles.watchCardTitle}
+                    <Card style={styles.watchCard}>
+                      {item.thumbnail ? (
+                        <ImageBackground
+                          source={{ uri: item.thumbnail }}
+                          style={styles.watchThumbnail}
+                          imageStyle={styles.watchThumbnailImage}
                         >
-                          {item.title}
-                        </Text>
-
-                        <Text style={styles.watchCardSubLabel}>
-                          {item.remaining}
-                        </Text>
-                      </View>
-
-                      <TouchableOpacity style={styles.watchMoreBtn}>
-                        <Ionicons
-                          name="ellipsis-vertical"
-                          size={16}
-                          color="#A1A1AA"
+                          <LinearGradient
+                            colors={['rgba(0,0,0,0.05)', 'rgba(0,0,0,0.55)']}
+                            style={styles.watchThumbnailOverlay}
+                          />
+                          <View style={styles.watchPlayOverlay}>
+                            <Ionicons name="play" size={12} color={THEME.colors.white} />
+                          </View>
+                        </ImageBackground>
+                      ) : (
+                        <View style={[styles.watchThumbnail, { backgroundColor: item.bgColor }]}>
+                          <LinearGradient
+                            colors={['transparent', 'rgba(0,0,0,0.65)']}
+                            style={styles.watchThumbnailOverlay}
+                          />
+                          <View style={styles.watchPlayOverlay}>
+                            <Ionicons name="play" size={12} color={THEME.colors.white} />
+                          </View>
+                        </View>
+                      )}
+                      <View style={styles.watchProgressTrack}>
+                        <View
+                          style={[
+                            styles.watchProgressFill,
+                            { width: `${Math.round(item.progress * 100)}%` },
+                          ]}
                         />
-                      </TouchableOpacity>
-                    </View>
-                  </TouchableOpacity>
+                      </View>
+                      <View style={styles.watchCardMeta}>
+                        <View style={{ flex: 1, minWidth: 0 }}>
+                          <Text numberOfLines={2} style={styles.watchCardTitle}>
+                            {item.title}
+                          </Text>
+                          {item.remaining ? (
+                            <Text style={styles.watchCardSubLabel}>{item.remaining}</Text>
+                          ) : null}
+                        </View>
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel="More options"
+                          style={styles.watchMoreBtn}
+                        >
+                          <Ionicons
+                            name="ellipsis-vertical"
+                            size={14}
+                            color="#64748B"
+                          />
+                        </Pressable>
+                      </View>
+                    </Card>
+                  </Pressable>
                 ))}
-
-                {row.length === 1 ? (
-                  <View style={styles.watchCardSpacer} />
-                ) : null}
+                {row.length === 1 ? <View style={styles.watchCardSpacer} /> : null}
               </View>
             ))}
           </View>
-
         </Animated.ScrollView>
       </ScreenWrapper>
     </SafeAreaWrapper>

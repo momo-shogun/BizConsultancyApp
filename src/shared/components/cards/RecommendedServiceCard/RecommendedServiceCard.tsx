@@ -3,6 +3,9 @@ import { Platform, Pressable, StyleSheet, Text, View, type DimensionValue } from
 
 import { THEME } from '@/constants/theme';
 
+/** One of five header palette slots — cycled per card in lists */
+export type HeaderStyleIndex = 0 | 1 | 2 | 3 | 4;
+
 export interface RecommendedServiceItem {
   id: string;
   slug: string;
@@ -16,9 +19,11 @@ export interface RecommendedServiceItem {
   badgeLabel?: string;
   /** Footer left, e.g. From ₹9,999 */
   priceLabel?: string;
-  /** Rotates header pastel (0–2) */
-  headerStyleIndex?: 0 | 1 | 2;
+  /** Rotates header color preset (0–4) */
+  headerStyleIndex?: HeaderStyleIndex;
 }
+
+const HEADER_PRESET_COUNT = 5;
 
 export interface RecommendedServiceCardProps {
   item: RecommendedServiceItem;
@@ -31,10 +36,13 @@ export interface RecommendedServiceCardProps {
   upperPressableAccessibilityHint?: string;
 }
 
-const HEADER_PRESETS: readonly { bg: string; fg: string }[] = [
-  { bg: THEME.colors.chooseAccountBg3, fg: THEME.colors.textPrimary },
-  { bg: THEME.colors.splashGreen1, fg: THEME.colors.textPrimary },
-  { bg: THEME.colors.chooseAccountBg1, fg: THEME.colors.textPrimary },
+/** Saturated brand strips — five distinct hues, rotated per card (no washed pastels) */
+const HEADER_PRESETS: readonly { bg: string; fg: string; fgMuted: string }[] = [
+  { bg: '#0B3B66', fg: THEME.colors.white, fgMuted: 'rgba(255,255,255,0.88)' },
+  { bg: '#0F5132', fg: THEME.colors.white, fgMuted: 'rgba(255,255,255,0.88)' },
+  { bg: '#1D4ED8', fg: THEME.colors.white, fgMuted: 'rgba(255,255,255,0.88)' },
+  { bg: '#0F766E', fg: THEME.colors.white, fgMuted: 'rgba(255,255,255,0.88)' },
+  { bg: '#6D28D9', fg: THEME.colors.white, fgMuted: 'rgba(255,255,255,0.88)' },
 ];
 
 const DASH_SEGMENTS = 28;
@@ -49,11 +57,13 @@ function DashDivider(): React.ReactElement {
   );
 }
 
-function presetIndexForItem(item: RecommendedServiceItem): 0 | 1 | 2 {
-  if (item.headerStyleIndex != null) return item.headerStyleIndex;
+function presetIndexForItem(item: RecommendedServiceItem): HeaderStyleIndex {
+  if (item.headerStyleIndex != null) {
+    return (item.headerStyleIndex % HEADER_PRESET_COUNT) as HeaderStyleIndex;
+  }
   let h = 0;
   for (let i = 0; i < item.id.length; i += 1) h += item.id.charCodeAt(i);
-  return (h % 3) as 0 | 1 | 2;
+  return (h % HEADER_PRESET_COUNT) as HeaderStyleIndex;
 }
 
 export function RecommendedServiceCard({
@@ -97,7 +107,7 @@ export function RecommendedServiceCard({
           <Text style={[styles.headerText, { color: preset.fg }]} numberOfLines={1}>
             {item.categoryLabel}
           </Text>
-          <Text style={[styles.headerText, { color: preset.fg }]} numberOfLines={1}>
+          <Text style={[styles.headerTextRight, { color: preset.fgMuted }]} numberOfLines={1}>
             {item.headerRight}
           </Text>
         </View>
@@ -191,9 +201,19 @@ const styles = StyleSheet.create({
   },
   headerText: {
     fontSize: THEME.typography.size[12],
-    fontWeight: THEME.typography.weight.semibold as '600',
-    letterSpacing: 0.3,
+    fontWeight: THEME.typography.weight.bold as '700',
+    letterSpacing: 0.2,
     flexShrink: 1,
+    flex: 1,
+    minWidth: 0,
+  },
+  headerTextRight: {
+    fontSize: THEME.typography.size[12],
+    fontWeight: THEME.typography.weight.semibold as '600',
+    letterSpacing: 0.15,
+    flexShrink: 0,
+    maxWidth: '42%',
+    textAlign: 'right',
   },
   bodyUpper: {
     paddingHorizontal: THEME.spacing[12],

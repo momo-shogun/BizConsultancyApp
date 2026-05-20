@@ -4,6 +4,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { formatPreviewDate } from '../../data/demoSchedule';
 import { useConsultationOnboarding } from '../../context/ConsultationOnboardingContext';
+import { consultationTypeLabel } from '../../utils/consultationBooking';
 import type { ConsultationStepComponentProps } from '../../types/consultationOnboarding.types';
 
 interface PreviewStepProps extends ConsultationStepComponentProps {
@@ -20,10 +21,10 @@ export function PreviewStep(props: PreviewStepProps): React.ReactElement {
   return (
     <View style={styles.container}>
       <View style={styles.titleRow}>
-        <Text style={styles.title}>Consultation Preview</Text>
+        <Text style={styles.title}>Booking preview</Text>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Edit consultation details"
+          accessibilityLabel="Edit booking details"
           onPress={props.onEditPress}
           style={styles.editBtn}
         >
@@ -33,20 +34,19 @@ export function PreviewStep(props: PreviewStepProps): React.ReactElement {
       </View>
 
       <View style={styles.grid}>
-        <PreviewField label="Problem Category" value={form.problemCategory} />
-        <PreviewField label="Problem Sub-category" value={form.problemSubCategory} />
-        <PreviewField label="Date" value={dateLabel} fullWidth />
-        <PreviewField label="Time" value={timeLabel} />
-        <PreviewField label="Consultation Type" value={form.consultationType} />
-        <PreviewField label="Call Type" value={form.callType} />
-        <PreviewField label="City" value={form.city} />
-        <PreviewField label="Language" value={form.language} />
-        <PreviewField label="Full name" value={form.contact.fullName} />
-        <PreviewField label="Email" value={form.contact.email} />
-        <PreviewField label="Phone" value={form.contact.phone} fullWidth />
         {form.consultantName != null && form.consultantName.length > 0 ? (
           <PreviewField label="Consultant" value={form.consultantName} fullWidth />
         ) : null}
+        <PreviewField label="Full name" value={form.contact.fullName} />
+        <PreviewField label="Phone" value={form.contact.phone} />
+        <PreviewField label="Email" value={form.contact.email} fullWidth />
+        <PreviewField label="Date" value={dateLabel} />
+        <PreviewField label="Time" value={timeLabel} />
+        <PreviewField
+          label="Consultation type"
+          value={consultationTypeLabel(form.consultationType)}
+          fullWidth
+        />
       </View>
     </View>
   );

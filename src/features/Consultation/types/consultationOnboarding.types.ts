@@ -1,16 +1,8 @@
 import type { ComponentType } from 'react';
 
-export type ConsultationAvailability = 'limited' | 'available';
+import type { ConsultationTypeApi } from './consultantBooking.types';
 
 export type ConsultationTimePeriod = 'morning' | 'afternoon' | 'evening' | 'night';
-
-export interface ConsultationDateOption {
-  id: string;
-  date: Date;
-  label: string;
-  slotCount: number;
-  availability: ConsultationAvailability;
-}
 
 export interface ConsultationTimeSlot {
   id: string;
@@ -26,27 +18,23 @@ export interface ConsultationSlotGroup {
   slots: ConsultationTimeSlot[];
 }
 
-export interface ConsultationBookingMeta {
-  consultantSlug?: string;
-  consultantName?: string;
-  problemCategory: string;
-  problemSubCategory: string;
-  consultationType: string;
-  callType: string;
-  city: string;
-  language: string;
-  price: number;
-}
-
 export interface ConsultationContactDetails {
   fullName: string;
   email: string;
   phone: string;
 }
 
-export interface ConsultationOnboardingFormState extends ConsultationBookingMeta {
+export interface ConsultationOnboardingFormState {
+  consultantId: number | null;
+  consultantSlug?: string;
+  consultantName?: string;
+  consultationType: ConsultationTypeApi;
+  notes: string;
+  /** Shown on payment step only; not sent in create-booking payload. */
+  price: number;
   contact: ConsultationContactDetails;
   preferredDate: Date | null;
+  /** Slot label from API, e.g. `"9:00 AM"`. */
   selectedTimeSlotId: string | null;
 }
 
@@ -63,13 +51,12 @@ export interface ConsultationStepConfig {
 }
 
 export interface ConsultationOnboardingRouteParams {
+  consultantId?: number;
   consultantSlug?: string;
   consultantName?: string;
-  problemCategory?: string;
-  problemSubCategory?: string;
-  consultationType?: string;
+  /** API value: `video` | `phone`. */
+  consultationType?: ConsultationTypeApi;
+  /** Legacy UI label; mapped to `consultationType` when needed. */
   callType?: string;
-  city?: string;
-  language?: string;
   price?: number;
 }

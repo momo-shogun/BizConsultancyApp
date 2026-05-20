@@ -56,14 +56,11 @@ export type RootStackParamList = {
   [ROUTES.Root.WorkshopsList]: undefined;
   [ROUTES.Root.WorkshopsDetail]: undefined;
   [ROUTES.Root.ConsultationOnboarding]: {
+    consultantId?: number;
     consultantSlug?: string;
     consultantName?: string;
-    problemCategory?: string;
-    problemSubCategory?: string;
-    consultationType?: string;
+    consultationType?: 'video' | 'phone';
     callType?: string;
-    city?: string;
-    language?: string;
     price?: number;
   };
   [ROUTES.Root.IncomingCall]: { sessionId: number };

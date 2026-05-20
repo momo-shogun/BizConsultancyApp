@@ -1,21 +1,32 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
-import { showGlobalError } from '@/shared/components';
+import { showGlobalError, showGlobalToast } from '@/shared/components';
 
+import {
+  useCreateConsultantBookingMutation,
+  useCreateConsultantBookingRazorpayOrderMutation,
+  useVerifyConsultantBookingPaymentMutation,
+} from '../api/consultantBookingsApi';
 import { ContactDetailsStep } from './steps/ContactDetailsStep';
 import { PreviewStep } from './steps/PreviewStep';
 import { ScheduleStep } from './steps/ScheduleStep';
 import { useConsultationOnboarding } from '../context/ConsultationOnboardingContext';
 import type { ConsultationStepConfig } from '../types/consultationOnboarding.types';
+import { buildCreateConsultantBookingPayload } from '../utils/consultationBooking';
 import {
+  isConsultationPaymentCancelled,
+  submitConsultationBooking,
+} from '../utils/consultationPaymentFlow';
+import {
+  validateBookingSubmit,
   validateContactStep,
   validateScheduleStep,
 } from '../utils/consultationValidation';
 
 interface ConsultationStepperProps {
-  onComplete: () => void;
+  onComplete: (bookingId: number) => void;
   onStepChange?: (step: number) => void;
 }
 
@@ -40,9 +51,31 @@ const STEP_CONFIGS: ConsultationStepConfig[] = [
   },
 ];
 
+function bookingErrorMessage(error: unknown): string {
+  if (error != null && typeof error === 'object' && 'data' in error) {
+    const data = (error as { data?: unknown }).data;
+    if (data != null && typeof data === 'object' && 'message' in data) {
+      const message = (data as { message?: unknown }).message;
+      if (typeof message === 'string' && message.length > 0) {
+        return message;
+      }
+      if (Array.isArray(message) && message.length > 0) {
+        return message.map(String).join(', ');
+      }
+    }
+  }
+  return 'Could not create booking. Please try again.';
+}
+
 export function ConsultationStepper(props: ConsultationStepperProps): React.ReactElement {
   const { onComplete, onStepChange } = props;
-  const { form } = useConsultationOnboarding();
+  const { form, selectedTimeSlot } = useConsultationOnboarding();
+  const [createBooking, { isLoading: isCreatingBooking }] = useCreateConsultantBookingMutation();
+  const [createRazorpayOrder, { isLoading: isCreatingOrder }] =
+    useCreateConsultantBookingRazorpayOrderMutation();
+  const [verifyPayment, { isLoading: isVerifyingPayment }] =
+    useVerifyConsultantBookingPaymentMutation();
+  const isSubmitting = isCreatingBooking || isCreatingOrder || isVerifyingPayment;
   const [activeStep, setActiveStep] = useState(0);
 
   useEffect(() => {
@@ -51,6 +84,8 @@ export function ConsultationStepper(props: ConsultationStepperProps): React.Reac
 
   const totalSteps = STEP_CONFIGS.length;
   const isLastStep = activeStep === totalSteps - 1;
+  const paymentAmountLabel =
+    form.price > 0 ? `₹${Math.round(form.price).toLocaleString('en-IN')}/-` : 'Free';
   const currentStep = STEP_CONFIGS[activeStep];
   const stepProps = useMemo(
     () => ({ stepIndex: activeStep, totalSteps }),
@@ -75,12 +110,63 @@ export function ConsultationStepper(props: ConsultationStepperProps): React.Reac
     }
 
     if (isLastStep) {
-      onComplete();
+      const submitError = validateBookingSubmit(form);
+      if (submitError != null) {
+        showGlobalError(submitError);
+        return;
+      }
+      const slotTime = selectedTimeSlot?.label ?? form.selectedTimeSlotId ?? '';
+      const payload = buildCreateConsultantBookingPayload(form, slotTime);
+      if (payload == null) {
+        showGlobalError('Booking details are incomplete.');
+        return;
+      }
+
+      const consultantName = (form.consultantName ?? '').trim() || 'Consultant';
+
+      void submitConsultationBooking({
+        payload,
+        form,
+        consultantName,
+        createBooking: (body) => createBooking(body).unwrap(),
+        createOrder: (bookingId) => createRazorpayOrder(bookingId).unwrap(),
+        verifyPayment: (bookingId, body) =>
+          verifyPayment({ bookingId, body }).unwrap(),
+      })
+        .then((booking) => {
+          showGlobalToast({
+            variant: 'success',
+            message:
+              form.price < 1
+                ? 'Consultation booked successfully.'
+                : 'Payment successful! Your consultation is confirmed.',
+          });
+          onComplete(booking.id);
+        })
+        .catch((err: unknown) => {
+          if (isConsultationPaymentCancelled(err)) {
+            showGlobalToast({
+              variant: 'info',
+              message: 'Payment cancelled. Your booking is saved — pay when ready.',
+            });
+            return;
+          }
+          showGlobalError(bookingErrorMessage(err));
+        });
       return;
     }
 
     setActiveStep((prev) => Math.min(prev + 1, totalSteps - 1));
-  }, [isLastStep, onComplete, totalSteps, validateCurrentStep]);
+  }, [
+    createBooking,
+    createRazorpayOrder,
+    form,
+    isLastStep,
+    onComplete,
+    selectedTimeSlot?.label,
+    validateCurrentStep,
+    verifyPayment,
+  ]);
 
   const handleBack = useCallback(() => {
     setActiveStep((prev) => Math.max(prev - 1, 0));
@@ -107,18 +193,27 @@ export function ConsultationStepper(props: ConsultationStepperProps): React.Reac
           <View style={styles.paymentRow}>
             <Text style={styles.paymentLabel}>Payment Details</Text>
             <View style={styles.paymentAmountWrap}>
-              <Text style={styles.paymentAmount}>{form.price.toFixed(2)}/-</Text>
-              <Text style={styles.paymentTax}>(Inclusive of Taxes)</Text>
+              <Text style={styles.paymentAmount}>{paymentAmountLabel}</Text>
+              {form.price > 0 ? (
+                <Text style={styles.paymentTax}>(Inclusive of Taxes)</Text>
+              ) : null}
             </View>
           </View>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Proceed to payment"
+            accessibilityLabel="Confirm booking"
+            disabled={isSubmitting}
             onPress={handleContinue}
-            style={styles.payBtn}
+            style={[styles.payBtn, isSubmitting ? styles.payBtnDisabled : null]}
           >
-            <Text style={styles.payBtnText}>Proceed to Payment</Text>
-            <Ionicons name="chevron-forward" size={18} color="#FFFFFF" />
+            {isSubmitting ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <>
+                <Text style={styles.payBtnText}>Confirm booking</Text>
+                <Ionicons name="chevron-forward" size={18} color="#FFFFFF" />
+              </>
+            )}
           </Pressable>
         </View>
       ) : (
@@ -252,6 +347,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: 6,
+  },
+  payBtnDisabled: {
+    opacity: 0.7,
   },
   payBtnText: {
     fontSize: 16,
