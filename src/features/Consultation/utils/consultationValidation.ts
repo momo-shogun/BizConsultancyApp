@@ -24,10 +24,10 @@ export function validateContactStep(
 }
 
 export function validateScheduleStep(
-  selectedDateId: string | null,
+  preferredDate: Date | null,
   selectedTimeSlotId: string | null,
 ): string | null {
-  if (selectedDateId == null) {
+  if (preferredDate == null) {
     return 'Please select a preferred date.';
   }
   if (selectedTimeSlotId == null) {

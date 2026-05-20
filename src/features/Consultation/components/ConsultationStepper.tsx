@@ -62,10 +62,10 @@ export function ConsultationStepper(props: ConsultationStepperProps): React.Reac
       return validateContactStep(form.contact);
     }
     if (activeStep === 1) {
-      return validateScheduleStep(form.selectedDateId, form.selectedTimeSlotId);
+      return validateScheduleStep(form.preferredDate, form.selectedTimeSlotId);
     }
     return null;
-  }, [activeStep, form.contact, form.selectedDateId, form.selectedTimeSlotId]);
+  }, [activeStep, form.contact, form.preferredDate, form.selectedTimeSlotId]);
 
   const handleContinue = useCallback(() => {
     const error = validateCurrentStep();

@@ -39,7 +39,7 @@ export interface ConsultationContactDetails {
 
 export interface ConsultationOnboardingFormState extends ConsultationBookingMeta {
   contact: ConsultationContactDetails;
-  selectedDateId: string | null;
+  preferredDate: Date | null;
   selectedTimeSlotId: string | null;
 }
 

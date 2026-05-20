@@ -15,12 +15,8 @@ import {
 } from '@/features/Auth/store/authSelectors';
 import { useAppSelector } from '@/store/typedHooks';
 
-import {
-  buildConsultationDateOptions,
-  buildConsultationTimeSlots,
-} from '../data/demoSchedule';
+import { buildConsultationTimeSlots } from '../data/demoSchedule';
 import type {
-  ConsultationDateOption,
   ConsultationOnboardingFormState,
   ConsultationOnboardingRouteParams,
   ConsultationTimeSlot,
@@ -28,15 +24,13 @@ import type {
 
 interface ConsultationOnboardingContextValue {
   form: ConsultationOnboardingFormState;
-  dateOptions: ConsultationDateOption[];
   timeSlots: ConsultationTimeSlot[];
   setContactField: (
     field: keyof ConsultationOnboardingFormState['contact'],
     value: string,
   ) => void;
-  setSelectedDateId: (dateId: string) => void;
+  setPreferredDate: (date: Date) => void;
   setSelectedTimeSlotId: (slotId: string) => void;
-  selectedDate: ConsultationDateOption | null;
   selectedTimeSlot: ConsultationTimeSlot | null;
 }
 
@@ -63,7 +57,7 @@ function buildInitialForm(
       email: defaults?.email ?? '',
       phone: defaults?.phone ?? '',
     },
-    selectedDateId: null,
+    preferredDate: null,
     selectedTimeSlotId: null,
   };
 }
@@ -131,7 +125,6 @@ export function ConsultationOnboardingProvider(
     });
   }, [loggedInDefaults.fullName, loggedInDefaults.phone, loggedInDefaults.email]);
 
-  const dateOptions = useMemo(() => buildConsultationDateOptions(), []);
   const timeSlots = useMemo(() => buildConsultationTimeSlots(), []);
 
   const setContactField = useCallback(
@@ -144,10 +137,10 @@ export function ConsultationOnboardingProvider(
     [],
   );
 
-  const setSelectedDateId = useCallback((dateId: string) => {
+  const setPreferredDate = useCallback((date: Date) => {
     setForm((prev) => ({
       ...prev,
-      selectedDateId: dateId,
+      preferredDate: date,
       selectedTimeSlotId: null,
     }));
   }, []);
@@ -155,11 +148,6 @@ export function ConsultationOnboardingProvider(
   const setSelectedTimeSlotId = useCallback((slotId: string) => {
     setForm((prev) => ({ ...prev, selectedTimeSlotId: slotId }));
   }, []);
-
-  const selectedDate = useMemo(
-    () => dateOptions.find((item) => item.id === form.selectedDateId) ?? null,
-    [dateOptions, form.selectedDateId],
-  );
 
   const selectedTimeSlot = useMemo(
     () => timeSlots.find((item) => item.id === form.selectedTimeSlotId) ?? null,
@@ -169,21 +157,17 @@ export function ConsultationOnboardingProvider(
   const value = useMemo(
     (): ConsultationOnboardingContextValue => ({
       form,
-      dateOptions,
       timeSlots,
       setContactField,
-      setSelectedDateId,
+      setPreferredDate,
       setSelectedTimeSlotId,
-      selectedDate,
       selectedTimeSlot,
     }),
     [
-      dateOptions,
       form,
-      selectedDate,
       selectedTimeSlot,
       setContactField,
-      setSelectedDateId,
+      setPreferredDate,
       setSelectedTimeSlotId,
       timeSlots,
     ],

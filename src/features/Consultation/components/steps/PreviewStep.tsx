@@ -11,10 +11,10 @@ interface PreviewStepProps extends ConsultationStepComponentProps {
 }
 
 export function PreviewStep(props: PreviewStepProps): React.ReactElement {
-  const { form, selectedDate, selectedTimeSlot } = useConsultationOnboarding();
+  const { form, selectedTimeSlot } = useConsultationOnboarding();
 
   const dateLabel =
-    selectedDate != null ? formatPreviewDate(selectedDate.date) : 'Not selected';
+    form.preferredDate != null ? formatPreviewDate(form.preferredDate) : 'Not selected';
   const timeLabel = selectedTimeSlot?.label ?? 'Not selected';
 
   return (

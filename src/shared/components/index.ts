@@ -1,6 +1,7 @@
 export { Button } from './ui/Button/Button';
 export { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/Card/Card';
 export { Input } from './ui/Input/Input';
+export { DatePickerField, type DatePickerFieldProps } from './ui/DatePicker';
 export { ScreenHeader } from './ui/ScreenHeader/ScreenHeader';
 
 export {
