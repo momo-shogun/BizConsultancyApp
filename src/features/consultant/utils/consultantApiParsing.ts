@@ -126,8 +126,20 @@ function isAvailableSlot(value: unknown): value is AvailableSlot {
   return typeof value.startTime === 'string';
 }
 
+function isSlotTimeLabel(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+function labelToAvailableSlot(label: string): AvailableSlot {
+  const trimmed = label.trim();
+  return { startTime: trimmed, label: trimmed };
+}
+
 export function parseAvailableSlotsResponse(raw: unknown): AvailableSlotsResponse {
   if (Array.isArray(raw)) {
+    if (raw.length > 0 && typeof raw[0] === 'string') {
+      return { slots: raw.filter(isSlotTimeLabel).map(labelToAvailableSlot) };
+    }
     return { slots: raw.filter(isAvailableSlot) };
   }
   if (!isRecord(raw)) {
@@ -135,6 +147,9 @@ export function parseAvailableSlotsResponse(raw: unknown): AvailableSlotsRespons
   }
   const nested = raw.slots ?? raw.data ?? raw.availableSlots;
   if (Array.isArray(nested)) {
+    if (nested.length > 0 && typeof nested[0] === 'string') {
+      return { slots: nested.filter(isSlotTimeLabel).map(labelToAvailableSlot) };
+    }
     return { slots: nested.filter(isAvailableSlot) };
   }
   return { slots: [] };

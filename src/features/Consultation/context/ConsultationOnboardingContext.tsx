@@ -13,18 +13,26 @@ import {
   selectLoggedInEmail,
   selectLoggedInMobile,
 } from '@/features/Auth/store/authSelectors';
+import { useGetAvailableSlotsQuery } from '@/features/consultant/api/consultantApi';
 import { useAppSelector } from '@/store/typedHooks';
 
-import { buildConsultationTimeSlots } from '../data/demoSchedule';
 import type {
   ConsultationOnboardingFormState,
   ConsultationOnboardingRouteParams,
+  ConsultationSlotGroup,
   ConsultationTimeSlot,
 } from '../types/consultationOnboarding.types';
+import {
+  formatConsultationApiDate,
+  mapSlotLabelsToConsultationGroups,
+  todayStart,
+} from '../utils/consultationSlots';
 
 interface ConsultationOnboardingContextValue {
   form: ConsultationOnboardingFormState;
-  timeSlots: ConsultationTimeSlot[];
+  slotGroups: ConsultationSlotGroup[];
+  slotsLoading: boolean;
+  slotsError: boolean;
   setContactField: (
     field: keyof ConsultationOnboardingFormState['contact'],
     value: string,
@@ -57,9 +65,14 @@ function buildInitialForm(
       email: defaults?.email ?? '',
       phone: defaults?.phone ?? '',
     },
-    preferredDate: null,
+    preferredDate: todayStart(),
     selectedTimeSlotId: null,
   };
+}
+
+function slotLabelFromApi(slot: { label?: string; startTime: string }): string {
+  const label = slot.label?.trim();
+  return label != null && label.length > 0 ? label : slot.startTime.trim();
 }
 
 interface ConsultationOnboardingProviderProps {
@@ -85,6 +98,36 @@ export function ConsultationOnboardingProvider(
 
   const [form, setForm] = useState<ConsultationOnboardingFormState>(() =>
     buildInitialForm(props.params, loggedInDefaults),
+  );
+
+  const preferredDateParam = useMemo(
+    () => (form.preferredDate != null ? formatConsultationApiDate(form.preferredDate) : ''),
+    [form.preferredDate],
+  );
+
+  const consultantSlug = form.consultantSlug?.trim() ?? '';
+  const canFetchSlots = consultantSlug.length > 0 && preferredDateParam.length > 0;
+
+  const {
+    data: slotsData,
+    isFetching: slotsLoading,
+    isError: slotsError,
+  } = useGetAvailableSlotsQuery(
+    { slug: consultantSlug, date: preferredDateParam },
+    { skip: !canFetchSlots },
+  );
+
+  const slotGroups = useMemo((): ConsultationSlotGroup[] => {
+    if (slotsData == null) {
+      return [];
+    }
+    const labels = slotsData.slots.map(slotLabelFromApi).filter((label) => label.length > 0);
+    return mapSlotLabelsToConsultationGroups(labels);
+  }, [slotsData]);
+
+  const allTimeSlots = useMemo(
+    () => slotGroups.flatMap((group) => group.slots),
+    [slotGroups],
   );
 
   /** If Redux auth hydrates after first paint, merge stored name / phone / email into empty fields once. */
@@ -125,8 +168,6 @@ export function ConsultationOnboardingProvider(
     });
   }, [loggedInDefaults.fullName, loggedInDefaults.phone, loggedInDefaults.email]);
 
-  const timeSlots = useMemo(() => buildConsultationTimeSlots(), []);
-
   const setContactField = useCallback(
     (field: keyof ConsultationOnboardingFormState['contact'], value: string) => {
       setForm((prev) => ({
@@ -150,26 +191,31 @@ export function ConsultationOnboardingProvider(
   }, []);
 
   const selectedTimeSlot = useMemo(
-    () => timeSlots.find((item) => item.id === form.selectedTimeSlotId) ?? null,
-    [form.selectedTimeSlotId, timeSlots],
+    () => allTimeSlots.find((item) => item.id === form.selectedTimeSlotId) ?? null,
+    [allTimeSlots, form.selectedTimeSlotId],
   );
 
   const value = useMemo(
     (): ConsultationOnboardingContextValue => ({
       form,
-      timeSlots,
+      slotGroups,
+      slotsLoading: canFetchSlots && slotsLoading,
+      slotsError,
       setContactField,
       setPreferredDate,
       setSelectedTimeSlotId,
       selectedTimeSlot,
     }),
     [
+      canFetchSlots,
       form,
       selectedTimeSlot,
       setContactField,
       setPreferredDate,
       setSelectedTimeSlotId,
-      timeSlots,
+      slotGroups,
+      slotsError,
+      slotsLoading,
     ],
   );
 

@@ -1,9 +1,16 @@
-import React, { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React from 'react';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
+import { THEME } from '@/constants/theme';
 import { DatePickerField } from '@/shared/components';
 
-import { groupSlotsByPeriod } from '../../data/demoSchedule';
 import { useConsultationOnboarding } from '../../context/ConsultationOnboardingContext';
 import type {
   ConsultationStepComponentProps,
@@ -11,9 +18,18 @@ import type {
 } from '../../types/consultationOnboarding.types';
 
 export function ScheduleStep(_props: ConsultationStepComponentProps): React.ReactElement {
-  const { timeSlots, form, setPreferredDate, setSelectedTimeSlotId } = useConsultationOnboarding();
+  const {
+    slotGroups,
+    slotsLoading,
+    slotsError,
+    form,
+    setPreferredDate,
+    setSelectedTimeSlotId,
+  } = useConsultationOnboarding();
 
-  const groupedSlots = useMemo(() => groupSlotsByPeriod(timeSlots), [timeSlots]);
+  const hasConsultantSlug =
+    form.consultantSlug != null && form.consultantSlug.trim().length > 0;
+  const hasPreferredDate = form.preferredDate != null;
 
   return (
     <View style={styles.container}>
@@ -26,31 +42,43 @@ export function ScheduleStep(_props: ConsultationStepComponentProps): React.Reac
       />
 
       <Text style={styles.sectionTitle}>Preferred time</Text>
-      <ScrollView
-        nestedScrollEnabled
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.timeScroll}
-      >
-        {groupedSlots.map((group) => (
-          <View key={group.period} style={styles.periodBlock}>
-            <Text style={styles.periodLabel}>{group.label}</Text>
-            <View style={styles.slotGrid}>
-              {group.slots.map((slot) => (
-                <TimeSlotChip
-                  key={slot.id}
-                  slot={slot}
-                  selected={form.selectedTimeSlotId === slot.id}
-                  onPress={() => {
-                    if (slot.available) {
-                      setSelectedTimeSlotId(slot.id);
-                    }
-                  }}
-                />
-              ))}
+
+      {!hasConsultantSlug ? (
+        <Text style={styles.hintText}>Consultant information is missing. Go back and try again.</Text>
+      ) : !hasPreferredDate ? (
+        <Text style={styles.hintText}>Select a date to see available time slots.</Text>
+      ) : slotsLoading ? (
+        <View style={styles.loadingRow}>
+          <ActivityIndicator size="small" color={THEME.colors.primary} />
+          <Text style={styles.hintText}>Loading available slots…</Text>
+        </View>
+      ) : slotsError ? (
+        <Text style={styles.errorText}>Could not load time slots. Please try another date.</Text>
+      ) : slotGroups.length === 0 ? (
+        <Text style={styles.hintText}>No slots available for this date. Try another day.</Text>
+      ) : (
+        <ScrollView
+          nestedScrollEnabled
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.timeScroll}
+        >
+          {slotGroups.map((group) => (
+            <View key={group.label} style={styles.periodBlock}>
+              <Text style={styles.periodLabel}>{group.label}</Text>
+              <View style={styles.slotGrid}>
+                {group.slots.map((slot) => (
+                  <TimeSlotChip
+                    key={slot.id}
+                    slot={slot}
+                    selected={form.selectedTimeSlotId === slot.id}
+                    onPress={() => setSelectedTimeSlotId(slot.id)}
+                  />
+                ))}
+              </View>
             </View>
-          </View>
-        ))}
-      </ScrollView>
+          ))}
+        </ScrollView>
+      )}
     </View>
   );
 }
@@ -62,28 +90,15 @@ interface TimeSlotChipProps {
 }
 
 function TimeSlotChip(props: TimeSlotChipProps): React.ReactElement {
-  const disabled = !props.slot.available;
-
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={props.slot.label}
-      accessibilityState={{ selected: props.selected, disabled }}
-      disabled={disabled}
+      accessibilityState={{ selected: props.selected }}
       onPress={props.onPress}
-      style={[
-        styles.timeChip,
-        props.selected ? styles.timeChipSelected : null,
-        disabled ? styles.timeChipDisabled : null,
-      ]}
+      style={[styles.timeChip, props.selected ? styles.timeChipSelected : null]}
     >
-      <Text
-        style={[
-          styles.timeChipText,
-          props.selected ? styles.timeChipTextSelected : null,
-          disabled ? styles.timeChipTextDisabled : null,
-        ]}
-      >
+      <Text style={[styles.timeChipText, props.selected ? styles.timeChipTextSelected : null]}>
         {props.slot.label}
       </Text>
     </Pressable>
@@ -99,6 +114,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '800',
     color: '#111827',
+  },
+  hintText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#5B6B7E',
+  },
+  errorText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: THEME.colors.danger,
+  },
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   timeScroll: {
     gap: 16,
@@ -131,10 +161,6 @@ const styles = StyleSheet.create({
     borderColor: '#0B3B66',
     backgroundColor: '#EEF4FA',
   },
-  timeChipDisabled: {
-    borderColor: '#ECEFF3',
-    backgroundColor: '#F8FAFC',
-  },
   timeChipText: {
     fontSize: 14,
     fontWeight: '600',
@@ -142,8 +168,5 @@ const styles = StyleSheet.create({
   },
   timeChipTextSelected: {
     color: '#0B3B66',
-  },
-  timeChipTextDisabled: {
-    color: '#C0C8D2',
   },
 });

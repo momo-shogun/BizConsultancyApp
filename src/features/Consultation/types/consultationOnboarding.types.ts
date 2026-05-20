@@ -19,6 +19,13 @@ export interface ConsultationTimeSlot {
   available: boolean;
 }
 
+/** Morning / Afternoon / Evening groups from available-slots API. */
+export interface ConsultationSlotGroup {
+  label: string;
+  period: ConsultationTimePeriod;
+  slots: ConsultationTimeSlot[];
+}
+
 export interface ConsultationBookingMeta {
   consultantSlug?: string;
   consultantName?: string;
