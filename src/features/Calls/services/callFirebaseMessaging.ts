@@ -5,6 +5,7 @@ import { store } from '@/store';
 
 import { callsApi } from '../api/callsApi';
 import { registerCallNotifeeForegroundHandler } from './callNotifeeEvents';
+import { ensureCallNotificationsReady } from './callNotificationService';
 import { handleIncomingCallRemoteMessage } from './callPushHandlers';
 
 async function requestNotificationPermission(): Promise<boolean> {
@@ -35,6 +36,7 @@ async function registerTokenWithServer(token: string): Promise<void> {
 }
 
 export async function syncFcmDeviceToken(): Promise<void> {
+  await ensureCallNotificationsReady();
   await requestNotificationPermission();
 
   const token = await messaging().getToken();
@@ -45,6 +47,8 @@ export async function syncFcmDeviceToken(): Promise<void> {
 }
 
 export function startCallPushListeners(): () => void {
+  void ensureCallNotificationsReady();
+
   const unsubNotifee = registerCallNotifeeForegroundHandler();
 
   const unsubRefresh = messaging().onTokenRefresh((token) => {
@@ -52,17 +56,17 @@ export function startCallPushListeners(): () => void {
   });
 
   const unsubForeground = messaging().onMessage((message) => {
-    void handleIncomingCallRemoteMessage(message);
+    void handleIncomingCallRemoteMessage(message, { delivery: 'foreground' });
   });
 
   const unsubOpened = messaging().onNotificationOpenedApp((message) => {
-    void handleIncomingCallRemoteMessage(message);
+    void handleIncomingCallRemoteMessage(message, { delivery: 'opened' });
   });
 
   void messaging()
     .getInitialNotification()
     .then((message) => {
-      void handleIncomingCallRemoteMessage(message);
+      void handleIncomingCallRemoteMessage(message, { delivery: 'opened' });
     });
 
   return () => {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
+import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { selectIsAuthenticated } from '@/features/Auth/store/authSelectors';
@@ -22,9 +22,14 @@ import { InCallScreen } from '@/features/Calls/screens/InCallScreen';
 import WorkshopDetailsScreen from '@/features/Home/screens/WorkshopDetailsScreen';
 import { BizAIScreen } from '@/features/BizAI/screens/BizAIScreen';
 import { SearchScreen } from '@/features/Search/screens/SearchScreen';
+import { callEngine } from '@/features/Calls/engine/CallEngine';
+
+import { navigationRef } from './navigationContainerRef';
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
-export const navigationRef = createNavigationContainerRef<RootStackParamList>();
+
+/** @deprecated Prefer `@/navigation/navigationContainerRef` to avoid cyclic imports */
+export { navigationRef } from './navigationContainerRef';
 
 export function RootNavigator(): React.ReactElement {
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
@@ -34,7 +39,10 @@ export function RootNavigator(): React.ReactElement {
     <NavigationContainer
       ref={navigationRef}
       linking={linking}
-      onReady={tracking.onReady}
+      onReady={() => {
+        tracking.onReady();
+        callEngine.flushPendingCallNavigation();
+      }}
       onStateChange={tracking.onStateChange}
     >
       <RootStack.Navigator screenOptions={{ headerShown: false }}>

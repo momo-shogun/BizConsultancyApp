@@ -1,7 +1,7 @@
 import type { FirebaseMessagingTypes } from '@react-native-firebase/messaging';
 
 import { callEngine } from '../engine/CallEngine';
-import { displayIncomingCallNotification } from './callNotificationService';
+import { displayIncomingCallNotification, type CallPushDelivery } from './callNotificationService';
 import { parseIncomingCallPushData } from './callPushPayload';
 
 function normalizeFcmData(
@@ -21,6 +21,7 @@ function normalizeFcmData(
 
 export async function handleIncomingCallRemoteMessage(
   message: FirebaseMessagingTypes.RemoteMessage | null | undefined,
+  opts?: { delivery?: CallPushDelivery },
 ): Promise<void> {
   if (message == null) {
     return;
@@ -30,7 +31,7 @@ export async function handleIncomingCallRemoteMessage(
     return;
   }
 
-  await displayIncomingCallNotification(payload);
+  await displayIncomingCallNotification(payload, { delivery: opts?.delivery });
   callEngine.bindSocketHandlers();
   callEngine.handleIncoming(payload);
 }

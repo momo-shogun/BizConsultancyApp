@@ -4,8 +4,6 @@ import android.app.Application
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
-import android.media.AudioAttributes
-import android.media.RingtoneManager
 import android.os.Build
 import com.facebook.react.PackageList
 import com.facebook.react.ReactApplication
@@ -36,12 +34,6 @@ class MainApplication : Application(), ReactApplication {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
       return
     }
-    val ringtoneUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
-    val audioAttributes =
-        AudioAttributes.Builder()
-            .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
-            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-            .build()
     val channel =
         NotificationChannel(
                 INCOMING_CALLS_CHANNEL_ID,
@@ -50,17 +42,17 @@ class MainApplication : Application(), ReactApplication {
             )
             .apply {
               description = "Alerts for incoming voice and video calls"
-              enableVibration(true)
-              vibrationPattern = longArrayOf(0, 900, 400, 900)
+              /** Ringtone + haptics come from JS `react-native-incall-manager` only (avoids double ring). */
+              enableVibration(false)
               lockscreenVisibility = Notification.VISIBILITY_PUBLIC
               setBypassDnd(true)
-              setSound(ringtoneUri, audioAttributes)
+              setSound(null, null)
             }
     val manager = getSystemService(NotificationManager::class.java)
     manager?.createNotificationChannel(channel)
   }
 
   companion object {
-    const val INCOMING_CALLS_CHANNEL_ID = "incoming_calls"
+    const val INCOMING_CALLS_CHANNEL_ID = "incoming_calls_v2"
   }
 }

@@ -1,13 +1,15 @@
 import { StackActions } from '@react-navigation/native';
+import { AppState } from 'react-native';
 
+import { readPersistedAuthTokenSync } from '@/features/Auth/store/readPersistedAuthToken';
 import { OUTGOING_RING_TIMEOUT_MS } from '@/constants/calls';
-import { navigationRef } from '@/navigation/RootNavigator';
+import { navigationRef } from '@/navigation/navigationContainerRef';
 import { ROUTES } from '@/navigation/routeNames';
 import { store } from '@/store';
 import { callsApi } from '../api/callsApi';
 import { callSocketService } from '../services/callSocketService';
 import { agoraMediaService } from '../services/agoraMediaService';
-import { cancelIncomingCallNotification } from '../services/callNotificationService';
+import { cancelIncomingCallNotification, displayIncomingCallNotification } from '../services/callNotificationService';
 import { callRingtoneService } from '../services/callRingtoneService';
 import { resolveCallPartyImageUrl } from '../utils/callPartyMedia';
 import {
@@ -38,25 +40,42 @@ import { transitionCallPhase, type CallPhase } from './callStateMachine';
 import { ensureCallMicrophonePermission } from '../utils/callPermissions';
 
 type CallScreen = 'IncomingCall' | 'OutgoingCall' | 'InCall';
-type NavigateFn = (screen: CallScreen, params: { sessionId: number }) => void;
+
+type PendingCallNavigation =
+  | { kind: 'navigate'; screen: CallScreen; sessionId: number }
+  | { kind: 'replace'; screen: CallScreen; sessionId: number };
 
 class CallEngineImpl {
   private reliability = new CallReliabilityManager();
-  private navigate: NavigateFn | null = null;
+  private pendingNavigation: PendingCallNavigation | null = null;
   private ringTimeout: ReturnType<typeof setTimeout> | null = null;
   private syncTimer: ReturnType<typeof setInterval> | null = null;
   private teardownTimer: ReturnType<typeof setTimeout> | null = null;
   private handlersBound = false;
 
-  setNavigator(navigate: NavigateFn): void {
-    this.navigate = navigate;
+  /** Apply navigation requested before `NavigationContainer` mounted (cold start via FCM). */
+  flushPendingCallNavigation(): void {
+    const pending = this.pendingNavigation;
+    if (pending == null || navigationRef.isReady() !== true) {
+      return;
+    }
+    this.pendingNavigation = null;
+    const route = this.routeForScreen(pending.screen);
+    const params = { sessionId: pending.sessionId };
+    if (pending.kind === 'replace') {
+      navigationRef.dispatch(StackActions.replace(route as never, params as never));
+    } else {
+      navigationRef.navigate(route as never, params as never);
+    }
   }
 
   bindSocketHandlers(): void {
     if (this.handlersBound) {
       return;
     }
-    const token = store.getState().auth.token;
+    const storeToken = store.getState().auth?.token;
+    const token =
+      storeToken != null && storeToken.length > 0 ? storeToken : readPersistedAuthTokenSync();
     if (token == null || token.length === 0) {
       return;
     }
@@ -124,23 +143,29 @@ class CallEngineImpl {
   }
 
   private navigateToCallScreen(screen: CallScreen, sessionId: number): void {
-    if (this.navigate != null) {
-      this.navigate(screen, { sessionId });
-      return;
-    }
-    if (!navigationRef.isReady()) {
-      return;
-    }
-    navigationRef.navigate(this.routeForScreen(screen) as never, { sessionId });
+    this.enqueueNavigation('navigate', screen, sessionId);
   }
 
   private replaceCallScreen(screen: CallScreen, sessionId: number): void {
-    if (!navigationRef.isReady()) {
+    this.enqueueNavigation('replace', screen, sessionId);
+  }
+
+  private enqueueNavigation(
+    kind: 'navigate' | 'replace',
+    screen: CallScreen,
+    sessionId: number,
+  ): void {
+    if (navigationRef.isReady()) {
+      const route = this.routeForScreen(screen);
+      const params = { sessionId };
+      if (kind === 'replace') {
+        navigationRef.dispatch(StackActions.replace(route as never, params as never));
+      } else {
+        navigationRef.navigate(route as never, params as never);
+      }
       return;
     }
-    navigationRef.dispatch(
-      StackActions.replace(this.routeForScreen(screen) as never, { sessionId }),
-    );
+    this.pendingNavigation = { kind, screen, sessionId };
   }
 
   private startSyncTimer(sessionId: number): void {
@@ -321,6 +346,10 @@ class CallEngineImpl {
     callSocketService.setActiveCallId(payload.sessionId);
     callRingtoneService.start();
     this.navigateToCallScreen('IncomingCall', payload.sessionId);
+    /** Socket path when app is backgrounded: still paint a native call-style notification. */
+    if (AppState.currentState !== 'active') {
+      void displayIncomingCallNotification(payload, { delivery: 'foreground' });
+    }
   }
 
   private async handleAccepted(sessionId: number): Promise<void> {
@@ -559,7 +588,7 @@ class CallEngineImpl {
     }
     store.dispatch(setCallMinimized(false));
     if (navigationRef.isReady()) {
-      navigationRef.navigate(ROUTES.Root.InCall as never, { sessionId: state.sessionId });
+      navigationRef.navigate(ROUTES.Root.InCall as never, { sessionId: state.sessionId } as never);
     }
   }
 

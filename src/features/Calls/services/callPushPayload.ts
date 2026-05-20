@@ -51,5 +51,8 @@ export function parseIncomingCallPushData(
     calleeRole,
     callerName: readString(data, 'callerName') ?? null,
     callerThumbnail: readString(data, 'callerThumbnail') ?? null,
+    eventId: readString(data, 'eventId'),
+    eventVersion: readNumber(data, 'eventVersion'),
+    timestamp: readNumber(data, 'timestamp'),
   };
 }

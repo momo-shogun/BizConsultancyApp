@@ -1,8 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { navigationRef } from '@/navigation/RootNavigator';
-import { ROUTES } from '@/navigation/routeNames';
 import { selectIsAuthenticated } from '@/features/Auth/store/authSelectors';
 import { useAppSelector } from '@/store/typedHooks';
 
@@ -18,21 +16,6 @@ export function CallProvider(props: React.PropsWithChildren): React.ReactElement
   const callPhase = useAppSelector((s) => s.call.phase);
   const callPhaseRef = useRef(callPhase);
   callPhaseRef.current = callPhase;
-
-  useEffect(() => {
-    callEngine.setNavigator((screen, params) => {
-      if (!navigationRef.isReady()) {
-        return;
-      }
-      if (screen === 'IncomingCall') {
-        navigationRef.navigate(ROUTES.Root.IncomingCall, params);
-      } else if (screen === 'OutgoingCall') {
-        navigationRef.navigate(ROUTES.Root.OutgoingCall, params);
-      } else {
-        navigationRef.navigate(ROUTES.Root.InCall, params);
-      }
-    });
-  }, []);
 
   useEffect(() => {
     if (!isAuthenticated || token == null || token.length === 0) {
