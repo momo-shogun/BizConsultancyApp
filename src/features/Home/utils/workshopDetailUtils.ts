@@ -118,6 +118,18 @@ function formatRupeeAmount(amount: number): string {
   return `₹${Math.round(amount).toLocaleString('en-IN')}`;
 }
 
+/** Amount charged by POST /workshop-bookings (matches API getAmountFromWorkshop). */
+export function resolveWorkshopBookAmount(workshop: PublicWorkshopApiRow): number {
+  const useOnline = workshop.isOnlineAvailable === 1;
+  const raw = useOnline ? workshop.onlineFee : workshop.offlineFee;
+  const amount = readFeeAmount(raw);
+  return amount > 0 ? Math.round(amount) : 0;
+}
+
+export function isWorkshopBookingFree(workshop: PublicWorkshopApiRow): boolean {
+  return resolveWorkshopBookAmount(workshop) <= 0;
+}
+
 export function resolveWorkshopFee(workshop: PublicWorkshopApiRow): {
   amount: number;
   isFree: boolean;
@@ -170,6 +182,21 @@ export function isWorkshopUpcoming(
     return true;
   }
   return start.getTime() >= now.getTime();
+}
+
+/** Online workshops (isOnlineAvailable === 1) stay bookable after the session date. */
+export function isWorkshopOnlineAvailable(workshop: PublicWorkshopApiRow): boolean {
+  return workshop.isOnlineAvailable === 1;
+}
+
+export function isWorkshopBookable(
+  workshop: PublicWorkshopApiRow,
+  now: Date = new Date(),
+): boolean {
+  if (isWorkshopOnlineAvailable(workshop)) {
+    return true;
+  }
+  return isWorkshopUpcoming(workshop, now);
 }
 
 export function resolveWorkshopJoinUrl(workshop: PublicWorkshopApiRow): string | null {

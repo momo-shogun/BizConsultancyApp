@@ -20,11 +20,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { API_ORIGIN } from '@/constants/api';
 import { THEME } from '@/constants/theme';
 import { usePublicWorkshopDetail } from '@/features/Home/hooks/usePublicWorkshopDetail';
+import { WorkshopBookingPaymentModal } from '@/features/Home/components/WorkshopBookingPaymentModal';
 import { useWorkshopBooking } from '@/features/Home/hooks/useWorkshopBooking';
 import {
   formatWorkshopDateRange,
   formatWorkshopTimeRange,
   formatWorkshopTypeLabel,
+  isWorkshopBookable,
+  isWorkshopOnlineAvailable,
   isWorkshopUpcoming,
   parseWorkshopHighlightPoints,
   parseWorkshopKeywords,
@@ -154,9 +157,23 @@ export default function WorkshopDetailsScreen(): React.ReactElement {
     void refetch().finally(() => setRefreshing(false));
   }, [refetch]);
 
-  const { isBooked, isBooking, onBookPress } = useWorkshopBooking(workshop);
+  const {
+    isBooked,
+    isBooking,
+    bookAmountRupees,
+    paymentModalVisible,
+    walletBalanceRupees,
+    canPayWithWallet,
+    payingWith,
+    onBookPress,
+    closePaymentModal,
+    onPayRazorpay,
+    onPayWallet,
+  } = useWorkshopBooking(workshop);
 
   const isUpcoming = workshop != null ? isWorkshopUpcoming(workshop) : true;
+  const isOnlineAvailable = workshop != null ? isWorkshopOnlineAvailable(workshop) : false;
+  const isBookable = workshop != null ? isWorkshopBookable(workshop) : false;
   const joinUrl = workshop != null ? resolveWorkshopJoinUrl(workshop) : null;
   const mapsUrl = workshop != null ? resolveWorkshopMapsUrl(workshop) : null;
 
@@ -168,9 +185,17 @@ export default function WorkshopDetailsScreen(): React.ReactElement {
     return parts.join(' · ');
   }, [fee, dateLabel, timeLabel]);
 
-  const bookCtaLabel =
-    isBooked ? 'Booked' : !isUpcoming ? 'Session ended' : isBooking ? 'Booking…' : 'Book now';
-  const canBook = isUpcoming && !isBooked && !isBooking && workshop != null && fee != null;
+  const bookCtaLabel = isBooked
+    ? 'Booked'
+    : !isBookable
+      ? 'Session ended'
+      : isBooking
+        ? 'Booking…'
+        : !isUpcoming && isOnlineAvailable
+          ? 'Book access'
+          : 'Book now';
+  const canBook =
+    isBookable && !isBooked && !isBooking && workshop != null && fee != null;
 
   // ── Guard states ────────────────────────────────────────────────────────────
 
@@ -342,23 +367,27 @@ export default function WorkshopDetailsScreen(): React.ReactElement {
           {!isUpcoming ? (
             <View style={styles.pastBanner}>
               <Ionicons name="information-circle-outline" size={18} color="#92400E" />
-              <Text style={styles.pastBannerText}>This session has already taken place.</Text>
+              <Text style={styles.pastBannerText}>
+                {isOnlineAvailable
+                  ? 'This session has ended. You can still book online access.'
+                  : 'This session has already taken place.'}
+              </Text>
             </View>
           ) : null}
 
-          {isBooked ? (
+          {/* {isBooked ? (
             <View style={styles.bookedBanner}>
               <Ionicons name="checkmark-circle" size={20} color="#16A34A" />
               <Text style={styles.bookedBannerText}>You have a seat for this workshop.</Text>
             </View>
-          ) : null}
+          ) : null} */}
 
           {/* ── Body ── */}
           <View style={styles.body}>
 
             {/* Price card — floats over hero */}
             <View style={styles.priceCard}>
-              <View style={styles.priceMain}>
+              {/* <View style={styles.priceMain}>
                 <Text style={styles.priceLabel}>Workshop fee</Text>
                 <Text style={[styles.priceValue, fee.isFree && styles.priceValueFree]}>
                   {fee.label}
@@ -366,7 +395,7 @@ export default function WorkshopDetailsScreen(): React.ReactElement {
                 {fee.detailLine != null ? (
                   <Text style={styles.priceDetailLine}>{fee.detailLine}</Text>
                 ) : null}
-              </View>
+              </View> */}
               <View style={styles.priceScheduleWrap}>
                 {dateLabel.length > 0 && dateLabel !== '—' ? (
                   <View style={styles.priceScheduleRow}>
@@ -504,11 +533,11 @@ export default function WorkshopDetailsScreen(): React.ReactElement {
             <Text style={[styles.bottomPrice, fee.isFree && styles.priceValueFree]}>
               {fee.label}
             </Text>
-            {bottomMeta.length > 0 ? (
+            {/* {bottomMeta.length > 0 ? (
               <Text style={styles.bottomMeta} numberOfLines={1}>
                 {bottomMeta}
               </Text>
-            ) : null}
+            ) : null} */}
           </View>
           <Pressable
             accessibilityRole="button"
@@ -536,6 +565,19 @@ export default function WorkshopDetailsScreen(): React.ReactElement {
             )}
           </Pressable>
         </View>
+
+        <WorkshopBookingPaymentModal
+          visible={paymentModalVisible}
+          workshopName={workshop.name}
+          amountRupees={bookAmountRupees}
+          walletBalanceRupees={walletBalanceRupees}
+          canPayWithWallet={canPayWithWallet}
+          payingWith={payingWith}
+          isBusy={isBooking}
+          onClose={closePaymentModal}
+          onPayRazorpay={onPayRazorpay}
+          onPayWallet={onPayWallet}
+        />
       </ScreenWrapper>
     </SafeAreaWrapper>
   );
@@ -785,7 +827,7 @@ const styles = StyleSheet.create({
   // ── Body ────────────────────────────────────────
   body: {
     paddingHorizontal: H_PADDING,
-    marginTop: -20,
+    marginTop: 5,
   },
   descriptionBelowHero: {
     marginHorizontal: H_PADDING,
@@ -898,16 +940,15 @@ const styles = StyleSheet.create({
   },
   priceScheduleWrap: {
     flex: 1,
-    minWidth: 0,
-    maxWidth: '52%',
-    justifyContent: 'center',
     borderLeftWidth: StyleSheet.hairlineWidth,
     borderLeftColor: COLORS.border,
     paddingLeft: 12,
     gap: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
   priceScheduleRow: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'flex-start',
     gap: 8,
   },
@@ -929,7 +970,10 @@ const styles = StyleSheet.create({
   },
   priceScheduleTextWrap: {
     flex: 1,
-    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
   },
   priceScheduleLabel: {
     fontSize: 10,

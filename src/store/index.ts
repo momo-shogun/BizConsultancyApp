@@ -13,6 +13,7 @@ import '@/features/Calls/api/callsApi';
 import '@/features/Consultation/api/consultantBookingsApi';
 import '@/features/Home/api/workshopsApi';
 import '@/features/Home/api/workshopBookingsApi';
+import '@/features/Home/api/userWalletsApi';
 
 const MMKV = new MMKVStorage.Loader().initialize();
 

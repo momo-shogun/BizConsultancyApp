@@ -28,58 +28,57 @@ export interface CreateWorkshopBookingPaidResult {
   booking: CreateWorkshopBookingFreeResult;
   razorpayOrderId: string;
   razorpayKeyId: string;
+  /** Amount in paise for Razorpay checkout. */
   amount: number;
+}
+
+export interface ConfirmWorkshopBookingRequest {
+  orderId: string;
+  paymentId: string;
+}
+
+export interface ConfirmWorkshopBookingResult {
+  id: number;
+  paymentStatus: string;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value != null && typeof value === 'object' && !Array.isArray(value);
 }
 
+function parseBookingRow(raw: Record<string, unknown>): WorkshopBookingItem | null {
+  const id = Number(raw.id);
+  const workshopId = Number(raw.workshopId);
+  if (!Number.isFinite(id) || !Number.isFinite(workshopId)) {
+    return null;
+  }
+  return {
+    id,
+    workshopId,
+    paymentStatus: String(raw.paymentStatus ?? ''),
+    amount: Number(raw.amount ?? 0),
+    bookingStatus: String(raw.bookingStatus ?? ''),
+    type: String(raw.type ?? ''),
+    createdAt: String(raw.createdAt ?? ''),
+  };
+}
+
 function parseBookingList(raw: unknown): WorkshopBookingItem[] {
   const rows = Array.isArray(raw) ? raw : isRecord(raw) && Array.isArray(raw.data) ? raw.data : [];
   const result: WorkshopBookingItem[] = [];
   for (const item of rows) {
-    if (!isRecord(item)) continue;
-    const id = Number(item.id);
-    const workshopId = Number(item.workshopId);
-    if (!Number.isFinite(id) || !Number.isFinite(workshopId)) continue;
-    result.push({
-      id,
-      workshopId,
-      paymentStatus: String(item.paymentStatus ?? ''),
-      amount: Number(item.amount ?? 0),
-      bookingStatus: String(item.bookingStatus ?? ''),
-      type: String(item.type ?? ''),
-      createdAt: String(item.createdAt ?? ''),
-    });
+    if (!isRecord(item)) {
+      continue;
+    }
+    const row = parseBookingRow(item);
+    if (row != null) {
+      result.push(row);
+    }
   }
   return result;
 }
 
-function parseCreateBookingResponse(
-  raw: unknown,
-): CreateWorkshopBookingFreeResult | CreateWorkshopBookingPaidResult {
-  if (!isRecord(raw)) {
-    throw new Error('Invalid booking response');
-  }
-  const orderId = raw.razorpayOrderId;
-  const keyId = raw.razorpayKeyId;
-  if (typeof orderId === 'string' && typeof keyId === 'string') {
-    const bookingRaw = isRecord(raw.booking) ? raw.booking : raw;
-    return {
-      booking: {
-        id: Number(bookingRaw.id),
-        workshopId: Number(bookingRaw.workshopId),
-        paymentStatus: String(bookingRaw.paymentStatus ?? ''),
-        amount: Number(bookingRaw.amount ?? 0),
-        bookingStatus: String(bookingRaw.bookingStatus ?? ''),
-        type: String(bookingRaw.type ?? ''),
-      },
-      razorpayOrderId: orderId,
-      razorpayKeyId: keyId,
-      amount: Number(raw.amount ?? 0),
-    };
-  }
+function parseFreeBooking(raw: Record<string, unknown>): CreateWorkshopBookingFreeResult {
   return {
     id: Number(raw.id),
     workshopId: Number(raw.workshopId),
@@ -88,6 +87,45 @@ function parseCreateBookingResponse(
     bookingStatus: String(raw.bookingStatus ?? ''),
     type: String(raw.type ?? ''),
   };
+}
+
+export function parseCreateWorkshopBookingResponse(
+  raw: unknown,
+): CreateWorkshopBookingFreeResult | CreateWorkshopBookingPaidResult {
+  if (!isRecord(raw)) {
+    throw new Error('Invalid workshop booking response');
+  }
+
+  const orderId =
+    typeof raw.razorpayOrderId === 'string'
+      ? raw.razorpayOrderId
+      : typeof raw.razorpay_order_id === 'string'
+        ? raw.razorpay_order_id
+        : null;
+  const keyId =
+    typeof raw.razorpayKeyId === 'string'
+      ? raw.razorpayKeyId
+      : typeof raw.razorpay_key_id === 'string'
+        ? raw.razorpay_key_id
+        : null;
+
+  if (orderId != null && keyId != null) {
+    const bookingRaw = isRecord(raw.booking) ? raw.booking : raw;
+    return {
+      booking: parseFreeBooking(bookingRaw),
+      razorpayOrderId: orderId,
+      razorpayKeyId: keyId,
+      amount: Number(raw.amount ?? 0),
+    };
+  }
+
+  return parseFreeBooking(raw);
+}
+
+export function isPaidWorkshopBookingResult(
+  result: CreateWorkshopBookingFreeResult | CreateWorkshopBookingPaidResult,
+): result is CreateWorkshopBookingPaidResult {
+  return 'razorpayOrderId' in result && 'razorpayKeyId' in result;
 }
 
 export const workshopBookingsApi = baseApi.injectEndpoints({
@@ -106,19 +144,25 @@ export const workshopBookingsApi = baseApi.injectEndpoints({
         method: 'POST',
         body,
       }),
-      transformResponse: (response: unknown) => parseCreateBookingResponse(response),
-      invalidatesTags: [{ type: 'WorkshopBooking', id: 'ME' }],
+      transformResponse: (response: unknown) => parseCreateWorkshopBookingResponse(response),
+      invalidatesTags: [{ type: 'WorkshopBooking', id: 'ME' }, 'Wallet'],
     }),
-    confirmWorkshopBooking: build.mutation<{ id: number; paymentStatus: string }, {
-      orderId: string;
-      paymentId: string;
-    }>({
+    confirmWorkshopBooking: build.mutation<ConfirmWorkshopBookingResult, ConfirmWorkshopBookingRequest>({
       query: (body) => ({
         url: 'workshop-bookings/confirm',
         method: 'POST',
         body,
       }),
-      invalidatesTags: [{ type: 'WorkshopBooking', id: 'ME' }],
+      transformResponse: (response: unknown): ConfirmWorkshopBookingResult => {
+        if (!isRecord(response)) {
+          throw new Error('Invalid confirm booking response');
+        }
+        return {
+          id: Number(response.id),
+          paymentStatus: String(response.paymentStatus ?? 'paid'),
+        };
+      },
+      invalidatesTags: [{ type: 'WorkshopBooking', id: 'ME' }, 'Wallet'],
     }),
   }),
 });
