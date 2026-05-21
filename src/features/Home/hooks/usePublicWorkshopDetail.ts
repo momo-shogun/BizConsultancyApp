@@ -6,11 +6,13 @@ import type { PublicWorkshopApiRow } from '@/features/Home/types/publicWorkshopA
 export interface UsePublicWorkshopDetailResult {
   workshop: PublicWorkshopApiRow | null;
   isLoading: boolean;
+  isFetching: boolean;
   isError: boolean;
+  refetch: () => Promise<unknown>;
 }
 
 export function usePublicWorkshopDetail(slug: string): UsePublicWorkshopDetailResult {
-  const { data, isLoading, isFetching, isError } = useGetPublicWorkshopBySlugQuery(slug, {
+  const { data, isLoading, isFetching, isError, refetch } = useGetPublicWorkshopBySlugQuery(slug, {
     skip: slug.trim().length === 0,
   });
 
@@ -19,6 +21,8 @@ export function usePublicWorkshopDetail(slug: string): UsePublicWorkshopDetailRe
   return {
     workshop,
     isLoading: (isLoading || isFetching) && data == null,
+    isFetching,
     isError,
+    refetch,
   };
 }

@@ -109,22 +109,93 @@ export function formatWorkshopTimeRange(startTime?: string | null, endTime?: str
   return start ?? end ?? '—';
 }
 
+function readFeeAmount(value: string | number | null | undefined): number {
+  const n = Number(value ?? 0);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function formatRupeeAmount(amount: number): string {
+  return `₹${Math.round(amount).toLocaleString('en-IN')}`;
+}
+
 export function resolveWorkshopFee(workshop: PublicWorkshopApiRow): {
   amount: number;
   isFree: boolean;
   label: string;
+  detailLine: string | null;
 } {
-  const online = Number(workshop.onlineFee ?? 0);
-  const offline = Number(workshop.offlineFee ?? 0);
-  const amount = online > 0 ? online : offline;
-  if (!Number.isFinite(amount) || amount <= 0) {
-    return { amount: 0, isFree: true, label: 'FREE' };
+  const online = readFeeAmount(workshop.onlineFee);
+  const offline = readFeeAmount(workshop.offlineFee);
+  const onlineFree = online <= 0;
+  const offlineFree = offline <= 0;
+
+  if (onlineFree && offlineFree) {
+    return { amount: 0, isFree: true, label: 'FREE', detailLine: null };
   }
+
+  if (!onlineFree && !offlineFree && online !== offline) {
+    return {
+      amount: online,
+      isFree: false,
+      label: formatRupeeAmount(online),
+      detailLine: `In-person: ${formatRupeeAmount(offline)}`,
+    };
+  }
+
+  const amount = !onlineFree ? online : offline;
   return {
     amount: Math.round(amount),
     isFree: false,
-    label: `₹${Math.round(amount).toLocaleString('en-IN')}`,
+    label: formatRupeeAmount(amount),
+    detailLine: null,
   };
+}
+
+export function parseWorkshopStartDate(workshop: PublicWorkshopApiRow): Date | null {
+  const datePart = workshop.startDate?.trim();
+  if (datePart == null || datePart.length === 0) {
+    return null;
+  }
+  const timePart = workshop.startTime?.slice(0, 8) ?? '00:00:00';
+  const parsed = new Date(`${datePart}T${timePart}`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+export function isWorkshopUpcoming(
+  workshop: PublicWorkshopApiRow,
+  now: Date = new Date(),
+): boolean {
+  const start = parseWorkshopStartDate(workshop);
+  if (start == null) {
+    return true;
+  }
+  return start.getTime() >= now.getTime();
+}
+
+export function resolveWorkshopJoinUrl(workshop: PublicWorkshopApiRow): string | null {
+  const candidates = [workshop.workshopUrl, workshop.externalUrlOnline];
+  for (const raw of candidates) {
+    const trimmed = raw?.trim();
+    if (trimmed != null && trimmed.length > 0) {
+      return trimmed;
+    }
+  }
+  return null;
+}
+
+export function resolveWorkshopMapsUrl(workshop: PublicWorkshopApiRow): string | null {
+  const map = workshop.mapLocation?.trim();
+  if (map != null && map.length > 0) {
+    if (/^https?:\/\//i.test(map)) {
+      return map;
+    }
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(map)}`;
+  }
+  const place = workshop.place?.trim();
+  if (place != null && place.length > 0 && place.toLowerCase() !== 'online') {
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place)}`;
+  }
+  return null;
 }
 
 export function formatWorkshopTypeLabel(type: string): string {

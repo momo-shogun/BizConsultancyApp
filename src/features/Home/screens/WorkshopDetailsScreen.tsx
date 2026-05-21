@@ -1,10 +1,12 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Linking,
   Platform,
   Pressable,
+  RefreshControl,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   View,
@@ -15,42 +17,72 @@ import { useNavigation, useRoute, type RouteProp } from '@react-navigation/nativ
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { API_ORIGIN } from '@/constants/api';
 import { THEME } from '@/constants/theme';
 import { usePublicWorkshopDetail } from '@/features/Home/hooks/usePublicWorkshopDetail';
+import { useWorkshopBooking } from '@/features/Home/hooks/useWorkshopBooking';
 import {
   formatWorkshopDateRange,
-  formatWorkshopLongDate,
   formatWorkshopTimeRange,
   formatWorkshopTypeLabel,
+  isWorkshopUpcoming,
   parseWorkshopHighlightPoints,
   parseWorkshopKeywords,
   resolveWorkshopFee,
+  resolveWorkshopJoinUrl,
+  resolveWorkshopMapsUrl,
 } from '@/features/Home/utils/workshopDetailUtils';
 import { ROUTES } from '@/navigation/routeNames';
 import type { RootStackParamList } from '@/navigation/types';
-import { RemoteImage, SafeAreaWrapper, ScreenHeader, ScreenWrapper } from '@/shared/components';
+import { RemoteImage, SafeAreaWrapper, ScreenWrapper } from '@/shared/components';
 import { resolveAwsImageUrl } from '@/utils/awsImageUrl';
 
-const H_PADDING = THEME.spacing[16];
-const SCREEN_BG = '#F8FAFC';
-const HERO_HEIGHT = 320;
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+const H_PADDING = 16;
+const HERO_HEIGHT = 340;
+
+const COLORS = {
+  white: '#FFFFFF',
+  black: '#0F172A',
+  screenBg: '#F8FAFC',
+  textPrimary: '#0F172A',
+  textSecondary: '#64748B',
+  textTertiary: '#94A3B8',
+  border: '#E2E8F0',
+  surfaceBg: '#F1F5F9',
+  green: '#10B981',
+  greenLight: '#ECFDF5',
+  heroOverlay: 'rgba(10,20,40,0.55)',
+} as const;
+
+const TAG_PALETTES = [
+  { bg: '#DBEAFE', text: '#1D4ED8' },
+  { bg: '#DCFCE7', text: '#15803D' },
+  { bg: '#F3E8FF', text: '#7E22CE' },
+  { bg: '#FEF3C7', text: '#B45309' },
+] as const;
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type WorkshopDetailRoute = RouteProp<RootStackParamList, typeof ROUTES.Root.WorkshopsDetail>;
 
-const TAG_PALETTES = [
-  { bg: '#DBEAFE', text: '#2563EB' },
-  { bg: '#DCFCE7', text: '#16A34A' },
-  { bg: '#F3E8FF', text: '#9333EA' },
-  { bg: '#FEF3C7', text: '#D97706' },
-] as const;
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function openPhoneDialer(phone: string): void {
   const digits = phone.replace(/\s/g, '');
-  if (digits.length === 0) {
-    return;
-  }
+  if (digits.length === 0) return;
   void Linking.openURL(`tel:${digits}`);
 }
+
+function openExternalUrl(url: string): void {
+  const trimmed = url.trim();
+  if (trimmed.length === 0) return;
+  const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  void Linking.openURL(withScheme);
+}
+
+// ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function WorkshopDetailsScreen(): React.ReactElement {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -58,7 +90,8 @@ export default function WorkshopDetailsScreen(): React.ReactElement {
   const insets = useSafeAreaInsets();
 
   const slug = route.params.slug;
-  const { workshop, isLoading, isError } = usePublicWorkshopDetail(slug);
+  const { workshop, isLoading, isFetching, isError, refetch } = usePublicWorkshopDetail(slug);
+  const [refreshing, setRefreshing] = useState(false);
 
   const heroUri = useMemo(
     () => resolveAwsImageUrl(workshop?.thumbnail ?? null),
@@ -80,27 +113,21 @@ export default function WorkshopDetailsScreen(): React.ReactElement {
     [workshop],
   );
 
-  const scheduleMeta = useMemo((): string => {
-    if (workshop == null) {
-      return '';
-    }
-    const parts = [
-      formatWorkshopDateRange(workshop.startDate, workshop.endDate),
-      workshop.place?.trim() ?? 'Online',
-      formatWorkshopTimeRange(workshop.startTime, workshop.endTime),
-    ].filter((part) => part !== '—' && part.length > 0);
-    return parts.join(' · ');
+  const dateLabel = useMemo((): string => {
+    if (workshop == null) return '';
+    return formatWorkshopDateRange(workshop.startDate, workshop.endDate);
+  }, [workshop]);
+
+  const timeLabel = useMemo((): string => {
+    if (workshop == null) return '';
+    return formatWorkshopTimeRange(workshop.startTime, workshop.endTime);
   }, [workshop]);
 
   const locationLine = useMemo((): string => {
-    if (workshop == null) {
-      return '—';
-    }
+    if (workshop == null) return '—';
     const place = workshop.place?.trim();
     const map = workshop.mapLocation?.trim();
-    if (place != null && place.length > 0 && map != null && map.length > 0) {
-      return `${place} — ${map}`;
-    }
+    if (place && map) return `${place} — ${map}`;
     return place ?? map ?? 'Online';
   }, [workshop]);
 
@@ -110,24 +137,56 @@ export default function WorkshopDetailsScreen(): React.ReactElement {
 
   const onContactPress = useCallback((): void => {
     const phone = workshop?.contactNumber?.trim();
-    if (phone != null && phone.length > 0) {
-      openPhoneDialer(phone);
-    }
+    if (phone) openPhoneDialer(phone);
   }, [workshop?.contactNumber]);
+
+  const onSharePress = useCallback((): void => {
+    if (workshop == null) return;
+    const link = `${API_ORIGIN}/workshop/${workshop.slug}`;
+    void Share.share({
+      title: workshop.name,
+      message: `${workshop.name}\n${link}`,
+    });
+  }, [workshop]);
+
+  const onRefresh = useCallback((): void => {
+    setRefreshing(true);
+    void refetch().finally(() => setRefreshing(false));
+  }, [refetch]);
+
+  const { isBooked, isBooking, onBookPress } = useWorkshopBooking(workshop);
+
+  const isUpcoming = workshop != null ? isWorkshopUpcoming(workshop) : true;
+  const joinUrl = workshop != null ? resolveWorkshopJoinUrl(workshop) : null;
+  const mapsUrl = workshop != null ? resolveWorkshopMapsUrl(workshop) : null;
+
+  const bottomMeta = useMemo((): string => {
+    if (fee == null) return '';
+    const parts = [fee.label, dateLabel, timeLabel].filter(
+      (p) => p.length > 0 && p !== '—',
+    );
+    return parts.join(' · ');
+  }, [fee, dateLabel, timeLabel]);
+
+  const bookCtaLabel =
+    isBooked ? 'Booked' : !isUpcoming ? 'Session ended' : isBooking ? 'Booking…' : 'Book now';
+  const canBook = isUpcoming && !isBooked && !isBooking && workshop != null && fee != null;
+
+  // ── Guard states ────────────────────────────────────────────────────────────
 
   if (slug.trim().length === 0) {
     return (
       <SafeAreaWrapper edges={['top']}>
-        <ScreenHeader title="Workshop" onBackPress={() => navigation.goBack()} />
         <View style={styles.centered}>
+          <Ionicons name="alert-circle-outline" size={48} color={COLORS.textTertiary} />
           <Text style={styles.errorTitle}>Invalid workshop</Text>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Back to workshops"
             onPress={onBackToList}
-            style={({ pressed }) => [styles.retryButton, pressed ? styles.pressed : null]}
+            style={({ pressed }) => [styles.outlineButton, pressed && styles.pressed]}
           >
-            <Text style={styles.retryButtonText}>Back to workshops</Text>
+            <Text style={styles.outlineButtonText}>Back to workshops</Text>
           </Pressable>
         </View>
       </SafeAreaWrapper>
@@ -137,11 +196,7 @@ export default function WorkshopDetailsScreen(): React.ReactElement {
   if (isLoading) {
     return (
       <SafeAreaWrapper edges={['top']}>
-        <ScreenHeader title="Workshop" onBackPress={() => navigation.goBack()} />
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={THEME.colors.primary} />
-          <Text style={styles.loadingText}>Loading workshop…</Text>
-        </View>
+        <WorkshopDetailsSkeleton />
       </SafeAreaWrapper>
     );
   }
@@ -149,17 +204,27 @@ export default function WorkshopDetailsScreen(): React.ReactElement {
   if (isError || workshop == null || fee == null) {
     return (
       <SafeAreaWrapper edges={['top']}>
-        <ScreenHeader title="Workshop" onBackPress={() => navigation.goBack()} />
         <View style={styles.centered}>
+          <Ionicons name="cloud-offline-outline" size={48} color={COLORS.textTertiary} />
           <Text style={styles.errorTitle}>Workshop not found</Text>
-          <Text style={styles.errorBody}>This workshop may have been removed or is unavailable.</Text>
+          <Text style={styles.errorBody}>
+            This workshop may have been removed or is unavailable.
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Retry loading workshop"
+            onPress={refetch}
+            style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}
+          >
+            <Text style={styles.primaryButtonText}>Retry</Text>
+          </Pressable>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Back to workshops"
             onPress={onBackToList}
-            style={({ pressed }) => [styles.retryButton, pressed ? styles.pressed : null]}
+            style={({ pressed }) => [styles.outlineButton, pressed && styles.pressed]}
           >
-            <Text style={styles.retryButtonText}>Back to workshops</Text>
+            <Text style={styles.outlineButtonText}>Back to workshops</Text>
           </Pressable>
         </View>
       </SafeAreaWrapper>
@@ -168,19 +233,29 @@ export default function WorkshopDetailsScreen(): React.ReactElement {
 
   const showLiveBadge = workshop.isLiveWorkshop === 1;
   const contactNumber = workshop.contactNumber?.trim() ?? '';
+  const descriptionText = workshop.description?.trim() ?? '';
+  const isOnlinePlace = (workshop.place?.trim().toLowerCase() ?? '') === 'online';
+
+  // ── Main render ─────────────────────────────────────────────────────────────
 
   return (
-    <SafeAreaWrapper edges={['top']}>
-      <ScreenHeader title="Workshop" onBackPress={() => navigation.goBack()} />
-
+    <SafeAreaWrapper edges={['top']} bgColor='transparent'>
       <ScreenWrapper style={styles.screenBg}>
         <ScrollView
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing || (isFetching && workshop != null)}
+              onRefresh={onRefresh}
+              tintColor={THEME.colors.primary}
+            />
+          }
           contentContainerStyle={[
             styles.scrollContent,
-            { paddingBottom: THEME.spacing[24] + insets.bottom + 88 },
+            { paddingBottom: 24 + insets.bottom + 88 },
           ]}
         >
+          {/* ── Hero ── */}
           <View style={styles.heroWrap}>
             <RemoteImage
               uri={heroUri}
@@ -191,63 +266,144 @@ export default function WorkshopDetailsScreen(): React.ReactElement {
               resizeMode="cover"
               accessibilityLabel={workshop.name}
             />
+
+            {/* Gradient overlay */}
             <LinearGradient
-              colors={['transparent', 'rgba(15,23,42,0.75)']}
-              style={styles.heroGradient}
+              colors={['transparent', COLORS.heroOverlay]}
+              style={StyleSheet.absoluteFill}
               pointerEvents="none"
             />
+
+            {/* Floating back button */}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+              onPress={() => navigation.goBack()}
+              style={({ pressed }) => [
+                styles.fab,
+                { top: insets.top + 10, left: 14 },
+                pressed && styles.pressed,
+              ]}
+            >
+              <Ionicons name="arrow-back" size={20} color={COLORS.white} />
+            </Pressable>
+
+            {/* Floating share button */}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Share workshop"
+              onPress={onSharePress}
+              style={({ pressed }) => [
+                styles.fab,
+                { top: insets.top + 10, right: 14 },
+                pressed && styles.pressed,
+              ]}
+            >
+              <Ionicons name="share-outline" size={18} color={COLORS.white} />
+            </Pressable>
+
+            {/* Hero content */}
             <View style={styles.heroContent}>
-              {showLiveBadge ? (
-                <View style={styles.liveBadge}>
-                  <View style={styles.liveDot} />
-                  <Text style={styles.liveText}>Live workshop</Text>
-                </View>
-              ) : null}
-              {workshop.type.trim().length > 0 ? (
-                <View style={styles.typeBadge}>
-                  <Text style={styles.typeBadgeText}>{formatWorkshopTypeLabel(workshop.type)}</Text>
-                </View>
-              ) : null}
-              {scheduleMeta.length > 0 ? (
-                <Text style={styles.heroMeta} numberOfLines={2}>
-                  {scheduleMeta}
-                </Text>
-              ) : null}
-              <Text style={styles.heroTitle}>{workshop.name}</Text>
-              {workshop.description != null && workshop.description.trim().length > 0 ? (
-                <Text style={styles.heroSubtitle} numberOfLines={3}>
-                  {workshop.description.trim()}
-                </Text>
-              ) : null}
+              {/* Badges */}
+              <View style={styles.badgeRow}>
+                {showLiveBadge && (
+                  <View style={styles.liveBadge}>
+                    <View style={styles.liveDot} />
+                    <Text style={styles.liveText}>Live workshop</Text>
+                  </View>
+                )}
+                {workshop.type.trim().length > 0 ? (
+                  <View style={styles.typeBadge}>
+                    <Ionicons
+                      name={workshop.type.toLowerCase() === 'webinar' ? 'videocam-outline' : 'school-outline'}
+                      size={13}
+                      color="rgba(255,255,255,0.95)"
+                    />
+                    <Text style={styles.typeBadgeText}>
+                      {formatWorkshopTypeLabel(workshop.type)}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+
+              <Text style={styles.heroTitle} numberOfLines={3}>
+                {workshop.name}
+              </Text>
             </View>
           </View>
 
+          {descriptionText.length > 0 ? (
+            <View style={styles.descriptionBelowHero}>
+              <Text style={styles.descriptionBelowHeroLabel}>About</Text>
+              <Text style={styles.descriptionBelowHeroText}>{descriptionText}</Text>
+            </View>
+          ) : null}
+
+          {!isUpcoming ? (
+            <View style={styles.pastBanner}>
+              <Ionicons name="information-circle-outline" size={18} color="#92400E" />
+              <Text style={styles.pastBannerText}>This session has already taken place.</Text>
+            </View>
+          ) : null}
+
+          {isBooked ? (
+            <View style={styles.bookedBanner}>
+              <Ionicons name="checkmark-circle" size={20} color="#16A34A" />
+              <Text style={styles.bookedBannerText}>You have a seat for this workshop.</Text>
+            </View>
+          ) : null}
+
+          {/* ── Body ── */}
           <View style={styles.body}>
+
+            {/* Price card — floats over hero */}
             <View style={styles.priceCard}>
-              <View>
+              <View style={styles.priceMain}>
                 <Text style={styles.priceLabel}>Workshop fee</Text>
-                <Text style={[styles.priceValue, fee.isFree ? styles.priceValueFree : null]}>
+                <Text style={[styles.priceValue, fee.isFree && styles.priceValueFree]}>
                   {fee.label}
                 </Text>
+                {fee.detailLine != null ? (
+                  <Text style={styles.priceDetailLine}>{fee.detailLine}</Text>
+                ) : null}
               </View>
-              <View style={styles.priceIcon}>
-                <Ionicons name="flash-outline" size={22} color="#0F172A" />
+              <View style={styles.priceScheduleWrap}>
+                {dateLabel.length > 0 && dateLabel !== '—' ? (
+                  <View style={styles.priceScheduleRow}>
+                    <View style={[styles.priceScheduleIcon, styles.priceScheduleIconDate]}>
+                      <Ionicons name="calendar-outline" size={15} color="#2563EB" />
+                    </View>
+                    <View style={styles.priceScheduleTextWrap}>
+                      <Text style={styles.priceScheduleLabel}>Date</Text>
+                      <Text style={styles.priceScheduleValue} numberOfLines={2}>
+                        {dateLabel}
+                      </Text>
+                    </View>
+                  </View>
+                ) : null}
+                {timeLabel.length > 0 && timeLabel !== '—' ? (
+                  <View style={[styles.priceScheduleRow, styles.priceScheduleRowLast]}>
+                    <View style={[styles.priceScheduleIcon, styles.priceScheduleIconTime]}>
+                      <Ionicons name="time-outline" size={15} color="#16A34A" />
+                    </View>
+                    <View style={styles.priceScheduleTextWrap}>
+                      <Text style={styles.priceScheduleLabel}>Time</Text>
+                      <Text style={styles.priceScheduleValue} numberOfLines={1}>
+                        {timeLabel}
+                      </Text>
+                    </View>
+                  </View>
+                ) : null}
               </View>
             </View>
 
-            {workshop.description != null && workshop.description.trim().length > 0 ? (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>About this workshop</Text>
-                <Text style={styles.description}>{workshop.description.trim()}</Text>
-              </View>
-            ) : null}
-
-            {keywordTags.length > 0 ? (
+            {/* Tags */}
+            {keywordTags.length > 0 && (
               <View style={styles.tagsRow}>
-                {keywordTags.map((tag, index) => {
-                  const palette = TAG_PALETTES[index % TAG_PALETTES.length];
+                {keywordTags.map((tag, i) => {
+                  const palette = TAG_PALETTES[i % TAG_PALETTES.length];
                   return (
-                    <View key={`${tag}-${index}`} style={[styles.tag, { backgroundColor: palette.bg }]}>
+                    <View key={`${tag}-${i}`} style={[styles.tag, { backgroundColor: palette.bg }]}>
                       <Text style={[styles.tagText, { color: palette.text }]} numberOfLines={1}>
                         {tag}
                       </Text>
@@ -255,83 +411,129 @@ export default function WorkshopDetailsScreen(): React.ReactElement {
                   );
                 })}
               </View>
-            ) : null}
+            )}
 
-            {highlights.length > 0 ? (
+            {/* What you'll learn */}
+            {highlights.length > 0 && (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>What you'll learn</Text>
                 <View style={styles.learnList}>
-                  {highlights.map((item, index) => (
-                    <View key={`${item}-${index}`} style={styles.learnItem}>
+                  {highlights.map((item, i) => (
+                    <View key={`${item}-${i}`} style={styles.learnItem}>
                       <View style={styles.learnIcon}>
-                        <Ionicons name="checkmark" size={14} color="#10B981" />
+                        <Ionicons name="checkmark" size={14} color={COLORS.green} />
                       </View>
                       <Text style={styles.learnText}>{item}</Text>
                     </View>
                   ))}
                 </View>
               </View>
-            ) : null}
+            )}
 
             <View style={styles.scheduleCard}>
-              <Text style={styles.cardTitle}>Venue & schedule</Text>
+              <Text style={styles.cardTitle}>Venue</Text>
               <ScheduleRow
-                icon="calendar-outline"
-                iconColor="#2563EB"
-                label="Date"
-                value={formatWorkshopLongDate(workshop.startDate)}
-              />
-              <ScheduleRow
-                icon="time-outline"
-                iconColor="#10B981"
-                label="Time"
-                value={formatWorkshopTimeRange(workshop.startTime, workshop.endTime)}
-              />
-              <ScheduleRow
-                icon="location-outline"
+                icon={isOnlinePlace ? 'globe-outline' : 'location-outline'}
                 iconColor="#F97316"
+                iconBg="#FFF7ED"
                 label="Location"
                 value={locationLine}
+                isLast={joinUrl == null && mapsUrl == null}
               />
+              {joinUrl != null ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Join online"
+                  onPress={() => openExternalUrl(joinUrl)}
+                  style={({ pressed }) => [styles.actionLink, pressed && styles.pressed]}
+                >
+                  <Ionicons name="videocam-outline" size={16} color={THEME.colors.primary} />
+                  <Text style={styles.actionLinkText}>Join online</Text>
+                </Pressable>
+              ) : null}
+              {mapsUrl != null ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Open in maps"
+                  onPress={() => openExternalUrl(mapsUrl)}
+                  style={({ pressed }) => [styles.actionLink, pressed && styles.pressed]}
+                >
+                  <Ionicons name="map-outline" size={16} color={THEME.colors.primary} />
+                  <Text style={styles.actionLinkText}>Open in Maps</Text>
+                </Pressable>
+              ) : null}
             </View>
 
-            {contactNumber.length > 0 ? (
+            {/* Contact */}
+            {contactNumber.length > 0 && (
               <View style={styles.contactCard}>
                 <View style={styles.contactLeft}>
-                  <View style={styles.contactIcon}>
-                    <Ionicons name="call-outline" size={20} color={THEME.colors.white} />
+                  <View style={styles.contactIconWrap}>
+                    <Ionicons name="call-outline" size={20} color={COLORS.white} />
                   </View>
-                  <View>
+                  <View style={{ flex: 1, minWidth: 0 }}>
                     <Text style={styles.contactTitle}>Need help?</Text>
-                    <Text style={styles.contactNumber}>{contactNumber}</Text>
+                    <Text style={styles.contactNumber} numberOfLines={1}>
+                      {contactNumber}
+                    </Text>
                   </View>
                 </View>
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={`Call ${contactNumber}`}
                   onPress={onContactPress}
-                  style={({ pressed }) => [styles.chatButton, pressed ? styles.pressed : null]}
+                  style={({ pressed }) => [styles.callButton, pressed && styles.pressed]}
                 >
-                  <Text style={styles.chatButtonText}>Call</Text>
+                  <Ionicons name="call" size={15} color={COLORS.black} style={{ marginRight: 5 }} />
+                  <Text style={styles.callButtonText}>Call</Text>
                 </Pressable>
               </View>
-            ) : null}
+            )}
           </View>
         </ScrollView>
 
-        <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, THEME.spacing[16]) }]}>
-          <View>
+        {/* ── Sticky bottom bar ── */}
+        <View
+          style={[
+            styles.bottomBar,
+            { paddingBottom: Math.max(insets.bottom, 16) },
+          ]}
+        >
+          <View style={styles.bottomBarLeft}>
             <Text style={styles.bottomPriceLabel}>Workshop fee</Text>
-            <Text style={[styles.bottomPrice, fee.isFree ? styles.priceValueFree : null]}>
+            <Text style={[styles.bottomPrice, fee.isFree && styles.priceValueFree]}>
               {fee.label}
             </Text>
+            {bottomMeta.length > 0 ? (
+              <Text style={styles.bottomMeta} numberOfLines={1}>
+                {bottomMeta}
+              </Text>
+            ) : null}
           </View>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Book workshop"
-            style={({ pressed }) => [styles.bookButton, pressed ? styles.pressed : null]}
+            accessibilityLabel={bookCtaLabel}
+            disabled={!canBook}
+            onPress={onBookPress}
+            style={({ pressed }) => [
+              styles.bookButton,
+              !canBook && styles.bookButtonDisabled,
+              pressed && canBook ? styles.pressed : null,
+            ]}
           >
-            <Text style={styles.bookButtonText}>Book now</Text>
+            {isBooking ? (
+              <ActivityIndicator size="small" color={COLORS.white} />
+            ) : (
+              <>
+                <Ionicons
+                  name={isBooked ? 'checkmark-circle' : 'calendar'}
+                  size={17}
+                  color={COLORS.white}
+                  style={{ marginRight: 7 }}
+                />
+                <Text style={styles.bookButtonText}>{bookCtaLabel}</Text>
+              </>
+            )}
           </Pressable>
         </View>
       </ScreenWrapper>
@@ -339,17 +541,43 @@ export default function WorkshopDetailsScreen(): React.ReactElement {
   );
 }
 
+// ─── ScheduleRow ──────────────────────────────────────────────────────────────
+
 interface ScheduleRowProps {
   icon: React.ComponentProps<typeof Ionicons>['name'];
   iconColor: string;
+  iconBg: string;
   label: string;
   value: string;
+  isLast?: boolean;
 }
 
-function ScheduleRow({ icon, iconColor, label, value }: ScheduleRowProps): React.ReactElement {
+function WorkshopDetailsSkeleton(): React.ReactElement {
   return (
-    <View style={styles.infoRow}>
-      <View style={styles.infoIcon}>
+    <View style={styles.skeletonRoot}>
+      <View style={styles.skeletonHero} />
+      <View style={styles.skeletonBody}>
+        <View style={styles.skeletonLineWide} />
+        <View style={styles.skeletonCard} />
+        <View style={styles.skeletonLine} />
+        <View style={styles.skeletonLine} />
+        <View style={styles.skeletonCardTall} />
+      </View>
+    </View>
+  );
+}
+
+function ScheduleRow({
+  icon,
+  iconColor,
+  iconBg,
+  label,
+  value,
+  isLast = false,
+}: ScheduleRowProps): React.ReactElement {
+  return (
+    <View style={[styles.infoRow, !isLast && styles.infoRowBorder]}>
+      <View style={[styles.infoIconWrap, { backgroundColor: iconBg }]}>
         <Ionicons name={icon} size={18} color={iconColor} />
       </View>
       <View style={styles.infoTextWrap}>
@@ -360,201 +588,395 @@ function ScheduleRow({ icon, iconColor, label, value }: ScheduleRowProps): React
   );
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
   screenBg: {
     flex: 1,
-    backgroundColor: SCREEN_BG,
+    backgroundColor: COLORS.screenBg,
   },
   scrollContent: {
     flexGrow: 1,
   },
+
+  // ── Guard states ────────────────────────────────
   centered: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: H_PADDING,
-    gap: THEME.spacing[12],
+    gap: 12,
+    backgroundColor: COLORS.white,
   },
   loadingText: {
-    fontSize: THEME.typography.size[14],
-    color: THEME.colors.textSecondary,
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    marginTop: 8,
   },
   errorTitle: {
-    fontSize: THEME.typography.size[18],
-    fontWeight: THEME.typography.weight.bold as '700',
-    color: THEME.colors.textPrimary,
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
     textAlign: 'center',
   },
   errorBody: {
-    fontSize: THEME.typography.size[14],
-    color: THEME.colors.textSecondary,
+    fontSize: 14,
+    color: COLORS.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
   },
-  retryButton: {
-    marginTop: THEME.spacing[8],
-    paddingHorizontal: THEME.spacing[16],
-    paddingVertical: THEME.spacing[10],
+  outlineButton: {
+    marginTop: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 11,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: THEME.colors.border,
-    backgroundColor: THEME.colors.white,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.white,
   },
-  retryButtonText: {
-    fontSize: THEME.typography.size[14],
-    fontWeight: THEME.typography.weight.semibold as '600',
+  outlineButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
     color: THEME.colors.primary,
   },
-  pressed: {
-    opacity: 0.88,
+  primaryButton: {
+    marginTop: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 11,
+    borderRadius: 12,
+    backgroundColor: THEME.colors.primary,
   },
+  primaryButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: THEME.colors.white,
+  },
+  pressed: {
+    opacity: 0.82,
+  },
+  skeletonRoot: {
+    flex: 1,
+    backgroundColor: COLORS.screenBg,
+  },
+  skeletonHero: {
+    height: HERO_HEIGHT,
+    backgroundColor: '#E2E8F0',
+  },
+  skeletonBody: {
+    padding: H_PADDING,
+    gap: 12,
+    marginTop: 12,
+  },
+  skeletonLineWide: {
+    height: 72,
+    borderRadius: 16,
+    backgroundColor: '#E2E8F0',
+  },
+  skeletonCard: {
+    height: 88,
+    borderRadius: 20,
+    backgroundColor: '#E2E8F0',
+  },
+  skeletonLine: {
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#E2E8F0',
+    width: '80%',
+  },
+  skeletonCardTall: {
+    height: 120,
+    borderRadius: 20,
+    backgroundColor: '#E2E8F0',
+  },
+
+  // ── Hero ────────────────────────────────────────
   heroWrap: {
     height: HERO_HEIGHT,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#1E3A5F',
     overflow: 'hidden',
   },
   heroImage: {
     width: '100%',
     height: '100%',
   },
-  heroGradient: {
-    ...StyleSheet.absoluteFillObject,
+
+  // Floating action buttons
+  fab: {
+    position: 'absolute',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 0.5,
+    borderColor: 'rgba(255,255,255,0.25)',
+    // Subtle backdrop blur on iOS
+    ...Platform.select({
+      ios: {
+        backdropFilter: 'blur(8px)',
+      },
+      default: {},
+    }),
   },
+
   heroContent: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
     paddingHorizontal: H_PADDING,
-    paddingBottom: THEME.spacing[20],
+    paddingBottom: 22,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
   },
   liveBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-start',
     backgroundColor: 'rgba(255,255,255,0.18)',
-    paddingHorizontal: THEME.spacing[12],
-    paddingVertical: 7,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 30,
-    marginBottom: THEME.spacing[10],
+    borderWidth: 0.5,
+    borderColor: 'rgba(255,255,255,0.22)',
   },
   liveDot: {
-    width: 8,
-    height: 8,
+    width: 7,
+    height: 7,
     borderRadius: 4,
     backgroundColor: '#22C55E',
-    marginRight: THEME.spacing[8],
+    marginRight: 7,
   },
   liveText: {
-    color: THEME.colors.white,
-    fontSize: 13,
-    fontWeight: THEME.typography.weight.semibold as '600',
+    color: COLORS.white,
+    fontSize: 12,
+    fontWeight: '600',
   },
   typeBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-    marginBottom: THEME.spacing[8],
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255,255,255,0.28)',
   },
   typeBadgeText: {
-    color: 'rgba(255,255,255,0.92)',
-    fontSize: 11,
-    fontWeight: THEME.typography.weight.semibold as '600',
+    color: COLORS.white,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.3,
     textTransform: 'capitalize',
   },
-  heroMeta: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.85)',
-    marginBottom: THEME.spacing[6],
-  },
   heroTitle: {
-    fontSize: 28,
-    lineHeight: 34,
-    fontWeight: THEME.typography.weight.bold as '700',
-    color: THEME.colors.white,
-    marginBottom: THEME.spacing[8],
+    fontSize: 26,
+    lineHeight: 32,
+    fontWeight: '700',
+    color: COLORS.white,
+    marginBottom: 8,
+    letterSpacing: -0.3,
   },
-  heroSubtitle: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: 'rgba(255,255,255,0.88)',
-  },
+  // ── Body ────────────────────────────────────────
   body: {
     paddingHorizontal: H_PADDING,
-    marginTop: -THEME.spacing[20],
+    marginTop: -20,
   },
+  descriptionBelowHero: {
+    marginHorizontal: H_PADDING,
+    marginTop: 12,
+    marginBottom: 4,
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: COLORS.border,
+  },
+  descriptionBelowHeroLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.textTertiary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 6,
+  },
+  descriptionBelowHeroText: {
+    fontSize: 15,
+    lineHeight: 24,
+    color: COLORS.textSecondary,
+  },
+  pastBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: H_PADDING,
+    marginBottom: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: '#FFFBEB',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#FDE68A',
+  },
+  pastBannerText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#92400E',
+  },
+  bookedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: H_PADDING,
+    marginBottom: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: COLORS.greenLight,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#A7F3D0',
+  },
+  bookedBannerText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#166534',
+  },
+
+  // Price card
   priceCard: {
-    backgroundColor: THEME.colors.white,
+    backgroundColor: COLORS.white,
     borderRadius: 20,
-    padding: THEME.spacing[16],
+    padding: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: THEME.spacing[20],
+    alignItems: 'stretch',
+    gap: 12,
+    marginBottom: 20,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: COLORS.border,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOpacity: 0.06,
-        shadowRadius: 12,
+        shadowOpacity: 0.07,
+        shadowRadius: 14,
         shadowOffset: { width: 0, height: 4 },
       },
       default: { elevation: 3 },
     }),
   },
+  priceMain: {
+    flexShrink: 0,
+    justifyContent: 'center',
+  },
   priceLabel: {
-    fontSize: 13,
-    color: '#64748B',
-    marginBottom: 6,
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginBottom: 5,
   },
   priceValue: {
-    fontSize: 26,
-    fontWeight: THEME.typography.weight.bold as '700',
-    color: '#0F172A',
+    fontSize: 28,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    letterSpacing: -0.5,
   },
   priceValueFree: {
-    color: '#388E3C',
+    color: '#16A34A',
   },
-  priceIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
-    backgroundColor: '#F1F5F9',
+  priceDetailLine: {
+    marginTop: 4,
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+  },
+  priceScheduleWrap: {
+    flex: 1,
+    minWidth: 0,
+    maxWidth: '52%',
+    justifyContent: 'center',
+    borderLeftWidth: StyleSheet.hairlineWidth,
+    borderLeftColor: COLORS.border,
+    paddingLeft: 12,
+    gap: 10,
+  },
+  priceScheduleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  priceScheduleRowLast: {
+    marginBottom: 0,
+  },
+  priceScheduleIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  priceScheduleIconDate: {
+    backgroundColor: '#EFF6FF',
+  },
+  priceScheduleIconTime: {
+    backgroundColor: COLORS.greenLight,
+  },
+  priceScheduleTextWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
+  priceScheduleLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: COLORS.textTertiary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginBottom: 2,
+  },
+  priceScheduleValue: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    lineHeight: 18,
+  },
+
+  // Sections
   section: {
-    marginBottom: THEME.spacing[20],
+    marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: THEME.typography.weight.bold as '700',
-    color: '#0F172A',
-    marginBottom: THEME.spacing[10],
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    marginBottom: 10,
   },
-  description: {
-    fontSize: 15,
-    lineHeight: 24,
-    color: '#64748B',
-  },
+
+  // Tags
   tagsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: THEME.spacing[8],
-    marginBottom: THEME.spacing[20],
+    gap: 8,
+    marginBottom: 20,
   },
   tag: {
-    paddingHorizontal: THEME.spacing[12],
-    paddingVertical: THEME.spacing[8],
-    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 10,
   },
   tagText: {
-    fontSize: 13,
-    fontWeight: THEME.typography.weight.bold as '700',
+    fontSize: 12,
+    fontWeight: '700',
   },
+
+  // Learn list
   learnList: {
-    gap: THEME.spacing[12],
+    gap: 12,
   },
   learnItem: {
     flexDirection: 'row',
@@ -564,66 +986,95 @@ const styles = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 13,
-    backgroundColor: '#ECFDF5',
+    backgroundColor: COLORS.greenLight,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: THEME.spacing[12],
+    marginRight: 12,
     marginTop: 1,
+    flexShrink: 0,
   },
   learnText: {
     flex: 1,
     fontSize: 15,
-    fontWeight: THEME.typography.weight.semibold as '600',
+    fontWeight: '600',
     color: '#334155',
     lineHeight: 22,
   },
+
+  // Schedule card
   scheduleCard: {
-    backgroundColor: THEME.colors.white,
+    backgroundColor: COLORS.white,
     borderRadius: 20,
-    padding: THEME.spacing[16],
-    marginBottom: THEME.spacing[16],
+    padding: 16,
+    marginBottom: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: COLORS.border,
   },
   cardTitle: {
-    fontSize: 18,
-    fontWeight: THEME.typography.weight.bold as '700',
-    color: '#0F172A',
-    marginBottom: THEME.spacing[16],
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    marginBottom: 14,
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: THEME.spacing[14],
+    paddingVertical: 10,
   },
-  infoIcon: {
-    width: 44,
-    height: 44,
+  infoRowBorder: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: COLORS.border,
+  },
+  infoIconWrap: {
+    width: 42,
+    height: 42,
     borderRadius: 12,
-    backgroundColor: '#F8FAFC',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: THEME.spacing[12],
+    marginRight: 12,
+    flexShrink: 0,
   },
   infoTextWrap: {
     flex: 1,
     minWidth: 0,
   },
   infoLabel: {
-    fontSize: 12,
-    color: '#94A3B8',
+    fontSize: 11,
+    color: COLORS.textTertiary,
     marginBottom: 3,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   infoValue: {
-    fontSize: 15,
-    fontWeight: THEME.typography.weight.bold as '700',
-    color: '#0F172A',
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+
+  // Contact card
+  actionLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: COLORS.surfaceBg,
+  },
+  actionLinkText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: THEME.colors.primary,
   },
   contactCard: {
-    backgroundColor: '#0F172A',
+    backgroundColor: COLORS.black,
     borderRadius: 20,
-    padding: THEME.spacing[16],
+    padding: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 12,
   },
   contactLeft: {
     flexDirection: 'row',
@@ -631,71 +1082,103 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
   },
-  contactIcon: {
-    width: 48,
-    height: 48,
+  contactIconWrap: {
+    width: 46,
+    height: 46,
     borderRadius: 14,
     backgroundColor: 'rgba(255,255,255,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: THEME.spacing[12],
+    marginRight: 12,
+    flexShrink: 0,
   },
   contactTitle: {
-    color: '#CBD5E1',
-    fontSize: 13,
-    marginBottom: 4,
+    color: '#94A3B8',
+    fontSize: 12,
+    marginBottom: 3,
   },
   contactNumber: {
-    color: THEME.colors.white,
-    fontSize: 16,
-    fontWeight: THEME.typography.weight.bold as '700',
+    color: COLORS.white,
+    fontSize: 15,
+    fontWeight: '700',
   },
-  chatButton: {
-    backgroundColor: THEME.colors.white,
-    paddingHorizontal: THEME.spacing[16],
+  callButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.white,
+    paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 12,
-    marginLeft: THEME.spacing[8],
+    marginLeft: 10,
+    flexShrink: 0,
   },
-  chatButtonText: {
-    color: '#0F172A',
+  callButtonText: {
+    color: COLORS.black,
     fontSize: 14,
-    fontWeight: THEME.typography.weight.bold as '700',
+    fontWeight: '700',
   },
+
+  // Bottom bar
   bottomBar: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: THEME.colors.white,
+    backgroundColor: COLORS.white,
     paddingHorizontal: H_PADDING,
-    paddingTop: THEME.spacing[12],
+    paddingTop: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: COLORS.border,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: -3 },
+      },
+      default: { elevation: 8 },
+    }),
+  },
+  bottomBarLeft: {
+    flex: 1,
+    minWidth: 0,
+    marginRight: 12,
   },
   bottomPriceLabel: {
-    fontSize: 12,
-    color: '#94A3B8',
+    fontSize: 11,
+    color: COLORS.textTertiary,
+    marginBottom: 3,
   },
   bottomPrice: {
     fontSize: 24,
-    fontWeight: THEME.typography.weight.bold as '700',
-    color: '#0F172A',
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    letterSpacing: -0.5,
+  },
+  bottomMeta: {
+    marginTop: 2,
+    fontSize: 11,
+    color: COLORS.textSecondary,
+    fontWeight: '500',
   },
   bookButton: {
-    minHeight: 52,
-    paddingHorizontal: THEME.spacing[24],
-    borderRadius: 14,
-    backgroundColor: '#10B981',
+    flexDirection: 'row',
     alignItems: 'center',
+    minHeight: 52,
+    paddingHorizontal: 24,
+    borderRadius: 14,
+    backgroundColor: THEME.colors.primary,
     justifyContent: 'center',
   },
+  bookButtonDisabled: {
+    backgroundColor: '#94A3B8',
+  },
   bookButtonText: {
-    color: THEME.colors.white,
+    color: COLORS.white,
     fontSize: 16,
-    fontWeight: THEME.typography.weight.bold as '700',
+    fontWeight: '700',
   },
 });

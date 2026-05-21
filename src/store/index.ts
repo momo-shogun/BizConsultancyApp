@@ -12,6 +12,7 @@ import '@/features/Services/api/servicesApi';
 import '@/features/Calls/api/callsApi';
 import '@/features/Consultation/api/consultantBookingsApi';
 import '@/features/Home/api/workshopsApi';
+import '@/features/Home/api/workshopBookingsApi';
 
 const MMKV = new MMKVStorage.Loader().initialize();
 
