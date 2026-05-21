@@ -6,6 +6,10 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { THEME } from '@/constants/theme';
+import {
+  selectAccountRole,
+  selectIsAuthenticated,
+} from '@/features/Auth/store/authSelectors';
 import { CallController } from '@/features/Calls/controllers/CallController';
 import { useGetPublicConsultantsQuery } from '@/features/consultant/api/consultantApi';
 import { mapConsultantDetailToCardItem } from '@/features/consultant/utils/consultantMappers';
@@ -17,13 +21,17 @@ import {
   useGetPublicMembershipsQuery,
   useGetPublicTestimonialsQuery,
 } from '@/features/Home/api/homePublicApi';
-import { mapPublicMembershipsToPlanItems } from '@/features/Home/utils/membershipMappers';
+import {
+  filterMembershipsForHome,
+  mapPublicMembershipsToPlanItems,
+} from '@/features/Home/utils/membershipMappers';
 import { mapPublicTestimonialsToCardItems } from '@/features/Home/utils/testimonialMappers';
 import { mapPublicWorkshopsToEventSpotlightItems } from '@/features/Home/utils/workshopMappers';
 import { useGetPublicServicesQuery } from '@/features/Services/api/servicesApi';
 import { mapPublicServiceToCardItem } from '@/features/Services/utils/serviceMappers';
 import { ROUTES } from '@/navigation/routeNames';
 import type { AppTabParamList, RootStackParamList } from '@/navigation/types';
+import { useAppSelector } from '@/store/typedHooks';
 import {
   InterestEventsSection,
   SafeAreaWrapper,
@@ -56,6 +64,8 @@ const HOME_MEMBERSHIP_PLANS_CARD_WIDTH = 360;
 
 export function HomeDashboardScreen(): React.ReactElement {
   const navigation = useNavigation<HomeDashboardNavigationProp>();
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const accountRole = useAppSelector(selectAccountRole);
 
   const { data: consultantsPage } = useGetPublicConsultantsQuery({
     page: '1',
@@ -68,7 +78,7 @@ export function HomeDashboardScreen(): React.ReactElement {
 
   const { data: publicTestimonials } = useGetPublicTestimonialsQuery({ showOnHomescreen: true });
 
-  const { data: publicMemberships } = useGetPublicMembershipsQuery({ type: 'users' });
+  const { data: publicMemberships } = useGetPublicMembershipsQuery();
 
   const topConsultantItems = useMemo((): TopConsultantItem[] => {
     const rows = consultantsPage?.items ?? [];
@@ -94,8 +104,11 @@ export function HomeDashboardScreen(): React.ReactElement {
 
   const membershipPlanItems = useMemo((): MembershipPlanItem[] => {
     const rows = publicMemberships ?? [];
-    return mapPublicMembershipsToPlanItems(rows);
-  }, [publicMemberships]);
+    const filtered = filterMembershipsForHome(rows, isAuthenticated, accountRole);
+    return mapPublicMembershipsToPlanItems(filtered, {
+      showMembershipTypeBadge: !isAuthenticated,
+    });
+  }, [publicMemberships, isAuthenticated, accountRole]);
 
   const onInterestViewAll = useCallback((): void => {
     navigation.navigate(ROUTES.Root.WorkshopsList);

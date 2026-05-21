@@ -44,9 +44,7 @@ export function TestimonialsSection(props: TestimonialsSectionProps): React.Reac
           >
             <Text style={styles.viewAllText}>{viewAllLabel}</Text>
           </Pressable>
-        ) : (
-          <Text style={styles.viewAllTextMuted}>{viewAllLabel}</Text>
-        )}
+        ) : null}
       </View>
 
       <ScrollView
@@ -103,11 +101,6 @@ const styles = StyleSheet.create({
     fontSize: THEME.typography.size[14],
     fontWeight: THEME.typography.weight.semibold as '600',
     color: '#2563EB',
-  },
-  viewAllTextMuted: {
-    fontSize: THEME.typography.size[14],
-    fontWeight: THEME.typography.weight.semibold as '600',
-    color: '#9CA3AF',
   },
   carousel: {
     alignItems: 'flex-start',

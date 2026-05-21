@@ -7,6 +7,7 @@ import { THEME } from '@/constants/theme';
 
 export interface MembershipPlanItem {
   id: string;
+  membershipTypeLabel?: string;
   audienceLabel?: string;
   title: string;
   subtitle?: string;
@@ -38,14 +39,19 @@ export function MembershipPlanCard(props: MembershipPlanCardProps): React.ReactE
     >
       <LinearGradient colors={[...item.gradientColors]} style={styles.card}>
         <View style={styles.topRow}>
-          {item.audienceLabel ? (
-            <View style={styles.audienceRow}>
-              <View style={styles.dot} />
-              <Text style={styles.audienceLabel}>{item.audienceLabel}</Text>
-            </View>
-          ) : (
-            <View />
-          )}
+          <View style={styles.topMeta}>
+            {item.membershipTypeLabel ? (
+              <View style={styles.typePill}>
+                <Text style={styles.typePillText}>{item.membershipTypeLabel}</Text>
+              </View>
+            ) : null}
+            {item.audienceLabel ? (
+              <View style={styles.audienceRow}>
+                <View style={styles.dot} />
+                <Text style={styles.audienceLabel}>{item.audienceLabel}</Text>
+              </View>
+            ) : null}
+          </View>
           {item.badgeLabel ? (
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{item.badgeLabel}</Text>
@@ -80,8 +86,8 @@ export function MembershipPlanCard(props: MembershipPlanCardProps): React.ReactE
         </View>
 
         <View style={styles.featuresGrid}>
-          {item.features.map((feature) => (
-            <View key={feature} style={styles.featureItem}>
+          {item.features.map((feature, index) => (
+            <View key={`${item.id}-feature-${index}`} style={styles.featureItem}>
               <View style={styles.check}>
                 <Ionicons name="checkmark" size={14} color={THEME.colors.white} />
               </View>
@@ -113,9 +119,30 @@ const styles = StyleSheet.create({
   },
   topRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: THEME.spacing[12],
+  },
+  topMeta: {
+    flex: 1,
+    minWidth: 0,
+    gap: THEME.spacing[8],
+  },
+  typePill: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.35)',
+    paddingHorizontal: THEME.spacing[10],
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  typePillText: {
+    fontSize: THEME.typography.size[11],
+    fontWeight: THEME.typography.weight.bold as '700',
+    color: THEME.colors.white,
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
   },
   audienceRow: {
     flexDirection: 'row',

@@ -43,9 +43,7 @@ export function MembershipPlansSection(props: MembershipPlansSectionProps): Reac
           >
             <Text style={styles.viewAllText}>{viewAllLabel}</Text>
           </Pressable>
-        ) : (
-          <Text style={styles.viewAllTextMuted}>{viewAllLabel}</Text>
-        )}
+        ) : null}
       </View>
 
       <ScrollView
@@ -103,11 +101,6 @@ const styles = StyleSheet.create({
     fontSize: THEME.typography.size[14],
     fontWeight: THEME.typography.weight.semibold as '600',
     color: THEME.colors.primary,
-  },
-  viewAllTextMuted: {
-    fontSize: THEME.typography.size[14],
-    fontWeight: THEME.typography.weight.semibold as '600',
-    color: '#9CA3AF',
   },
   carousel: {
     paddingLeft: THEME.spacing[16],
