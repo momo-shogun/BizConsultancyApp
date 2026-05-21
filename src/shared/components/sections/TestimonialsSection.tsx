@@ -110,6 +110,7 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
   },
   carousel: {
+    alignItems: 'flex-start',
     paddingLeft: THEME.spacing[16],
     paddingRight: THEME.spacing[8],
     paddingBottom: STAGGER_OFFSET,

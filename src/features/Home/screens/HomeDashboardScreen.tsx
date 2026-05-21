@@ -13,6 +13,12 @@ import {
   DEFAULT_HOME_WORKSHOPS_QUERY,
   useGetPublicWorkshopsQuery,
 } from '@/features/Home/api/workshopsApi';
+import {
+  useGetPublicMembershipsQuery,
+  useGetPublicTestimonialsQuery,
+} from '@/features/Home/api/homePublicApi';
+import { mapPublicMembershipsToPlanItems } from '@/features/Home/utils/membershipMappers';
+import { mapPublicTestimonialsToCardItems } from '@/features/Home/utils/testimonialMappers';
 import { mapPublicWorkshopsToEventSpotlightItems } from '@/features/Home/utils/workshopMappers';
 import { useGetPublicServicesQuery } from '@/features/Services/api/servicesApi';
 import { mapPublicServiceToCardItem } from '@/features/Services/utils/serviceMappers';
@@ -28,6 +34,10 @@ import {
   type UpcomingBookingItem,
   type TopConsultantItem,
   type RecommendedServiceItem,
+  type TestimonialItem,
+  TestimonialsSection,
+  type MembershipPlanItem,
+  MembershipPlansSection,
 } from '@/shared/components';
 import type { HomeCategoryId } from './ZeptoHS/ZeptoHS.types';
 import { ZeptoHS } from './ZeptoHS/ZeptoHS';
@@ -41,6 +51,8 @@ const HOME_TOP_CONSULTANTS_CARD_WIDTH = 184;
 const HOME_WORKSHOP_CARD_WIDTH = 260;
 const HOME_WORKSHOPS_PREVIEW_COUNT = 2;
 const HOME_RECOMMENDED_SERVICES_CARD_WIDTH = 320;
+const HOME_TESTIMONIALS_CARD_WIDTH = 260;
+const HOME_MEMBERSHIP_PLANS_CARD_WIDTH = 360;
 
 export function HomeDashboardScreen(): React.ReactElement {
   const navigation = useNavigation<HomeDashboardNavigationProp>();
@@ -53,6 +65,10 @@ export function HomeDashboardScreen(): React.ReactElement {
   const { data: publicServices } = useGetPublicServicesQuery({ limit: 6 });
 
   const { data: publicWorkshops } = useGetPublicWorkshopsQuery(DEFAULT_HOME_WORKSHOPS_QUERY);
+
+  const { data: publicTestimonials } = useGetPublicTestimonialsQuery({ showOnHomescreen: true });
+
+  const { data: publicMemberships } = useGetPublicMembershipsQuery({ type: 'users' });
 
   const topConsultantItems = useMemo((): TopConsultantItem[] => {
     const rows = consultantsPage?.items ?? [];
@@ -70,6 +86,16 @@ export function HomeDashboardScreen(): React.ReactElement {
   }, [publicWorkshops?.items]);
 
   const upcomingBookingItems = useMemo((): UpcomingBookingItem[] => [], []);
+
+  const testimonialItems = useMemo((): TestimonialItem[] => {
+    const rows = publicTestimonials ?? [];
+    return mapPublicTestimonialsToCardItems(rows);
+  }, [publicTestimonials]);
+
+  const membershipPlanItems = useMemo((): MembershipPlanItem[] => {
+    const rows = publicMemberships ?? [];
+    return mapPublicMembershipsToPlanItems(rows);
+  }, [publicMemberships]);
 
   const onInterestViewAll = useCallback((): void => {
     navigation.navigate(ROUTES.Root.WorkshopsList);
@@ -112,6 +138,14 @@ export function HomeDashboardScreen(): React.ReactElement {
     },
     [navigation],
   );
+
+  const onMembershipViewAll = useCallback((): void => {
+    navigation.navigate(ROUTES.App.Account, { screen: ROUTES.Account.Membership });
+  }, [navigation]);
+
+  const onMembershipPress = useCallback((): void => {
+    navigation.navigate(ROUTES.App.Account, { screen: ROUTES.Account.Membership });
+  }, [navigation]);
 
   return (
     <SafeAreaWrapper edges={['top', 'bottom']} bgColor="transparent">
@@ -174,6 +208,23 @@ export function HomeDashboardScreen(): React.ReactElement {
                 onViewAllPress={onRecommendedServicesViewAll}
                 onItemPress={onServicePress}
                 onCtaPress={onServicePress}
+              />
+            ) : null}
+            {testimonialItems.length > 0 ? (
+              <TestimonialsSection
+                title="Testimonials"
+                cardWidth={HOME_TESTIMONIALS_CARD_WIDTH}
+                items={testimonialItems}
+              />
+            ) : null}
+            {membershipPlanItems.length > 0 ? (
+              <MembershipPlansSection
+                title="Membership plans"
+                cardWidth={HOME_MEMBERSHIP_PLANS_CARD_WIDTH}
+                items={membershipPlanItems}
+                onViewAllPress={onMembershipViewAll}
+                onItemPress={onMembershipPress}
+                onCtaPress={onMembershipPress}
               />
             ) : null}
           </View>

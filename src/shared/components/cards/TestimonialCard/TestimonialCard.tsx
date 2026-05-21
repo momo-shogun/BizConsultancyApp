@@ -3,6 +3,7 @@ import {
   Image,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -97,9 +98,16 @@ export function TestimonialCard({
         />
       </View>
 
-      <Text style={styles.quote} numberOfLines={7} ellipsizeMode="tail">
-        “{item.quote}”
-      </Text>
+      <ScrollView
+        style={styles.quoteScroll}
+        contentContainerStyle={styles.quoteScrollContent}
+        showsVerticalScrollIndicator={false}
+        nestedScrollEnabled
+      >
+        <Text style={styles.quote}>
+          “{item.quote}”
+        </Text>
+      </ScrollView>
 
       <View style={styles.personRow}>
         {showAvatarImage ? (
@@ -130,11 +138,14 @@ export function TestimonialCard({
 TestimonialCard.displayName = 'TestimonialCard';
 
 const CARD_RADIUS = 28;
-const CARD_HEIGHT = 220;
+const CARD_MIN_HEIGHT = 200;
+const CARD_MAX_HEIGHT = 280;
+const QUOTE_SCROLL_MAX_HEIGHT = 188;
 
 const styles = StyleSheet.create({
   root: {
-    height: CARD_HEIGHT,
+    minHeight: CARD_MIN_HEIGHT,
+    maxHeight: CARD_MAX_HEIGHT,
     borderRadius: CARD_RADIUS,
     backgroundColor: THEME.colors.white,
     borderWidth: 1,
@@ -142,7 +153,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginRight: THEME.spacing[12],
     padding: THEME.spacing[16],
-    justifyContent: 'space-between',
+    gap: THEME.spacing[12],
     ...Platform.select({
       ios: {
         shadowColor: '#0f172a',
@@ -179,10 +190,18 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     opacity: 0.7,
   },
+  quoteScroll: {
+    maxHeight: QUOTE_SCROLL_MAX_HEIGHT,
+    flexGrow: 1,
+    flexShrink: 1,
+  },
+  quoteScrollContent: {
+    flexGrow: 1,
+  },
   quote: {
-    fontSize: THEME.typography.size[18],
-    lineHeight: 26,
-    letterSpacing: -0.25,
+    fontSize: THEME.typography.size[15],
+    lineHeight: 22,
+    letterSpacing: -0.2,
     fontWeight: THEME.typography.weight.medium as '500',
     color: THEME.colors.textPrimary,
   },
@@ -190,7 +209,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: THEME.spacing[10],
-    paddingTop: THEME.spacing[8],
+    flexShrink: 0,
   },
   avatar: {
     width: 34,
