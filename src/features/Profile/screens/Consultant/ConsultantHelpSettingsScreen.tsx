@@ -192,6 +192,7 @@ export function ConsultantHelpSettingsScreen(props: ConsultantHelpSettingsScreen
   const handleRowPress = (rowId: string): void => {
     props.onRowPress?.(rowId);
     if (rowId === 'membership') {
+      navigation.navigate(ROUTES.Account.Membership);
       return;
     }
     if (rowId === 'profile') {

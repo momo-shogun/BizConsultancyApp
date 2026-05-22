@@ -2,6 +2,7 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { ConsultantHelpSettingsScreen } from '@/features/Profile/screens/Consultant/ConsultantHelpSettingsScreen';
+import { ConsultantMembershipScreen } from '@/features/Profile/screens/Consultant/ConsultantMembershipScreen';
 import { ConsultantProfileScreen } from '@/features/Profile/screens/Consultant/ConsultantProfileScreen';
 
 
@@ -31,6 +32,11 @@ export function ConsultantAccountStackNavigator(): React.ReactElement {
       <Stack.Screen
         name={ROUTES.Account.HelpSettings}
         component={ConsultantHelpSettingsScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name={ROUTES.Account.Membership}
+        component={ConsultantMembershipScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen
