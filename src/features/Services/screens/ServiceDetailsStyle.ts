@@ -191,7 +191,7 @@ export const styles = StyleSheet.create({
   },
   quickActions: {
     flexDirection: 'row',
-    gap: THEME.spacing[12],
+    gap: THEME.spacing[4],
     marginTop: 2,
   },
   quickBtn: {

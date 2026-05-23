@@ -50,6 +50,15 @@ type ServiceDetailRouteProp = RouteProp<
   typeof ROUTES.Services.Detail
 >;
 
+const DOCUMENT_CHECKLIST_LABEL = 'Document Checklist';
+
+type HeroQuickActionDisplay = {
+  id: string;
+  text: string;
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  onPress: () => void;
+};
+
 function isExpertConsultationAction(text: string, href: string): boolean {
   const normalizedText = text.toLowerCase();
   const normalizedHref = href.toLowerCase();
@@ -58,6 +67,72 @@ function isExpertConsultationAction(text: string, href: string): boolean {
     normalizedText.includes('consultant') ||
     normalizedHref.includes('consultant')
   );
+}
+
+function isGetStartedAction(text: string, href: string): boolean {
+  const normalizedText = text.toLowerCase();
+  const normalizedHref = href.toLowerCase();
+  return (
+    normalizedText.includes('get started') ||
+    normalizedText.includes('get-started') ||
+    normalizedHref.includes('onboarding')
+  );
+}
+
+function isDocumentChecklistAction(text: string, href: string): boolean {
+  const normalizedText = text.toLowerCase();
+  const normalizedHref = href.toLowerCase();
+  return (
+    normalizedText.includes('document') ||
+    normalizedText.includes('checklist') ||
+    normalizedHref.includes('document')
+  );
+}
+
+function buildHeroQuickActions(
+  raw: ReadonlyArray<{ text: string; href: string }>,
+  openConsultantsList: () => void,
+  openDocumentsTab: () => void,
+): HeroQuickActionDisplay[] {
+  const actions: HeroQuickActionDisplay[] = [];
+  let hasDocumentChecklist = false;
+
+  for (const action of raw) {
+    if (isGetStartedAction(action.text, action.href)) {
+      continue;
+    }
+
+    if (isExpertConsultationAction(action.text, action.href)) {
+      actions.push({
+        id: `expert-${action.text}`,
+        text: action.text,
+        icon: 'call-outline',
+        onPress: openConsultantsList,
+      });
+      continue;
+    }
+
+    if (isDocumentChecklistAction(action.text, action.href)) {
+      hasDocumentChecklist = true;
+      actions.push({
+        id: 'document-checklist',
+        text: DOCUMENT_CHECKLIST_LABEL,
+        icon: 'document-text-outline',
+        onPress: openDocumentsTab,
+      });
+    }
+  }
+
+  if (!hasDocumentChecklist) {
+    actions.push({
+      id: 'document-checklist',
+      text: DOCUMENT_CHECKLIST_LABEL,
+      icon: 'document-text-outline',
+      onPress: openDocumentsTab,
+    });
+  }
+
+  return actions;
 }
 
 export function ServiceDetailScreen(): React.ReactElement {
@@ -89,6 +164,21 @@ export function ServiceDetailScreen(): React.ReactElement {
       navigationRef.navigate(ROUTES.Root.ConsultantsList);
     }
   }, []);
+
+  const openDocumentsTab = useCallback((): void => {
+    setActiveTab('documents');
+  }, []);
+
+  const heroQuickActions = useMemo((): HeroQuickActionDisplay[] => {
+    if (item?.hero?.quickActions == null) {
+      return buildHeroQuickActions([], openConsultantsList, openDocumentsTab);
+    }
+    return buildHeroQuickActions(
+      item.hero.quickActions,
+      openConsultantsList,
+      openDocumentsTab,
+    );
+  }, [item?.hero?.quickActions, openConsultantsList, openDocumentsTab]);
 
   useLayoutEffect(() => {
     if (item != null) {
@@ -297,32 +387,22 @@ export function ServiceDetailScreen(): React.ReactElement {
 
               {/* --------------------------- QUICK ACTIONS --------------------------- */}
 
-              {(item.hero?.quickActions?.length ?? 0) > 0 ? (
+              {heroQuickActions.length > 0 ? (
                 <View style={styles.quickActions}>
-                  {item.hero?.quickActions.map((action) => (
+                  {heroQuickActions.map((action) => (
                     <Pressable
-                      key={action.text}
+                      key={action.id}
                       accessibilityRole="button"
                       accessibilityLabel={action.text}
                       hitSlop={8}
-                      onPress={() => {
-                        if (isExpertConsultationAction(action.text, action.href)) {
-                          openConsultantsList();
-                          return;
-                        }
-                        setActiveTab('documents');
-                      }}
+                      onPress={action.onPress}
                       style={({ pressed }) => [
                         styles.quickBtn,
                         pressed ? styles.quickPressed : null,
                       ]}
                     >
                       <Ionicons
-                        name={
-                          isExpertConsultationAction(action.text, action.href)
-                            ? 'call-outline'
-                            : 'document-text-outline'
-                        }
+                        name={action.icon}
                         size={16}
                         color={THEME.colors.white}
                       />
