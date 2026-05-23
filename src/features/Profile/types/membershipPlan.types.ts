@@ -1,43 +1,34 @@
-export type PlanNameStyle = 'white' | 'blue' | 'amber';
-export type FeatureIconVariant = 'pill' | 'tag' | 'glyph';
+import type { MembershipPlanTheme } from '../utils/membershipPlanTheme';
 
-export interface FeatureIcon {
-  variant: FeatureIconVariant;
-  content: string;
-}
-
-export interface FeatureChip {
-  icon: FeatureIcon;
-  label: string;
-}
-
-export interface PriceOption {
-  id: string;
-  duration: string;
-  totalPrice: number;
-  perMonth: number;
+export interface MembershipPlanScope {
+  id: number;
+  title: string;
+  amountLabel: string | null;
 }
 
 export interface MembershipPlan {
   id: string;
-  tierBadge: string;
   name: string;
-  nameStyle: PlanNameStyle;
-  cardBgColor: string;
-  adsLabel?: string;
-  features: FeatureChip[];
-  priceOptions: PriceOption[];
-  defaultCollapsed?: boolean;
-  icon: string;
-  gstNote: string;
-  featureList: string[];
+  slug: string;
+  description: string | null;
+  badge: string | null;
+  icon: string | null;
+  isMostPopular: boolean;
+  amount: number;
+  basePrice: number | null;
+  days: number;
+  walletTransferLabel: string | null;
+  gstLabel: string;
+  scopes: MembershipPlanScope[];
+  features: string[];
+  termConditions: string[];
   ctaLabel: string;
+  theme: MembershipPlanTheme;
 }
 
 export interface MembershipPlansScreenConfig {
   membershipApiType: 'users' | 'experts';
   headerTitle: string;
   pageTitle: string;
-  pageTitleAccent: string;
   pageSubtitle: string;
 }

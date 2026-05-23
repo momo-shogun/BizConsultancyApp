@@ -3,257 +3,285 @@ import {
   ActivityIndicator,
   Pressable,
   ScrollView,
-  StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { NavigationProp, useNavigation } from '@react-navigation/native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { THEME } from '@/constants/theme';
 import { useGetPublicMembershipsQuery } from '@/features/Home/api/homePublicApi';
 import type { AccountStackParamList } from '@/navigation/types';
 import { SafeAreaWrapper, ScreenHeader, ScreenWrapper } from '@/shared/components';
 
-import type {
-  FeatureChip,
-  FeatureIcon,
-  MembershipPlan,
-  MembershipPlansScreenConfig,
-  PlanNameStyle,
-  PriceOption,
-} from '../../types/membershipPlan.types';
+import type { MembershipPlan, MembershipPlansScreenConfig } from '../../types/membershipPlan.types';
 import { mapPublicMembershipsToMembershipPlans } from '../../utils/membershipScreenMappers';
-import { styles } from '../User/UserMembershipScreen.styles';
+import { styles } from './MembershipPlansScreen.styles';
 
-function buildInitialSelections(plans: MembershipPlan[]): Record<string, string> {
-  const map: Record<string, string> = {};
-  plans.forEach((plan) => {
-    if (plan.priceOptions.length > 0) {
-      map[plan.id] = plan.priceOptions[0].id;
-    }
-  });
-  return map;
+function formatRupee(value: number): string {
+  return `₹${Math.round(value).toLocaleString('en-IN')}`;
 }
 
-function formatFooterLabel(planName: string, duration: string): string {
-  const parts = duration.split(' ');
-  const count = parts[0] ?? '';
-  const unit =
-    (parts[1] ?? '').charAt(0).toUpperCase() +
-    (parts[1] ?? '').slice(1).toLowerCase();
-  return `${planName} x ${count} ${unit}`;
+function formatValidity(days: number): string {
+  if (days <= 0) {
+    return 'Validity as per plan';
+  }
+  return `${days} days validity`;
 }
 
-function accentColor(nameStyle: PlanNameStyle): string {
-  if (nameStyle === 'blue') {
-    return '#2563EB';
+function membershipIconName(
+  icon: string | null,
+): React.ComponentProps<typeof Ionicons>['name'] {
+  const key = icon?.trim().toLowerCase() ?? '';
+  if (key === 'users' || key === 'user') {
+    return 'people-outline';
   }
-  if (nameStyle === 'amber') {
-    return '#D97706';
+  if (key === 'briefcase' || key === 'business') {
+    return 'briefcase-outline';
   }
-  return '#6366F1';
+  if (key === 'star' || key === 'premium') {
+    return 'star-outline';
+  }
+  if (key === 'diamond' || key === 'crown') {
+    return 'diamond-outline';
+  }
+  return 'ribbon-outline';
 }
 
-function badgeBgColor(nameStyle: PlanNameStyle): string {
-  if (nameStyle === 'blue') {
-    return '#DBEAFE';
-  }
-  if (nameStyle === 'amber') {
-    return '#FEF3C7';
-  }
-  return '#E0E7FF';
-}
-
-function planNameColor(nameStyle: PlanNameStyle): string {
-  if (nameStyle === 'blue') {
-    return '#2563EB';
-  }
-  if (nameStyle === 'amber') {
-    return '#B45309';
-  }
-  return '#4F46E5';
-}
-
-function FeatureIconContent({ icon }: { icon: FeatureIcon }): React.ReactElement {
-  if (icon.variant === 'pill') {
-    return (
-      <View style={styles.featurePill}>
-        <Text style={styles.featurePillText}>{icon.content}</Text>
-      </View>
-    );
-  }
-  if (icon.variant === 'tag') {
-    return (
-      <View style={styles.featureTagBox}>
-        <Text style={styles.featureTagText}>{icon.content}</Text>
-      </View>
-    );
-  }
-  return <Text style={styles.featureGlyph}>{icon.content}</Text>;
-}
-
-function FeatureChipItem({ chip }: { chip: FeatureChip }): React.ReactElement {
+function ScopeRow({
+  scope,
+  accent,
+}: {
+  scope: MembershipPlan['scopes'][number];
+  accent: string;
+}): React.ReactElement {
   return (
-    <View style={styles.featureChip}>
-      <View style={styles.featureIconBox}>
-        <FeatureIconContent icon={chip.icon} />
+    <View style={styles.scopeRow}>
+      <Ionicons name="checkmark-circle" size={18} color={accent} />
+      <View style={styles.scopeTextBlock}>
+        <Text style={styles.scopeTitle}>{scope.title}</Text>
+        {scope.amountLabel != null ? (
+          <Text style={styles.scopeAmount}>Value {scope.amountLabel}</Text>
+        ) : null}
       </View>
-      <Text style={styles.featureLabel}>{chip.label}</Text>
     </View>
   );
 }
 
-function FeatureListItem({
-  text,
+function TermsSection({
+  terms,
   accent,
 }: {
-  text: string;
+  terms: string[];
   accent: string;
-}): React.ReactElement {
-  return (
-    <View style={styles.featureListItem}>
-      <View style={[styles.featureListDot, { backgroundColor: accent }]}>
-        <Text style={styles.featureListDotText}>✓</Text>
-      </View>
-      <Text style={styles.featureListText}>{text}</Text>
-    </View>
-  );
-}
+}): React.ReactElement | null {
+  const [expanded, setExpanded] = useState(false);
 
-function PriceOptionButton({
-  option,
-  isSelected,
-  accent,
-  onPress,
-}: {
-  option: PriceOption;
-  isSelected: boolean;
-  accent: string;
-  onPress: () => void;
-}): React.ReactElement {
+  if (terms.length === 0) {
+    return null;
+  }
+
   return (
-    <TouchableOpacity
-      style={[
-        isSelected ? styles.priceOptionSelected : styles.priceOption,
-        isSelected ? { borderColor: accent } : null,
-      ]}
-      onPress={onPress}
-      activeOpacity={0.8}
-    >
-      {isSelected ? (
-        <View style={[styles.priceOptionCheckmark, { backgroundColor: accent }]}>
-          <Text style={styles.priceOptionCheckmarkText}>✓</Text>
+    <View>
+      <Pressable
+        style={styles.termsToggle}
+        onPress={() => setExpanded((value) => !value)}
+        accessibilityRole="button"
+        accessibilityState={{ expanded }}
+      >
+        <Text style={styles.termsToggleText}>
+          Terms & conditions ({terms.length})
+        </Text>
+        <Ionicons
+          name={expanded ? 'chevron-up' : 'chevron-down'}
+          size={18}
+          color={accent}
+        />
+      </Pressable>
+      {expanded ? (
+        <View style={styles.termsList}>
+          {terms.map((term, index) => (
+            <View key={`term-${index}`} style={styles.termItem}>
+              <View style={[styles.termBullet, { backgroundColor: accent }]} />
+              <Text style={styles.termText}>{term}</Text>
+            </View>
+          ))}
         </View>
-      ) : (
-        <View style={styles.priceOptionRadio} />
-      )}
-      <Text style={styles.priceDuration}>{option.duration}</Text>
-      <Text style={styles.priceAmount}>₹{option.totalPrice.toLocaleString('en-IN')}</Text>
-      <Text style={[styles.pricePerMonth, isSelected ? { color: accent } : null]}>
-        ₹{option.perMonth.toLocaleString('en-IN')} per month
-      </Text>
-    </TouchableOpacity>
+      ) : null}
+    </View>
   );
 }
 
 function PlanCard({
   plan,
-  selectedOptionId,
-  isActive,
-  onSelectOption,
-  onCardPress,
+  isSelected,
+  onPress,
 }: {
   plan: MembershipPlan;
-  selectedOptionId: string;
-  isActive: boolean;
-  onSelectOption: (optionId: string) => void;
-  onCardPress: () => void;
+  isSelected: boolean;
+  onPress: () => void;
 }): React.ReactElement {
-  const accent = accentColor(plan.nameStyle);
-  const nameColor = planNameColor(plan.nameStyle);
-  const bgBadge = badgeBgColor(plan.nameStyle);
+  const { theme } = plan;
+  const showStrike =
+    plan.basePrice != null && plan.basePrice > plan.amount && plan.amount > 0;
+  const inclusionItems =
+    plan.scopes.length > 0
+      ? plan.scopes
+      : plan.features.map((title, index) => ({
+          id: index,
+          title,
+          amountLabel: null as string | null,
+        }));
 
   return (
-    <TouchableOpacity
-      activeOpacity={0.97}
-      onPress={onCardPress}
+    <Pressable
+      onPress={onPress}
       style={[
         styles.planCard,
-        { backgroundColor: plan.cardBgColor },
-        isActive
-          ? {
-              borderColor: accent,
-              borderWidth: 2,
-              shadowColor: accent,
-              shadowOpacity: 0.22,
-              shadowRadius: 16,
-              elevation: 8,
-            }
-          : null,
+        {
+          backgroundColor: theme.cardBg,
+          borderColor: isSelected ? theme.accent : theme.softBorder,
+          borderWidth: isSelected ? 2 : 1,
+          shadowColor: theme.accent,
+        },
+        isSelected ? styles.planCardSelected : null,
       ]}
     >
-      <View style={styles.planCardInner}>
-        {isActive ? (
-          <View style={[localStyles.selectedCheck, { backgroundColor: accent }]}>
-            <Text style={localStyles.selectedCheckText}>✓</Text>
+      <View style={[styles.cardBlob, { backgroundColor: theme.accent }]} />
+
+      <View style={styles.planCardBody}>
+        <View style={styles.planHeaderRow}>
+          <View style={styles.planTitleBlock}>
+            <View style={styles.badgeRow}>
+              {plan.badge != null ? (
+                <View style={[styles.badge, { backgroundColor: theme.badgeBg }]}>
+                  <Text style={[styles.badgeText, { color: theme.badgeText }]}>
+                    {plan.badge}
+                  </Text>
+                </View>
+              ) : null}
+              {plan.isMostPopular ? (
+                <View style={[styles.popularBadge, { borderColor: theme.accent }]}>
+                  <Text style={[styles.popularBadgeText, { color: theme.accentDark }]}>
+                    Most popular
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+            <Text style={[styles.planName, { color: theme.accentDark }]}>{plan.name}</Text>
+            {plan.description != null ? (
+              <Text style={styles.planDescription}>{plan.description}</Text>
+            ) : null}
           </View>
-        ) : null}
-
-        <View style={[styles.cardBlob, { backgroundColor: accent }]} />
-
-        <View style={[styles.cardIconWrapper, { backgroundColor: accent }]}>
-          <Text style={styles.cardIconEmoji}>{plan.icon}</Text>
+          <View style={styles.planHeaderTrailing}>
+            {isSelected ? (
+              <View style={[styles.selectedCheckInline, { backgroundColor: theme.accent }]}>
+                <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+              </View>
+            ) : null}
+            {plan.icon != null ? (
+              <View style={[styles.iconCircle, { backgroundColor: theme.iconBg }]}>
+                <Ionicons
+                  name={membershipIconName(plan.icon)}
+                  size={22}
+                  color="#FFFFFF"
+                />
+              </View>
+            ) : null}
+          </View>
         </View>
 
-        <View style={[styles.cardBadge, { backgroundColor: accent }]}>
-          <Text style={styles.cardBadgeText}>{plan.tierBadge}</Text>
+        <View style={styles.priceRow}>
+          {showStrike ? (
+            <Text style={styles.priceStrike}>{formatRupee(plan.basePrice ?? 0)}</Text>
+          ) : null}
+          <Text style={[styles.priceAmount, { color: theme.accentDark }]}>
+            {formatRupee(plan.amount)}
+          </Text>
         </View>
-
-        <Text style={[styles.cardPlanName, { color: nameColor }]}>{plan.name}</Text>
-
-        <Text style={styles.cardPrice}>
-          ₹{plan.priceOptions[0]?.totalPrice.toLocaleString('en-IN') ?? '—'}
+        <Text style={styles.metaText}>
+          {formatValidity(plan.days)} • {plan.gstLabel}
         </Text>
-        <Text style={styles.cardGstNote}>{plan.gstNote}</Text>
-
-        {plan.adsLabel ? (
-          <View style={[styles.adsFreeTag, { backgroundColor: bgBadge, borderColor: accent }]}>
-            <Text style={[styles.adsFreeText, { color: accent }]}>{plan.adsLabel}</Text>
-          </View>
+        {plan.walletTransferLabel != null ? (
+          <Text style={[styles.walletText, { color: theme.accent }]}>
+            {plan.walletTransferLabel}
+          </Text>
         ) : null}
 
-        <View style={styles.headerDivider} />
+        {inclusionItems.length > 0 ? (
+          <>
+            <View style={[styles.divider, { backgroundColor: theme.softBorder }]} />
+            <Text style={[styles.sectionTitle, { color: theme.accentDark }]}>
+              {"What's included"}
+            </Text>
+            {inclusionItems.map((item) => (
+              <ScopeRow
+                key={`${plan.id}-scope-${item.id}`}
+                scope={item}
+                accent={theme.accent}
+              />
+            ))}
+          </>
+        ) : null}
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.featureRow}
-        >
-          {plan.features.map((chip, index) => (
-            <FeatureChipItem key={`${plan.id}-chip-${index}`} chip={chip} />
-          ))}
-        </ScrollView>
-
-        <View style={styles.featureListContainer}>
-          {plan.featureList.map((text, index) => (
-            <FeatureListItem key={`${plan.id}-feature-${index}`} text={text} accent={accent} />
-          ))}
-        </View>
-
-        <View style={styles.priceOptionsRow}>
-          {plan.priceOptions.map((option) => (
-            <PriceOptionButton
-              key={option.id}
-              option={option}
-              isSelected={option.id === selectedOptionId}
-              accent={accent}
-              onPress={() => onSelectOption(option.id)}
-            />
-          ))}
-        </View>
+        {plan.termConditions.length > 0 ? (
+          <>
+            <View style={[styles.divider, { backgroundColor: theme.softBorder }]} />
+            <TermsSection terms={plan.termConditions} accent={theme.accent} />
+          </>
+        ) : null}
       </View>
-    </TouchableOpacity>
+    </Pressable>
+  );
+}
+
+function StickyFooter({
+  plan,
+}: {
+  plan: MembershipPlan;
+}): React.ReactElement {
+  const { theme } = plan;
+
+  return (
+    <View
+      style={[
+        styles.stickyFooter,
+        {
+          backgroundColor: theme.footerTint,
+          borderTopColor: theme.softBorder,
+        },
+      ]}
+    >
+      <View style={styles.stickyPriceGroup}>
+        <View style={styles.stickyTitleRow}>
+          {plan.badge != null ? (
+            <View style={[styles.stickyBadge, { backgroundColor: theme.badgeBg }]}>
+              <Text style={[styles.stickyBadgeText, { color: theme.badgeText }]}>
+                {plan.badge}
+              </Text>
+            </View>
+          ) : null}
+          <Text
+            style={[styles.stickyPlanName, { color: theme.accentDark }]}
+            numberOfLines={1}
+          >
+            {plan.name}
+          </Text>
+        </View>
+        <Text style={[styles.stickyPrice, { color: theme.accentDark }]}>
+          {formatRupee(plan.amount)}
+        </Text>
+        <Text style={styles.stickyMeta}>{formatValidity(plan.days)}</Text>
+      </View>
+
+      <TouchableOpacity
+        style={[styles.upgradeCta, { backgroundColor: theme.accent }]}
+        activeOpacity={0.85}
+      >
+        <Text style={styles.upgradeCtaText}>{plan.ctaLabel}</Text>
+      </TouchableOpacity>
+    </View>
   );
 }
 
@@ -272,46 +300,37 @@ export function MembershipPlansScreen({ config }: MembershipPlansScreenProps): R
     [data],
   );
 
-  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const [activePlanId, setActivePlanId] = useState<string>('');
 
   useEffect(() => {
     if (plans.length === 0) {
       return;
     }
-    setSelectedOptions(buildInitialSelections(plans));
     setActivePlanId((current) =>
       plans.some((plan) => plan.id === current) ? current : plans[0].id,
     );
   }, [plans]);
 
   const activePlan = plans.find((plan) => plan.id === activePlanId) ?? plans[0];
-  const activeOptionId = activePlan != null ? selectedOptions[activePlan.id] ?? '' : '';
-  const activeOption = activePlan?.priceOptions.find((option) => option.id === activeOptionId);
-  const footerLabel =
-    activePlan != null && activeOption != null
-      ? formatFooterLabel(activePlan.name, activeOption.duration)
-      : '';
-  const footerAccent = activePlan != null ? accentColor(activePlan.nameStyle) : '#6366F1';
 
   return (
     <SafeAreaWrapper edges={['top', 'bottom']} bgColor="white">
       <ScreenHeader title={config.headerTitle} onBackPress={() => navigation.goBack()} />
       <ScreenWrapper style={styles.screen}>
         {isLoading ? (
-          <View style={localStyles.centered}>
+          <View style={styles.centered}>
             <ActivityIndicator size="large" color={THEME.colors.primary} />
           </View>
         ) : isError ? (
-          <View style={localStyles.centered}>
-            <Text style={localStyles.errorText}>Could not load membership plans.</Text>
-            <Pressable onPress={() => void refetch()} style={localStyles.retryButton}>
-              <Text style={localStyles.retryText}>Retry</Text>
+          <View style={styles.centered}>
+            <Text style={styles.errorText}>Could not load membership plans.</Text>
+            <Pressable onPress={() => void refetch()} style={styles.retryButton}>
+              <Text style={styles.retryText}>Retry</Text>
             </Pressable>
           </View>
         ) : plans.length === 0 ? (
-          <View style={localStyles.centered}>
-            <Text style={localStyles.errorText}>No membership plans available right now.</Text>
+          <View style={styles.centered}>
+            <Text style={styles.errorText}>No membership plans available right now.</Text>
           </View>
         ) : (
           <>
@@ -319,13 +338,8 @@ export function MembershipPlansScreen({ config }: MembershipPlansScreenProps): R
               contentContainerStyle={styles.scrollContent}
               showsVerticalScrollIndicator={false}
             >
-              <View style={styles.titleWrapper}>
-                <Text style={styles.pageTitle}>
-                  {config.pageTitle}
-                  {'\n'}
-                  <Text style={styles.pageTitleAccent}>{config.pageTitleAccent}</Text>
-                </Text>
-                <View style={styles.titleUnderline} />
+              <View style={styles.intro}>
+                <Text style={styles.pageTitle}>{config.pageTitle}</Text>
                 <Text style={styles.pageSubtitle}>{config.pageSubtitle}</Text>
               </View>
 
@@ -333,109 +347,16 @@ export function MembershipPlansScreen({ config }: MembershipPlansScreenProps): R
                 <PlanCard
                   key={plan.id}
                   plan={plan}
-                  isActive={plan.id === activePlanId}
-                  selectedOptionId={selectedOptions[plan.id] ?? plan.priceOptions[0]?.id ?? ''}
-                  onSelectOption={(optionId) => {
-                    setActivePlanId(plan.id);
-                    setSelectedOptions((prev) => ({ ...prev, [plan.id]: optionId }));
-                  }}
-                  onCardPress={() => setActivePlanId(plan.id)}
+                  isSelected={plan.id === activePlanId}
+                  onPress={() => setActivePlanId(plan.id)}
                 />
               ))}
             </ScrollView>
 
-            {activePlan != null ? (
-              <View style={styles.stickyFooter}>
-                <View style={styles.stickyPriceGroup}>
-                  <View style={localStyles.footerBadgeRow}>
-                    <View style={[localStyles.footerBadge, { backgroundColor: footerAccent }]}>
-                      <Text style={localStyles.footerBadgeText}>{activePlan.tierBadge}</Text>
-                    </View>
-                    <Text style={[localStyles.footerPlanName, { color: planNameColor(activePlan.nameStyle) }]}>
-                      {activePlan.name}
-                    </Text>
-                  </View>
-                  <Text style={styles.stickyPrice}>
-                    ₹{activeOption?.totalPrice.toLocaleString('en-IN') ?? 0}
-                  </Text>
-                  <Text style={styles.stickyPriceLabel}>{footerLabel}</Text>
-                </View>
-
-                <TouchableOpacity
-                  style={[styles.upgradeCta, { backgroundColor: footerAccent }]}
-                  activeOpacity={0.85}
-                >
-                  <Text style={styles.upgradeCtaText}>{activePlan.ctaLabel}</Text>
-                  <Text style={styles.upgradeCtaChevron}> ›</Text>
-                </TouchableOpacity>
-              </View>
-            ) : null}
+            {activePlan != null ? <StickyFooter plan={activePlan} /> : null}
           </>
         )}
       </ScreenWrapper>
     </SafeAreaWrapper>
   );
 }
-
-const localStyles = StyleSheet.create({
-  centered: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: THEME.spacing[24],
-  },
-  errorText: {
-    fontSize: THEME.typography.size[14],
-    color: THEME.colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: THEME.spacing[12],
-  },
-  retryButton: {
-    paddingHorizontal: THEME.spacing[16],
-    paddingVertical: THEME.spacing[10],
-    borderRadius: 10,
-    backgroundColor: THEME.colors.primary,
-  },
-  retryText: {
-    color: THEME.colors.white,
-    fontWeight: '600',
-  },
-  selectedCheck: {
-    position: 'absolute',
-    top: 14,
-    left: 14,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10,
-  },
-  selectedCheckText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '700',
-    lineHeight: 14,
-  },
-  footerBadgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 4,
-  },
-  footerBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 999,
-  },
-  footerBadgeText: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.8,
-  },
-  footerPlanName: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-});

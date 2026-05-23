@@ -1,87 +1,71 @@
-import type { PublicMembershipApiRow } from '@/features/Home/types/publicMembershipApi.types';
-
 import type {
-  FeatureChip,
-  MembershipPlan,
-  PlanNameStyle,
-  PriceOption,
-} from '../types/membershipPlan.types';
+  PublicMembershipApiRow,
+  PublicMembershipScopeApiRow,
+} from '@/features/Home/types/publicMembershipApi.types';
 
-const NAME_STYLES: readonly PlanNameStyle[] = ['white', 'blue', 'amber'];
-const CARD_BACKGROUNDS: readonly string[] = ['#F0F4FF', '#F0FFF8', '#FFFBF0'];
-const PLAN_ICONS: readonly string[] = ['⭐', '🎯', '🚀', '💎', '👑'];
+import type { MembershipPlan, MembershipPlanScope } from '../types/membershipPlan.types';
+import { getMembershipPlanTheme } from './membershipPlanTheme';
 
-function parseAmount(value: string | number | null | undefined): number {
+function parseAmount(value: string | number | null | undefined): number | null {
   if (value == null) {
-    return 0;
+    return null;
   }
   const n = typeof value === 'string' ? Number.parseFloat(value) : value;
-  return Number.isFinite(n) ? n : 0;
+  return Number.isFinite(n) ? n : null;
 }
 
-function membershipIcon(row: PublicMembershipApiRow, index: number): string {
-  const raw = row.icon?.trim();
-  if (raw === 'Users') {
-    return '👤';
-  }
-  if (raw != null && raw.length > 0 && raw.length <= 4) {
-    return raw;
-  }
-  return PLAN_ICONS[index % PLAN_ICONS.length] ?? '⭐';
+function formatRupee(value: number): string {
+  return `₹${Math.round(value).toLocaleString('en-IN')}`;
 }
 
-function buildPriceOptions(row: PublicMembershipApiRow): PriceOption[] {
-  const totalPrice = Math.round(parseAmount(row.amount));
-  const days = row.days != null && row.days > 0 ? row.days : 365;
-  const perMonth = days > 0 ? Math.max(1, Math.round(totalPrice / (days / 30))) : totalPrice;
-
-  return [
-    {
-      id: 'default',
-      duration: `${days} DAYS`,
-      totalPrice,
-      perMonth,
-    },
-  ];
+function formatScopeAmount(amount: string | number | null | undefined): string | null {
+  const n = parseAmount(amount);
+  if (n == null || n <= 0) {
+    return null;
+  }
+  return formatRupee(n);
 }
 
-function buildFeatureChips(row: PublicMembershipApiRow): FeatureChip[] {
-  const titles =
-    row.scopes
-      ?.map((scope) => scope.title.trim())
-      .filter((title) => title.length > 0) ?? [];
-
-  const source =
-    titles.length > 0
-      ? titles
-      : (row.feature?.map((item) => item.trim()).filter((item) => item.length > 0) ?? []);
-
-  return source.slice(0, 5).map((title) => ({
-    icon: { variant: 'glyph', content: '✓' },
-    label: title,
-  }));
+function mapScopes(scopes: PublicMembershipScopeApiRow[] | undefined): MembershipPlanScope[] {
+  if (!Array.isArray(scopes)) {
+    return [];
+  }
+  return scopes
+    .filter((row) => row.status !== 0 && (row.isDeleted ?? 0) === 0)
+    .map((row) => ({
+      id: row.id,
+      title: row.title.trim(),
+      amountLabel: formatScopeAmount(row.amount),
+    }))
+    .filter((item) => item.title.length > 0);
 }
 
-function buildFeatureList(row: PublicMembershipApiRow): string[] {
-  const fromScopes =
-    row.scopes
-      ?.map((scope) => scope.title.trim())
-      .filter((title) => title.length > 0) ?? [];
-  if (fromScopes.length > 0) {
-    return fromScopes;
+function buildGstLabel(row: PublicMembershipApiRow): string {
+  const sgst = parseAmount(row.sgst);
+  const cgst = parseAmount(row.cgst);
+  const igst = parseAmount(row.igst);
+  const parts: string[] = [];
+  if (sgst != null && sgst > 0) {
+    parts.push(`${sgst}% SGST`);
   }
-  return row.feature?.map((item) => item.trim()).filter((item) => item.length > 0) ?? [];
+  if (cgst != null && cgst > 0) {
+    parts.push(`${cgst}% CGST`);
+  }
+  if (igst != null && igst > 0) {
+    parts.push(`${igst}% IGST`);
+  }
+  if (parts.length > 0) {
+    return `Inclusive of ${parts.join(' + ')}`;
+  }
+  return 'Taxes as applicable';
 }
 
-function adsLabel(row: PublicMembershipApiRow): string | undefined {
-  const badge = row.badge?.trim();
-  if (badge != null && badge.length > 0) {
-    return badge;
+function buildWalletLabel(row: PublicMembershipApiRow): string | null {
+  const wallet = parseAmount(row.walletTransferAmounts);
+  if (wallet == null || wallet <= 0) {
+    return null;
   }
-  if (row.isMostPopular === 1) {
-    return 'MOST POPULAR';
-  }
-  return undefined;
+  return `${formatRupee(wallet)} wallet credit included`;
 }
 
 export function mapPublicMembershipToMembershipPlan(
@@ -89,26 +73,33 @@ export function mapPublicMembershipToMembershipPlan(
   index: number,
 ): MembershipPlan {
   const name = row.name.trim();
-  const days = row.days != null && row.days > 0 ? row.days : 365;
-  const tierBadge =
-    row.badge?.trim().toUpperCase() ||
-    row.slug?.trim().toUpperCase() ||
-    name.toUpperCase().slice(0, 12);
+  const amount = parseAmount(row.amount) ?? 0;
+  const basePrice = parseAmount(row.basePrice);
+  const days = row.days != null && row.days > 0 ? row.days : 0;
+  const description = row.description?.trim() ?? null;
+  const features =
+    row.feature?.map((item) => item.trim()).filter((item) => item.length > 0) ?? [];
+  const termConditions =
+    row.termCondition?.map((item) => item.trim()).filter((item) => item.length > 0) ?? [];
 
   return {
     id: String(row.id),
-    tierBadge,
     name,
-    nameStyle: NAME_STYLES[index % NAME_STYLES.length] ?? 'white',
-    cardBgColor: CARD_BACKGROUNDS[index % CARD_BACKGROUNDS.length] ?? '#F0F4FF',
-    adsLabel: adsLabel(row),
-    features: buildFeatureChips(row),
-    priceOptions: buildPriceOptions(row),
-    defaultCollapsed: false,
-    icon: membershipIcon(row, index),
-    gstNote: `GST Inclusive • ${days} Days`,
-    featureList: buildFeatureList(row),
-    ctaLabel: `Start with ${name}`,
+    slug: row.slug?.trim() ?? '',
+    description: description != null && description !== name ? description : null,
+    badge: row.badge?.trim() ?? null,
+    icon: row.icon?.trim() ?? null,
+    isMostPopular: row.isMostPopular === 1,
+    amount,
+    basePrice: basePrice != null && basePrice > 0 ? Math.round(basePrice) : null,
+    days,
+    walletTransferLabel: buildWalletLabel(row),
+    gstLabel: buildGstLabel(row),
+    scopes: mapScopes(row.scopes),
+    features,
+    termConditions,
+    ctaLabel: `Choose ${name}`,
+    theme: getMembershipPlanTheme(index),
   };
 }
 
@@ -121,5 +112,5 @@ export function mapPublicMembershipsToMembershipPlans(
     const rankB = b.tierRank > 0 ? b.tierRank : b.id;
     return rankA - rankB;
   });
-  return sorted.map(mapPublicMembershipToMembershipPlan);
+  return sorted.map((row, index) => mapPublicMembershipToMembershipPlan(row, index));
 }

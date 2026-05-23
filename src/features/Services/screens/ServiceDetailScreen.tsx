@@ -15,6 +15,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { THEME } from '@/constants/theme';
 
 import { ROUTES } from '@/navigation/routeNames';
+import { navigationRef } from '@/navigation/navigationContainerRef';
 
 import type { ServicesStackParamList } from '@/navigation/types';
 
@@ -49,6 +50,16 @@ type ServiceDetailRouteProp = RouteProp<
   typeof ROUTES.Services.Detail
 >;
 
+function isExpertConsultationAction(text: string, href: string): boolean {
+  const normalizedText = text.toLowerCase();
+  const normalizedHref = href.toLowerCase();
+  return (
+    normalizedText.includes('expert') ||
+    normalizedText.includes('consultant') ||
+    normalizedHref.includes('consultant')
+  );
+}
+
 export function ServiceDetailScreen(): React.ReactElement {
   const route = useRoute<ServiceDetailRouteProp>();
 
@@ -72,6 +83,12 @@ export function ServiceDetailScreen(): React.ReactElement {
   const handleBack = useCallback((): void => {
     navigation.goBack();
   }, [navigation]);
+
+  const openConsultantsList = useCallback((): void => {
+    if (navigationRef.isReady()) {
+      navigationRef.navigate(ROUTES.Root.ConsultantsList);
+    }
+  }, []);
 
   useLayoutEffect(() => {
     if (item != null) {
@@ -289,8 +306,8 @@ export function ServiceDetailScreen(): React.ReactElement {
                       accessibilityLabel={action.text}
                       hitSlop={8}
                       onPress={() => {
-                        if (action.text.toLowerCase().includes('expert')) {
-                          navigation.getParent()?.navigate(ROUTES.Root.ConsultantsList);
+                        if (isExpertConsultationAction(action.text, action.href)) {
+                          openConsultantsList();
                           return;
                         }
                         setActiveTab('documents');
@@ -302,7 +319,7 @@ export function ServiceDetailScreen(): React.ReactElement {
                     >
                       <Ionicons
                         name={
-                          action.text.toLowerCase().includes('expert')
+                          isExpertConsultationAction(action.text, action.href)
                             ? 'call-outline'
                             : 'document-text-outline'
                         }

@@ -8,10 +8,9 @@ export function ConsultantMembershipScreen(): React.ReactElement {
       config={{
         membershipApiType: 'experts',
         headerTitle: 'Consultant membership',
-        pageTitle: 'Built for',
-        pageTitleAccent: 'professional consultants',
+        pageTitle: 'Consultant membership',
         pageSubtitle:
-          'Unlock unlimited sessions, advanced analytics, and premium visibility with consultant membership plans.',
+          'Plans, pricing, and inclusions for consultants. Details reflect the live membership catalog.',
       }}
     />
   );

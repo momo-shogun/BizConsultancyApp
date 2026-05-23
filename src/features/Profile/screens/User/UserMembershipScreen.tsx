@@ -8,10 +8,8 @@ export function UserMembershipScreen(): React.ReactElement {
       config={{
         membershipApiType: 'users',
         headerTitle: 'Membership',
-        pageTitle: 'Built for',
-        pageTitleAccent: 'growing businesses',
-        pageSubtitle:
-          'Choose a plan with verified consultants, document locker, webinars, and business support tailored for users.',
+        pageTitle: 'Membership plans',
+        pageSubtitle: 'Compare plans, inclusions, and pricing. All details are loaded from your account catalog.',
       }}
     />
   );
