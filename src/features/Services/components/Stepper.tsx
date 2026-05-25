@@ -8,6 +8,8 @@ import {
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { radii, shadows, spacing } from '@/theme';
+import { useOnboardingFormContext } from '../context/OnboardingFormContext';
+import { ONBOARDING_PRICING_STEP_KEY } from './onboardingStepKeys';
 import type { StepperProps } from './types';
 import { StepRenderer } from './StepRenderer';
 
@@ -26,6 +28,23 @@ export function Stepper({
 
   const totalSteps = steps.length;
   const isLastStep = activeStep === totalSteps - 1;
+  const isPricingStep = steps[activeStep]?.key === ONBOARDING_PRICING_STEP_KEY;
+  const { pricingSummary } = useOnboardingFormContext();
+
+  const isPaidFinish = (pricingSummary?.amountInPaise ?? 0) >= 100;
+  const finishLabel = isProcessing
+    ? 'Please wait...'
+    : isLastStep
+      ? isPaidFinish
+        ? 'Pay & confirm'
+        : 'Confirm registration'
+      : 'Next';
+  const finishIcon = isLastStep
+    ? isPaidFinish
+      ? 'card-outline'
+      : 'checkmark-circle'
+    : 'arrow-forward';
+
   const progress = useMemo(
     () => Math.round(((activeStep + 1) / totalSteps) * 100),
     [activeStep, totalSteps],
@@ -58,17 +77,18 @@ export function Stepper({
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.progressCard}>
-        <View style={styles.progressTop}>
-          <Text style={styles.progressLabel}>
-            {activeStep === 0
-              ? `0/${totalSteps} complete`
-              : `${activeStep + 1}/${totalSteps} complete`}
-          </Text>
-
-          <Text style={styles.progressTime}>Takes less than 1 min</Text>
-        </View>
+    <View style={[styles.container, isPricingStep && styles.containerCompact]}>
+      <View style={[styles.progressCard, isPricingStep && styles.progressCardCompact]}>
+        {!isPricingStep ? (
+          <View style={styles.progressTop}>
+            <Text style={styles.progressLabel}>
+              {activeStep === 0
+                ? `0/${totalSteps} complete`
+                : `${activeStep + 1}/${totalSteps} complete`}
+            </Text>
+            <Text style={styles.progressTime}>Takes less than 1 min</Text>
+          </View>
+        ) : null}
 
         <View style={styles.progressTrack}>
           <View style={[styles.progressFill, progressStyle]} />
@@ -102,18 +122,15 @@ export function Stepper({
           style={[
             styles.nextBtn,
             isLastStep && styles.finishBtn,
+            isLastStep && styles.finishBtnWide,
             isProcessing && styles.btnDisabled,
           ]}
           onPress={handleNext}
           disabled={isProcessing}>
           <Text style={[styles.nextBtnText, isLastStep && styles.finishText]}>
-            {isProcessing ? 'Please wait...' : isLastStep ? 'Finish' : 'Next'}
+            {finishLabel}
           </Text>
-          <Ionicons
-            name="arrow-forward"
-            size={18}
-            color={isLastStep ? '#FFFFFF' : '#FFFFFF'}
-          />
+          <Ionicons name={finishIcon} size={18} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
     </View>
@@ -124,6 +141,9 @@ const styles = StyleSheet.create({
   container: {
     gap: spacing.md,
   },
+  containerCompact: {
+    gap: spacing.sm,
+  },
   progressCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
@@ -131,6 +151,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ECEFF3',
     marginBottom: 16,
+  },
+  progressCardCompact: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 10,
   },
   progressTop: {
     flexDirection: 'row',
@@ -192,6 +217,9 @@ const styles = StyleSheet.create({
   },
   finishBtn: {
     backgroundColor: '#219653',
+  },
+  finishBtnWide: {
+    flex: 0.58,
   },
   nextBtnText: {
     fontSize: 16,

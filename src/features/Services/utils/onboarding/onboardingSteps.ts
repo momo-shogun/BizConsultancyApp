@@ -6,7 +6,9 @@ import type {
   OnboardingFormQuestion,
 } from '../../types/serviceOnboarding.types';
 
-export const PRICING_STEP_KEY = 'pricing-review';
+import { ONBOARDING_PRICING_STEP_KEY } from '../../components/onboardingStepKeys';
+
+export const PRICING_STEP_KEY = ONBOARDING_PRICING_STEP_KEY;
 
 export function sortQuestions(
   questions: readonly OnboardingFormQuestion[],
@@ -132,8 +134,8 @@ export function buildOnboardingStepConfigs(
 
   configs.push({
     key: PRICING_STEP_KEY,
-    title: 'Review & Confirm',
-    description: 'Review pricing and complete your registration.',
+    title: 'Review & confirm',
+    description: 'Verify pricing and complete your registration.',
     component: MandatoryThirdStep,
   });
 

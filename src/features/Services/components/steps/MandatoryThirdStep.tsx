@@ -1,104 +1,177 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 
+import { THEME } from '@/constants/theme';
 import { useOnboardingFormContext } from '../../context/OnboardingFormContext';
 import { formatInr } from '../../utils/onboarding/onboardingPricing';
+
+interface PriceLineItem {
+  id: string;
+  label: string;
+  value: string;
+}
+
+function PriceLineRow({ item }: { item: PriceLineItem }): React.ReactElement {
+  return (
+    <View style={styles.lineRow}>
+      <Text style={styles.lineLabel} numberOfLines={1}>
+        {item.label}
+      </Text>
+      <Text style={styles.lineValue}>{item.value}</Text>
+    </View>
+  );
+}
 
 export function MandatoryThirdStep(): React.ReactElement {
   const { pricingSummary } = useOnboardingFormContext();
 
+  const lineItems = useMemo((): PriceLineItem[] => {
+    if (pricingSummary == null) {
+      return [];
+    }
+
+    const items: PriceLineItem[] = [];
+
+    if (
+      pricingSummary.gstMode === 'excluded' &&
+      pricingSummary.gstAmountRupees > 0 &&
+      pricingSummary.basePriceRupees > 0
+    ) {
+      items.push({
+        id: 'base',
+        label: 'Base price',
+        value: formatInr(pricingSummary.basePriceRupees),
+      });
+      items.push({
+        id: 'gst',
+        label: `GST (${pricingSummary.gstPercent}%)`,
+        value: formatInr(pricingSummary.gstAmountRupees),
+      });
+    } else if (pricingSummary.gstMode === 'included') {
+      items.push({
+        id: 'gst-note',
+        label: 'Taxes',
+        value: 'GST included',
+      });
+    }
+
+    if (pricingSummary.professionalFeeAmount != null) {
+      items.push({
+        id: 'prof',
+        label: pricingSummary.professionalFeeLabel ?? 'Professional fee',
+        value: pricingSummary.professionalFeeAmount,
+      });
+    }
+
+    if (pricingSummary.governmentFeeAmount != null) {
+      items.push({
+        id: 'gov',
+        label: pricingSummary.governmentFeeLabel ?? 'Government fee',
+        value: pricingSummary.governmentFeeAmount,
+      });
+    }
+
+    return items;
+  }, [pricingSummary]);
+
   if (pricingSummary == null) {
     return (
       <View style={styles.container}>
-        <Text style={styles.callout}>Mandatory review</Text>
-        <Text style={styles.title}>Review, confirm, and submit</Text>
-        <Text style={styles.description}>
-          Review your selections and confirm to complete registration.
-        </Text>
+        <Text style={styles.headline}>Review & confirm</Text>
       </View>
     );
-  }
-
-  const bullets: string[] = [
-    `Service: ${pricingSummary.serviceTitle}`,
-    `Total payable: ${formatInr(pricingSummary.totalPayableRupees)}`,
-  ];
-
-  if (pricingSummary.gstMode === 'excluded' && pricingSummary.gstAmountRupees > 0) {
-    bullets.push(
-      `GST (${pricingSummary.gstPercent}%): ${formatInr(pricingSummary.gstAmountRupees)}`,
-    );
-  }
-
-  if (pricingSummary.professionalFeeAmount != null) {
-    bullets.push(
-      `${pricingSummary.professionalFeeLabel ?? 'Professional fee'}: ${pricingSummary.professionalFeeAmount}`,
-    );
-  }
-
-  if (pricingSummary.governmentFeeAmount != null) {
-    bullets.push(
-      `${pricingSummary.governmentFeeLabel ?? 'Government fee'}: ${pricingSummary.governmentFeeAmount}`,
-    );
-  }
-
-  if (pricingSummary.amountInPaise < 100) {
-    bullets.push('No online payment required for this plan.');
-  } else {
-    bullets.push('Secure payment via Razorpay or wallet on finish.');
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.callout}>Mandatory review</Text>
-      <Text style={styles.title}>Review, confirm, and submit</Text>
-      <Text style={styles.description}>
-        Confirm pricing for {pricingSummary.serviceTitle} before completing your
-        registration.
+      <Text style={styles.headline}>Review & confirm</Text>
+      <Text style={styles.serviceName} numberOfLines={1}>
+        {pricingSummary.serviceTitle}
       </Text>
 
-      <View style={styles.summaryList}>
-        {bullets.map((line) => (
-          <Text key={line} style={styles.bullet}>
-            • {line}
-          </Text>
-        ))}
-      </View>
+      <LinearGradient
+        colors={['#0B3B66', '#146E9A']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.priceHero}
+      >
+        <Text style={styles.priceHeroLabel}>Total payable</Text>
+        <Text style={styles.priceHeroAmount}>
+          {formatInr(pricingSummary.totalPayableRupees)}
+        </Text>
+      </LinearGradient>
+
+      {lineItems.length > 0 ? (
+        <View style={styles.breakdownCard}>
+          {lineItems.map((item) => (
+            <PriceLineRow key={item.id} item={item} />
+          ))}
+        </View>
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    gap: 14,
+    gap: 8,
   },
-  callout: {
-    textTransform: 'uppercase',
-    color: '#2563EB',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  title: {
+  headline: {
     fontSize: 18,
     fontWeight: '800',
     color: '#0B3258',
   },
-  description: {
-    fontSize: 14,
-    color: '#546778',
-    lineHeight: 20,
+  serviceName: {
+    fontSize: 13,
+    color: '#64748B',
+    marginBottom: 2,
   },
-  summaryList: {
-    gap: 10,
-    padding: 14,
+  priceHero: {
     borderRadius: 12,
-    backgroundColor: '#F4F8FC',
-    borderWidth: 1,
-    borderColor: '#D7E7F5',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    overflow: 'hidden',
   },
-  bullet: {
-    fontSize: 14,
+  priceHeroLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.85)',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginBottom: 2,
+  },
+  priceHeroAmount: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
+  },
+  breakdownCard: {
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FAFCFE',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 4,
+  },
+  lineRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    paddingVertical: 2,
+  },
+  lineLabel: {
+    flex: 1,
+    fontSize: 13,
+    color: '#475569',
+  },
+  lineValue: {
+    fontSize: 13,
+    fontWeight: '600',
     color: '#0B3258',
-    lineHeight: 20,
+    textAlign: 'right',
   },
 });

@@ -1,15 +1,26 @@
 import React from 'react';
 import { StyleSheet, View, Text } from 'react-native';
+
+import { ONBOARDING_PRICING_STEP_KEY } from './onboardingStepKeys';
 import type { StepRendererProps } from './types';
 
 export function StepRenderer({
   stepIndex,
   totalSteps,
   config,
-  onNext,
-  onBack,
-}: StepRendererProps) {
+}: StepRendererProps): React.ReactElement {
   const StepComponent = config.component;
+  const isPricingReview = config.key === ONBOARDING_PRICING_STEP_KEY;
+
+  if (isPricingReview) {
+    return (
+      <StepComponent
+        stepIndex={stepIndex}
+        totalSteps={totalSteps}
+        config={config}
+      />
+    );
+  }
 
   return (
     <View style={styles.container}>
