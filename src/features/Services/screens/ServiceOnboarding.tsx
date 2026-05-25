@@ -13,6 +13,10 @@ import { SafeAreaWrapper } from '@/shared/components';
 import type { ServicesStackParamList } from '@/navigation/types';
 import { ROUTES } from '@/navigation/routeNames';
 
+import {
+  ServiceOnboardingPaymentDialog,
+  ServiceOnboardingSuccessDialog,
+} from '@/features/Services/components/ServiceOnboardingDialogs';
 import { Stepper } from '@/features/Services/components/Stepper';
 import { OnboardingFormProvider } from '@/features/Services/context/OnboardingFormContext';
 import { useServiceOnboardingWizard } from '@/features/Services/hooks/useServiceOnboardingWizard';
@@ -32,6 +36,20 @@ const ServiceOnboarding = (): React.ReactElement => {
 
   return (
     <SafeAreaWrapper edges={['top', 'bottom']}>
+      <ServiceOnboardingSuccessDialog
+        visible={wizard.successDialog.visible}
+        onDone={wizard.successDialog.onDone}
+      />
+      <ServiceOnboardingPaymentDialog
+        visible={wizard.paymentDialog.visible}
+        amountLabel={wizard.paymentDialog.amountLabel}
+        canWallet={wizard.paymentDialog.canWallet}
+        isWalletLoading={wizard.paymentDialog.isWalletLoading}
+        walletHint={wizard.paymentDialog.walletHint}
+        onClose={wizard.paymentDialog.onClose}
+        onRazorpay={wizard.paymentDialog.onRazorpay}
+        onWallet={wizard.paymentDialog.onWallet}
+      />
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContainer}>

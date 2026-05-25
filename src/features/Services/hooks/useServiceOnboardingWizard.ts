@@ -45,7 +45,7 @@ import {
   buildSubmitPayload,
   type OnboardingContactFields,
 } from '../utils/onboarding/onboardingPayloads';
-import { buildPricingSummary } from '../utils/onboarding/onboardingPricing';
+import { buildPricingSummary, formatInr } from '../utils/onboarding/onboardingPricing';
 import {
   buildDefaultFormValues,
   buildOnboardingStepConfigs,
@@ -92,6 +92,20 @@ export interface UseServiceOnboardingWizardResult {
   ) => void;
   handleBeforeNext: (stepIndex: number) => Promise<boolean>;
   handleComplete: () => Promise<void>;
+  successDialog: {
+    visible: boolean;
+    onDone: () => void;
+  };
+  paymentDialog: {
+    visible: boolean;
+    amountLabel: string;
+    canWallet: boolean;
+    isWalletLoading: boolean;
+    walletHint: string | null;
+    onClose: () => void;
+    onRazorpay: () => void;
+    onWallet: () => void;
+  };
 }
 
 export function useServiceOnboardingWizard({
@@ -140,6 +154,7 @@ export function useServiceOnboardingWizard({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentModalActive, setPaymentModalActive] = useState(false);
+  const [successDialogVisible, setSuccessDialogVisible] = useState(false);
 
   const [upsertIntake] = useUpsertServiceIntakeMutation();
   const [saveDraft] = useSaveOnboardingDraftMutation();
@@ -148,10 +163,16 @@ export function useServiceOnboardingWizard({
   const [fetchSubmission] = useLazyGetMyOnboardingSubmissionQuery();
   const [fetchSubmissionQuestions] = useLazyGetMyOnboardingSubmissionQuestionsQuery();
 
-  const { data: userWalletBalance } = useGetMyWalletBalanceQuery(undefined, {
+  const {
+    data: userWalletBalance,
+    isFetching: isUserWalletFetching,
+  } = useGetMyWalletBalanceQuery(undefined, {
     skip: !isAuthenticated || !paymentModalActive || isConsultant,
   });
-  const { data: consultantWalletBalance } = useGetConsultantWalletBalanceQuery(undefined, {
+  const {
+    data: consultantWalletBalance,
+    isFetching: isConsultantWalletFetching,
+  } = useGetConsultantWalletBalanceQuery(undefined, {
     skip: !isAuthenticated || !paymentModalActive || !isConsultant,
   });
 
@@ -439,11 +460,7 @@ export function useServiceOnboardingWizard({
           }),
         ).unwrap();
         setErrorMessage(null);
-        Alert.alert(
-          'Registration complete',
-          'Your registration details have been received successfully.',
-          [{ text: 'OK', onPress: () => navigation.goBack() }],
-        );
+        setSuccessDialogVisible(true);
         return true;
       } catch (err: unknown) {
         setErrorMessage(
@@ -544,52 +561,54 @@ export function useServiceOnboardingWizard({
     }
 
     setPaymentModalActive(true);
-    const walletBalance = isConsultant ? consultantWalletBalance : userWalletBalance;
+  }, [pricingSummary, finalizeSubmission]);
+
+  const walletBalance = isConsultant ? consultantWalletBalance : userWalletBalance;
+  const isWalletLoading =
+    paymentModalActive &&
+    (isConsultant ? isConsultantWalletFetching : isUserWalletFetching);
+
+  const paymentDialogState = useMemo(() => {
+    const amountInPaise = pricingSummary?.amountInPaise ?? 0;
+    const amountRupees = amountInPaise / 100;
     const canWallet =
       typeof walletBalance === 'number' &&
       Number.isFinite(walletBalance) &&
-      walletBalance >= amountInPaise / 100;
+      walletBalance >= amountRupees;
 
-    const buttons: Array<{
-      text: string;
-      style?: 'default' | 'cancel' | 'destructive';
-      onPress?: () => void;
-    }> = [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Pay with Razorpay',
-        onPress: () => {
-          void runRazorpayPayment();
-        },
+    const walletHint =
+      !canWallet && !isWalletLoading
+        ? 'Wallet balance is insufficient for this payment. Use Razorpay to continue.'
+        : null;
+
+    return {
+      visible: paymentModalActive,
+      amountLabel: formatInr(amountRupees),
+      canWallet,
+      isWalletLoading,
+      walletHint,
+      onClose: (): void => setPaymentModalActive(false),
+      onRazorpay: (): void => {
+        setPaymentModalActive(false);
+        void runRazorpayPayment();
       },
-    ];
-
-    if (canWallet) {
-      buttons.push({
-        text: 'Pay with Wallet',
-        onPress: () => {
-          void runWalletPayment();
-        },
-      });
-    }
-
-    Alert.alert(
-      'Choose payment method',
-      canWallet
-        ? undefined
-        : 'Wallet balance is insufficient for this payment. Use Razorpay to continue.',
-      buttons,
-      { cancelable: true, onDismiss: () => setPaymentModalActive(false) },
-    );
+      onWallet: (): void => {
+        void runWalletPayment();
+      },
+    };
   }, [
+    paymentModalActive,
     pricingSummary,
-    finalizeSubmission,
-    isConsultant,
-    consultantWalletBalance,
-    userWalletBalance,
+    walletBalance,
+    isWalletLoading,
     runRazorpayPayment,
     runWalletPayment,
   ]);
+
+  const handleSuccessDone = useCallback((): void => {
+    setSuccessDialogVisible(false);
+    navigation.goBack();
+  }, [navigation]);
 
   const isLoading =
     !formReady ||
@@ -611,5 +630,10 @@ export function useServiceOnboardingWizard({
     setFormValues,
     handleBeforeNext,
     handleComplete,
+    successDialog: {
+      visible: successDialogVisible,
+      onDone: handleSuccessDone,
+    },
+    paymentDialog: paymentDialogState,
   };
 }
