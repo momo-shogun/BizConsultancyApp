@@ -10,6 +10,7 @@ import type { AccountStackParamList } from '../types';
 import { accountStackScreenOptions } from './accountStackScreenOptions';
 import AddReviewScreen from '@/features/Profile/screens/User/AddReviewScreen';
 import UserGuideScreen from '@/features/Profile/screens/User/UserGuideScreen';
+import CallHistoryScreen from '@/features/Profile/screens/User/CallHistoryScreen';
 
 const Stack = createNativeStackNavigator<AccountStackParamList>();
 
@@ -42,6 +43,11 @@ export function UserAccountStackNavigator(): React.ReactElement {
       <Stack.Screen
               name={ROUTES.Account.userGuide}
               component={UserGuideScreen}
+              options={{ headerShown: false }}
+            />
+      <Stack.Screen
+              name={ROUTES.Account.userCallHis}
+              component={CallHistoryScreen}
               options={{ headerShown: false }}
             />
     </Stack.Navigator>

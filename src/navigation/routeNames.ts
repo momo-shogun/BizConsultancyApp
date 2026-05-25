@@ -51,6 +51,7 @@ export const ROUTES = {
         CreditsScreen: 'App/Account/CreditsScreen',
         addReview: 'App/Account/AddReviewScreen',
         userGuide: 'App/Account/UserGuideScreen',
+        userCallHis: 'App/Account/CallHistoryScreen',
   },
 } as const;
 

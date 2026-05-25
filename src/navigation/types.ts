@@ -37,6 +37,7 @@ export type AccountStackParamList = {
         [ROUTES.Account.CreditsScreen]: undefined;
         [ROUTES.Account.addReview]: undefined;
         [ROUTES.Account.userGuide]: undefined;
+        [ROUTES.Account.userCallHis]: undefined;
      
 };
 

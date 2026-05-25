@@ -199,6 +199,9 @@ export function UserHelpSettingsScreen(props: UserHelpSettingsScreenProps): Reac
       if (row.id === 'guide') {
         navigation.navigate(ROUTES.Account.userGuide);
       }
+       if (row.id === 'callHistory') {
+        navigation.navigate(ROUTES.Account.userCallHis);
+      }
     }}
      />
           ))}
