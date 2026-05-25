@@ -57,6 +57,9 @@ export const ROUTES = {
     MyServices: 'App/Account/MyServices',
     ApplyService: 'App/Account/ApplyService',
     MyDiagnosticPack: 'App/Account/MyDiagnosticPack',
+    MyBookings: 'App/Account/MyBookings',
+    WorkshopBookings: 'App/Account/WorkshopBookings',
+    MyEdp: 'App/Account/MyEdp',
   },
 } as const;
 

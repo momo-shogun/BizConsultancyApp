@@ -53,6 +53,15 @@ export function UserHelpSettingsScreen(props: UserHelpSettingsScreenProps): Reac
     if (rowId === 'diagnosticPack') {
       navigation.navigate(ROUTES.Account.MyDiagnosticPack);
     }
+    if (rowId === 'bookings') {
+      navigation.navigate(ROUTES.Account.MyBookings);
+    }
+    if (rowId === 'workshop') {
+      navigation.navigate(ROUTES.Account.WorkshopBookings);
+    }
+    if (rowId === 'edp') {
+      navigation.navigate(ROUTES.Account.MyEdp);
+    }
   };
 
   return (

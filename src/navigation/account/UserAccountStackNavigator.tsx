@@ -8,11 +8,14 @@ import { UserProfileScreen } from '@/features/Profile/screens/User/UserProfileSc
 import { ROUTES } from '../routeNames';
 import type { AccountStackParamList } from '../types';
 import { accountStackScreenOptions } from './accountStackScreenOptions';
-import AddReviewScreen from '@/features/Profile/screens/User/AddReviewScreen';
+import UserFeedbackScreen from '@/features/Profile/screens/User/UserFeedbackScreen';
 import UserGuideScreen from '@/features/Profile/screens/User/UserGuideScreen';
 import CallHistoryScreen from '@/features/Profile/screens/User/CallHistoryScreen';
 import { ApplyServiceScreen } from '@/features/MyServices/screens/ApplyServiceScreen';
+import { MyBookingsScreen } from '@/features/Bookings/screens/MyBookingsScreen';
 import { MyDiagnosticPackScreen } from '@/features/Diagnostics/screens/MyDiagnosticPackScreen';
+import { MyEdpScreen } from '@/features/Edp/screens/MyEdpScreen';
+import { WorkshopBookingsScreen } from '@/features/WorkshopBookings/screens/WorkshopBookingsScreen';
 import { MyServicesScreen } from '@/features/MyServices/screens/MyServicesScreen';
 
 const Stack = createNativeStackNavigator<AccountStackParamList>();
@@ -40,7 +43,7 @@ export function UserAccountStackNavigator(): React.ReactElement {
       />
       <Stack.Screen
         name={ROUTES.Account.addReview}
-        component={AddReviewScreen}
+        component={UserFeedbackScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen
@@ -66,6 +69,21 @@ export function UserAccountStackNavigator(): React.ReactElement {
       <Stack.Screen
         name={ROUTES.Account.MyDiagnosticPack}
         component={MyDiagnosticPackScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name={ROUTES.Account.MyBookings}
+        component={MyBookingsScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name={ROUTES.Account.WorkshopBookings}
+        component={WorkshopBookingsScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name={ROUTES.Account.MyEdp}
+        component={MyEdpScreen}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>

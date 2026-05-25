@@ -3,10 +3,25 @@ import { baseApi } from '@/services/api/baseApi';
 export interface WorkshopBookingItem {
   id: number;
   workshopId: number;
+  userType?: string;
+  workshopName?: string;
+  workshopSlug?: string;
+  workshopDate?: string | null;
+  workshopType?: string | null;
+  workshopUrl?: string | null;
+  workshopStartTime?: string | null;
+  workshopEndTime?: string | null;
   paymentStatus: string;
   amount: number;
   bookingStatus: string;
   type: string;
+  orderId?: string | null;
+  paymentId?: string | null;
+  joinUrl?: string | null;
+  certificateId?: number | null;
+  certificateNumber?: string | null;
+  certificateIssuedDate?: string | null;
+  certificateStatus?: number | null;
   createdAt: string;
 }
 
@@ -55,10 +70,29 @@ function parseBookingRow(raw: Record<string, unknown>): WorkshopBookingItem | nu
   return {
     id,
     workshopId,
+    userType: typeof raw.userType === 'string' ? raw.userType : undefined,
+    workshopName: typeof raw.workshopName === 'string' ? raw.workshopName : undefined,
+    workshopSlug: typeof raw.workshopSlug === 'string' ? raw.workshopSlug : undefined,
+    workshopDate: typeof raw.workshopDate === 'string' ? raw.workshopDate : null,
+    workshopType: typeof raw.workshopType === 'string' ? raw.workshopType : null,
+    workshopUrl: typeof raw.workshopUrl === 'string' ? raw.workshopUrl : null,
+    workshopStartTime:
+      typeof raw.workshopStartTime === 'string' ? raw.workshopStartTime : null,
+    workshopEndTime: typeof raw.workshopEndTime === 'string' ? raw.workshopEndTime : null,
     paymentStatus: String(raw.paymentStatus ?? ''),
     amount: Number(raw.amount ?? 0),
-    bookingStatus: String(raw.bookingStatus ?? ''),
-    type: String(raw.type ?? ''),
+    bookingStatus: String(raw.bookingStatus ?? 'active'),
+    type: String(raw.type ?? 'online'),
+    orderId: typeof raw.orderId === 'string' ? raw.orderId : null,
+    paymentId: typeof raw.paymentId === 'string' ? raw.paymentId : null,
+    joinUrl: typeof raw.joinUrl === 'string' ? raw.joinUrl : null,
+    certificateId: typeof raw.certificateId === 'number' ? raw.certificateId : null,
+    certificateNumber:
+      typeof raw.certificateNumber === 'string' ? raw.certificateNumber : null,
+    certificateIssuedDate:
+      typeof raw.certificateIssuedDate === 'string' ? raw.certificateIssuedDate : null,
+    certificateStatus:
+      typeof raw.certificateStatus === 'number' ? raw.certificateStatus : null,
     createdAt: String(raw.createdAt ?? ''),
   };
 }

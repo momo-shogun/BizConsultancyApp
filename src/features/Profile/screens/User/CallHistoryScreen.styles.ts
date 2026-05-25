@@ -1,316 +1,189 @@
+import { Platform, StyleSheet } from 'react-native';
+
 import { THEME } from '@/constants/theme';
-import { StyleSheet } from 'react-native';
+
+export const CALL_HISTORY_CANVAS = '#F8FAFC';
+const SLATE_LINE = '#E2E8F0';
+
+const CARD_SHADOW = Platform.select({
+  ios: {
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  android: { elevation: 2 },
+  default: {},
+});
 
 export const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
-    padding: THEME.spacing[16],
+    backgroundColor: CALL_HISTORY_CANVAS,
   },
-
-  headerRow: {
+  filterRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: THEME.spacing[20],
-  },
-
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: THEME.spacing[10],
-  },
-
-  headerAccent: {
-    width: 4,
-    height: 22,
-    borderRadius: 2,
-    backgroundColor: THEME.colors.accentAmber,
-  },
-
-  headerTitle: {
-    color: THEME.colors.textPrimary,
-    fontSize: THEME.typography.size[20],
-    fontWeight: THEME.typography.weight.bold,
-    letterSpacing: -0.4,
-  },
-
-  countBadge: {
-    paddingHorizontal: THEME.spacing[12],
-    paddingVertical: THEME.spacing[4],
-    borderRadius: 999,
-    backgroundColor: 'rgba(251,191,36,0.14)',
-  },
-
-  countText: {
-    color: THEME.colors.accentAmber,
-    fontWeight: THEME.typography.weight.bold,
-  },
-
-  refreshButton: {
-    backgroundColor: '#38BDF8',
-
-    paddingHorizontal: THEME.spacing[16],
-    paddingVertical: THEME.spacing[10],
-
-    borderRadius: 999,
-
-    shadowColor: '#38BDF8',
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
-
-    shadowOpacity: 0.18,
-    shadowRadius: 14,
-
-    elevation: 6,
-  },
-
-  refreshText: {
-    color: THEME.colors.white,
-    fontWeight: THEME.typography.weight.bold,
-  },
-
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-
-    backgroundColor: THEME.colors.white,
-
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-
-    borderRadius: 18,
-
-    paddingHorizontal: THEME.spacing[14],
-
-    marginBottom: THEME.spacing[20],
-
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
-
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-
-    elevation: 3,
-  },
-
-  searchIcon: {
-    color: THEME.colors.textSecondary,
-    fontSize: THEME.typography.size[16],
-  },
-
-  searchInput: {
-    flex: 1,
-
-    color: THEME.colors.textPrimary,
-
-    padding: THEME.spacing[14],
-
-    fontSize: THEME.typography.size[14],
-  },
-
-  listContent: {
-    gap: THEME.spacing[16],
-    paddingBottom: THEME.spacing[24],
-  },
-
-  card: {
-    backgroundColor: THEME.colors.white,
-
-    borderRadius: 20,
-
-    padding: THEME.spacing[16],
-
-    borderWidth: 1,
-    borderColor: '#EEF2F7',
-
-    shadowColor: '#000',
-
-    shadowOffset: {
-      width: 0,
-      height: 10,
-    },
-
-    shadowOpacity: 0.07,
-
-    shadowRadius: 18,
-
-    elevation: 5,
-
-    overflow: 'hidden',
-  },
-
-  cardShimmerEdge: {
-    position: 'absolute',
-
-    top: 0,
-    left: 0,
-    right: 0,
-
-    height: 2,
-
-    opacity: 0.5,
-  },
-
-  cardContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-
-  leftBlock: {
-    flexDirection: 'row',
-    gap: THEME.spacing[12],
-    flex: 1,
-  },
-
-  iconOuter: {
-    width: 52,
-    height: 52,
-
-    borderRadius: 26,
-
-    borderWidth: 1,
-
-    borderColor: '#E2E8F0',
-
-    backgroundColor: THEME.colors.white,
-
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  iconInner: {
-    width: 44,
-    height: 44,
-
-    borderRadius: 22,
-
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  videoIcon: {
-    color: '#38BDF8',
-
-    fontSize: THEME.typography.size[20],
-  },
-
-  info: {
+    flexWrap: 'wrap',
     gap: THEME.spacing[8],
-    flex: 1,
+    paddingHorizontal: THEME.spacing[16],
+    paddingBottom: THEME.spacing[10],
+    backgroundColor: CALL_HISTORY_CANVAS,
   },
-
-  type: {
-    color: THEME.colors.textPrimary,
-
-    fontSize: THEME.typography.size[16],
-
-    fontWeight: THEME.typography.weight.bold,
+  filterChip: {
+    paddingHorizontal: THEME.spacing[12],
+    paddingVertical: THEME.spacing[8],
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: SLATE_LINE,
+    backgroundColor: THEME.colors.white,
   },
-
-  meta: {
+  filterChipActive: {
+    borderColor: THEME.colors.primary,
+    backgroundColor: 'rgba(15,81,50,0.08)',
+  },
+  filterChipText: {
+    fontSize: THEME.typography.size[12],
+    fontWeight: THEME.typography.weight.semibold as '600',
     color: THEME.colors.textSecondary,
-    lineHeight: 22,
   },
-
-  consultant: {
-    color: THEME.colors.textPrimary,
-
-    fontWeight:
-      THEME.typography.weight.medium,
+  filterChipTextActive: {
+    color: THEME.colors.primary,
   },
-
-  rightBlock: {
-    alignItems: 'flex-end',
+  resultMeta: {
+    paddingHorizontal: THEME.spacing[16],
+    paddingBottom: THEME.spacing[8],
+    fontSize: 11,
+    fontWeight: THEME.typography.weight.medium as '500',
+    color: '#64748B',
+  },
+  listContent: {
+    paddingHorizontal: THEME.spacing[16],
+    paddingBottom: THEME.spacing[24],
+    gap: THEME.spacing[8],
+  },
+  card: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: THEME.spacing[10],
-  },
-
-  statusBadge: {
+    backgroundColor: THEME.colors.white,
+    borderRadius: THEME.radius[12],
     borderWidth: 1,
-
-    borderRadius: 999,
-
-    paddingHorizontal:
-      THEME.spacing[12],
-
-    paddingVertical:
-      THEME.spacing[4],
+    borderColor: SLATE_LINE,
+    paddingVertical: THEME.spacing[10],
+    paddingHorizontal: THEME.spacing[12],
+    ...CARD_SHADOW,
   },
-
+  iconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: THEME.radius[12],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  body: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: THEME.spacing[4],
+  },
+  title: {
+    flex: 1,
+    fontSize: THEME.typography.size[14],
+    fontWeight: THEME.typography.weight.semibold as '600',
+    color: THEME.colors.textPrimary,
+  },
+  meta: {
+    fontSize: 11,
+    color: THEME.colors.textSecondary,
+    lineHeight: 15,
+  },
+  consultant: {
+    fontSize: 11,
+    fontWeight: THEME.typography.weight.medium as '500',
+    color: '#475569',
+  },
+  trailing: {
+    alignItems: 'flex-end',
+    gap: THEME.spacing[4],
+  },
+  statusPill: {
+    paddingHorizontal: THEME.spacing[8],
+    paddingVertical: 3,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
   statusText: {
-    fontWeight:
-      THEME.typography.weight.bold,
+    fontSize: 10,
+    fontWeight: THEME.typography.weight.bold as '700',
+    textTransform: 'capitalize',
   },
-
-  callId: {
-    color:
-      THEME.colors.textSecondary,
-
-    fontSize:
-      THEME.typography.size[12],
+  sessionId: {
+    fontSize: 10,
+    color: '#94A3B8',
   },
-
-  rateButton: {
-    backgroundColor:
-      'rgba(251,191,36,0.12)',
-
-    borderWidth: 1,
-
-    borderColor:
-      'rgba(251,191,36,0.25)',
-
+  rateBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: THEME.spacing[4],
+    alignSelf: 'flex-start',
+    paddingHorizontal: THEME.spacing[8],
+    paddingVertical: 4,
     borderRadius: 999,
-
-    paddingHorizontal:
-      THEME.spacing[14],
-
-    paddingVertical:
-      THEME.spacing[8],
+    backgroundColor: 'rgba(245,158,11,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(245,158,11,0.25)',
   },
-
   rateText: {
-    color:
-      THEME.colors.accentAmber,
-
-    fontWeight:
-      THEME.typography.weight.bold,
+    fontSize: 10,
+    fontWeight: THEME.typography.weight.semibold as '600',
+    color: '#B45309',
   },
-
+  reviewedText: {
+    fontSize: 10,
+    fontWeight: THEME.typography.weight.medium as '500',
+    color: THEME.colors.primary,
+    marginTop: 2,
+  },
   centeredState: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     gap: THEME.spacing[12],
-    paddingVertical: THEME.spacing[24],
+    paddingHorizontal: THEME.spacing[24],
+    paddingVertical: THEME.spacing[32],
   },
-
   stateText: {
     fontSize: THEME.typography.size[14],
     color: THEME.colors.textSecondary,
     textAlign: 'center',
   },
-
   errorText: {
     fontSize: THEME.typography.size[14],
-    color: '#DC2626',
+    color: THEME.colors.danger,
     textAlign: 'center',
+  },
+  retryBtn: {
     paddingHorizontal: THEME.spacing[16],
-  },
-
-  retryButton: {
-    paddingHorizontal: THEME.spacing[20],
     paddingVertical: THEME.spacing[10],
-    borderRadius: 999,
-    backgroundColor: '#38BDF8',
+    borderRadius: THEME.radius[12],
+    backgroundColor: THEME.colors.primary,
   },
-
   retryText: {
+    fontSize: THEME.typography.size[14],
+    fontWeight: THEME.typography.weight.semibold as '600',
     color: THEME.colors.white,
-    fontWeight: THEME.typography.weight.bold,
+  },
+  emptyIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(15,81,50,0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

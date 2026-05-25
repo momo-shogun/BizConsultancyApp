@@ -1,21 +1,10 @@
-import { Platform, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import { THEME } from '@/constants/theme';
-import { DIAGNOSIS_THEME } from '../constants/diagnosisTheme';
 
-export const PACK_CANVAS = '#F8FAFC';
+export const PACK_CANVAS = '#F4F7FB';
 const SLATE_LINE = '#E2E8F0';
-
-const CARD_SHADOW = Platform.select({
-  ios: {
-    shadowColor: '#0F172A',
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-  },
-  android: { elevation: 3 },
-  default: {},
-});
+const SLATE_MUTED = '#64748B';
 
 export const styles = StyleSheet.create({
   screen: {
@@ -24,89 +13,84 @@ export const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: THEME.spacing[16],
-    paddingBottom: THEME.spacing[24],
-    gap: THEME.spacing[16],
+    paddingTop: THEME.spacing[4],
+    paddingBottom: THEME.spacing[20],
+    gap: THEME.spacing[10],
   },
   centered: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: THEME.spacing[24],
+    padding: THEME.spacing[20],
     backgroundColor: PACK_CANVAS,
+    gap: THEME.spacing[10],
   },
-  card: {
-    backgroundColor: THEME.colors.white,
-    borderRadius: THEME.radius[16],
-    borderWidth: 1,
-    borderColor: SLATE_LINE,
-    padding: THEME.spacing[16],
-    ...CARD_SHADOW,
+  heroGradient: {
+    borderRadius: 16,
+    padding: THEME.spacing[14],
+    gap: THEME.spacing[10],
   },
-  cardHeaderRow: {
+  heroTopRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: THEME.spacing[12],
+    alignItems: 'center',
+    gap: THEME.spacing[10],
   },
-  cardIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: THEME.radius[12],
-    backgroundColor: 'rgba(13,148,136,0.10)',
+  heroIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  cardTitleBlock: {
+  heroTitleBlock: {
     flex: 1,
     minWidth: 0,
-    gap: THEME.spacing[4],
+    gap: 3,
   },
-  cardTitleRow: {
+  heroTitle: {
+    fontSize: THEME.typography.size[17],
+    fontWeight: THEME.typography.weight.bold as '700',
+    color: '#FFFFFF',
+    letterSpacing: -0.2,
+  },
+  heroSubtitle: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.85)',
+  },
+  heroMetaRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
     gap: THEME.spacing[8],
   },
-  cardTitle: {
-    fontSize: THEME.typography.size[18],
-    fontWeight: THEME.typography.weight.bold as '700',
-    color: THEME.colors.textPrimary,
-    letterSpacing: -0.25,
-  },
   statusBadge: {
-    paddingHorizontal: THEME.spacing[10],
-    paddingVertical: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.18)',
   },
-  statusBadgeActive: {
-    backgroundColor: 'rgba(13,148,136,0.12)',
-  },
-  statusBadgeCompleted: {
-    backgroundColor: 'rgba(5,150,105,0.12)',
-  },
-  statusBadgeDefault: {
-    backgroundColor: '#F1F5F9',
+  statusDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: '#6EE7B7',
   },
   statusBadgeText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: THEME.typography.weight.bold as '700',
+    color: '#FFFFFF',
   },
-  statusBadgeTextActive: {
-    color: '#0F766E',
-  },
-  statusBadgeTextCompleted: {
-    color: '#047857',
-  },
-  statusBadgeTextDefault: {
-    color: '#475569',
-  },
-  cardSubtitle: {
-    fontSize: THEME.typography.size[12],
-    color: THEME.colors.textSecondary,
+  heroStatText: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.9)',
     fontWeight: THEME.typography.weight.medium as '500',
   },
   progressBlock: {
-    marginTop: THEME.spacing[14],
-    gap: THEME.spacing[8],
+    gap: 6,
   },
   progressLabels: {
     flexDirection: 'row',
@@ -114,113 +98,127 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
   },
   progressLabel: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: THEME.typography.weight.semibold as '600',
-    color: THEME.colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    color: 'rgba(255,255,255,0.88)',
   },
   progressValue: {
-    fontSize: 11,
+    fontSize: THEME.typography.size[13],
     fontWeight: THEME.typography.weight.bold as '700',
-    color: THEME.colors.textPrimary,
+    color: '#FFFFFF',
   },
   progressTrack: {
     height: 8,
-    borderRadius: 4,
-    backgroundColor: '#E2E8F0',
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.25)',
     overflow: 'hidden',
   },
   progressFill: {
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: DIAGNOSIS_THEME.brandPrimary,
+    height: '100%',
+    borderRadius: 999,
+    backgroundColor: '#FFFFFF',
   },
   callout: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: THEME.spacing[10],
-    marginTop: THEME.spacing[12],
-    padding: THEME.spacing[12],
-    borderRadius: THEME.radius[12],
+    gap: THEME.spacing[8],
+    paddingVertical: THEME.spacing[10],
+    paddingHorizontal: THEME.spacing[12],
+    borderRadius: 12,
     borderWidth: 1,
   },
   calloutNext: {
-    borderColor: 'rgba(217,119,6,0.35)',
-    backgroundColor: 'rgba(255,251,235,0.95)',
+    borderColor: 'rgba(245,158,11,0.35)',
+    backgroundColor: '#FFFBEB',
   },
   calloutUpgrade: {
-    borderColor: 'rgba(13,148,136,0.35)',
-    backgroundColor: 'rgba(240,253,250,0.95)',
+    borderColor: 'rgba(13,148,136,0.3)',
+    backgroundColor: '#F0FDFA',
   },
   calloutTitle: {
-    fontSize: THEME.typography.size[12],
+    fontSize: 11,
     fontWeight: THEME.typography.weight.bold as '700',
     color: THEME.colors.textPrimary,
   },
   calloutBody: {
     marginTop: 2,
     fontSize: THEME.typography.size[12],
-    color: THEME.colors.textSecondary,
+    color: SLATE_MUTED,
     lineHeight: 17,
   },
-  upgradeBtn: {
-    marginTop: THEME.spacing[10],
-    alignSelf: 'flex-start',
-    paddingHorizontal: THEME.spacing[12],
-    paddingVertical: THEME.spacing[8],
-    borderRadius: THEME.radius[12],
-    borderWidth: 1,
-    borderColor: 'rgba(13,148,136,0.4)',
-    backgroundColor: THEME.colors.white,
+  upgradeLink: {
+    marginTop: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
   },
-  upgradeBtnText: {
-    fontSize: THEME.typography.size[12],
+  upgradeLinkText: {
+    fontSize: 11,
     fontWeight: THEME.typography.weight.semibold as '600',
     color: '#0D9488',
+  },
+  servicesBlock: {
+    backgroundColor: THEME.colors.white,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: SLATE_LINE,
+    overflow: 'hidden',
   },
   servicesHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: THEME.spacing[4],
+    paddingHorizontal: THEME.spacing[12],
+    paddingVertical: THEME.spacing[10],
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: SLATE_LINE,
+    backgroundColor: '#FAFBFC',
   },
   servicesTitle: {
-    fontSize: THEME.typography.size[16],
+    fontSize: THEME.typography.size[14],
     fontWeight: THEME.typography.weight.bold as '700',
     color: THEME.colors.textPrimary,
   },
-  servicesDesc: {
-    fontSize: THEME.typography.size[12],
-    color: THEME.colors.textSecondary,
-    lineHeight: 17,
-    marginBottom: THEME.spacing[12],
+  servicesCount: {
+    fontSize: 11,
+    color: SLATE_MUTED,
+    marginTop: 1,
   },
   applyBtn: {
-    paddingHorizontal: THEME.spacing[14],
-    paddingVertical: THEME.spacing[8],
-    borderRadius: THEME.radius[12],
-    backgroundColor: DIAGNOSIS_THEME.brandPrimary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: THEME.colors.primary,
   },
   applyBtnDisabled: {
     opacity: 0.45,
   },
   applyBtnText: {
-    fontSize: THEME.typography.size[12],
+    fontSize: 11,
     fontWeight: THEME.typography.weight.bold as '700',
     color: THEME.colors.white,
   },
   serviceRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: THEME.spacing[10],
-    paddingVertical: THEME.spacing[12],
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: SLATE_LINE,
+    paddingHorizontal: THEME.spacing[12],
+    paddingVertical: THEME.spacing[10],
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: SLATE_LINE,
   },
-  serviceRowFirst: {
-    borderTopWidth: 0,
-    paddingTop: 0,
+  serviceRowLast: {
+    borderBottomWidth: 0,
+  },
+  serviceIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   serviceText: {
     flex: 1,
@@ -228,47 +226,62 @@ export const styles = StyleSheet.create({
     gap: 2,
   },
   serviceTitle: {
-    fontSize: THEME.typography.size[14],
+    fontSize: THEME.typography.size[13],
     fontWeight: THEME.typography.weight.semibold as '600',
     color: THEME.colors.textPrimary,
   },
   serviceMeta: {
-    fontSize: THEME.typography.size[12],
-    color: THEME.colors.textSecondary,
+    fontSize: 11,
+    color: SLATE_MUTED,
+    lineHeight: 15,
   },
   requestBtn: {
-    paddingHorizontal: THEME.spacing[12],
-    paddingVertical: THEME.spacing[8],
-    borderRadius: THEME.radius[12],
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: SLATE_LINE,
-    backgroundColor: THEME.colors.white,
-    minWidth: 88,
+    minWidth: 76,
     alignItems: 'center',
   },
+  requestBtnPrimary: {
+    borderColor: THEME.colors.primary,
+    backgroundColor: 'rgba(15,81,50,0.06)',
+  },
   requestBtnDisabled: {
-    opacity: 0.55,
+    opacity: 0.5,
   },
   requestBtnText: {
-    fontSize: THEME.typography.size[12],
+    fontSize: 10,
     fontWeight: THEME.typography.weight.semibold as '600',
     color: THEME.colors.textPrimary,
   },
+  requestBtnTextPrimary: {
+    color: THEME.colors.primary,
+  },
   emptyServices: {
     fontSize: THEME.typography.size[12],
-    color: THEME.colors.textSecondary,
-    paddingVertical: THEME.spacing[8],
+    color: SLATE_MUTED,
+    textAlign: 'center',
+    padding: THEME.spacing[16],
   },
-  emptyCard: {
+  statePanel: {
+    backgroundColor: THEME.colors.white,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: SLATE_LINE,
+    padding: THEME.spacing[20],
     alignItems: 'center',
-    paddingVertical: THEME.spacing[8],
-    gap: THEME.spacing[12],
+    gap: THEME.spacing[10],
+    width: '100%',
   },
-  emptyIcon: {
+  emptyIconRing: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: 'rgba(13,148,136,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(13,148,136,0.3)',
+    backgroundColor: 'rgba(13,148,136,0.08)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -280,39 +293,42 @@ export const styles = StyleSheet.create({
   },
   emptyBody: {
     fontSize: THEME.typography.size[12],
-    color: THEME.colors.textSecondary,
+    color: SLATE_MUTED,
     textAlign: 'center',
     lineHeight: 18,
   },
   primaryBtn: {
-    marginTop: THEME.spacing[4],
-    paddingHorizontal: THEME.spacing[20],
-    paddingVertical: THEME.spacing[12],
-    borderRadius: THEME.radius[12],
-    backgroundColor: '#0D9488',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 4,
+    paddingHorizontal: THEME.spacing[16],
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: THEME.colors.primary,
   },
   primaryBtnText: {
-    fontSize: THEME.typography.size[14],
+    fontSize: THEME.typography.size[13],
     fontWeight: THEME.typography.weight.bold as '700',
     color: THEME.colors.white,
   },
   retryBtn: {
-    marginTop: THEME.spacing[12],
     paddingHorizontal: THEME.spacing[16],
-    paddingVertical: THEME.spacing[10],
-    borderRadius: THEME.radius[12],
+    paddingVertical: 8,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: SLATE_LINE,
+    backgroundColor: THEME.colors.white,
   },
   retryBtnText: {
-    fontSize: THEME.typography.size[14],
+    fontSize: THEME.typography.size[13],
     fontWeight: THEME.typography.weight.semibold as '600',
     color: THEME.colors.textPrimary,
   },
   errorText: {
-    fontSize: THEME.typography.size[14],
+    fontSize: THEME.typography.size[13],
     color: THEME.colors.danger,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 18,
   },
 });

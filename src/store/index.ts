@@ -14,12 +14,15 @@ import '@/features/MyServices/api/myServicesApi';
 import '@/features/Search/api/searchApi';
 import '@/features/Calls/api/callsApi';
 import '@/features/Consultation/api/consultantBookingsApi';
+import '@/features/Bookings/api/myConsultantBookingsApi';
+import '@/features/Edp/api/edpPurchasesApi';
 import '@/features/Home/api/workshopsApi';
 import '@/features/Home/api/workshopBookingsApi';
 import '@/features/Home/api/userWalletsApi';
 import '@/features/Wallet/api/walletApi';
 import '@/features/Home/api/homePublicApi';
 import '@/features/Diagnostics/api/diagnosticsApi';
+import '@/features/Profile/api/userFeedbackApi';
 
 const MMKV = new MMKVStorage.Loader().initialize();
 
