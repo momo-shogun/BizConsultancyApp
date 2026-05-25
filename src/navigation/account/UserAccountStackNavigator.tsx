@@ -53,11 +53,6 @@ export function UserAccountStackNavigator(): React.ReactElement {
         options={{ headerShown: false }}
       />
       <Stack.Screen
-        name={ROUTES.Account.userGuide}
-        component={UserGuideScreen}
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
         name={ROUTES.Account.MyServices}
         component={MyServicesScreen}
         options={{ headerShown: false }}

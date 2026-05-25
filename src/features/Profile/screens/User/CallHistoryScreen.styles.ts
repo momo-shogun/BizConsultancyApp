@@ -280,4 +280,37 @@ export const styles = StyleSheet.create({
     fontWeight:
       THEME.typography.weight.bold,
   },
+
+  centeredState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: THEME.spacing[12],
+    paddingVertical: THEME.spacing[24],
+  },
+
+  stateText: {
+    fontSize: THEME.typography.size[14],
+    color: THEME.colors.textSecondary,
+    textAlign: 'center',
+  },
+
+  errorText: {
+    fontSize: THEME.typography.size[14],
+    color: '#DC2626',
+    textAlign: 'center',
+    paddingHorizontal: THEME.spacing[16],
+  },
+
+  retryButton: {
+    paddingHorizontal: THEME.spacing[20],
+    paddingVertical: THEME.spacing[10],
+    borderRadius: 999,
+    backgroundColor: '#38BDF8',
+  },
+
+  retryText: {
+    color: THEME.colors.white,
+    fontWeight: THEME.typography.weight.bold,
+  },
 });

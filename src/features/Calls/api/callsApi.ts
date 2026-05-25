@@ -2,6 +2,8 @@ import { baseApi } from '@/services/api/baseApi';
 
 import type {
   AcceptCallResponse,
+  CallHistoryQueryParams,
+  CallHistoryResponse,
   CallSessionStatusResponse,
   CallSyncResponse,
   EndCallPayload,
@@ -71,6 +73,17 @@ export const callsApi = baseApi.injectEndpoints({
         return `calls/${sessionId}/sync${q}`;
       },
     }),
+    getCallHistory: build.query<CallHistoryResponse, CallHistoryQueryParams | void>({
+      query: (params) => ({
+        url: 'calls/history',
+        params: {
+          page: params?.page ?? 1,
+          limit: params?.limit ?? 20,
+          ...(params?.sessionId != null ? { sessionId: params.sessionId } : {}),
+        },
+      }),
+      providesTags: ['Call'],
+    }),
   }),
 });
 
@@ -84,4 +97,5 @@ export const {
   useGetCallStatusQuery,
   useLazySyncCallQuery,
   useLazyGetCallStatusQuery,
+  useGetCallHistoryQuery,
 } = callsApi;
