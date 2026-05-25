@@ -1,82 +1,95 @@
-import { Platform, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import { THEME } from '@/constants/theme';
 
-export const CALL_HISTORY_CANVAS = '#F8FAFC';
+export const CALL_HISTORY_CANVAS = '#F4F7FB';
 const SLATE_LINE = '#E2E8F0';
-
-const CARD_SHADOW = Platform.select({
-  ios: {
-    shadowColor: '#0F172A',
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-  },
-  android: { elevation: 2 },
-  default: {},
-});
+const SLATE_MUTED = '#64748B';
 
 export const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: CALL_HISTORY_CANVAS,
   },
+  listContent: {
+    paddingHorizontal: THEME.spacing[16],
+    paddingBottom: THEME.spacing[20],
+    gap: THEME.spacing[10],
+  },
+  heroGradient: {
+    borderRadius: 16,
+    padding: THEME.spacing[14],
+    gap: THEME.spacing[10],
+    marginBottom: THEME.spacing[2],
+  },
+  heroTitle: {
+    fontSize: THEME.typography.size[17],
+    fontWeight: THEME.typography.weight.bold as '700',
+    color: '#FFFFFF',
+  },
+  heroMeta: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.88)',
+  },
   filterRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: THEME.spacing[8],
-    paddingHorizontal: THEME.spacing[16],
-    paddingBottom: THEME.spacing[10],
-    backgroundColor: CALL_HISTORY_CANVAS,
   },
   filterChip: {
-    paddingHorizontal: THEME.spacing[12],
-    paddingVertical: THEME.spacing[8],
+    paddingHorizontal: THEME.spacing[10],
+    paddingVertical: 6,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: SLATE_LINE,
-    backgroundColor: THEME.colors.white,
+    borderColor: 'rgba(255,255,255,0.35)',
+    backgroundColor: 'rgba(255,255,255,0.14)',
   },
   filterChipActive: {
-    borderColor: THEME.colors.primary,
-    backgroundColor: 'rgba(15,81,50,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.28)',
+    borderColor: 'rgba(255,255,255,0.5)',
   },
   filterChipText: {
-    fontSize: THEME.typography.size[12],
+    fontSize: 11,
     fontWeight: THEME.typography.weight.semibold as '600',
-    color: THEME.colors.textSecondary,
+    color: 'rgba(255,255,255,0.9)',
   },
   filterChipTextActive: {
-    color: THEME.colors.primary,
+    color: '#FFFFFF',
   },
-  resultMeta: {
-    paddingHorizontal: THEME.spacing[16],
-    paddingBottom: THEME.spacing[8],
+  listBlock: {
+    backgroundColor: THEME.colors.white,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: SLATE_LINE,
+    overflow: 'hidden',
+  },
+  listHeader: {
+    paddingHorizontal: THEME.spacing[12],
+    paddingVertical: THEME.spacing[10],
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: SLATE_LINE,
+    backgroundColor: '#FAFBFC',
+  },
+  listHeaderMeta: {
     fontSize: 11,
-    fontWeight: THEME.typography.weight.medium as '500',
-    color: '#64748B',
+    color: SLATE_MUTED,
   },
-  listContent: {
-    paddingHorizontal: THEME.spacing[16],
-    paddingBottom: THEME.spacing[24],
-    gap: THEME.spacing[8],
-  },
-  card: {
+  callRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: THEME.spacing[10],
-    backgroundColor: THEME.colors.white,
-    borderRadius: THEME.radius[12],
-    borderWidth: 1,
-    borderColor: SLATE_LINE,
-    paddingVertical: THEME.spacing[10],
     paddingHorizontal: THEME.spacing[12],
-    ...CARD_SHADOW,
+    paddingVertical: THEME.spacing[10],
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: SLATE_LINE,
+  },
+  callRowLast: {
+    borderBottomWidth: 0,
   },
   iconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: THEME.radius[12],
+    width: 32,
+    height: 32,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -85,20 +98,14 @@ export const styles = StyleSheet.create({
     minWidth: 0,
     gap: 2,
   },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: THEME.spacing[4],
-  },
   title: {
-    flex: 1,
-    fontSize: THEME.typography.size[14],
+    fontSize: THEME.typography.size[13],
     fontWeight: THEME.typography.weight.semibold as '600',
     color: THEME.colors.textPrimary,
   },
   meta: {
     fontSize: 11,
-    color: THEME.colors.textSecondary,
+    color: SLATE_MUTED,
     lineHeight: 15,
   },
   consultant: {
@@ -108,10 +115,10 @@ export const styles = StyleSheet.create({
   },
   trailing: {
     alignItems: 'flex-end',
-    gap: THEME.spacing[4],
+    gap: 4,
   },
   statusPill: {
-    paddingHorizontal: THEME.spacing[8],
+    paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 999,
     borderWidth: 1,
@@ -128,11 +135,11 @@ export const styles = StyleSheet.create({
   rateBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginTop: THEME.spacing[4],
+    gap: 3,
+    marginTop: 4,
     alignSelf: 'flex-start',
-    paddingHorizontal: THEME.spacing[8],
-    paddingVertical: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderRadius: 999,
     backgroundColor: 'rgba(245,158,11,0.12)',
     borderWidth: 1,
@@ -153,28 +160,28 @@ export const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: THEME.spacing[12],
-    paddingHorizontal: THEME.spacing[24],
-    paddingVertical: THEME.spacing[32],
+    gap: THEME.spacing[10],
+    paddingHorizontal: THEME.spacing[20],
+    paddingVertical: THEME.spacing[28],
   },
   stateText: {
-    fontSize: THEME.typography.size[14],
-    color: THEME.colors.textSecondary,
+    fontSize: THEME.typography.size[13],
+    color: SLATE_MUTED,
     textAlign: 'center',
   },
   errorText: {
-    fontSize: THEME.typography.size[14],
+    fontSize: THEME.typography.size[13],
     color: THEME.colors.danger,
     textAlign: 'center',
   },
   retryBtn: {
     paddingHorizontal: THEME.spacing[16],
-    paddingVertical: THEME.spacing[10],
-    borderRadius: THEME.radius[12],
+    paddingVertical: 8,
+    borderRadius: 10,
     backgroundColor: THEME.colors.primary,
   },
   retryText: {
-    fontSize: THEME.typography.size[14],
+    fontSize: THEME.typography.size[13],
     fontWeight: THEME.typography.weight.semibold as '600',
     color: THEME.colors.white,
   },
@@ -182,7 +189,9 @@ export const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(15,81,50,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(15,81,50,0.2)',
+    backgroundColor: 'rgba(15,81,50,0.06)',
     alignItems: 'center',
     justifyContent: 'center',
   },

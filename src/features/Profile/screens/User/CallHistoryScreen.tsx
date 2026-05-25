@@ -1,22 +1,23 @@
 import React, { memo, useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  FlatList,
   Pressable,
   RefreshControl,
+  ScrollView,
   Text,
   View,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { useGetCallHistoryQuery } from '@/features/Calls/api/callsApi';
 import type { CallHistoryItem, CallStatus } from '@/features/Calls/types/callApi.types';
+import { THEME } from '@/constants/theme';
 import { ROUTES } from '@/navigation/routeNames';
 import type { AccountStackParamList } from '@/navigation/types';
 import { SafeAreaWrapper, ScreenHeader } from '@/shared/components';
-import { THEME } from '@/constants/theme';
 
 import { CALL_HISTORY_CANVAS, styles } from './CallHistoryScreen.styles';
 import {
@@ -89,21 +90,22 @@ function CallDirectionIcon(props: {
         ? 'arrow-up-outline'
         : 'arrow-down-outline';
 
-  return <Ionicons name={name} size={18} color={props.color} />;
+  return <Ionicons name={name} size={16} color={props.color} />;
 }
 
-interface CallCardProps {
+interface CallRowProps {
   item: CallHistoryCardModel;
   raw: CallHistoryItem;
+  isLast: boolean;
   onRate: () => void;
 }
 
-const CallCard = memo(function CallCard(props: CallCardProps): React.ReactElement {
-  const { item, raw, onRate } = props;
+const CallRow = memo(function CallRow(props: CallRowProps): React.ReactElement {
+  const { item, raw, isLast, onRate } = props;
   const visual = getStatusVisual(item.tone);
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.callRow, isLast ? styles.callRowLast : null]}>
       <View style={[styles.iconWrap, { backgroundColor: visual.iconBg }]}>
         <CallDirectionIcon
           direction={raw.direction}
@@ -113,11 +115,9 @@ const CallCard = memo(function CallCard(props: CallCardProps): React.ReactElemen
       </View>
 
       <View style={styles.body}>
-        <View style={styles.titleRow}>
-          <Text style={styles.title} numberOfLines={1}>
-            {item.type}
-          </Text>
-        </View>
+        <Text style={styles.title} numberOfLines={1}>
+          {item.type}
+        </Text>
         <Text style={styles.meta} numberOfLines={1}>
           {item.time} · {item.duration}
         </Text>
@@ -131,12 +131,12 @@ const CallCard = memo(function CallCard(props: CallCardProps): React.ReactElemen
             onPress={onRate}
             style={({ pressed }) => [styles.rateBtn, pressed ? { opacity: 0.88 } : null]}
           >
-            <Ionicons name="star-outline" size={12} color="#B45309" />
+            <Ionicons name="star-outline" size={11} color="#B45309" />
             <Text style={styles.rateText}>Rate</Text>
           </Pressable>
         ) : null}
         {raw.reviewedByMe === true ? (
-          <Text style={styles.reviewedText}>Review submitted</Text>
+          <Text style={styles.reviewedText}>Reviewed</Text>
         ) : null}
       </View>
 
@@ -197,25 +197,11 @@ function CallHistoryScreen(): React.ReactElement {
       .map((raw) => ({ raw, card: mapCallHistoryItem(raw) }));
   }, [data?.data, statusFilter]);
 
-  const totalLoaded = data?.data.length ?? 0;
-
   const handleRate = useCallback((): void => {
     navigation.navigate(ROUTES.Account.addReview);
   }, [navigation]);
 
-  const listHeader = useMemo((): React.ReactElement => {
-    return (
-      <>
-        <FilterBar active={statusFilter} onChange={setStatusFilter} />
-        {totalLoaded > 0 ? (
-          <Text style={styles.resultMeta}>
-            {rows.length} call{rows.length === 1 ? '' : 's'}
-            {statusFilter !== 'all' ? ` · ${STATUS_FILTERS.find((f) => f.id === statusFilter)?.label}` : ''}
-          </Text>
-        ) : null}
-      </>
-    );
-  }, [rows.length, statusFilter, totalLoaded]);
+  const filterLabel = STATUS_FILTERS.find((f) => f.id === statusFilter)?.label ?? 'All';
 
   return (
     <SafeAreaWrapper edges={['top']} bgColor={CALL_HISTORY_CANVAS} contentBgColor={CALL_HISTORY_CANVAS}>
@@ -234,15 +220,10 @@ function CallHistoryScreen(): React.ReactElement {
           </Pressable>
         </View>
       ) : (
-        <FlatList
+        <ScrollView
           style={styles.screen}
-          data={rows}
-          keyExtractor={(item) => String(item.raw.id)}
+          contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={
-            rows.length === 0 ? [styles.listContent, { flexGrow: 1 }] : styles.listContent
-          }
-          ListHeaderComponent={listHeader}
           refreshControl={
             <RefreshControl
               refreshing={isFetching && !isLoading}
@@ -250,22 +231,47 @@ function CallHistoryScreen(): React.ReactElement {
               tintColor={THEME.colors.primary}
             />
           }
-          renderItem={({ item }) => (
-            <CallCard item={item.card} raw={item.raw} onRate={handleRate} />
-          )}
-          ListEmptyComponent={
+        >
+          <LinearGradient
+            colors={[THEME.colors.primary, '#166534']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.heroGradient}
+          >
+            <Text style={styles.heroTitle}>Call history</Text>
+            <Text style={styles.heroMeta}>
+              {rows.length} call{rows.length === 1 ? '' : 's'}
+              {statusFilter !== 'all' ? ` · ${filterLabel}` : ''}
+            </Text>
+            <FilterBar active={statusFilter} onChange={setStatusFilter} />
+          </LinearGradient>
+
+          {rows.length === 0 ? (
             <View style={styles.centeredState}>
               <View style={styles.emptyIcon}>
-                <Ionicons name="call-outline" size={24} color={THEME.colors.primary} />
+                <Ionicons name="call-outline" size={22} color={THEME.colors.primary} />
               </View>
               <Text style={styles.stateText}>
-                {statusFilter === 'all'
-                  ? 'No calls yet.'
-                  : `No ${statusFilter} calls found.`}
+                {statusFilter === 'all' ? 'No calls yet.' : `No ${statusFilter} calls found.`}
               </Text>
             </View>
-          }
-        />
+          ) : (
+            <View style={styles.listBlock}>
+              <View style={styles.listHeader}>
+                <Text style={styles.listHeaderMeta}>Recent calls</Text>
+              </View>
+              {rows.map((row, index) => (
+                <CallRow
+                  key={row.raw.id}
+                  item={row.card}
+                  raw={row.raw}
+                  isLast={index === rows.length - 1}
+                  onRate={handleRate}
+                />
+              ))}
+            </View>
+          )}
+        </ScrollView>
       )}
     </SafeAreaWrapper>
   );

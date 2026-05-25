@@ -1,20 +1,10 @@
-import { Platform, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import { THEME } from '@/constants/theme';
 
-export const WORKSHOP_CANVAS = '#F8FAFC';
+export const WORKSHOP_CANVAS = '#F4F7FB';
 const SLATE_LINE = '#E2E8F0';
-
-const CARD_SHADOW = Platform.select({
-  ios: {
-    shadowColor: '#0F172A',
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-  },
-  android: { elevation: 3 },
-  default: {},
-});
+const SLATE_MUTED = '#64748B';
 
 export const styles = StyleSheet.create({
   screen: {
@@ -22,24 +12,23 @@ export const styles = StyleSheet.create({
     backgroundColor: WORKSHOP_CANVAS,
   },
   scrollContent: {
-    padding: THEME.spacing[16],
-    paddingBottom: THEME.spacing[24],
-    gap: THEME.spacing[12],
+    paddingHorizontal: THEME.spacing[16],
+    paddingTop: THEME.spacing[4],
+    paddingBottom: THEME.spacing[20],
+    gap: THEME.spacing[10],
   },
   centered: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: THEME.spacing[24],
+    padding: THEME.spacing[20],
   },
-  hero: {
+  heroGradient: {
+    borderRadius: 16,
+    padding: THEME.spacing[14],
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderRadius: THEME.radius[16],
-    padding: THEME.spacing[16],
-    backgroundColor: '#0D9488',
-    ...CARD_SHADOW,
   },
   heroLeft: {
     flexDirection: 'row',
@@ -48,83 +37,111 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
   heroTitle: {
-    fontSize: THEME.typography.size[18],
+    fontSize: THEME.typography.size[17],
     fontWeight: THEME.typography.weight.bold as '700',
     color: THEME.colors.white,
   },
+  heroMeta: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.88)',
+    marginTop: 2,
+  },
   browseLink: {
-    fontSize: THEME.typography.size[12],
+    fontSize: 11,
     fontWeight: THEME.typography.weight.semibold as '600',
-    color: 'rgba(255,255,255,0.95)',
+    color: '#FFFFFF',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.35)',
   },
   searchWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: THEME.spacing[8],
     backgroundColor: THEME.colors.white,
-    borderRadius: THEME.radius[12],
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: SLATE_LINE,
     paddingHorizontal: THEME.spacing[12],
-    ...CARD_SHADOW,
   },
   searchInput: {
     flex: 1,
-    paddingVertical: THEME.spacing[12],
+    paddingVertical: 10,
     fontSize: THEME.typography.size[14],
     color: THEME.colors.textPrimary,
   },
-  resultCount: {
-    fontSize: THEME.typography.size[12],
-    color: THEME.colors.textSecondary,
-    marginLeft: THEME.spacing[4],
-  },
-  card: {
+  listBlock: {
     backgroundColor: THEME.colors.white,
-    borderRadius: THEME.radius[16],
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: SLATE_LINE,
-    padding: THEME.spacing[14],
-    gap: THEME.spacing[10],
-    ...CARD_SHADOW,
+    overflow: 'hidden',
   },
-  cardTitle: {
-    fontSize: THEME.typography.size[16],
+  listHeader: {
+    paddingHorizontal: THEME.spacing[12],
+    paddingVertical: THEME.spacing[10],
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: SLATE_LINE,
+    backgroundColor: '#FAFBFC',
+  },
+  listHeaderTitle: {
+    fontSize: THEME.typography.size[14],
     fontWeight: THEME.typography.weight.bold as '700',
     color: THEME.colors.textPrimary,
   },
-  metaRow: {
+  listHeaderMeta: {
+    fontSize: 11,
+    color: SLATE_MUTED,
+    marginTop: 2,
+  },
+  workshopRow: {
+    paddingHorizontal: THEME.spacing[12],
+    paddingVertical: THEME.spacing[10],
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: SLATE_LINE,
+    gap: 8,
+  },
+  workshopRowLast: {
+    borderBottomWidth: 0,
+  },
+  workshopTitle: {
+    fontSize: THEME.typography.size[14],
+    fontWeight: THEME.typography.weight.semibold as '600',
+    color: THEME.colors.textPrimary,
+  },
+  metaLine: {
+    fontSize: 11,
+    color: SLATE_MUTED,
+    lineHeight: 15,
+  },
+  metaTags: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: THEME.spacing[8],
+    gap: 6,
   },
-  metaChip: {
-    paddingHorizontal: THEME.spacing[8],
-    paddingVertical: 4,
-    borderRadius: 8,
+  metaTag: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
     backgroundColor: '#F1F5F9',
   },
-  metaChipText: {
-    fontSize: 11,
+  metaTagText: {
+    fontSize: 10,
     fontWeight: THEME.typography.weight.medium as '500',
     color: '#475569',
     textTransform: 'capitalize',
   },
-  detailLine: {
-    fontSize: THEME.typography.size[12],
-    color: THEME.colors.textSecondary,
-    lineHeight: 17,
-  },
   actionsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: THEME.spacing[8],
-    marginTop: THEME.spacing[4],
+    gap: 6,
   },
   actionBtn: {
-    paddingHorizontal: THEME.spacing[12],
-    paddingVertical: THEME.spacing[8],
-    borderRadius: THEME.radius[12],
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
   },
   actionBtnPrimary: {
     backgroundColor: THEME.colors.primary,
@@ -141,40 +158,37 @@ export const styles = StyleSheet.create({
     backgroundColor: 'rgba(245,158,11,0.15)',
   },
   actionBtnText: {
-    fontSize: THEME.typography.size[12],
+    fontSize: 10,
     fontWeight: THEME.typography.weight.semibold as '600',
     color: THEME.colors.white,
   },
   actionBtnTextMuted: {
-    color: '#64748B',
+    color: SLATE_MUTED,
   },
   actionBtnTextWarning: {
     color: '#B45309',
   },
-  empty: {
+  emptyBlock: {
+    padding: THEME.spacing[24],
     alignItems: 'center',
-    paddingVertical: THEME.spacing[28],
-    gap: THEME.spacing[12],
+    gap: THEME.spacing[10],
   },
-  emptyIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(13,148,136,0.10)',
-    alignItems: 'center',
-    justifyContent: 'center',
+  detailLine: {
+    fontSize: THEME.typography.size[12],
+    color: SLATE_MUTED,
+    textAlign: 'center',
+    lineHeight: 17,
   },
   pagination: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: THEME.spacing[12],
-    marginTop: THEME.spacing[4],
+    gap: THEME.spacing[10],
   },
   pageBtn: {
-    paddingHorizontal: THEME.spacing[14],
-    paddingVertical: THEME.spacing[8],
-    borderRadius: THEME.radius[12],
+    paddingHorizontal: THEME.spacing[12],
+    paddingVertical: 8,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: SLATE_LINE,
     backgroundColor: THEME.colors.white,
@@ -183,13 +197,13 @@ export const styles = StyleSheet.create({
     opacity: 0.45,
   },
   pageBtnText: {
-    fontSize: THEME.typography.size[12],
+    fontSize: 11,
     fontWeight: THEME.typography.weight.semibold as '600',
     color: THEME.colors.textPrimary,
   },
   pageLabel: {
-    fontSize: THEME.typography.size[12],
-    color: THEME.colors.textSecondary,
+    fontSize: 11,
+    color: SLATE_MUTED,
   },
   modalBackdrop: {
     flex: 1,
@@ -199,29 +213,31 @@ export const styles = StyleSheet.create({
   },
   modalCard: {
     backgroundColor: THEME.colors.white,
-    borderRadius: THEME.radius[16],
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: SLATE_LINE,
     padding: THEME.spacing[20],
     gap: THEME.spacing[12],
     maxHeight: '85%',
   },
   modalTitle: {
-    fontSize: THEME.typography.size[18],
+    fontSize: THEME.typography.size[17],
     fontWeight: THEME.typography.weight.bold as '700',
     color: THEME.colors.textPrimary,
     textAlign: 'center',
   },
   certBox: {
-    borderWidth: 2,
-    borderColor: '#CBD5E1',
-    borderRadius: THEME.radius[12],
-    padding: THEME.spacing[20],
+    borderWidth: 1,
+    borderColor: SLATE_LINE,
+    borderRadius: 12,
+    padding: THEME.spacing[16],
     backgroundColor: '#FFFBEB',
-    gap: THEME.spacing[12],
+    gap: THEME.spacing[10],
   },
   certLine: {
-    fontSize: THEME.typography.size[14],
+    fontSize: THEME.typography.size[13],
     color: THEME.colors.textPrimary,
-    lineHeight: 22,
+    lineHeight: 20,
     textAlign: 'center',
   },
   certHighlight: {
@@ -229,19 +245,19 @@ export const styles = StyleSheet.create({
     color: THEME.colors.primary,
   },
   certNumber: {
-    fontSize: THEME.typography.size[12],
-    color: THEME.colors.textSecondary,
+    fontSize: 11,
+    color: SLATE_MUTED,
     textAlign: 'center',
   },
   modalCloseBtn: {
     alignSelf: 'center',
-    paddingHorizontal: THEME.spacing[20],
-    paddingVertical: THEME.spacing[10],
-    borderRadius: THEME.radius[12],
+    paddingHorizontal: THEME.spacing[18],
+    paddingVertical: 10,
+    borderRadius: 10,
     backgroundColor: THEME.colors.primary,
   },
   modalCloseText: {
-    fontSize: THEME.typography.size[14],
+    fontSize: THEME.typography.size[13],
     fontWeight: THEME.typography.weight.semibold as '600',
     color: THEME.colors.white,
   },

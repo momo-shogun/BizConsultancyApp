@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { selectDisplayName } from '@/features/Auth/store/authSelectors';
@@ -49,13 +50,14 @@ interface CertificateViewModel {
   certificateNumber: string;
 }
 
-interface WorkshopCardProps {
+interface WorkshopRowProps {
   item: WorkshopBookingItem;
+  isLast: boolean;
   onViewCertificate: (item: WorkshopBookingItem) => void;
 }
 
-function WorkshopCard(props: WorkshopCardProps): React.ReactElement {
-  const { item, onViewCertificate } = props;
+function WorkshopRow(props: WorkshopRowProps): React.ReactElement {
+  const { item, isLast, onViewCertificate } = props;
   const passed = hasWorkshopPassed(item);
   const joinAvailable = canJoinWorkshop(item);
   const recordingAvailable = canOpenWorkshopRecording(item);
@@ -66,31 +68,26 @@ function WorkshopCard(props: WorkshopCardProps): React.ReactElement {
   }, []);
 
   return (
-    <View style={styles.card}>
-      <Text style={styles.cardTitle} numberOfLines={2}>
+    <View style={[styles.workshopRow, isLast ? styles.workshopRowLast : null]}>
+      <Text style={styles.workshopTitle} numberOfLines={2}>
         {item.workshopName ?? `Workshop #${item.workshopId}`}
       </Text>
 
-      <View style={styles.metaRow}>
-        <View style={styles.metaChip}>
-          <Text style={styles.metaChipText}>{item.bookingStatus || 'active'}</Text>
+      <View style={styles.metaTags}>
+        <View style={styles.metaTag}>
+          <Text style={styles.metaTagText}>{item.bookingStatus || 'active'}</Text>
         </View>
-        <View style={styles.metaChip}>
-          <Text style={styles.metaChipText}>{(item.workshopType ?? 'webinar').toLowerCase()}</Text>
+        <View style={styles.metaTag}>
+          <Text style={styles.metaTagText}>{(item.workshopType ?? 'webinar').toLowerCase()}</Text>
         </View>
-        <View style={styles.metaChip}>
-          <Text style={styles.metaChipText}>{(item.type ?? 'online').toLowerCase()}</Text>
+        <View style={styles.metaTag}>
+          <Text style={styles.metaTagText}>{(item.type ?? 'online').toLowerCase()}</Text>
         </View>
       </View>
 
-      <Text style={styles.detailLine}>
-        Date: {formatWorkshopDisplayDate(item.workshopDate, item.createdAt)}
-      </Text>
-      <Text style={styles.detailLine}>
-        Amount: ₹{Number(item.amount || 0).toLocaleString('en-IN')}
-      </Text>
-      <Text style={styles.detailLine}>
-        Payment ID: {item.paymentId ?? item.orderId ?? '—'}
+      <Text style={styles.metaLine}>
+        {formatWorkshopDisplayDate(item.workshopDate, item.createdAt)} · ₹
+        {Number(item.amount || 0).toLocaleString('en-IN')}
       </Text>
 
       <View style={styles.actionsRow}>
@@ -103,11 +100,11 @@ function WorkshopCard(props: WorkshopCardProps): React.ReactElement {
           </Pressable>
         ) : passed ? (
           <View style={[styles.actionBtn, styles.actionBtnWarning]}>
-            <Text style={styles.actionBtnTextWarning}>Workshop completed</Text>
+            <Text style={styles.actionBtnTextWarning}>Completed</Text>
           </View>
         ) : (
           <View style={[styles.actionBtn, styles.actionBtnMuted]}>
-            <Text style={styles.actionBtnTextMuted}>Join not available</Text>
+            <Text style={styles.actionBtnTextMuted}>Join later</Text>
           </View>
         )}
 
@@ -121,7 +118,7 @@ function WorkshopCard(props: WorkshopCardProps): React.ReactElement {
         ) : (
           <View style={[styles.actionBtn, styles.actionBtnMuted]}>
             <Text style={styles.actionBtnTextMuted}>
-              {passed ? 'Recording N/A' : 'After completion'}
+              {passed ? 'No recording' : 'After event'}
             </Text>
           </View>
         )}
@@ -135,7 +132,7 @@ function WorkshopCard(props: WorkshopCardProps): React.ReactElement {
           </Pressable>
         ) : (
           <View style={[styles.actionBtn, styles.actionBtnMuted]}>
-            <Text style={styles.actionBtnTextMuted}>Certificate pending</Text>
+            <Text style={styles.actionBtnTextMuted}>Cert pending</Text>
           </View>
         )}
       </View>
@@ -220,69 +217,86 @@ export function WorkshopBookingsScreen(): React.ReactElement {
           <RefreshControl refreshing={isFetching} onRefresh={refetch} tintColor="#0D9488" />
         }
       >
-        <View style={styles.hero}>
+        <LinearGradient
+          colors={['#0D9488', '#0F766E']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.heroGradient}
+        >
           <View style={styles.heroLeft}>
             <Ionicons name="school-outline" size={22} color="#FFFFFF" />
-            <Text style={styles.heroTitle}>My workshops</Text>
+            <View>
+              <Text style={styles.heroTitle}>My workshops</Text>
+              <Text style={styles.heroMeta}>
+                {bookings.length} booking{bookings.length === 1 ? '' : 's'}
+              </Text>
+            </View>
           </View>
           <Pressable onPress={browseWorkshops} hitSlop={8}>
             <Text style={styles.browseLink}>Browse</Text>
           </Pressable>
-        </View>
+        </LinearGradient>
 
         {bookings.length > 0 ? (
-          <>
-            <View style={styles.searchWrap}>
-              <Ionicons name="search-outline" size={18} color="#64748B" />
-              <TextInput
-                value={search}
-                onChangeText={(text) => {
-                  setSearch(text);
-                  setPage(1);
-                }}
-                placeholder="Search workshop, status, payment id..."
-                placeholderTextColor="#94A3B8"
-                style={styles.searchInput}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-            </View>
-            <Text style={styles.resultCount}>
-              {filtered.length} result{filtered.length === 1 ? '' : 's'}
-            </Text>
-          </>
+          <View style={styles.searchWrap}>
+            <Ionicons name="search-outline" size={18} color="#64748B" />
+            <TextInput
+              value={search}
+              onChangeText={(text) => {
+                setSearch(text);
+                setPage(1);
+              }}
+              placeholder="Search workshop, status, payment…"
+              placeholderTextColor="#94A3B8"
+              style={styles.searchInput}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </View>
         ) : null}
 
-        {isError ? (
-          <View style={styles.card}>
-            <View style={styles.empty}>
+        <View style={styles.listBlock}>
+          <View style={styles.listHeader}>
+            <Text style={styles.listHeaderTitle}>Workshops</Text>
+            <Text style={styles.listHeaderMeta}>
+              {filtered.length} result{filtered.length === 1 ? '' : 's'}
+            </Text>
+          </View>
+
+          {isError ? (
+            <View style={styles.emptyBlock}>
               <Text style={styles.detailLine}>
-                {getApiErrorMessage(error, 'Unable to load workshop bookings right now.')}
+                {getApiErrorMessage(error, 'Unable to load workshop bookings.')}
               </Text>
               <Pressable style={[styles.actionBtn, styles.actionBtnPrimary]} onPress={refetch}>
                 <Text style={styles.actionBtnText}>Retry</Text>
               </Pressable>
             </View>
-          </View>
-        ) : null}
+          ) : null}
 
-        {!isError && filtered.length === 0 ? (
-          <View style={styles.card}>
-            <View style={styles.empty}>
-              <View style={styles.emptyIcon}>
-                <Ionicons name="calendar-outline" size={28} color="#0D9488" />
-              </View>
+          {!isError && filtered.length === 0 ? (
+            <View style={styles.emptyBlock}>
+              <Ionicons name="calendar-outline" size={28} color="#0D9488" />
               <Text style={styles.detailLine}>No workshop bookings found.</Text>
-              <Pressable style={[styles.actionBtn, styles.actionBtnPrimary]} onPress={browseWorkshops}>
+              <Pressable
+                style={[styles.actionBtn, styles.actionBtnPrimary]}
+                onPress={browseWorkshops}
+              >
                 <Text style={styles.actionBtnText}>Browse workshops</Text>
               </Pressable>
             </View>
-          </View>
-        ) : null}
+          ) : null}
 
-        {paginated.map((item) => (
-          <WorkshopCard key={item.id} item={item} onViewCertificate={handleViewCertificate} />
-        ))}
+          {!isError &&
+            paginated.map((item, index) => (
+              <WorkshopRow
+                key={item.id}
+                item={item}
+                isLast={index === paginated.length - 1}
+                onViewCertificate={handleViewCertificate}
+              />
+            ))}
+        </View>
 
         {totalPages > 1 ? (
           <View style={styles.pagination}>
@@ -294,7 +308,7 @@ export function WorkshopBookingsScreen(): React.ReactElement {
               <Text style={styles.pageBtnText}>Previous</Text>
             </Pressable>
             <Text style={styles.pageLabel}>
-              Page {currentPage} of {totalPages}
+              {currentPage} / {totalPages}
             </Text>
             <Pressable
               disabled={currentPage >= totalPages}
@@ -323,11 +337,11 @@ export function WorkshopBookingsScreen(): React.ReactElement {
                   <Text style={styles.certHighlight}>{certificate.userName}</Text>
                 </Text>
                 <Text style={styles.certLine}>
-                  has successfully attended the webinar on{' '}
+                  attended{' '}
                   <Text style={styles.certHighlight}>{certificate.workshopName}</Text>
                 </Text>
                 <Text style={styles.certLine}>
-                  Dated <Text style={styles.certHighlight}>{certificate.date}</Text>
+                  on <Text style={styles.certHighlight}>{certificate.date}</Text>
                 </Text>
                 {certificate.certificateNumber.length > 0 ? (
                   <Text style={styles.certNumber}>No. {certificate.certificateNumber}</Text>
