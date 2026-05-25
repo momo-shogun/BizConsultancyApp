@@ -41,6 +41,7 @@ export type AccountStackParamList = {
 
   [ROUTES.Account.MyServices]: undefined;
   [ROUTES.Account.ApplyService]: { submissionId: number };
+  [ROUTES.Account.MyDiagnosticPack]: undefined;
 };
 
 export type AppTabParamList = {

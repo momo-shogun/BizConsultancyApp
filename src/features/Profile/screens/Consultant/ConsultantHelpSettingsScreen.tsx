@@ -58,6 +58,10 @@ export function ConsultantHelpSettingsScreen(
       navigation.navigate(ROUTES.Account.CreditsScreen);
       return;
     }
+    if (rowId === 'diagnosticPack') {
+      navigation.navigate(ROUTES.Account.MyDiagnosticPack);
+      return;
+    }
   };
 
   return (

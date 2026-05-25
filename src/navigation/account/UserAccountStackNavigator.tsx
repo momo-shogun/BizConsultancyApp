@@ -12,6 +12,7 @@ import AddReviewScreen from '@/features/Profile/screens/User/AddReviewScreen';
 import UserGuideScreen from '@/features/Profile/screens/User/UserGuideScreen';
 import CallHistoryScreen from '@/features/Profile/screens/User/CallHistoryScreen';
 import { ApplyServiceScreen } from '@/features/MyServices/screens/ApplyServiceScreen';
+import { MyDiagnosticPackScreen } from '@/features/Diagnostics/screens/MyDiagnosticPackScreen';
 import { MyServicesScreen } from '@/features/MyServices/screens/MyServicesScreen';
 
 const Stack = createNativeStackNavigator<AccountStackParamList>();
@@ -60,6 +61,11 @@ export function UserAccountStackNavigator(): React.ReactElement {
       <Stack.Screen
         name={ROUTES.Account.ApplyService}
         component={ApplyServiceScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name={ROUTES.Account.MyDiagnosticPack}
+        component={MyDiagnosticPackScreen}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>

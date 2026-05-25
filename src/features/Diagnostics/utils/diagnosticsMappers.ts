@@ -1,8 +1,14 @@
 import type {
+  DiagnosisDashboardFeature,
+  DiagnosisDocumentRequirementItem,
+  DiagnosisDocumentSelectionPayload,
   DiagnosisPlanCtaMode,
   DiagnosisPlanViewModel,
   DiagnosisPurchaseState,
+  DiagnosisVaultDocument,
   DiagnosticsMembership,
+  MyDiagnosisDashboard,
+  MyDiagnosisDocumentRequirements,
 } from '../types/diagnostics.types';
 
 function parsePrice(value: unknown): number {
@@ -78,13 +84,149 @@ export function mapDiagnosisPurchaseState(raw: unknown): DiagnosisPurchaseState 
     return null;
   }
 
+  const startDate =
+    typeof c.startDate === 'string' && c.startDate.length > 0 ? c.startDate : null;
+
   return {
     registrationId,
     diagnosticsMembershipId,
     packName: typeof c.packName === 'string' ? c.packName : null,
     tierRank,
+    startDate,
     packDeliveryStatus,
   };
+}
+
+function mapDiagnosisFeature(raw: unknown): DiagnosisDashboardFeature | null {
+  if (raw == null || typeof raw !== 'object' || Array.isArray(raw)) {
+    return null;
+  }
+  const row = raw as Record<string, unknown>;
+  const id = typeof row.id === 'number' ? row.id : null;
+  const title = typeof row.title === 'string' ? row.title : null;
+  if (id == null || title == null) {
+    return null;
+  }
+  return {
+    id,
+    title,
+    adminStatus: typeof row.adminStatus === 'string' ? row.adminStatus : 'pending',
+    userStatus: typeof row.userStatus === 'string' ? row.userStatus : 'pending',
+    remarks: typeof row.remarks === 'string' ? row.remarks : null,
+    updatedAt: typeof row.updatedAt === 'string' ? row.updatedAt : '',
+  };
+}
+
+export function mapMyDiagnosisDashboard(raw: unknown): MyDiagnosisDashboard {
+  const row = raw != null && typeof raw === 'object' && !Array.isArray(raw)
+    ? (raw as Record<string, unknown>)
+    : {};
+
+  const current = mapDiagnosisPurchaseState({ current: row.current });
+  const featuresRaw = Array.isArray(row.features) ? row.features : [];
+  const features = featuresRaw
+    .map(mapDiagnosisFeature)
+    .filter((f): f is DiagnosisDashboardFeature => f != null);
+
+  const progressRaw = row.serviceProgressPercent;
+  const serviceProgressPercent =
+    typeof progressRaw === 'number' && Number.isFinite(progressRaw)
+      ? Math.min(100, Math.max(0, progressRaw))
+      : 0;
+
+  return {
+    current,
+    displayStatus: typeof row.displayStatus === 'string' ? row.displayStatus : null,
+    features,
+    serviceProgressPercent,
+    nextServiceTitle:
+      typeof row.nextServiceTitle === 'string' ? row.nextServiceTitle : null,
+    upgradeHint: typeof row.upgradeHint === 'string' ? row.upgradeHint : null,
+  };
+}
+
+function mapVaultDocument(raw: unknown): DiagnosisVaultDocument | null {
+  if (raw == null || typeof raw !== 'object' || Array.isArray(raw)) {
+    return null;
+  }
+  const row = raw as Record<string, unknown>;
+  const id = typeof row.id === 'number' ? row.id : null;
+  const documentUrl = typeof row.documentUrl === 'string' ? row.documentUrl : null;
+  if (id == null || documentUrl == null) {
+    return null;
+  }
+  return {
+    id,
+    documentUrl,
+    originalFilename:
+      typeof row.originalFilename === 'string' ? row.originalFilename : null,
+    mimeType: typeof row.mimeType === 'string' ? row.mimeType : null,
+    createdAt: typeof row.createdAt === 'string' ? row.createdAt : '',
+  };
+}
+
+function mapDocumentRequirementItem(raw: unknown): DiagnosisDocumentRequirementItem | null {
+  if (raw == null || typeof raw !== 'object' || Array.isArray(raw)) {
+    return null;
+  }
+  const row = raw as Record<string, unknown>;
+  const diagnosisMembershipDocumentId =
+    typeof row.diagnosisMembershipDocumentId === 'number'
+      ? row.diagnosisMembershipDocumentId
+      : null;
+  const documentTypeId = typeof row.documentTypeId === 'number' ? row.documentTypeId : null;
+  if (diagnosisMembershipDocumentId == null || documentTypeId == null) {
+    return null;
+  }
+
+  const availableRaw = Array.isArray(row.availableDocuments) ? row.availableDocuments : [];
+  const selectedRaw = Array.isArray(row.selectedUserDocumentIds)
+    ? row.selectedUserDocumentIds
+    : [];
+
+  return {
+    diagnosisMembershipDocumentId,
+    documentTypeId,
+    documentTypeName:
+      typeof row.documentTypeName === 'string' ? row.documentTypeName : null,
+    status: typeof row.status === 'number' ? row.status : 0,
+    sortOrder: typeof row.sortOrder === 'number' ? row.sortOrder : null,
+    availableDocuments: availableRaw
+      .map(mapVaultDocument)
+      .filter((d): d is DiagnosisVaultDocument => d != null),
+    selectedUserDocumentIds: selectedRaw
+      .map((id) => (typeof id === 'number' ? id : Number(id)))
+      .filter((id) => Number.isFinite(id)),
+  };
+}
+
+export function mapMyDiagnosisDocumentRequirements(
+  raw: unknown,
+): MyDiagnosisDocumentRequirements {
+  const row = raw != null && typeof raw === 'object' && !Array.isArray(raw)
+    ? (raw as Record<string, unknown>)
+    : {};
+  const itemsRaw = Array.isArray(row.items) ? row.items : [];
+
+  return {
+    registrationId: typeof row.registrationId === 'number' ? row.registrationId : null,
+    diagnosticsMembershipId:
+      typeof row.diagnosticsMembershipId === 'number'
+        ? row.diagnosticsMembershipId
+        : null,
+    items: itemsRaw
+      .map(mapDocumentRequirementItem)
+      .filter((i): i is DiagnosisDocumentRequirementItem => i != null),
+  };
+}
+
+export function toDocumentSelectionPayload(
+  items: DiagnosisDocumentRequirementItem[],
+): DiagnosisDocumentSelectionPayload[] {
+  return items.map((item) => ({
+    diagnosisMembershipDocumentId: item.diagnosisMembershipDocumentId,
+    userDocumentIds: item.selectedUserDocumentIds,
+  }));
 }
 
 function packShortName(packName: string): string {

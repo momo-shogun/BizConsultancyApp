@@ -56,6 +56,7 @@ export const ROUTES = {
     userCallHis: 'App/Account/CallHistoryScreen',
     MyServices: 'App/Account/MyServices',
     ApplyService: 'App/Account/ApplyService',
+    MyDiagnosticPack: 'App/Account/MyDiagnosticPack',
   },
 } as const;
 

@@ -14,6 +14,7 @@ import { ExpertVideosScreen } from '@/features/Profile/screens/Consultant/Expert
 import { ConsultantEditProfileScreen } from '@/features/Profile/screens/Consultant/ConsultantEditProfileScreen';
 import TransactionHistory from '@/features/Profile/screens/Consultant/TransactionHistory';
 import CreditsScreen from '@/features/Profile/screens/Consultant/CreditsScreen';
+import { MyDiagnosticPackScreen } from '@/features/Diagnostics/screens/MyDiagnosticPackScreen';
 import UserGuideScreen from '@/features/Profile/screens/User/UserGuideScreen';
 
 const Stack = createNativeStackNavigator<AccountStackParamList>();
@@ -64,9 +65,11 @@ export function ConsultantAccountStackNavigator(): React.ReactElement {
         component={CreditsScreen}
         options={{ headerShown: false }}
       />
-      
-      
-      
+      <Stack.Screen
+        name={ROUTES.Account.MyDiagnosticPack}
+        component={MyDiagnosticPackScreen}
+        options={{ headerShown: false }}
+      />
     </Stack.Navigator>
   );
 }

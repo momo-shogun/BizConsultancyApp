@@ -3,11 +3,16 @@ import { baseApi } from '@/services/api/baseApi';
 import {
   mapDiagnosisPurchaseState,
   mapDiagnosticsMembership,
+  mapMyDiagnosisDashboard,
+  mapMyDiagnosisDocumentRequirements,
 } from '../utils/diagnosticsMappers';
 import type {
   CreateDiagnosisRegistrationResult,
+  DiagnosisDocumentSelectionPayload,
   DiagnosisPurchaseState,
   DiagnosticsMembership,
+  MyDiagnosisDashboard,
+  MyDiagnosisDocumentRequirements,
 } from '../types/diagnostics.types';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -66,6 +71,34 @@ export const diagnosticsApi = baseApi.injectEndpoints({
       transformResponse: (response: unknown) => mapDiagnosisPurchaseState(response),
       providesTags: ['Diagnostics'],
     }),
+    getMyDiagnosisDashboard: build.query<MyDiagnosisDashboard, void>({
+      query: () => 'diagnosis-registrations/my/dashboard',
+      transformResponse: (response: unknown) => mapMyDiagnosisDashboard(response),
+      providesTags: ['Diagnostics'],
+    }),
+    getMyDiagnosisDocumentRequirements: build.query<MyDiagnosisDocumentRequirements, void>({
+      query: () => 'diagnosis-membership-documents/my/current-requirements',
+      transformResponse: (response: unknown) => mapMyDiagnosisDocumentRequirements(response),
+      providesTags: ['Diagnostics'],
+    }),
+    requestDiagnosisFeature: build.mutation<{ id: number; status: string }, number>({
+      query: (featureId) => ({
+        url: `diagnosis-registrations/my/features/${featureId}/request`,
+        method: 'PATCH',
+      }),
+      invalidatesTags: ['Diagnostics'],
+    }),
+    saveMyDiagnosisDocumentSelections: build.mutation<
+      { ok: true },
+      DiagnosisDocumentSelectionPayload[]
+    >({
+      query: (items) => ({
+        url: 'diagnosis-membership-documents/my/current-selections',
+        method: 'PUT',
+        body: { items },
+      }),
+      invalidatesTags: ['Diagnostics'],
+    }),
     createDiagnosisRegistration: build.mutation<
       CreateDiagnosisRegistrationResult,
       { diagnosticsMembershipId: number; paymentGateway: 'wallet' | 'razor_pay' }
@@ -95,6 +128,10 @@ export const diagnosticsApi = baseApi.injectEndpoints({
 export const {
   useGetPublicDiagnosticsMembershipsQuery,
   useGetMyDiagnosisPurchaseStateQuery,
+  useGetMyDiagnosisDashboardQuery,
+  useGetMyDiagnosisDocumentRequirementsQuery,
+  useRequestDiagnosisFeatureMutation,
+  useSaveMyDiagnosisDocumentSelectionsMutation,
   useCreateDiagnosisRegistrationMutation,
   useVerifyDiagnosisPaymentMutation,
 } = diagnosticsApi;
