@@ -14,6 +14,11 @@ import { CallController } from '@/features/Calls/controllers/CallController';
 import { useGetPublicConsultantsQuery } from '@/features/consultant/api/consultantApi';
 import { mapConsultantDetailToCardItem } from '@/features/consultant/utils/consultantMappers';
 import {
+  formatWalletBalanceLabel,
+  useGetConsultantWalletBalanceQuery,
+  useGetMyWalletBalanceQuery,
+} from '@/features/Home/api/userWalletsApi';
+import {
   DEFAULT_HOME_WORKSHOPS_QUERY,
   useGetPublicWorkshopsQuery,
 } from '@/features/Home/api/workshopsApi';
@@ -30,6 +35,7 @@ import { mapPublicWorkshopsToEventSpotlightItems } from '@/features/Home/utils/w
 import { useGetPublicServicesQuery } from '@/features/Services/api/servicesApi';
 import { mapPublicServiceToCardItem } from '@/features/Services/utils/serviceMappers';
 import { ROUTES } from '@/navigation/routeNames';
+import { navigationRef } from '@/navigation/RootNavigator';
 import type { AppTabParamList, RootStackParamList } from '@/navigation/types';
 import { useAppSelector } from '@/store/typedHooks';
 import {
@@ -66,6 +72,37 @@ export function HomeDashboardScreen(): React.ReactElement {
   const navigation = useNavigation<HomeDashboardNavigationProp>();
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const accountRole = useAppSelector(selectAccountRole);
+  const isConsultant = accountRole === 'consultant';
+
+  const {
+    data: userWalletBalance,
+    isLoading: isUserWalletLoading,
+    isFetching: isUserWalletFetching,
+  } = useGetMyWalletBalanceQuery(undefined, {
+    skip: !isAuthenticated || isConsultant,
+  });
+
+  const {
+    data: consultantWalletBalance,
+    isLoading: isConsultantWalletLoading,
+    isFetching: isConsultantWalletFetching,
+  } = useGetConsultantWalletBalanceQuery(undefined, {
+    skip: !isAuthenticated || !isConsultant,
+  });
+
+  const walletBalance = isConsultant ? consultantWalletBalance : userWalletBalance;
+  const isWalletLoading = isConsultant
+    ? isConsultantWalletLoading || isConsultantWalletFetching
+    : isUserWalletLoading || isUserWalletFetching;
+
+  const walletLabel = useMemo(
+    () =>
+      formatWalletBalanceLabel(walletBalance, {
+        isLoading: isWalletLoading,
+        isAuthenticated,
+      }),
+    [isAuthenticated, isWalletLoading, walletBalance],
+  );
 
   const { data: consultantsPage } = useGetPublicConsultantsQuery({
     page: '1',
@@ -160,18 +197,31 @@ export function HomeDashboardScreen(): React.ReactElement {
     navigation.navigate(ROUTES.App.Account, { screen: ROUTES.Account.Membership });
   }, [navigation]);
 
+  const onWalletPress = useCallback((): void => {
+    if (navigationRef.isReady()) {
+      navigationRef.navigate(ROUTES.Root.Wallet);
+    }
+  }, []);
+
+  const onProfilePress = useCallback((): void => {
+    navigation.navigate(ROUTES.App.Account, { screen: ROUTES.Account.Home });
+  }, [navigation]);
+
+  const zeptoHeader = useMemo(
+    () => ({
+      backgroundColor: '#E6C8A4',
+      addressLabel: '',
+      walletLabel,
+      onAddressPress: (): void => undefined,
+      onWalletPress,
+      onProfilePress,
+    }),
+    [onProfilePress, onWalletPress, walletLabel],
+  );
+
   return (
     <SafeAreaWrapper edges={['top', 'bottom']} bgColor="transparent">
-      <ZeptoHS
-        header={{
-          backgroundColor: '#E6C8A4',
-          addressLabel: 'Business setup • Tap to update address',
-          walletLabel: '₹0',
-          onAddressPress: () => undefined,
-          onWalletPress: () => undefined,
-          onProfilePress: () => undefined,
-        }}
-      >
+      <ZeptoHS header={zeptoHeader}>
         {(_categoryId: HomeCategoryId) => (
           <View style={styles.sheet}>
             {homeInterestItems.length > 0 ? (

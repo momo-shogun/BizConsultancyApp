@@ -1,308 +1,460 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
-  SafeAreaView,
-  StatusBar,
+  ActivityIndicator,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
-  ScrollView,
+  StatusBar,
 } from 'react-native';
-
+import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import Feather from 'react-native-vector-icons/Feather';
-import { SafeAreaWrapper, ScreenHeader } from '@/shared/components';
-import { navigationRef } from '@/navigation/RootNavigator';
 
-const WalletScreen = () => {
-  const [amount, setAmount] = useState('1000');
+import {
+  formatWalletBalanceInr,
+  useGetMyWalletBalanceQuery,
+} from '@/features/Home/api/userWalletsApi';
+
+import { useWalletTopup } from '@/features/Wallet/hooks/useWalletTopup';
+
+import {
+  WALLET_TOPUP_MAX_AMOUNT,
+  WALLET_TOPUP_MIN_AMOUNT,
+} from '@/features/Wallet/utils/walletTransactionUtils';
+
+import { THEME } from '@/constants/theme';
+import { navigationRef } from '@/navigation/RootNavigator';
+import { ROUTES } from '@/navigation/routeNames';
+import { SafeAreaWrapper, ScreenHeader } from '@/shared/components';
+
+const QUICK_AMOUNTS = [500, 1000, 2000, 5000];
+
+export function WalletScreen(): React.ReactElement {
+  const { data: balance, isLoading, isFetching, refetch } =
+    useGetMyWalletBalanceQuery();
+
+  const {
+    amountInput,
+    setAmountInput,
+    isProceeding,
+    handleAddBalance,
+  } = useWalletTopup();
+
+  const balanceLabel =
+    isLoading && balance == null
+      ? '₹0'
+      : formatWalletBalanceInr(balance ?? 0);
 
   return (
-    <SafeAreaWrapper edges={['top', 'bottom']} bgColor={'transparent'}>
-      <ScreenHeader title="Biz Wallet" onBackPress={() => navigationRef.goBack()} />
+    <SafeAreaWrapper edges={['top', 'bottom']} bgColor="#F4F7FB">
+      <StatusBar barStyle="dark-content" backgroundColor="#F4F7FB" />
+
+      <ScreenHeader
+        title="Biz Wallet"
+        onBackPress={() => navigationRef.goBack()}
+      />
+
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContainer}>
+        contentContainerStyle={styles.scrollContainer}
+      >
+        {/* Wallet Balance Card */}
+        <LinearGradient
+          colors={['#111827', '#1F2937', '#374151']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.balanceCard}
+        >
+          <View style={styles.balanceTopRow}>
+            <View style={styles.walletBadge}>
+              <Ionicons name="wallet-outline" size={18} color="#FFFFFF" />
+            </View>
 
-        {/* Header */}
-        {/* <View style={styles.header}>
-          <TouchableOpacity activeOpacity={0.8} style={styles.backButton}>
-            <Ionicons name="chevron-back" size={20} color="#111827" />
-          </TouchableOpacity>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => void refetch()}
+              style={styles.refreshButton}
+            >
+              {isFetching ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Ionicons
+                  name="refresh-outline"
+                  size={18}
+                  color="#FFFFFF"
+                />
+              )}
+            </TouchableOpacity>
+          </View>
 
-          <Text style={styles.headerTitle}>Zepto Cash</Text>
-        </View> */}
+          <Text style={styles.balanceLabel}>Available Balance</Text>
 
+          {isLoading && balance == null ? (
+            <ActivityIndicator
+              size="large"
+              color="#FFFFFF"
+              style={styles.balanceLoader}
+            />
+          ) : (
+            <Text style={styles.balanceAmount}>{balanceLabel}</Text>
+          )}
 
+          <View style={styles.balanceFooter}>
+            <Ionicons
+              name="shield-checkmark-outline"
+              size={14}
+              color="#D1FAE5"
+            />
+            <Text style={styles.balanceFooterText}>
+              Secure & instant wallet top-up
+            </Text>
+          </View>
+        </LinearGradient>
 
-        {/* Balance Card */}
-        <View style={styles.balanceCard}>
-          <Text style={styles.balanceLabel}>AVAILABLE BALANCE</Text>
+        {/* Add Money Section */}
+        <View style={styles.card}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Add Money</Text>
 
-          <Text style={styles.balanceAmount}>₹0</Text>
-        </View>
+            <View style={styles.limitBadge}>
+              <Text style={styles.limitBadgeText}>
+                ₹{WALLET_TOPUP_MIN_AMOUNT} - ₹
+                {WALLET_TOPUP_MAX_AMOUNT.toLocaleString('en-IN')}
+              </Text>
+            </View>
+          </View>
 
-        {/* Add Money Card */}
-        <View style={styles.addMoneyCard}>
-          <Text style={styles.inputLabel}>
-            Add amount <Text style={styles.required}>*</Text>
-          </Text>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.currency}>₹</Text>
+          <View style={styles.inputWrapper}>
+            <View style={styles.currencyContainer}>
+              <Text style={styles.currency}>₹</Text>
+            </View>
 
             <TextInput
-              value={amount}
-              onChangeText={setAmount}
+              value={amountInput}
+              onChangeText={setAmountInput}
               keyboardType="numeric"
               placeholder="Enter amount"
               placeholderTextColor="#9CA3AF"
               style={styles.input}
+              editable={!isProceeding}
             />
           </View>
 
-          <TouchableOpacity activeOpacity={0.9} style={styles.addButton}>
-            <Text style={styles.addButtonText}>Add Balance</Text>
+          {/* Quick Amounts */}
+          <View style={styles.quickAmountContainer}>
+            {QUICK_AMOUNTS.map(item => {
+              const isSelected = amountInput === String(item);
+
+              return (
+                <TouchableOpacity
+                  key={item}
+                  activeOpacity={0.85}
+                  style={[
+                    styles.quickAmountChip,
+                    isSelected && styles.quickAmountChipActive,
+                  ]}
+                  onPress={() => setAmountInput(String(item))}
+                >
+                  <Text
+                    style={[
+                      styles.quickAmountText,
+                      isSelected && styles.quickAmountTextActive,
+                    ]}
+                  >
+                    ₹{item}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <TouchableOpacity
+            activeOpacity={0.9}
+            style={[
+              styles.addButton,
+              isProceeding && styles.addButtonDisabled,
+            ]}
+            disabled={isProceeding}
+            onPress={() => void handleAddBalance()}
+          >
+            {isProceeding ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <>
+                <Ionicons
+                  name="add-circle-outline"
+                  size={18}
+                  color="#FFFFFF"
+                />
+
+                <Text style={styles.addButtonText}>Add Balance</Text>
+              </>
+            )}
           </TouchableOpacity>
         </View>
 
-        {/* Bottom Card */}
-        <View style={styles.bottomCard}>
-          <TouchableOpacity activeOpacity={0.8} style={styles.optionRow}>
+        {/* Menu Card */}
+        <View style={styles.card}>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            style={styles.optionRow}
+            onPress={() => {
+              if (navigationRef.isReady()) {
+                navigationRef.navigate(ROUTES.Root.WalletTransactions);
+              }
+            }}
+          >
             <View style={styles.optionLeft}>
-              <Ionicons
-                name="information-circle-outline"
-                size={20}
-                color="#8A94A6"
-              />
+              <View style={styles.optionIconContainer}>
+                <Ionicons
+                  name="receipt-outline"
+                  size={20}
+                  color="#059669"
+                />
+              </View>
 
-              <Text style={styles.optionText}>How it works</Text>
+              <View>
+                <Text style={styles.optionTitle}>Transactions</Text>
+                <Text style={styles.optionSubtitle}>
+                  View wallet history & payments
+                </Text>
+              </View>
             </View>
 
-
-            <Ionicons name="chevron-forward" size={18} color="#111827" />
-          </TouchableOpacity>
-
-          <View style={styles.divider} />
-
-          <TouchableOpacity activeOpacity={0.8} style={styles.optionRow}>
-            <View style={styles.optionLeft}>
-              <Ionicons
-                name="receipt-outline"
-                size={20}
-                color="#8A94A6"
-              />
-
-              <Text style={styles.optionText}>Transactions</Text>
-            </View>
-
-            <Ionicons name="chevron-forward" size={18} color="#111827" />
-          </TouchableOpacity>
-
-          <View style={styles.divider} />
-
-          <TouchableOpacity activeOpacity={0.8} style={styles.optionRow}>
-            <View style={styles.optionLeft}>
-              <Ionicons
-                name="chatbubble-ellipses-outline"
-                size={18}
-                color="#8A94A6"
-              />
-
-              <Text style={styles.optionText}>FAQs</Text>
-            </View>
-
-            <Ionicons name="chevron-forward" size={18} color="#111827" />
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color="#94A3B8"
+            />
           </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaWrapper>
   );
-};
+}
 
 export default WalletScreen;
+// REDUCE SPACING + HEIGHTS ONLY
+// keep your current improved UI and replace these styles
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#F4F5F7',
-  },
-
   scrollContainer: {
     paddingHorizontal: 16,
     paddingTop: 10,
-    paddingBottom: 24,
+    paddingBottom: 20,
   },
 
-  header: {
+  balanceCard: {
+    borderRadius: 24,
+    padding: 18,
+    marginBottom: 14,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+
+  balanceTopRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 18,
   },
 
-  backButton: {
+  walletBadge: {
     width: 40,
     height: 40,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },
 
-  headerTitle: {
-    marginLeft: 12,
-    fontSize: 20,
+  refreshButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  balanceLabel: {
+    color: '#D1D5DB',
+    fontSize: 13,
+    fontWeight: '500',
+    marginBottom: 6,
+  },
+
+  balanceAmount: {
+    color: '#FFFFFF',
+    fontSize: 32,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+
+  balanceLoader: {
+    marginVertical: 8,
+  },
+
+  balanceFooter: {
+    marginTop: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  balanceFooterText: {
+    marginLeft: 6,
+    color: '#D1FAE5',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 12,
+
+    shadowColor: '#0F172A',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+
+  sectionTitle: {
+    fontSize: 16,
     fontWeight: '700',
     color: '#111827',
   },
 
-  balanceCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
+  limitBadge: {
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 999,
+  },
+
+  limitBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#059669',
+  },
+
+  inputWrapper: {
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    paddingVertical: 24,
+    borderColor: '#E2E8F0',
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 14,
+    paddingHorizontal: 12,
   },
 
-  balanceLabel: {
-    fontSize: 12,
-    letterSpacing: 0.8,
-    color: '#98A2B3',
-    marginBottom: 8,
-    fontWeight: '600',
+  currencyContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#E2E8F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
   },
 
-  balanceAmount: {
-    fontSize: 38,
+  currency: {
+    fontSize: 16,
     fontWeight: '800',
     color: '#111827',
   },
 
-  addMoneyCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    padding: 14,
-    marginBottom: 14,
-  },
-
-  inputLabel: {
-    fontSize: 13,
-    color: '#5B6472',
-    marginBottom: 8,
-    fontWeight: '500',
-  },
-
-  required: {
-    color: '#FF4D4F',
-  },
-
-  inputContainer: {
-    height: 54,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#D9DEE7',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    marginBottom: 14,
-  },
-
-  currency: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#111827',
-    marginRight: 8,
-  },
-
   input: {
     flex: 1,
-    fontSize: 18,
+    fontSize: 20,
     color: '#111827',
+    fontWeight: '700',
     padding: 0,
-    fontWeight: '600',
+  },
+
+  quickAmountContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 14,
+    marginBottom: 18,
+  },
+
+  quickAmountChip: {
+    paddingHorizontal: 14,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+    marginBottom: 8,
+  },
+
+  quickAmountChipActive: {
+    backgroundColor: '#059669',
+  },
+
+  quickAmountText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#475569',
+  },
+
+  quickAmountTextActive: {
+    color: '#FFFFFF',
   },
 
   addButton: {
     height: 50,
-    borderRadius: 14,
-    backgroundColor: '#FF0A63',
+    borderRadius: 16,
+    backgroundColor: '#059669',
     justifyContent: 'center',
     alignItems: 'center',
+    flexDirection: 'row',
+
+    shadowColor: '#059669',
+    shadowOffset: {
+      width: 0,
+      height: 5,
+    },
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+
+  addButtonDisabled: {
+    opacity: 0.65,
   },
 
   addButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-
-  giftCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    padding: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-
-  giftLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-
-  giftIconContainer: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
-    backgroundColor: '#F9FAFB',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  giftText: {
-    marginLeft: 10,
     fontSize: 15,
-    fontWeight: '600',
-    color: '#111827',
-  },
-
-  addCardButton: {
-    paddingHorizontal: 14,
-    height: 38,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#FF0A63',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  addCardButtonText: {
-    color: '#FF0A63',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-
-  bottomCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    overflow: 'hidden',
+    fontWeight: '800',
+    marginLeft: 6,
   },
 
   optionRow: {
-    height: 58,
-    paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -311,18 +463,28 @@ const styles = StyleSheet.create({
   optionLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
 
-  optionText: {
-    marginLeft: 10,
+  optionIconContainer: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: '#ECFDF5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+
+  optionTitle: {
     fontSize: 15,
-    fontWeight: '500',
+    fontWeight: '700',
     color: '#111827',
   },
 
-  divider: {
-    height: 1,
-    backgroundColor: '#ECEFF3',
-    marginHorizontal: 16,
+  optionSubtitle: {
+    fontSize: 12,
+    color: '#94A3B8',
+    marginTop: 1,
   },
 });

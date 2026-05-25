@@ -6,6 +6,7 @@ export const ROUTES = {
     ConsultantsList: 'Root/ConsultantsList',
     ConsultantDetail: 'Root/ConsultantDetail',
     Wallet: 'Root/Wallet',
+    WalletTransactions: 'Root/WalletTransactions',
     WorkshopsList: 'Root/WorkshopsList',
     WorkshopsDetail: 'Root/WorkshopDetailsScreen',
     ConsultationOnboarding: 'Root/ConsultationOnboarding',

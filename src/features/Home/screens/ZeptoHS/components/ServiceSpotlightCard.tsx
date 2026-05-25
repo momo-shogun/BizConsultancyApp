@@ -1,16 +1,16 @@
 import React, { useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View, type DimensionValue } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { THEME } from '@/constants/theme';
 
-/** Darker sibling of spotlight band `#1E3A8A` → `#0D9488` — meta strip bg */
-const SERVICE_SPOTLIGHT_META_GRADIENT = ['#172554', '#0F766E'] as const;
+export const SERVICE_SPOTLIGHT_CARD_WIDTH = 168;
+const CARD_HEIGHT = 196;
+const HERO_HEIGHT = 80;
+const TITLE_BLOCK_HEIGHT = 36;
+const DESCRIPTION_BLOCK_HEIGHT = 32;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Icon pool — maps slugs → Ionicons names deterministically
-// ─────────────────────────────────────────────────────────────────────────────
 const SERVICE_SPOTLIGHT_ICONS = [
   'document-text-outline',
   'shield-checkmark-outline',
@@ -24,6 +24,25 @@ const SERVICE_SPOTLIGHT_ICONS = [
   'globe-outline',
 ] as const;
 
+const HERO_PRESETS = [
+  { gradient: ['#4ADE80', '#16A34A'] as const, iconColor: '#FFFFFF' },
+  { gradient: ['#60A5FA', '#2563EB'] as const, iconColor: '#FFFFFF' },
+  { gradient: ['#A78BFA', '#7C3AED'] as const, iconColor: '#FFFFFF' },
+  { gradient: ['#FBBF24', '#D97706'] as const, iconColor: '#FFFFFF' },
+  { gradient: ['#2DD4BF', '#0D9488'] as const, iconColor: '#FFFFFF' },
+  { gradient: ['#FB7185', '#E11D48'] as const, iconColor: '#FFFFFF' },
+] as const;
+
+function hexToRgba(hex: string, alpha: number): string {
+  const raw = hex.replace('#', '').trim();
+  if (raw.length !== 6) return `rgba(22, 163, 74, ${alpha})`;
+  const r = Number.parseInt(raw.slice(0, 2), 16);
+  const g = Number.parseInt(raw.slice(2, 4), 16);
+  const b = Number.parseInt(raw.slice(4, 6), 16);
+  if ([r, g, b].some((n) => Number.isNaN(n))) return `rgba(22, 163, 74, ${alpha})`;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 function iconNameForServiceSlug(slug: string): string {
   let h = 0;
   for (let i = 0; i < slug.length; i += 1) {
@@ -33,145 +52,208 @@ function iconNameForServiceSlug(slug: string): string {
     SERVICE_SPOTLIGHT_ICONS[0];
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Color presets
-//
-// WHY curated presets instead of hexToRgba(accentColor):
-//   A single accentColor tinted at 8% opacity gives a washed-out, generic
-//   background. Curated presets use deliberate palette stops for the icon
-//   tile so each card stays distinct while the meta strip shares one gradient.
-// ─────────────────────────────────────────────────────────────────────────────
-const VISUAL_PRESETS = [
-  { visualBg: '#EAF3DE', iconColor: '#3B6D11' },
-  { visualBg: '#E6F1FB', iconColor: '#185FA5' },
-  { visualBg: '#EEEDFE', iconColor: '#534AB7' },
-  { visualBg: '#FAEEDA', iconColor: '#854F0B' },
-  { visualBg: '#E1F5EE', iconColor: '#0F6E56' },
-  { visualBg: '#FAECE7', iconColor: '#993C1D' },
-] as const;
-
 function presetForSlug(slug: string) {
   let h = 0;
   for (let i = 0; i < slug.length; i += 1) h += slug.charCodeAt(i);
-  return VISUAL_PRESETS[h % VISUAL_PRESETS.length] ?? VISUAL_PRESETS[0];
+  return HERO_PRESETS[h % HERO_PRESETS.length] ?? HERO_PRESETS[0];
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Props
-// ─────────────────────────────────────────────────────────────────────────────
+function serviceDescription(title: string): string {
+  const trimmed = title.trim();
+  if (trimmed.length === 0) {
+    return 'Expert-assisted filing and compliance support for your business.';
+  }
+  return `End-to-end support for ${trimmed.toLowerCase()} — guided by specialists.`;
+}
+
 export interface ServiceSpotlightCardProps {
   title: string;
   slug: string;
-  /** Still accepted for backwards-compat but no longer drives the palette */
   accentColor: string;
-  cardWidth: DimensionValue;
+  categoryLabel: string;
   onPress: () => void;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Component
-// ─────────────────────────────────────────────────────────────────────────────
 export function ServiceSpotlightCard({
   title,
   slug,
-  cardWidth,
+  accentColor,
+  categoryLabel,
   onPress,
 }: ServiceSpotlightCardProps): React.ReactElement {
   const iconName = useMemo(() => iconNameForServiceSlug(slug), [slug]);
-  const preset   = useMemo(() => presetForSlug(slug), [slug]);
+  const preset = useMemo(() => presetForSlug(slug), [slug]);
+  const description = useMemo(() => serviceDescription(title), [title]);
+  const tagBg = useMemo(() => hexToRgba(accentColor, 0.08), [accentColor]);
+  const tagSlug = useMemo(
+    () => categoryLabel.trim().toLowerCase().replace(/\s+/g, '-').slice(0, 20),
+    [categoryLabel],
+  );
 
   return (
-    <View style={[styles.root, { width: cardWidth }]}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`${title}. Opens service details.`}
-        accessibilityHint="Opens this service in the Services tab"
-        onPress={onPress}
-        style={({ pressed }) => [styles.pressable, pressed && styles.pressablePressed]}
-      >
-        {/* ── Visual area ───────────────────────────────────────────────── */}
-        <View style={[styles.visual, { backgroundColor: preset.visualBg }]}>
-          <Ionicons name={iconName} size={34} color={preset.iconColor} />
-        </View>
-
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${title}. Opens service details.`}
+      accessibilityHint="Opens this service in the Services tab"
+      onPress={onPress}
+      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+    >
+      <View style={styles.imageWrap}>
         <LinearGradient
-          colors={[SERVICE_SPOTLIGHT_META_GRADIENT[0], SERVICE_SPOTLIGHT_META_GRADIENT[1]]}
+          colors={[preset.gradient[0], preset.gradient[1]]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={styles.meta}
+          style={styles.heroGradient}
         >
-          <Text style={styles.title} numberOfLines={2} ellipsizeMode="tail">
-            {title}
-          </Text>
-          <View style={styles.hintRow}>
-            <View style={styles.dot} />
-            <Text style={styles.hint} numberOfLines={1}>
-              Expert-assisted
+          <Ionicons name={iconName} size={28} color={preset.iconColor} />
+        </LinearGradient>
+
+        <LinearGradient
+          colors={['transparent', 'rgba(15,23,42,0.55)']}
+          style={styles.imageOverlay}
+        />
+
+        <View style={styles.floatingBadge}>
+          <Text style={styles.floatingBadgeText}>Service</Text>
+        </View>
+      </View>
+
+      <View style={styles.cardBody}>
+        <Text
+          numberOfLines={2}
+          ellipsizeMode="tail"
+          style={styles.cardTitle}
+        >
+          {title}
+        </Text>
+
+        <Text
+          numberOfLines={2}
+          ellipsizeMode="tail"
+          style={styles.cardDescription}
+        >
+          {description}
+        </Text>
+
+        <View style={styles.cardFooter}>
+          <View style={[styles.tag, { backgroundColor: tagBg }]}>
+            <Text
+              style={[styles.tagText, { color: accentColor }]}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {tagSlug}
             </Text>
           </View>
-        </LinearGradient>
-      </Pressable>
-    </View>
+          <View style={styles.arrowWrap}>
+            <Text style={styles.arrow}>→</Text>
+          </View>
+        </View>
+      </View>
+    </Pressable>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Styles
-// ─────────────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  root: {
-    borderRadius: THEME.radius[12],
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: THEME.colors.border,
+  card: {
+    width: SERVICE_SPOTLIGHT_CARD_WIDTH,
+    height: CARD_HEIGHT,
+    marginRight: THEME.spacing[8],
+    borderRadius: 14,
     backgroundColor: THEME.colors.white,
     overflow: 'hidden',
-    borderBottomWidth: 1,
-    borderBottomColor: THEME.colors.border,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: THEME.colors.border,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    // shadowOffset: { width: 0, height: 3 },
+    elevation: 1.5,
   },
-  pressable: {
-    flex: 1,
+  cardPressed: {
+    opacity: 0.94,
+    transform: [{ scale: 0.98 }],
   },
-  pressablePressed: {
-    opacity: 0.9,
+  imageWrap: {
+    height: HERO_HEIGHT,
+    position: 'relative',
   },
-
-  // ── Visual area ──────────────────────────────────────────────────────
-  visual: {
-    height: 104,
+  heroGradient: {
+    width: '100%',
+    height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
   },
-
-  // ── Meta strip ───────────────────────────────────────────────────────
-  meta: {
-    paddingHorizontal: THEME.spacing[10],
-    paddingTop: THEME.spacing[10],
-    paddingBottom: THEME.spacing[12],
-    gap: 4,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(255,255,255,0.14)',
+  imageOverlay: {
+    ...StyleSheet.absoluteFill,
   },
-  title: {
-    fontSize: 13,
+  floatingBadge: {
+    position: 'absolute',
+    top: 6,
+    left: 6,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 999,
+  },
+  floatingBadgeText: {
+    fontSize: 8,
     fontWeight: '700',
-    color: THEME.colors.white,
-    lineHeight: 18,
-    letterSpacing: -0.1,
+    color: THEME.colors.textPrimary,
+    letterSpacing: 0.15,
   },
-  hintRow: {
+  cardBody: {
+    flex: 1,
+    paddingHorizontal: 8,
+    paddingTop: 8,
+    paddingBottom: 8,
+    justifyContent: 'space-between',
+  },
+  cardTitle: {
+    height: TITLE_BLOCK_HEIGHT,
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: '800',
+    color: THEME.colors.textPrimary,
+    letterSpacing: -0.12,
+  },
+  cardDescription: {
+    height: DESCRIPTION_BLOCK_HEIGHT,
+    marginTop: 4,
+    fontSize: 11,
+    lineHeight: 14,
+    color: THEME.colors.textSecondary,
+  },
+  cardFooter: {
+    marginTop: 6,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    justifyContent: 'space-between',
+    minHeight: 26,
   },
-  dot: {
-    width: 5,
-    height: 5,
-    borderRadius: 99,
-    backgroundColor: 'rgba(255,255,255,0.55)',
+  tag: {
+    flex: 1,
+    marginRight: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 999,
   },
-  hint: {
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.88)',
-    lineHeight: 14,
+  tagText: {
+    fontSize: 9,
+    fontWeight: '700',
+    textTransform: 'capitalize',
+  },
+  arrowWrap: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: THEME.colors.textPrimary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  arrow: {
+    color: THEME.colors.white,
+    fontSize: 12,
+    fontWeight: '700',
   },
 });

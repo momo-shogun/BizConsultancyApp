@@ -5,7 +5,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  useWindowDimensions,
+  Text,
   View,
 } from 'react-native';
 import Animated, {
@@ -18,7 +18,6 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
-import LinearGradient from 'react-native-linear-gradient';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useNavigation } from '@react-navigation/native';
 
@@ -66,13 +65,10 @@ const MICRO_SPRING = {
   restSpeedThreshold: 0.001,
 } as const;
 
-/** Inactive tab label — solid black like reference; active uses `accentColor` (green). */
-const TAB_LABEL_INACTIVE = THEME.colors.black;
+/** Inactive tab — muted slate; active uses category accent (e.g. emerald for services). */
+const TAB_LABEL_INACTIVE = '#64748B';
 
 const EASE_OUT_CUBIC = Easing.bezier(0.25, 0.46, 0.45, 0.94);
-
-/** Single spotlight band — sapphire → emerald (trust + growth, no black). */
-const SERVICES_SPOTLIGHT_PANEL_GRADIENT = ['#1E3A8A', '#0D9488'] as const;
 
 function hexToRgba(hex: string, alpha: number): string {
   const raw = hex.replace('#', '').trim();
@@ -94,6 +90,18 @@ function hexToRgba(hex: string, alpha: number): string {
 
   if ([r, g, b].some((n) => Number.isNaN(n))) return `rgba(16, 163, 74, ${alpha})`;
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function resolveSubCategoryLabel(
+  page: ServicePageRef,
+  category: ServicesTopCategory,
+): string {
+  for (const sub of category.subCategories) {
+    if (sub.pages.some((p) => p.slug === page.slug)) {
+      return sub.name;
+    }
+  }
+  return category.name;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -146,8 +154,8 @@ const AnimatedPillIndicator = React.memo(function AnimatedPillIndicator({
       style={[
         styles.pillIndicator,
         {
-          borderColor: accentColor,
-          backgroundColor: hexToRgba(accentColor, 0.06),
+          borderColor: hexToRgba(accentColor, 0.18),
+          backgroundColor: hexToRgba(accentColor, 0.1),
           borderBottomWidth: 0,
           borderBottomColor: 'transparent',
         },
@@ -260,9 +268,7 @@ export function ZeptoHSServicesSpotlight({
   accentColor,
 }: ZeptoHSServicesSpotlightProps): React.ReactElement {
   const navigation = useNavigation<BottomTabNavigationProp<AppTabParamList>>();
-  const { width } = useWindowDimensions();
   const categories = SERVICES_CATEGORY_TREE.categories;
-  const cardWidth  = useMemo(() => Math.min(168, Math.round(width * 0.42)), [width]);
 
   const [activeCategoryIndex, setActiveCategoryIndex] = useState(0);
 
@@ -326,19 +332,14 @@ export function ZeptoHSServicesSpotlight({
         title={item.title}
         slug={item.slug}
         accentColor={accentColor}
-        cardWidth={cardWidth}
+        categoryLabel={resolveSubCategoryLabel(item, activeCategory!)}
         onPress={() => goToService(item.slug)}
       />
     ),
-    [accentColor, cardWidth, goToService],
+    [accentColor, activeCategory, goToService],
   );
 
   const pageKeyExtractor = useCallback((p: ServicePageRef): string => p.slug, []);
-
-  const ListSeparator = useCallback(
-    (): React.ReactElement => <View style={styles.cardGap} />,
-    [],
-  );
 
   if (activeCategory == null) {
     return <View style={[styles.wrap, { backgroundColor }]} />;
@@ -382,35 +383,23 @@ export function ZeptoHSServicesSpotlight({
           ))}
         </ScrollView>
 
-        {/* Full-width accent underline */}
-        <View style={[styles.bottomLine, { backgroundColor: accentColor }]} />
+        <View style={[styles.bottomLine, { backgroundColor: hexToRgba(accentColor, 0.22) }]} />
       </View>
 
       <Animated.View
         key={activeCategoryIndex}
         entering={FadeIn.duration(180).delay(60).easing(EASE_OUT_CUBIC)}
-        style={styles.sections}
+        style={styles.section}
       >
-        <View style={styles.sectionCard}>
-          <LinearGradient
-            colors={[SERVICES_SPOTLIGHT_PANEL_GRADIENT[0], SERVICES_SPOTLIGHT_PANEL_GRADIENT[1]]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.sectionCardGradient}
-          >
-            <FlatList
-              horizontal
-              nestedScrollEnabled
-              data={combinedSpotlightPages}
-              renderItem={renderPageItem}
-              keyExtractor={pageKeyExtractor}
-              ItemSeparatorComponent={ListSeparator}
-              showsHorizontalScrollIndicator={false}
-              style={styles.hRow}
-              contentContainerStyle={styles.hRowContent}
-            />
-          </LinearGradient>
-        </View>
+        <FlatList
+          horizontal
+          nestedScrollEnabled
+          data={combinedSpotlightPages}
+          renderItem={renderPageItem}
+          keyExtractor={pageKeyExtractor}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.horizontalList}
+        />
       </Animated.View>
     </View>
   );
@@ -471,44 +460,42 @@ const styles = StyleSheet.create({
   },
 
   pillText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
-    lineHeight: 15,
-    letterSpacing: -0.15,
+    lineHeight: 16,
+    letterSpacing: -0.2,
   },
 
   bottomLine: {
-    height: 1.5,
+    height: 1,
     width: '100%',
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
   },
 
-  // Content — canvas behind inset cards (see `RecommendedServicesSection` sheet)
-  sections: {
-    gap: THEME.spacing[16],
-    paddingTop: THEME.spacing[16],
-    paddingBottom: THEME.spacing[4],
-    backgroundColor: THEME.colors.background,
-  },
-  sectionCard: {
-    marginHorizontal: THEME.spacing[16],
-    borderRadius: 20,
-    overflow: 'hidden',
-  },
-  sectionCardGradient: {
-    paddingVertical: THEME.spacing[14],
-  },
-  hRow: {
-    flexGrow: 0,
-  },
-  hRowContent: {
-    paddingLeft: THEME.spacing[16],
-    paddingRight: THEME.spacing[8],
-    paddingTop: 2,
+  section: {
+    marginTop: THEME.spacing[12],
     paddingBottom: THEME.spacing[4],
   },
-  cardGap: {
-    width: THEME.spacing[12],
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: THEME.spacing[12],
+    marginBottom: THEME.spacing[8],
+  },
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: THEME.colors.textPrimary,
+    letterSpacing: -0.2,
+  },
+  sectionLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth * 2,
+    backgroundColor: 'rgba(15,23,42,0.1)',
+    marginLeft: THEME.spacing[10],
+    borderRadius: 1,
+  },
+  horizontalList: {
+    paddingLeft: THEME.spacing[12],
+    paddingRight: THEME.spacing[4],
   },
 });
