@@ -171,6 +171,21 @@ export function ZeptoHS(props: ZeptoHSProps): React.ReactElement {
     }
   }, []);
 
+  const onBusinessDiagnosisPress = useCallback((): void => {
+    if (navigationRef.isReady()) {
+      navigationRef.navigate(ROUTES.Root.BusinessDiagnosis);
+    }
+  }, []);
+
+  const onTopCategoryChange = useCallback((index: number): void => {
+    const tabId = ZEPTO_HS_TOP_CATEGORY_TABS[index]?.id;
+    if (tabId === 'diagnosis') {
+      onBusinessDiagnosisPress();
+      return;
+    }
+    setActiveTopCategoryIndex(index);
+  }, [onBusinessDiagnosisPress]);
+
   const onOpenSearch = useCallback((): void => {
     navigation.navigate(ROUTES.Root.Search, {
       headerBackground: activeShell.topTabsBackground,
@@ -208,7 +223,7 @@ export function ZeptoHS(props: ZeptoHSProps): React.ReactElement {
             inactiveTabTileBackgroundColor={ZEPTO_HS_INACTIVE_TAB_TILE_BG}
             activeIndex={activeTopCategoryIndex}
             defaultActiveIndex={0}
-            onChange={setActiveTopCategoryIndex}
+            onChange={onTopCategoryChange}
             showSearch={false}
             style={{ borderRadius: 0 }}
           />
@@ -226,6 +241,7 @@ export function ZeptoHS(props: ZeptoHSProps): React.ReactElement {
           backgroundColor={activeShell.categoryStripBackground}
           accentColor={activeShell.tabLabelColor}
           onTalkToExpertPress={onTalkToExpertPress}
+          onDiagnosePress={onBusinessDiagnosisPress}
         />
 
         {renderedChildren}

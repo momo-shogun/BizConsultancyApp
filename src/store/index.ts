@@ -19,6 +19,7 @@ import '@/features/Home/api/workshopBookingsApi';
 import '@/features/Home/api/userWalletsApi';
 import '@/features/Wallet/api/walletApi';
 import '@/features/Home/api/homePublicApi';
+import '@/features/Diagnostics/api/diagnosticsApi';
 
 const MMKV = new MMKVStorage.Loader().initialize();
 

@@ -23,6 +23,7 @@ import { InCallScreen } from '@/features/Calls/screens/InCallScreen';
 import WorkshopDetailsScreen from '@/features/Home/screens/WorkshopDetailsScreen';
 import { BizAIScreen } from '@/features/BizAI/screens/BizAIScreen';
 import { SearchScreen } from '@/features/Search/screens/SearchScreen';
+import { BusinessDiagnosisScreen } from '@/features/Diagnostics/screens/BusinessDiagnosisScreen';
 import { callEngine } from '@/features/Calls/engine/CallEngine';
 
 import { navigationRef } from './navigationContainerRef';
@@ -95,6 +96,11 @@ export function RootNavigator(): React.ReactElement {
                 gestureEnabled: true,
                 fullScreenGestureEnabled: true,
               }}
+            />
+            <RootStack.Screen
+              name={ROUTES.Root.BusinessDiagnosis}
+              component={BusinessDiagnosisScreen}
+              options={{ headerShown: false }}
             />
             <RootStack.Screen
               name={ROUTES.Root.WorkshopsList}

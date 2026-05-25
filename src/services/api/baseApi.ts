@@ -142,6 +142,7 @@ export const baseApi = createApi({
     'Membership',
     'ServiceOnboarding',
     'MyServices',
+    'Diagnostics',
   ],
   endpoints: () => ({}),
 });

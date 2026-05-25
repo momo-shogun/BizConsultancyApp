@@ -15,6 +15,7 @@ export const ROUTES = {
     InCall: 'Root/InCall',
     Search: 'Root/Search',
     BizAI: 'Root/BizAI',
+    BusinessDiagnosis: 'Root/BusinessDiagnosis',
   },
   Auth: {
     Splash: 'Auth/Splash',
