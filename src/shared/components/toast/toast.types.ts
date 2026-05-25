@@ -17,6 +17,8 @@ export interface ToastConfig {
   action?: ToastAction;
   dismissible?: boolean;
   position?: ToastPosition;
+  /** Defaults to 2. Use a higher value for long error messages. */
+  messageNumberOfLines?: number;
 }
 
 export interface ToastProps extends ToastConfig {

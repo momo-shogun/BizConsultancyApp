@@ -33,14 +33,20 @@ export const variantThemes: Record<DialogVariant, VariantTheme> = {
 };
 
 export const dialogStyles = StyleSheet.create({
-  backdrop: {
+  overlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.5)',
+    width: '100%',
+    height: '100%',
+    backgroundColor: 'rgba(15, 23, 42, 0.55)',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
   },
   container: {
+    width: '100%',
+    maxWidth: '100%',
+  },
+  dialogSurface: {
     width: '100%',
     backgroundColor: colors.surface,
     borderRadius: radii.lg,

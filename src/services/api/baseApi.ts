@@ -20,7 +20,6 @@ const rawBaseQuery = fetchBaseQuery({
     if (token != null && token.length > 0) {
       headers.set('Authorization', `Bearer ${token}`);
     }
-    headers.set('Content-Type', 'application/json');
     return headers;
   },
 });
@@ -142,6 +141,7 @@ export const baseApi = createApi({
     'Testimonial',
     'Membership',
     'ServiceOnboarding',
+    'MyServices',
   ],
   endpoints: () => ({}),
 });

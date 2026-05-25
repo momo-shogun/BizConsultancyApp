@@ -189,21 +189,24 @@ export function UserHelpSettingsScreen(props: UserHelpSettingsScreenProps): Reac
               key={row.id}
               row={row}
               isLast={index === SETTINGS_ROWS.length - 1}
-               onPress={() => {
-      if (row.id === 'membership') {
-        navigation.navigate(ROUTES.Account.Membership);
-      }
-      if (row.id === 'feedback') {
-        navigation.navigate(ROUTES.Account.addReview);
-      }
-      if (row.id === 'guide') {
-        navigation.navigate(ROUTES.Account.userGuide);
-      }
-       if (row.id === 'callHistory') {
-        navigation.navigate(ROUTES.Account.userCallHis);
-      }
-    }}
-     />
+              onPress={() => {
+                if (row.id === 'membership') {
+                  navigation.navigate(ROUTES.Account.Membership);
+                }
+                if (row.id === 'feedback') {
+                  navigation.navigate(ROUTES.Account.addReview);
+                }
+                if (row.id === 'guide') {
+                  navigation.navigate(ROUTES.Account.userGuide);
+                }
+                if (row.id === 'callHistory') {
+                  navigation.navigate(ROUTES.Account.userCallHis);
+                }
+                if (row.id === 'services') {
+                  navigation.navigate(ROUTES.Account.MyServices);
+                }
+              }}
+            />
           ))}
         </View>
 

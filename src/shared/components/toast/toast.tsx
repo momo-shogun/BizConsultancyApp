@@ -32,6 +32,7 @@ export function Toast({
   action,
   dismissible = true,
   position = 'top',
+  messageNumberOfLines = 2,
   onDismiss,
   style,
 }: ToastProps) {
@@ -125,7 +126,7 @@ export function Toast({
           ) : null}
           <Text
             style={[s.message, getVariantMessageStyle(variant)]}
-            numberOfLines={2}
+            numberOfLines={messageNumberOfLines}
           >
             {message}
           </Text>

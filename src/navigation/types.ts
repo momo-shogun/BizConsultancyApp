@@ -31,14 +31,16 @@ export type AccountStackParamList = {
   [ROUTES.Account.HelpSettings]: undefined;
   [ROUTES.Account.Membership]: undefined;
   [ROUTES.Account.EditProfile]: undefined;
-    [ROUTES.Account.ConsultantBankDetailsScreen]: undefined;
-    [ROUTES.Account.ExpertVideosScreen]: undefined;
-     [ROUTES.Account.TransactionHis]: undefined;
-        [ROUTES.Account.CreditsScreen]: undefined;
-        [ROUTES.Account.addReview]: undefined;
-        [ROUTES.Account.userGuide]: undefined;
-        [ROUTES.Account.userCallHis]: undefined;
-     
+  [ROUTES.Account.ConsultantBankDetailsScreen]: undefined;
+  [ROUTES.Account.ExpertVideosScreen]: undefined;
+  [ROUTES.Account.TransactionHis]: undefined;
+  [ROUTES.Account.CreditsScreen]: undefined;
+  [ROUTES.Account.addReview]: undefined;
+  [ROUTES.Account.userGuide]: undefined;
+  [ROUTES.Account.userCallHis]: undefined;
+
+  [ROUTES.Account.MyServices]: undefined;
+  [ROUTES.Account.ApplyService]: { submissionId: number };
 };
 
 export type AppTabParamList = {

@@ -67,6 +67,7 @@ export function ToastProvider(props: React.PropsWithChildren): React.ReactElemen
           action={active.action}
           dismissible={active.dismissible}
           position={active.position}
+          messageNumberOfLines={active.messageNumberOfLines}
           onDismiss={dismiss}
         />
       ) : null}

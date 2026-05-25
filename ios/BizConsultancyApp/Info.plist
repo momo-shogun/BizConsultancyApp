@@ -36,7 +36,9 @@
 	<key>NSMicrophoneUsageDescription</key>
 	<string>BizConsultancy needs microphone access for voice and video calls with consultants.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>BizConsultancy needs camera access for video calls with consultants.</string>
+	<string>BizConsultancy needs camera access for video calls and document uploads.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>BizConsultancy needs photo library access to upload documents for your applications.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string/>
 	<key>UIBackgroundModes</key>
