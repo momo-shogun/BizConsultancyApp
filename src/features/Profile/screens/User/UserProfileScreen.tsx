@@ -34,7 +34,7 @@ export function UserProfileScreen(): React.ReactElement {
           onPress={() => navigation.navigate(ROUTES.Account.HelpSettings)}
           style={({ pressed }) => [styles.settingsBtn, pressed ? { opacity: 0.88 } : null]}
         >
-          <Ionicons name="settings-outline" size={16} color={THEME.colors.textSecondary} />
+          <Ionicons name="options-outline" size={17} color={THEME.colors.primary} />
           <Text style={styles.settingsBtnText}>Help & Settings</Text>
         </Pressable>
       </View>

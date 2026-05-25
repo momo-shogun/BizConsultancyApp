@@ -1,10 +1,9 @@
 import React, { useCallback, useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
+import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { useAuth } from '@/app/providers/AuthProvider';
 import { THEME } from '@/constants/theme';
-import { logoutSession } from '@/features/Auth/store/authThunks';
 import {
   selectAccountRole,
   selectDisplayName,
@@ -19,6 +18,17 @@ export interface ProfileAccountCardProps {
   accountRole: AuthRole;
   style?: ViewStyle;
 }
+
+const CARD_SHADOW = Platform.select({
+  ios: {
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  android: { elevation: 4 },
+  default: {},
+});
 
 export function ProfileAccountCard(props: ProfileAccountCardProps): React.ReactElement {
   const { accountRole: screenRole } = props;
@@ -55,46 +65,52 @@ export function ProfileAccountCard(props: ProfileAccountCardProps): React.ReactE
   }, [formattedPhone, hasPhone, resolvedRole]);
 
   const ctaLabel = hasPhone ? 'Upgrade' : 'Sign in';
+  const avatarInitial = titleText.charAt(0).toUpperCase();
 
   return (
     <View style={[styles.card, props.style]}>
-      <View style={styles.inner}>
-        <View style={styles.row}>
-          <Pressable
-            style={styles.left}
-            onPress={hasPhone ? undefined : handleLoginPress}
-            disabled={hasPhone}
-            accessibilityRole={hasPhone ? 'text' : 'button'}
-            accessibilityLabel={
-              hasPhone ? `${titleText}, ${subtitleText}` : 'Sign in to view your mobile number'
-            }
-          >
-            <View style={styles.titleRow}>
-              <Text style={styles.title} numberOfLines={1}>
-                {titleText}
-              </Text>
-            </View>
+      <View style={styles.row}>
+        <Pressable
+          style={styles.left}
+          onPress={hasPhone ? undefined : handleLoginPress}
+          disabled={hasPhone}
+          accessibilityRole={hasPhone ? 'text' : 'button'}
+          accessibilityLabel={
+            hasPhone ? `${titleText}, ${subtitleText}` : 'Sign in to view your mobile number'
+          }
+        >
+          <View style={styles.avatar}>
+            {hasPhone ? (
+              <Text style={styles.avatarInitial}>{avatarInitial}</Text>
+            ) : (
+              <Ionicons name="person-outline" size={22} color={THEME.colors.primary} />
+            )}
+          </View>
+
+          <View style={styles.textBlock}>
+            <Text style={styles.title} numberOfLines={1}>
+              {titleText}
+            </Text>
             <Text style={styles.subtitle} numberOfLines={2}>
               {subtitleText}
             </Text>
-          </Pressable>
+          </View>
+        </Pressable>
 
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={hasPhone ? 'Upgrade membership' : 'Sign in'}
-            onPress={hasPhone ? undefined : handleLoginPress}
-            disabled={hasPhone}
-          >
-            <LinearGradient
-              colors={['#ffedd8', '#f3d5b5', '#e7bc91']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.ctaBtn}
-            >
-              <Text style={styles.ctaText}>{ctaLabel}</Text>
-            </LinearGradient>
-          </Pressable>
-        </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={hasPhone ? 'Upgrade membership' : 'Sign in'}
+          onPress={hasPhone ? undefined : handleLoginPress}
+          disabled={hasPhone}
+          style={({ pressed }) => [pressed && !hasPhone ? { opacity: 0.88 } : null]}
+        >
+          <View style={[styles.ctaBtn, hasPhone ? styles.ctaBtnMuted : null]}>
+            <Text style={[styles.ctaText, hasPhone ? styles.ctaTextMuted : null]}>{ctaLabel}</Text>
+            {!hasPhone ? (
+              <Ionicons name="chevron-forward" size={14} color={THEME.colors.white} />
+            ) : null}
+          </View>
+        </Pressable>
       </View>
     </View>
   );
@@ -102,13 +118,15 @@ export function ProfileAccountCard(props: ProfileAccountCardProps): React.ReactE
 
 const styles = StyleSheet.create({
   card: {
-    marginHorizontal: THEME.spacing[10],
+    marginHorizontal: THEME.spacing[12],
     marginVertical: THEME.spacing[10],
-    borderRadius: THEME.radius[12],
+    borderRadius: THEME.radius[16],
     overflow: 'hidden',
-    backgroundColor: '#f8f9fa',
+    backgroundColor: THEME.colors.white,
     borderWidth: 1,
-    borderColor: THEME.colors.border,
+    borderColor: '#E2E8F0',
+    padding: THEME.spacing[16],
+    ...CARD_SHADOW,
   },
   row: {
     flexDirection: 'row',
@@ -119,42 +137,63 @@ const styles = StyleSheet.create({
   left: {
     flex: 1,
     minWidth: 0,
-    gap: THEME.spacing[4],
-  },
-  titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: THEME.spacing[8],
+    gap: THEME.spacing[12],
   },
-  title: {
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(15,81,50,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(15,81,50,0.14)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarInitial: {
+    fontSize: THEME.typography.size[18],
+    fontWeight: THEME.typography.weight.bold as '700',
+    color: THEME.colors.primary,
+  },
+  textBlock: {
     flex: 1,
     minWidth: 0,
-    color: THEME.colors.accentAmber,
+    gap: THEME.spacing[4],
+  },
+  title: {
+    color: THEME.colors.textPrimary,
     fontSize: THEME.typography.size[16],
     fontWeight: THEME.typography.weight.bold as '700',
-  },
-  chevron: {
-    color: THEME.colors.accentAmber,
-    fontSize: THEME.typography.size[14],
+    letterSpacing: -0.2,
   },
   subtitle: {
     color: THEME.colors.textSecondary,
     fontSize: THEME.typography.size[12],
-    fontWeight: THEME.typography.weight.regular as '400',
-    lineHeight: 18,
+    fontWeight: THEME.typography.weight.medium as '500',
+    lineHeight: 17,
   },
   ctaBtn: {
-    paddingHorizontal: THEME.spacing[20],
-    paddingVertical: THEME.spacing[8],
-    borderRadius: 10,
-    overflow: 'hidden',
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: THEME.spacing[4],
+    paddingHorizontal: THEME.spacing[14],
+    paddingVertical: THEME.spacing[10],
+    borderRadius: THEME.radius[12],
+    backgroundColor: THEME.colors.primary,
+  },
+  ctaBtnMuted: {
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   ctaText: {
-    color: THEME.colors.black,
-    fontSize: THEME.typography.size[14],
-    fontWeight: THEME.typography.weight.bold as '700',
-    letterSpacing: 0.3,
+    color: THEME.colors.white,
+    fontSize: THEME.typography.size[12],
+    fontWeight: THEME.typography.weight.semibold as '600',
+    letterSpacing: 0.15,
+  },
+  ctaTextMuted: {
+    color: THEME.colors.textSecondary,
   },
 });
