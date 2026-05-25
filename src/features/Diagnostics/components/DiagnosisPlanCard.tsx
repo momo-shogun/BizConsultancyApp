@@ -1,23 +1,54 @@
 import React, { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
-import { DIAGNOSIS_THEME, getPlanTierVisual, hexToRgba } from '../constants/diagnosisTheme';
+import { THEME } from '@/constants/theme';
+import { diagnosisIconName, getDiagnosisPlanTheme } from '../constants/diagnosisPlanTheme';
+import { DIAGNOSIS_THEME } from '../constants/diagnosisTheme';
 import type { DiagnosisPlanViewModel } from '../types/diagnostics.types';
 
-export const DIAGNOSIS_PLAN_CARD_WIDTH = 272;
+export const DIAGNOSIS_PLAN_CARD_WIDTH = 300;
 
 export interface DiagnosisPlanCardProps {
   plan: DiagnosisPlanViewModel;
   onPress: (planId: number) => void;
 }
 
+function InclusionRow({
+  title,
+  accent,
+}: {
+  title: string;
+  accent: string;
+}): React.ReactElement {
+  return (
+    <View style={styles.scopeRow}>
+      <Ionicons name="checkmark-circle" size={18} color={accent} />
+      <View style={styles.scopeTextBlock}>
+        <Text style={styles.scopeTitle} numberOfLines={2}>
+          {title}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
 export function DiagnosisPlanCard({ plan, onPress }: DiagnosisPlanCardProps): React.ReactElement {
-  const tier = useMemo(() => getPlanTierVisual(plan.title), [plan.title]);
+  const theme = useMemo(
+    () => getDiagnosisPlanTheme(plan.id, plan.title),
+    [plan.id, plan.title],
+  );
+  const iconName = useMemo(() => diagnosisIconName(plan.title), [plan.title]);
+
   const isDisabled = plan.ctaMode === 'active' || plan.ctaMode === 'disabled_lower';
   const isPrimary = plan.ctaMode === 'purchase' || plan.ctaMode === 'upgrade';
-  const tagBg = useMemo(() => hexToRgba(tier.accent, 0.1), [tier.accent]);
+  const isActive = plan.ctaMode === 'active';
+  const borderWidth = plan.isPopular || isActive ? 2 : 1;
+  const borderColor = isActive
+    ? theme.accent
+    : plan.isPopular
+      ? theme.accent
+      : theme.softBorder;
 
   return (
     <Pressable
@@ -26,245 +57,279 @@ export function DiagnosisPlanCard({ plan, onPress }: DiagnosisPlanCardProps): Re
       disabled={isDisabled}
       onPress={() => onPress(plan.id)}
       style={({ pressed }) => [
-        styles.card,
-        plan.isPopular && styles.cardPopular,
-        pressed && !isDisabled ? styles.cardPressed : null,
-        isDisabled ? styles.cardDisabled : null,
+        styles.planCard,
+        {
+          backgroundColor: theme.cardBg,
+          borderColor,
+          borderWidth,
+          shadowColor: theme.accent,
+        },
+        (plan.isPopular || isActive) ? styles.planCardHighlighted : null,
+        pressed && !isDisabled ? styles.planCardPressed : null,
+        isDisabled ? styles.planCardDisabled : null,
       ]}
     >
-      <View style={styles.heroWrap}>
-        <LinearGradient
-          colors={[tier.gradient[0], tier.gradient[1]]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.heroGradient}
-        >
-          <Ionicons
-            name={tier.icon as React.ComponentProps<typeof Ionicons>['name']}
-            size={32}
-            color="rgba(255,255,255,0.95)"
-          />
-        </LinearGradient>
+      <View style={[styles.cardBlob, { backgroundColor: theme.accent }]} />
 
-        <LinearGradient
-          colors={['transparent', 'rgba(15,23,42,0.45)']}
-          style={styles.heroOverlay}
-        />
-
-        {plan.isPopular ? (
-          <View style={styles.popularBadge}>
-            <Text style={styles.popularText}>Most popular</Text>
-          </View>
-        ) : null}
-
-        {plan.ctaMode === 'active' ? (
-          <View style={styles.activeBadge}>
-            <Ionicons name="checkmark-circle" size={12} color="#FFFFFF" />
-            <Text style={styles.activeBadgeText}>Active</Text>
-          </View>
-        ) : null}
-      </View>
-
-      <View style={styles.body}>
-        <Text style={styles.packName}>{plan.title}</Text>
-        <Text style={[styles.price, { color: tier.accent }]}>{plan.priceLabel}</Text>
-        {plan.idealFor != null && plan.idealFor.length > 0 ? (
-          <Text style={styles.idealFor} numberOfLines={2}>
-            {plan.idealFor}
-          </Text>
-        ) : null}
-
-        <View style={styles.features}>
-          {plan.features.slice(0, 4).map((feature) => (
-            <View key={feature} style={styles.featureRow}>
-              <Ionicons name="checkmark-circle" size={14} color={tier.accent} />
-              <Text style={styles.featureText} numberOfLines={1}>
-                {feature}
-              </Text>
+      <View style={styles.planCardBody}>
+        <View style={styles.planHeaderRow}>
+          <View style={styles.planTitleBlock}>
+            <View style={styles.badgeRow}>
+              <View style={[styles.badge, { backgroundColor: theme.badgeBg }]}>
+                <Text style={[styles.badgeText, { color: theme.badgeText }]}>Diagnostic</Text>
+              </View>
+              {plan.isPopular ? (
+                <View style={[styles.popularBadge, { borderColor: theme.accent }]}>
+                  <Text style={[styles.popularBadgeText, { color: theme.accentDark }]}>
+                    Most popular
+                  </Text>
+                </View>
+              ) : null}
+              {isActive ? (
+                <View style={[styles.activeBadge, { backgroundColor: DIAGNOSIS_THEME.brandPrimary }]}>
+                  <Text style={styles.activeBadgeText}>Active</Text>
+                </View>
+              ) : null}
             </View>
-          ))}
+            <Text style={[styles.planName, { color: theme.accentDark }]}>{plan.title}</Text>
+            {plan.idealFor != null && plan.idealFor.length > 0 ? (
+              <Text style={styles.planDescription} numberOfLines={2}>
+                {plan.idealFor}
+              </Text>
+            ) : null}
+          </View>
+
+          <View style={styles.planHeaderTrailing}>
+            {isActive ? (
+              <View style={[styles.selectedCheckInline, { backgroundColor: theme.accent }]}>
+                <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+              </View>
+            ) : null}
+            <View style={[styles.iconCircle, { backgroundColor: theme.iconBg }]}>
+              <Ionicons name={iconName} size={22} color="#FFFFFF" />
+            </View>
+          </View>
         </View>
 
-        <View style={styles.footer}>
-          <View style={[styles.tierTag, { backgroundColor: tagBg }]}>
-            <Text style={[styles.tierTagText, { color: tier.accent }]}>Diagnostic pack</Text>
-          </View>
-          <View
-            style={[
-              styles.ctaCircle,
-              isPrimary ? { backgroundColor: tier.accent } : styles.ctaCircleMuted,
-              isDisabled && styles.ctaCircleDisabled,
-            ]}
-          >
-            <Text style={styles.ctaArrow}>{isDisabled ? '✓' : '→'}</Text>
-          </View>
+        <View style={styles.priceRow}>
+          <Text style={[styles.priceAmount, { color: theme.accentDark }]}>{plan.priceLabel}</Text>
         </View>
+        <Text style={styles.metaText}>Excl. GST · Pay via wallet or Razorpay</Text>
 
-        <Text
+        {plan.features.length > 0 ? (
+          <>
+            <View style={[styles.divider, { backgroundColor: theme.softBorder }]} />
+            <Text style={[styles.sectionTitle, { color: theme.accentDark }]}>
+              {"What's included"}
+            </Text>
+            {plan.features.map((feature) => (
+              <InclusionRow key={feature} title={feature} accent={theme.accent} />
+            ))}
+          </>
+        ) : null}
+
+        <View
           style={[
-            styles.ctaLabel,
-            isPrimary ? { color: tier.accent } : styles.ctaLabelMuted,
+            styles.upgradeCta,
+            {
+              backgroundColor: isPrimary ? theme.accent : '#E2E8F0',
+            },
+            isDisabled && styles.upgradeCtaDisabled,
           ]}
         >
-          {plan.ctaLabel}
-        </Text>
+          <Text
+            style={[
+              styles.upgradeCtaText,
+              !isPrimary && styles.upgradeCtaTextMuted,
+            ]}
+          >
+            {plan.ctaLabel}
+          </Text>
+        </View>
       </View>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
+  planCard: {
     width: DIAGNOSIS_PLAN_CARD_WIDTH,
-    marginRight: 12,
-    borderRadius: 16,
-    backgroundColor: DIAGNOSIS_THEME.contentBg,
+    marginRight: THEME.spacing[12],
+    borderRadius: 18,
     overflow: 'hidden',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: DIAGNOSIS_THEME.border,
-    shadowColor: DIAGNOSIS_THEME.shadow,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.14,
     shadowRadius: 14,
-    elevation: 3,
+    elevation: 5,
   },
-  cardPopular: {
-    borderWidth: 2,
-    borderColor: DIAGNOSIS_THEME.heroAccentBorder,
+  planCardHighlighted: {
+    shadowOpacity: 0.22,
+    shadowRadius: 18,
+    elevation: 8,
   },
-  cardPressed: {
+  planCardPressed: {
     opacity: 0.94,
-    transform: [{ scale: 0.98 }],
+    transform: [{ scale: 0.99 }],
   },
-  cardDisabled: {
+  planCardDisabled: {
     opacity: 0.88,
   },
-  heroWrap: {
-    height: 96,
-    position: 'relative',
-  },
-  heroGradient: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heroOverlay: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  popularBadge: {
+  cardBlob: {
     position: 'absolute',
-    top: 8,
-    left: 8,
-    backgroundColor: 'rgba(255,255,255,0.94)',
-    paddingHorizontal: 8,
+    top: 0,
+    right: 0,
+    width: 96,
+    height: 76,
+    borderBottomLeftRadius: 56,
+    borderTopRightRadius: 18,
+    opacity: 0.2,
+  },
+  planCardBody: {
+    padding: THEME.spacing[16],
+  },
+  planHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: THEME.spacing[12],
+  },
+  planTitleBlock: {
+    flex: 1,
+    minWidth: 0,
+  },
+  planHeaderTrailing: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: THEME.spacing[8],
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: THEME.spacing[6],
+    marginBottom: THEME.spacing[8],
+  },
+  badge: {
+    paddingHorizontal: THEME.spacing[10],
     paddingVertical: 4,
     borderRadius: 999,
   },
-  popularText: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: DIAGNOSIS_THEME.heroAccent,
-    letterSpacing: 0.4,
+  badgeText: {
+    fontSize: THEME.typography.size[11],
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+  },
+  popularBadge: {
+    paddingHorizontal: THEME.spacing[10],
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+  },
+  popularBadgeText: {
+    fontSize: THEME.typography.size[11],
+    fontWeight: '700',
     textTransform: 'uppercase',
   },
   activeBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: DIAGNOSIS_THEME.brandPrimary,
-    paddingHorizontal: 8,
+    paddingHorizontal: THEME.spacing[10],
     paddingVertical: 4,
     borderRadius: 999,
   },
   activeBadgeText: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  body: {
-    paddingHorizontal: 14,
-    paddingTop: 12,
-    paddingBottom: 14,
-  },
-  packName: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: DIAGNOSIS_THEME.textPrimary,
-    letterSpacing: -0.2,
-  },
-  price: {
-    fontSize: 24,
-    fontWeight: '900',
-    marginTop: 2,
-    marginBottom: 6,
-  },
-  idealFor: {
-    fontSize: 12,
-    color: DIAGNOSIS_THEME.textSecondary,
-    lineHeight: 17,
-    marginBottom: 10,
-  },
-  features: {
-    gap: 6,
-    marginBottom: 12,
-    minHeight: 88,
-  },
-  featureRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  featureText: {
-    flex: 1,
-    fontSize: 12,
-    color: '#334155',
-    lineHeight: 16,
-  },
-  footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  tierTag: {
-    flex: 1,
-    marginRight: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 999,
-  },
-  tierTagText: {
-    fontSize: 9,
+    fontSize: THEME.typography.size[11],
     fontWeight: '700',
-    textTransform: 'capitalize',
+    color: '#FFFFFF',
+    textTransform: 'uppercase',
   },
-  ctaCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+  selectedCheckInline: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  ctaCircleMuted: {
-    backgroundColor: '#E2E8F0',
+  iconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  ctaCircleDisabled: {
-    backgroundColor: '#CBD5E1',
+  planName: {
+    fontSize: THEME.typography.size[20],
+    fontWeight: '700',
   },
-  ctaArrow: {
-    color: '#FFFFFF',
-    fontSize: 14,
+  planDescription: {
+    marginTop: 4,
+    fontSize: THEME.typography.size[13],
+    color: DIAGNOSIS_THEME.textSecondary,
+    lineHeight: 18,
+  },
+  priceRow: {
+    marginTop: THEME.spacing[14],
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: THEME.spacing[8],
+  },
+  priceAmount: {
+    fontSize: THEME.typography.size[28],
     fontWeight: '800',
+    letterSpacing: -0.5,
   },
-  ctaLabel: {
-    fontSize: 13,
-    fontWeight: '800',
-    textAlign: 'center',
+  metaText: {
+    marginTop: THEME.spacing[6],
+    fontSize: THEME.typography.size[13],
+    color: DIAGNOSIS_THEME.textSecondary,
+    lineHeight: 18,
   },
-  ctaLabelMuted: {
+  divider: {
+    height: 1,
+    marginVertical: THEME.spacing[16],
+  },
+  sectionTitle: {
+    fontSize: THEME.typography.size[13],
+    fontWeight: '700',
+    marginBottom: THEME.spacing[10],
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  scopeRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: THEME.spacing[10],
+    marginBottom: THEME.spacing[10],
+  },
+  scopeTextBlock: {
+    flex: 1,
+    minWidth: 0,
+  },
+  scopeTitle: {
+    fontSize: THEME.typography.size[14],
+    color: DIAGNOSIS_THEME.textPrimary,
+    lineHeight: 20,
+  },
+  upgradeCta: {
+    marginTop: THEME.spacing[4],
+    paddingVertical: THEME.spacing[14],
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  upgradeCtaDisabled: {
+    opacity: 0.65,
+  },
+  upgradeCtaText: {
+    fontSize: THEME.typography.size[15],
+    fontWeight: '700',
+    color: THEME.colors.white,
+  },
+  upgradeCtaTextMuted: {
     color: DIAGNOSIS_THEME.textSecondary,
   },
 });
