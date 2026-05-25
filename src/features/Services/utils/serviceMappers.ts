@@ -15,6 +15,7 @@ import type {
   PackageItem,
   ProcessStep,
   ServicePage,
+  ServicePagePricingCost,
   TextSegment,
 } from '../screens/types';
 
@@ -43,6 +44,37 @@ function formatServicePrice(
     return `From ${formatted} + GST`;
   }
   return `From ${formatted}`;
+}
+
+function mapServicePageCost(raw: unknown): ServicePagePricingCost | undefined {
+  if (!isRecord(raw)) {
+    return undefined;
+  }
+  const prof = isRecord(raw.professionalFee) ? raw.professionalFee : null;
+  const gov = isRecord(raw.governmentFee) ? raw.governmentFee : null;
+  if (prof == null && gov == null) {
+    return undefined;
+  }
+  return {
+    professionalFee:
+      prof != null
+        ? {
+            label: typeof prof.label === 'string' ? prof.label : undefined,
+            amountOrText:
+              typeof prof.amountOrText === 'string' ? prof.amountOrText : undefined,
+            subtext: typeof prof.subtext === 'string' ? prof.subtext : undefined,
+          }
+        : undefined,
+    governmentFee:
+      gov != null
+        ? {
+            label: typeof gov.label === 'string' ? gov.label : undefined,
+            amountOrText:
+              typeof gov.amountOrText === 'string' ? gov.amountOrText : undefined,
+            subtext: typeof gov.subtext === 'string' ? gov.subtext : undefined,
+          }
+        : undefined,
+  };
 }
 
 function extractSummary(item: PublicServiceListItem): string {
@@ -409,8 +441,29 @@ export function mapPublicServiceToServicePage(raw: unknown): ServicePage | null 
 
   const card = mapPublicServiceToCardItem(item);
 
+  const price =
+    typeof raw.price === 'string' || typeof raw.price === 'number'
+      ? String(raw.price)
+      : item.price != null
+        ? String(item.price)
+        : null;
+  const isGstIncluded =
+    typeof raw.isGstIncluded === 'string'
+      ? raw.isGstIncluded
+      : item.isGstIncluded;
+  const gstPercent =
+    raw.gstPercent != null
+      ? String(raw.gstPercent)
+      : item.gstPercent != null
+        ? String(item.gstPercent)
+        : null;
+
   const page: ServicePage = {
     ...card,
+    price,
+    isGstIncluded,
+    gstPercent,
+    cost: mapServicePageCost(raw.cost),
     hero: mapHero(raw.hero ?? item.hero),
     about: mapAbout(raw.about ?? item.about),
     idealFor: mapIdealFor(raw.idealFor),

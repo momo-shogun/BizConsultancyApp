@@ -1,5 +1,7 @@
 /** Public services API (OpenAPI-aligned). */
 
+import type { OnboardingForm, OnboardingFormConfigResponse } from './serviceOnboarding.types';
+
 export interface PublicServicesQuery {
   page?: number;
   limit?: number;
@@ -54,13 +56,5 @@ export interface PublicServiceListResult {
   meta: PublicServiceListMeta;
 }
 
-/** Onboarding form config (for future intake flows). */
-export interface PublicServiceFormConfig {
-  id?: number;
-  name?: string;
-  serviceSlug?: string;
-  serviceId?: number;
-  isDefault?: boolean;
-  status?: string;
-  questions?: unknown[];
-}
+/** @deprecated Use OnboardingFormConfigResponse */
+export type PublicServiceFormConfig = OnboardingFormConfigResponse | OnboardingForm | null;

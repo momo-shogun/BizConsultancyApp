@@ -1,22 +1,68 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import type { StepComponentProps } from '../types';
 
-export function MandatoryThirdStep() {
+import { useOnboardingFormContext } from '../../context/OnboardingFormContext';
+import { formatInr } from '../../utils/onboarding/onboardingPricing';
+
+export function MandatoryThirdStep(): React.ReactElement {
+  const { pricingSummary } = useOnboardingFormContext();
+
+  if (pricingSummary == null) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.callout}>Mandatory review</Text>
+        <Text style={styles.title}>Review, confirm, and submit</Text>
+        <Text style={styles.description}>
+          Review your selections and confirm to complete registration.
+        </Text>
+      </View>
+    );
+  }
+
+  const bullets: string[] = [
+    `Service: ${pricingSummary.serviceTitle}`,
+    `Total payable: ${formatInr(pricingSummary.totalPayableRupees)}`,
+  ];
+
+  if (pricingSummary.gstMode === 'excluded' && pricingSummary.gstAmountRupees > 0) {
+    bullets.push(
+      `GST (${pricingSummary.gstPercent}%): ${formatInr(pricingSummary.gstAmountRupees)}`,
+    );
+  }
+
+  if (pricingSummary.professionalFeeAmount != null) {
+    bullets.push(
+      `${pricingSummary.professionalFeeLabel ?? 'Professional fee'}: ${pricingSummary.professionalFeeAmount}`,
+    );
+  }
+
+  if (pricingSummary.governmentFeeAmount != null) {
+    bullets.push(
+      `${pricingSummary.governmentFeeLabel ?? 'Government fee'}: ${pricingSummary.governmentFeeAmount}`,
+    );
+  }
+
+  if (pricingSummary.amountInPaise < 100) {
+    bullets.push('No online payment required for this plan.');
+  } else {
+    bullets.push('Secure payment via Razorpay or wallet on finish.');
+  }
+
   return (
     <View style={styles.container}>
       <Text style={styles.callout}>Mandatory review</Text>
       <Text style={styles.title}>Review, confirm, and submit</Text>
       <Text style={styles.description}>
-        This step is always required and can be reused inside any onboarding
-        flow. It is intentionally decoupled from step logic so it remains a
-        stable final step.
+        Confirm pricing for {pricingSummary.serviceTitle} before completing your
+        registration.
       </Text>
 
       <View style={styles.summaryList}>
-        <Text style={styles.bullet}>• Confirm your contact details</Text>
-        <Text style={styles.bullet}>• Verify service selections</Text>
-        <Text style={styles.bullet}>• Agree to terms and confirmation</Text>
+        {bullets.map((line) => (
+          <Text key={line} style={styles.bullet}>
+            • {line}
+          </Text>
+        ))}
       </View>
     </View>
   );

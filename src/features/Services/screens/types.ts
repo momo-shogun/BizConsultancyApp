@@ -161,7 +161,26 @@ interface HeroSection {
   quickActions: HeroQuickAction[];
 }
 
+export interface ServicePagePricingCost {
+  professionalFee?: {
+    label?: string;
+    amountOrText?: string;
+    subtext?: string;
+  };
+  governmentFee?: {
+    label?: string;
+    amountOrText?: string;
+    subtext?: string;
+  };
+}
+
 export interface ServicePage extends RecommendedServiceItem {
+  /** Raw pricing for onboarding payment calculation */
+  price?: string | null;
+  isGstIncluded?: string;
+  gstPercent?: string | null;
+  cost?: ServicePagePricingCost;
+
   hero?: HeroSection;
 
   about?: AboutSection;

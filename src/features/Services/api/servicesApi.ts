@@ -1,11 +1,8 @@
 import { baseApi } from '@/services/api/baseApi';
 
 import type { ServicePage } from '../screens/types';
-import type {
-  PublicServiceFormConfig,
-  PublicServiceListResult,
-  PublicServicesQuery,
-} from '../types/publicServiceApi.types';
+import type { OnboardingFormConfigResponse } from '../types/serviceOnboarding.types';
+import type { PublicServiceListResult, PublicServicesQuery } from '../types/publicServiceApi.types';
 import {
   parsePublicServiceFormResponse,
   parsePublicServicesResponse,
@@ -49,12 +46,12 @@ export const servicesApi = baseApi.injectEndpoints({
       },
       providesTags: (_result, _err, slug) => [{ type: 'Service', id: slug }],
     }),
-    getPublicServiceFormBySlug: build.query<PublicServiceFormConfig, string>({
+    getPublicServiceFormBySlug: build.query<OnboardingFormConfigResponse | null, string>({
       query: (slug) => ({
         url: `public/service-forms/${encodeURIComponent(slug)}`,
       }),
-      transformResponse: (response: unknown): PublicServiceFormConfig =>
-        parsePublicServiceFormResponse(response) ?? {},
+      transformResponse: (response: unknown): OnboardingFormConfigResponse | null =>
+        parsePublicServiceFormResponse(response),
       providesTags: (_result, _err, slug) => [
         { type: 'Service', id: `${slug}-form` },
       ],

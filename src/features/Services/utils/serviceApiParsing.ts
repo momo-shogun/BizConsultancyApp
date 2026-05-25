@@ -1,9 +1,145 @@
 import type {
-  PublicServiceFormConfig,
+  OnboardingForm,
+  OnboardingFormConfigResponse,
+  OnboardingFormQuestion,
+  OnboardingQuestionOption,
+  OnboardingQuestionType,
+} from '../types/serviceOnboarding.types';
+import type {
   PublicServiceListItem,
   PublicServiceListMeta,
   PublicServiceListResult,
 } from '../types/publicServiceApi.types';
+
+const ONBOARDING_QUESTION_TYPES: readonly OnboardingQuestionType[] = [
+  'text',
+  'textarea',
+  'number',
+  'email',
+  'phone',
+  'radio',
+  'select',
+  'checkbox',
+  'file',
+];
+
+function parseQuestionType(raw: unknown): OnboardingQuestionType {
+  const value = typeof raw === 'string' ? raw.trim().toLowerCase() : 'text';
+  if (ONBOARDING_QUESTION_TYPES.includes(value as OnboardingQuestionType)) {
+    return value as OnboardingQuestionType;
+  }
+  return 'text';
+}
+
+function parseOnboardingOption(raw: unknown): OnboardingQuestionOption | null {
+  if (!isRecord(raw)) {
+    return null;
+  }
+  const id = Number(raw.id);
+  if (!Number.isFinite(id)) {
+    return null;
+  }
+  const label = typeof raw.label === 'string' ? raw.label.trim() : '';
+  const value = typeof raw.value === 'string' ? raw.value : String(raw.value ?? label);
+  return {
+    id,
+    label: label.length > 0 ? label : value,
+    value,
+    order: typeof raw.order === 'number' ? raw.order : 0,
+  };
+}
+
+export function parseOnboardingQuestion(raw: unknown): OnboardingFormQuestion | null {
+  if (!isRecord(raw)) {
+    return null;
+  }
+  const id = Number(raw.id);
+  const formId = Number(raw.formId);
+  if (!Number.isFinite(id) || !Number.isFinite(formId)) {
+    return null;
+  }
+  const question = typeof raw.question === 'string' ? raw.question.trim() : '';
+  if (question.length === 0) {
+    return null;
+  }
+  const optionsRaw = Array.isArray(raw.options) ? raw.options : [];
+  const options: OnboardingQuestionOption[] = [];
+  for (const row of optionsRaw) {
+    const opt = parseOnboardingOption(row);
+    if (opt != null) {
+      options.push(opt);
+    }
+  }
+  options.sort((a, b) => a.order - b.order || a.id - b.id);
+
+  return {
+    id,
+    formId,
+    question,
+    type: parseQuestionType(raw.type),
+    placeholder:
+      typeof raw.placeholder === 'string' ? raw.placeholder.trim() || null : null,
+    required: raw.required === true || raw.required === 1,
+    order: typeof raw.order === 'number' ? raw.order : 0,
+    step: typeof raw.step === 'number' && raw.step > 0 ? raw.step : 1,
+    options,
+  };
+}
+
+function parseOnboardingForm(raw: unknown): OnboardingForm | null {
+  if (!isRecord(raw)) {
+    return null;
+  }
+  const id = Number(raw.id);
+  const serviceId = Number(raw.serviceId);
+  if (!Number.isFinite(id)) {
+    return null;
+  }
+  const questionsRaw = Array.isArray(raw.questions) ? raw.questions : [];
+  const questions: OnboardingFormQuestion[] = [];
+  for (const row of questionsRaw) {
+    const q = parseOnboardingQuestion(row);
+    if (q != null) {
+      questions.push(q);
+    }
+  }
+  questions.sort((a, b) => a.order - b.order || a.id - b.id);
+
+  return {
+    id,
+    serviceId: Number.isFinite(serviceId) ? serviceId : 0,
+    serviceSlug: typeof raw.serviceSlug === 'string' ? raw.serviceSlug.trim() : null,
+    name: typeof raw.name === 'string' ? raw.name.trim() : 'Onboarding',
+    isDefault: raw.isDefault === true || raw.isDefault === 1,
+    status: typeof raw.status === 'string' ? raw.status : 'active',
+    questions,
+  };
+}
+
+export function parseOnboardingFormConfigResponse(
+  raw: unknown,
+): OnboardingFormConfigResponse | null {
+  if (!isRecord(raw)) {
+    return null;
+  }
+  const nested = raw.form ?? raw.data;
+  const form = parseOnboardingForm(isRecord(nested) ? nested : raw);
+  if (form == null) {
+    return null;
+  }
+  const formsRaw = Array.isArray(raw.forms) ? raw.forms : [form];
+  const forms: OnboardingForm[] = [];
+  for (const row of formsRaw) {
+    const parsed = parseOnboardingForm(row);
+    if (parsed != null) {
+      forms.push(parsed);
+    }
+  }
+  if (forms.length === 0) {
+    forms.push(form);
+  }
+  return { form, forms };
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value != null && typeof value === 'object' && !Array.isArray(value);
@@ -158,13 +294,8 @@ export function parsePublicServicePageResponse(raw: unknown): PublicServiceListI
   return isPublicServiceListItem(raw) ? raw : null;
 }
 
-export function parsePublicServiceFormResponse(raw: unknown): PublicServiceFormConfig | null {
-  if (!isRecord(raw)) {
-    return null;
-  }
-  const nested = raw.data ?? raw.form;
-  if (isRecord(nested)) {
-    return nested as PublicServiceFormConfig;
-  }
-  return raw as PublicServiceFormConfig;
+export function parsePublicServiceFormResponse(
+  raw: unknown,
+): OnboardingFormConfigResponse | null {
+  return parseOnboardingFormConfigResponse(raw);
 }

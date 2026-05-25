@@ -141,6 +141,7 @@ export const baseApi = createApi({
     'Wallet',
     'Testimonial',
     'Membership',
+    'ServiceOnboarding',
   ],
   endpoints: () => ({}),
 });

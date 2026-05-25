@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -15,8 +15,14 @@ export function Stepper({
   steps,
   initialStep = 0,
   onComplete,
+  onBeforeNext,
+  isProcessing = false,
 }: StepperProps) {
   const [activeStep, setActiveStep] = useState(initialStep);
+
+  useEffect(() => {
+    setActiveStep(initialStep);
+  }, [initialStep]);
 
   const totalSteps = steps.length;
   const isLastStep = activeStep === totalSteps - 1;
@@ -29,13 +35,22 @@ export function Stepper({
     width: `${progress}%`,
   };
 
-  const handleNext = () => {
-    if (isLastStep) {
-      onComplete?.();
-      return;
-    }
+  const handleNext = (): void => {
+    void (async (): Promise<void> => {
+      if (onBeforeNext != null) {
+        const allowed = await onBeforeNext(activeStep);
+        if (!allowed) {
+          return;
+        }
+      }
 
-    setActiveStep(prev => Math.min(prev + 1, totalSteps - 1));
+      if (isLastStep) {
+        await onComplete?.();
+        return;
+      }
+
+      setActiveStep((prev) => Math.min(prev + 1, totalSteps - 1));
+    })();
   };
 
   const handleBack = () => {
@@ -73,7 +88,8 @@ export function Stepper({
           <TouchableOpacity
             activeOpacity={0.85}
             style={styles.backBtn}
-            onPress={handleBack}>
+            onPress={handleBack}
+            disabled={isProcessing}>
             <Ionicons name="arrow-back" size={18} color="#0B3B66" />
             <Text style={styles.backBtnText}>Back</Text>
           </TouchableOpacity>
@@ -83,10 +99,15 @@ export function Stepper({
 
         <TouchableOpacity
           activeOpacity={0.85}
-          style={[styles.nextBtn, isLastStep && styles.finishBtn]}
-          onPress={handleNext}>
+          style={[
+            styles.nextBtn,
+            isLastStep && styles.finishBtn,
+            isProcessing && styles.btnDisabled,
+          ]}
+          onPress={handleNext}
+          disabled={isProcessing}>
           <Text style={[styles.nextBtnText, isLastStep && styles.finishText]}>
-            {isLastStep ? 'Finish' : 'Next'}
+            {isProcessing ? 'Please wait...' : isLastStep ? 'Finish' : 'Next'}
           </Text>
           <Ionicons
             name="arrow-forward"
@@ -183,5 +204,8 @@ const styles = StyleSheet.create({
   },
   placeholder: {
     flex: 0.48,
+  },
+  btnDisabled: {
+    opacity: 0.6,
   },
 });

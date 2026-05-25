@@ -17,7 +17,9 @@ export interface StepConfig {
 export interface StepperProps {
   steps: StepConfig[];
   initialStep?: number;
-  onComplete?: () => void;
+  onComplete?: () => void | Promise<void>;
+  onBeforeNext?: (stepIndex: number) => Promise<boolean>;
+  isProcessing?: boolean;
 }
 
 export interface StepRendererProps extends StepComponentProps {

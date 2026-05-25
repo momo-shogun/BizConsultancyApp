@@ -9,6 +9,7 @@ import { baseApi } from '@/services/api/baseApi';
 import '@/features/Auth/api/authApi';
 import '@/features/consultant/api/consultantApi';
 import '@/features/Services/api/servicesApi';
+import '@/features/Services/api/serviceOnboardingApi';
 import '@/features/Calls/api/callsApi';
 import '@/features/Consultation/api/consultantBookingsApi';
 import '@/features/Home/api/workshopsApi';
