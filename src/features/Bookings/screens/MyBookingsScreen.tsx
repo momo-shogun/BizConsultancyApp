@@ -73,41 +73,51 @@ function BookingRow(props: BookingRowProps): React.ReactElement {
   const { booking, filter, isLast, onCallPress } = props;
   const showCall = canShowCallAction(booking, filter);
   const isVideo = booking.consultationType.toLowerCase() === 'video';
+  const consultationIcon = isVideo ? 'videocam-outline' : 'chatbubbles-outline';
 
   return (
     <View style={[styles.bookingRow, isLast ? styles.bookingRowLast : null]}>
-      <View style={styles.bookingTop}>
-        <View style={styles.bookingLeft}>
-          <Text style={styles.consultantName} numberOfLines={1}>
-            {booking.consultantName ?? 'Consultant'}
-          </Text>
-          <Text style={styles.meta} numberOfLines={1}>
-            {formatBookingDate(booking.bookingDate)} · {booking.slotTime} ·{' '}
-            {booking.consultationType}
-          </Text>
-          <Text style={styles.meta} numberOfLines={1}>
-            {getPaymentLabel(booking)}
-          </Text>
-          <StatusBadge status={booking.status} />
+      <View style={styles.bookingMain}>
+        <View style={styles.bookingContent}>
+          <View style={styles.titleRow}>
+            <Text style={styles.consultantName} numberOfLines={1}>
+              {booking.consultantName ?? 'Consultant'}
+            </Text>
+            <StatusBadge status={booking.status} />
+          </View>
+          <View style={styles.infoRow}>
+            <Ionicons name="calendar-outline" size={13} color="#94A3B8" />
+            <Text style={styles.meta} numberOfLines={1}>
+              {formatBookingDate(booking.bookingDate)} · {booking.slotTime}
+            </Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Ionicons name={consultationIcon} size={13} color="#94A3B8" />
+            <Text style={styles.meta} numberOfLines={1}>
+              {booking.consultationType} · {getPaymentLabel(booking)}
+            </Text>
+          </View>
         </View>
         {booking.amount != null && booking.amount > 0 ? (
-          <Text style={styles.amount}>₹{booking.amount.toLocaleString('en-IN')}</Text>
+          <View style={styles.amountChip}>
+            <Text style={styles.amount}>₹{booking.amount.toLocaleString('en-IN')}</Text>
+          </View>
         ) : null}
       </View>
       {showCall ? (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={isVideo ? 'Video call coming soon' : 'Call coming soon'}
+          accessibilityLabel="Call option coming soon"
           onPress={onCallPress}
           style={({ pressed }) => [styles.callBtn, pressed ? { opacity: 0.88 } : null]}
         >
           <Ionicons
             name={isVideo ? 'videocam-outline' : 'call-outline'}
             size={14}
-            color="#64748B"
+            color={THEME.colors.primary}
           />
           <Text style={styles.callBtnText}>
-            {isVideo ? 'Video' : 'Call'} · Coming soon
+            {isVideo ? 'Video session' : 'Phone call'} — coming soon
           </Text>
         </Pressable>
       ) : null}
@@ -121,7 +131,7 @@ export function MyBookingsScreen(): React.ReactElement {
 
   const handleCallPress = useCallback((): void => {
     showGlobalToast({
-      message: 'Video and phone calls will be available in a future app update.',
+      message: 'In-app calls will be available in a future update.',
       variant: 'info',
     });
   }, []);
@@ -129,10 +139,6 @@ export function MyBookingsScreen(): React.ReactElement {
   const browseConsultants = useCallback((): void => {
     navigationRef.navigate(ROUTES.Root.ConsultantsList);
   }, []);
-
-  const openWorkshopBookings = useCallback((): void => {
-    navigation.navigate(ROUTES.Account.WorkshopBookings);
-  }, [navigation]);
 
   if (screen.isLoading) {
     return (
@@ -145,7 +151,7 @@ export function MyBookingsScreen(): React.ReactElement {
     );
   }
 
-  const count = screen.visibleBookings.length;
+  const isUpcoming = screen.filter === 'upcoming';
 
   return (
     <SafeAreaWrapper edges={['top', 'bottom']} bgColor={BOOKINGS_CANVAS}>
@@ -155,6 +161,7 @@ export function MyBookingsScreen(): React.ReactElement {
         style={styles.screen}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl
             refreshing={screen.isRefreshing}
@@ -169,14 +176,26 @@ export function MyBookingsScreen(): React.ReactElement {
           end={{ x: 1, y: 1 }}
           style={styles.heroGradient}
         >
-          <Text style={styles.heroTitle}>Consultation bookings</Text>
-          <Text style={styles.heroMeta}>
-            {count} {screen.filter === 'upcoming' ? 'upcoming' : 'past'} booking
-            {count === 1 ? '' : 's'}
-          </Text>
+          <View style={styles.heroTop}>
+            <View style={styles.heroIconWrap}>
+              <Ionicons name="calendar-outline" size={22} color="#FFFFFF" />
+            </View>
+            <View style={styles.heroTextBlock}>
+              <Text style={styles.heroTitle}>Your consultant sessions</Text>
+              <Text style={styles.heroMeta}>
+                {isUpcoming
+                  ? 'Upcoming appointments and pending confirmations.'
+                  : 'Completed and past sessions.'}
+                {' '}
+                Pull down to refresh.
+              </Text>
+            </View>
+          </View>
+
           <View style={styles.tabRow}>
             {(['upcoming', 'past'] as const).map((tab) => {
               const active = screen.filter === tab;
+              const tabLabel = tab === 'upcoming' ? 'Upcoming' : 'Past';
               return (
                 <Pressable
                   key={tab}
@@ -186,7 +205,12 @@ export function MyBookingsScreen(): React.ReactElement {
                   style={[styles.tab, active ? styles.tabActive : null]}
                 >
                   <Text style={[styles.tabText, active ? styles.tabTextActive : null]}>
-                    {tab === 'upcoming' ? 'Upcoming' : 'Past'}
+                    {tabLabel}
+                  </Text>
+                  <Text
+                    style={[styles.tabCount, active ? styles.tabCountActive : null]}
+                  >
+                    {tab === 'upcoming' ? screen.upcomingCount : screen.pastCount}
                   </Text>
                 </Pressable>
               );
@@ -199,33 +223,53 @@ export function MyBookingsScreen(): React.ReactElement {
           <TextInput
             value={screen.search}
             onChangeText={screen.setSearch}
-            placeholder="Search consultant or email"
+            placeholder="Search by name or email"
             placeholderTextColor="#94A3B8"
             style={styles.searchInput}
             autoCapitalize="none"
             autoCorrect={false}
+            returnKeyType="search"
+            accessibilityLabel="Search bookings"
           />
+          {screen.search.length > 0 ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Clear search"
+              onPress={() => screen.setSearch('')}
+              hitSlop={8}
+            >
+              <Ionicons name="close-circle" size={18} color="#94A3B8" />
+            </Pressable>
+          ) : null}
         </View>
 
         {screen.errorMessage != null ? (
-          <Text style={styles.errorText}>{screen.errorMessage}</Text>
+          <View style={styles.errorBanner}>
+            <Ionicons name="alert-circle-outline" size={18} color={THEME.colors.danger} />
+            <Text style={styles.errorText}>{screen.errorMessage}</Text>
+          </View>
         ) : null}
 
         <View style={styles.listBlock}>
-          <View style={styles.listHeader}>
-            <Text style={styles.listHeaderTitle}>
-              {screen.filter === 'upcoming' ? 'Upcoming' : 'Past'} sessions
-            </Text>
-            <Text style={styles.listHeaderMeta}>{count} shown</Text>
-          </View>
-
           {screen.visibleBookings.length === 0 && screen.errorMessage == null ? (
             <View style={styles.emptyBlock}>
-              <Ionicons name="calendar-outline" size={28} color={THEME.colors.primary} />
-              <Text style={styles.emptyTitle}>No bookings in this tab</Text>
-              <Pressable style={styles.linkBtn} onPress={browseConsultants}>
-                <Text style={styles.linkBtnText}>Browse consultants</Text>
-              </Pressable>
+              <View style={styles.emptyIcon}>
+                <Ionicons name="calendar-outline" size={26} color={THEME.colors.primary} />
+              </View>
+              <Text style={styles.emptyTitle}>
+                {isUpcoming ? 'No upcoming bookings' : 'No past bookings'}
+              </Text>
+              <Text style={styles.emptyBody}>
+                {isUpcoming
+                  ? 'Book a consultant to schedule your next session.'
+                  : 'Your completed sessions will appear here.'}
+              </Text>
+              {isUpcoming ? (
+                <Pressable style={styles.linkBtn} onPress={browseConsultants}>
+                  <Text style={styles.linkBtnText}>Find a consultant</Text>
+                  <Ionicons name="arrow-forward" size={14} color="#FFFFFF" />
+                </Pressable>
+              ) : null}
             </View>
           ) : (
             screen.visibleBookings.map((booking, index) => (
@@ -248,10 +292,10 @@ export function MyBookingsScreen(): React.ReactElement {
               onPress={() => screen.setPage(screen.page - 1)}
               style={[styles.pageBtn, screen.page <= 1 ? styles.pageBtnDisabled : null]}
             >
-              <Text style={styles.pageBtnText}>Previous</Text>
+              <Ionicons name="chevron-back" size={16} color={THEME.colors.textPrimary} />
             </Pressable>
             <Text style={styles.pageLabel}>
-              {screen.page} / {screen.totalPages}
+              Page {screen.page} of {screen.totalPages}
             </Text>
             <Pressable
               accessibilityRole="button"
@@ -262,15 +306,10 @@ export function MyBookingsScreen(): React.ReactElement {
                 screen.page >= screen.totalPages ? styles.pageBtnDisabled : null,
               ]}
             >
-              <Text style={styles.pageBtnText}>Next</Text>
+              <Ionicons name="chevron-forward" size={16} color={THEME.colors.textPrimary} />
             </Pressable>
           </View>
         ) : null}
-
-        <Pressable style={styles.footerLink} onPress={openWorkshopBookings}>
-          <Text style={styles.footerLinkTitle}>Workshop bookings</Text>
-          <Text style={styles.footerLinkAction}>View all →</Text>
-        </Pressable>
       </ScrollView>
     </SafeAreaWrapper>
   );

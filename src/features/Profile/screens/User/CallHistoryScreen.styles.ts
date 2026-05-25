@@ -20,10 +20,10 @@ export const styles = StyleSheet.create({
     borderRadius: 16,
     padding: THEME.spacing[14],
     gap: THEME.spacing[10],
-    marginBottom: THEME.spacing[2],
+    marginBottom: THEME.spacing[4],
   },
   heroTitle: {
-    fontSize: THEME.typography.size[17],
+    fontSize: THEME.typography.size[18],
     fontWeight: THEME.typography.weight.bold as '700',
     color: '#FFFFFF',
   },
@@ -99,7 +99,7 @@ export const styles = StyleSheet.create({
     gap: 2,
   },
   title: {
-    fontSize: THEME.typography.size[13],
+    fontSize: THEME.typography.size[14],
     fontWeight: THEME.typography.weight.semibold as '600',
     color: THEME.colors.textPrimary,
   },
@@ -165,12 +165,12 @@ export const styles = StyleSheet.create({
     paddingVertical: THEME.spacing[28],
   },
   stateText: {
-    fontSize: THEME.typography.size[13],
+    fontSize: THEME.typography.size[14],
     color: SLATE_MUTED,
     textAlign: 'center',
   },
   errorText: {
-    fontSize: THEME.typography.size[13],
+    fontSize: THEME.typography.size[14],
     color: THEME.colors.danger,
     textAlign: 'center',
   },
@@ -181,7 +181,7 @@ export const styles = StyleSheet.create({
     backgroundColor: THEME.colors.primary,
   },
   retryText: {
-    fontSize: THEME.typography.size[13],
+    fontSize: THEME.typography.size[14],
     fontWeight: THEME.typography.weight.semibold as '600',
     color: THEME.colors.white,
   },

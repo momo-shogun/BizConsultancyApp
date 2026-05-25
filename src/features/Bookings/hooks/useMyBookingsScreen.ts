@@ -23,6 +23,8 @@ export interface UseMyBookingsScreenResult {
   search: string;
   page: number;
   totalPages: number;
+  upcomingCount: number;
+  pastCount: number;
   visibleBookings: MyConsultantBooking[];
   setFilter: (filter: BookingsFilter) => void;
   setSearch: (value: string) => void;
@@ -94,22 +96,36 @@ export function useMyBookingsScreen(): UseMyBookingsScreenResult {
     setPage(1);
   }, [filter, search]);
 
-  const filteredBookings = useMemo((): MyConsultantBooking[] => {
+  const searchedBookings = useMemo((): MyConsultantBooking[] => {
     const q = search.trim().toLowerCase();
-    const searched =
-      q.length === 0
-        ? allBookings
-        : allBookings.filter(
-            (b) =>
-              (b.consultantName ?? '').toLowerCase().includes(q) ||
-              b.email.toLowerCase().includes(q),
-          );
+    if (q.length === 0) {
+      return allBookings;
+    }
+    return allBookings.filter(
+      (b) =>
+        (b.consultantName ?? '').toLowerCase().includes(q) ||
+        b.email.toLowerCase().includes(q),
+    );
+  }, [allBookings, search]);
 
-    return searched.filter((b) => {
+  const upcomingCount = useMemo(
+    (): number =>
+      searchedBookings.filter((b) => isBookingUpcoming(b.bookingDate, b.slotTime)).length,
+    [searchedBookings],
+  );
+
+  const pastCount = useMemo(
+    (): number =>
+      searchedBookings.filter((b) => !isBookingUpcoming(b.bookingDate, b.slotTime)).length,
+    [searchedBookings],
+  );
+
+  const filteredBookings = useMemo((): MyConsultantBooking[] => {
+    return searchedBookings.filter((b) => {
       const upcoming = isBookingUpcoming(b.bookingDate, b.slotTime);
       return filter === 'upcoming' ? upcoming : !upcoming;
     });
-  }, [allBookings, filter, search]);
+  }, [searchedBookings, filter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredBookings.length / PAGE_SIZE));
 
@@ -137,6 +153,8 @@ export function useMyBookingsScreen(): UseMyBookingsScreenResult {
     search,
     page,
     totalPages,
+    upcomingCount,
+    pastCount,
     visibleBookings,
     setFilter,
     setSearch,
