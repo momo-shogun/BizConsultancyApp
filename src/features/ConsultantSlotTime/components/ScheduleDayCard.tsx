@@ -52,27 +52,25 @@ export function ScheduleDayCard({
         >
           <Ionicons name="add" size={16} color={day.isActive ? '#059669' : '#94A3B8'} />
           <Text style={[styles.addBtnText, !day.isActive ? styles.addBtnTextDisabled : null]}>
-            Add slot
+            Add time
           </Text>
         </Pressable>
       </View>
 
       {!day.isActive ? (
-        <Text style={styles.hint}>
-          Turn this day on to add slots and receive bookings.
-        </Text>
+        <Text style={styles.hint}>Switch on to allow bookings.</Text>
       ) : (
         <View style={styles.ranges}>
           {day.ranges.map((range, rangeIndex) => (
             <View key={`${day.dayOfWeek}-${rangeIndex}`} style={styles.rangeRow}>
               <TimeSelectField
-                label="Start time"
+                label="From"
                 value={range.startTime}
                 onChange={(next) => onUpdateRange(rangeIndex, 'startTime', next)}
               />
               <Text style={styles.dash}>–</Text>
               <TimeSelectField
-                label="End time"
+                label="To"
                 value={range.endTime}
                 onChange={(next) => onUpdateRange(rangeIndex, 'endTime', next)}
               />
@@ -119,17 +117,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: THEME.spacing[10],
     flex: 1,
+    minWidth: 0,
   },
   dayLabel: {
+    flex: 1,
     fontSize: THEME.typography.size[16],
     fontWeight: '700',
     color: THEME.colors.textPrimary,
   },
   addBtn: {
+    flexShrink: 0,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: THEME.spacing[10],
+    paddingHorizontal: THEME.spacing[8],
     paddingVertical: 6,
     borderRadius: 999,
     borderWidth: 1,

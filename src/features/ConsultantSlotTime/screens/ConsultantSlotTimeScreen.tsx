@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { OverrideEditorModal } from '@/features/ConsultantSlotTime/components/OverrideEditorModal';
@@ -17,7 +18,10 @@ import { ScheduleDayCard } from '@/features/ConsultantSlotTime/components/Schedu
 import { SlotPreviewSection } from '@/features/ConsultantSlotTime/components/SlotPreviewSection';
 import { useConsultantSlotTimeScreen } from '@/features/ConsultantSlotTime/hooks/useConsultantSlotTimeScreen';
 import { formatOverrideDisplay } from '@/features/ConsultantSlotTime/utils/scheduleDisplay';
-import { PROFILE_HEADER_GRADIENT } from '@/features/Profile/constants/profileScreenTheme';
+import {
+  PROFILE_HEADER_GRADIENT,
+  PROFILE_HEADER_STATUS_BAR,
+} from '@/features/Profile/constants/profileScreenTheme';
 import { THEME } from '@/constants/theme';
 import { SafeAreaWrapper, ScreenHeader } from '@/shared/components';
 
@@ -25,25 +29,53 @@ import { SLOT_TIME_CANVAS, styles } from './ConsultantSlotTimeScreen.styles';
 
 export function ConsultantSlotTimeScreen(): React.ReactElement {
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const screen = useConsultantSlotTimeScreen();
+
+  const topChrome = (
+    <LinearGradient
+      colors={[...PROFILE_HEADER_GRADIENT]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={[styles.topChrome, { paddingTop: insets.top }]}
+    >
+      <ScreenHeader
+        title="Booking hours"
+        onBackPress={() => navigation.goBack()}
+        headerColor="transparent"
+      />
+    </LinearGradient>
+  );
 
   if (screen.isScheduleLoading) {
     return (
-      <SafeAreaWrapper edges={['top', 'bottom']} bgColor={SLOT_TIME_CANVAS}>
-        <ScreenHeader title="Slot Time" onBackPress={() => navigation.goBack()} />
+      <SafeAreaWrapper
+        edges={['bottom']}
+        bgColor={PROFILE_HEADER_STATUS_BAR}
+        contentBgColor={SLOT_TIME_CANVAS}
+        statusBarStyle="light-content"
+        style={styles.screenRoot}
+      >
+        {topChrome}
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color={THEME.colors.primary} />
+          <ActivityIndicator size="large" color="#059669" />
         </View>
       </SafeAreaWrapper>
     );
   }
 
   return (
-    <SafeAreaWrapper edges={['top', 'bottom']} bgColor={SLOT_TIME_CANVAS}>
-      <ScreenHeader title="Slot Time" onBackPress={() => navigation.goBack()} />
+    <SafeAreaWrapper
+      edges={['bottom']}
+      bgColor={PROFILE_HEADER_STATUS_BAR}
+      contentBgColor={SLOT_TIME_CANVAS}
+      statusBarStyle="light-content"
+      style={styles.screenRoot}
+    >
+      {topChrome}
 
       <ScrollView
-        style={styles.screen}
+        style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -51,7 +83,7 @@ export function ConsultantSlotTimeScreen(): React.ReactElement {
           <RefreshControl
             refreshing={screen.isRefreshing}
             onRefresh={screen.refreshAll}
-            tintColor={THEME.colors.primary}
+            tintColor="#059669"
           />
         }
       >
@@ -66,21 +98,11 @@ export function ConsultantSlotTimeScreen(): React.ReactElement {
               <Ionicons name="time-outline" size={24} color="#FFFFFF" />
             </View>
             <View style={styles.heroTextBlock}>
-              <Text style={styles.heroTitle}>Availability</Text>
-              <Text style={styles.heroMeta}>
-                Set your weekly hours and block specific dates when you are unavailable.
-              </Text>
+              <Text style={styles.heroTitle}>When can people book you?</Text>
+              <Text style={styles.heroMeta}>Set your weekly hours. Mark days you are off.</Text>
             </View>
           </View>
         </LinearGradient>
-
-        <View style={styles.tipCard}>
-          <Ionicons name="information-circle-outline" size={18} color="#059669" />
-          <Text style={styles.tipText}>
-            Weekly schedule defines your regular slots. Overrides mark one-off unavailable
-            windows. Clients can only book inside active hours.
-          </Text>
-        </View>
 
         <SlotPreviewSection
           previewDate={screen.previewDate}
@@ -91,18 +113,13 @@ export function ConsultantSlotTimeScreen(): React.ReactElement {
         />
 
         <View style={styles.sectionCard}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Weekly schedule</Text>
-            <Text style={styles.sectionSubtitle}>
-              Turn days on and add one or more time ranges per day.
-            </Text>
-          </View>
+          <Text style={styles.sectionTitle}>Every week</Text>
 
           {!screen.scheduleExists ? (
             <View style={styles.emptyScheduleBox}>
-              <Text style={styles.emptyScheduleTitle}>No schedule yet</Text>
+              <Text style={styles.emptyScheduleTitle}>Not set up yet</Text>
               <Text style={styles.emptyScheduleText}>
-                Create a schedule to define your regular availability by day and time.
+                Tap below to choose your working days and times.
               </Text>
               <Pressable
                 accessibilityRole="button"
@@ -110,21 +127,19 @@ export function ConsultantSlotTimeScreen(): React.ReactElement {
                 style={({ pressed }) => [styles.primaryBtn, pressed ? { opacity: 0.92 } : null]}
               >
                 <Ionicons name="add-circle-outline" size={18} color="#FFFFFF" />
-                <Text style={styles.primaryBtnText}>Create schedule</Text>
+                <Text style={styles.primaryBtnText}>Set up now</Text>
               </Pressable>
             </View>
           ) : (
             <>
-              <View>
-                <Text style={styles.sectionSubtitle}>Schedule name</Text>
-                <TextInput
-                  value={screen.scheduleName}
-                  onChangeText={screen.setScheduleName}
-                  placeholder="Default"
-                  placeholderTextColor="#94A3B8"
-                  style={styles.scheduleNameInput}
-                />
-              </View>
+              <Text style={styles.fieldLabel}>Name (optional)</Text>
+              <TextInput
+                value={screen.scheduleName}
+                onChangeText={screen.setScheduleName}
+                placeholder="e.g. My hours"
+                placeholderTextColor="#94A3B8"
+                style={styles.scheduleNameInput}
+              />
 
               <View style={styles.scheduleActions}>
                 <Pressable
@@ -132,7 +147,7 @@ export function ConsultantSlotTimeScreen(): React.ReactElement {
                   onPress={screen.cancelScheduleEdits}
                   style={styles.secondaryBtn}
                 >
-                  <Text style={styles.secondaryBtnText}>Cancel</Text>
+                  <Text style={styles.secondaryBtnText}>Undo</Text>
                 </Pressable>
                 <Pressable
                   accessibilityRole="button"
@@ -143,7 +158,7 @@ export function ConsultantSlotTimeScreen(): React.ReactElement {
                   {screen.isScheduleSaving ? (
                     <ActivityIndicator color="#FFFFFF" />
                   ) : (
-                    <Text style={styles.saveBtnText}>Save schedule</Text>
+                    <Text style={styles.saveBtnText}>Save</Text>
                   )}
                 </Pressable>
               </View>
@@ -170,28 +185,28 @@ export function ConsultantSlotTimeScreen(): React.ReactElement {
 
         <View style={styles.sectionCard}>
           <View style={styles.overridesHeader}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Unavailable blocks</Text>
-              <Text style={styles.sectionSubtitle}>
-                Block specific dates that override your weekly schedule.
-              </Text>
+            <View style={styles.overridesHeaderText}>
+              <Text style={styles.sectionTitle}>Days off</Text>
+              <Text style={styles.sectionSubtitle}>Pick dates you are not free.</Text>
             </View>
             <Pressable
               accessibilityRole="button"
+              accessibilityLabel="Add day off"
               onPress={screen.openCreateOverride}
-              style={({ pressed }) => [styles.primaryBtn, pressed ? { opacity: 0.92 } : null]}
+              style={({ pressed }) => [
+                styles.addBlockBtn,
+                pressed ? { opacity: 0.92 } : null,
+              ]}
             >
-              <Ionicons name="add" size={16} color="#FFFFFF" />
-              <Text style={styles.primaryBtnText}>Add</Text>
+              <Ionicons name="add" size={18} color="#FFFFFF" />
+              <Text style={styles.addBlockBtnText}>Add</Text>
             </Pressable>
           </View>
 
           {screen.isOverridesLoading ? (
             <ActivityIndicator color={THEME.colors.primary} />
           ) : screen.overrides.length === 0 ? (
-            <Text style={styles.sectionSubtitle}>
-              No blocks yet. Tap Add to mark a date/time as unavailable.
-            </Text>
+            <Text style={styles.emptyHint}>No days off yet. Tap Add.</Text>
           ) : (
             screen.overrides.map((override) => (
               <View key={override.id} style={styles.overrideRow}>

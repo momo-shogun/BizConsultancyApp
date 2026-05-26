@@ -2,7 +2,6 @@ import React, { useMemo } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
-import { formatScheduleDate, formatDateToApi } from '@/features/ConsultantSlotTime/utils/scheduleDisplay';
 import { getSlotMinutesFromLabel } from '@/features/ConsultantSlotTime/utils/scheduleValidation';
 import { DatePickerField } from '@/shared/components';
 import { THEME } from '@/constants/theme';
@@ -44,34 +43,30 @@ export function SlotPreviewSection({
           <Ionicons name="eye-outline" size={20} color="#059669" />
         </View>
         <View style={styles.headerText}>
-          <Text style={styles.title}>Slot preview</Text>
-          <Text style={styles.subtitle}>
-            What clients can book after you save your schedule.
-          </Text>
+          <Text style={styles.title}>Check your times</Text>
+          <Text style={styles.subtitle}>See what clients can book on a day.</Text>
         </View>
       </View>
 
       <DatePickerField
-        label="Preview date"
+        label="Pick a day"
         value={previewDate}
         onChange={onPreviewDateChange}
         minimumDate={new Date()}
-        accessibilityLabel="Preview date"
-        placeholder="Select date"
+        accessibilityLabel="Pick a day to preview"
+        placeholder="Choose date"
       />
 
       {slugMissing ? (
-        <Text style={styles.muted}>
-          Public profile slug not found. Preview will appear once your consultant listing is live.
-        </Text>
+        <Text style={styles.muted}>Finish your profile setup to see times here.</Text>
       ) : isLoading ? (
         <View style={styles.loadingRow}>
           <ActivityIndicator color="#059669" />
-          <Text style={styles.muted}>Loading slots…</Text>
+          <Text style={styles.muted}>Loading…</Text>
         </View>
       ) : chips.length === 0 ? (
         <View style={styles.emptyBox}>
-          <Text style={styles.muted}>No slots available for {formatScheduleDate(formatDateToApi(previewDate))}.</Text>
+          <Text style={styles.muted}>No open times on this day.</Text>
         </View>
       ) : (
         <View style={styles.chipWrap}>
@@ -91,11 +86,11 @@ export function SlotPreviewSection({
       <View style={styles.legend}>
         <View style={styles.legendItem}>
           <View style={[styles.dot, styles.dotAvailable]} />
-          <Text style={styles.legendText}>Bookable</Text>
+          <Text style={styles.legendText}>Open</Text>
         </View>
         <View style={styles.legendItem}>
           <View style={[styles.dot, styles.dotPast]} />
-          <Text style={styles.legendText}>Past today</Text>
+          <Text style={styles.legendText}>Already passed</Text>
         </View>
       </View>
     </View>

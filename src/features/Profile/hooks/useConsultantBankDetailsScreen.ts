@@ -94,9 +94,16 @@ export function useConsultantBankDetailsScreen(): UseConsultantBankDetailsScreen
       try {
         const updated = await updateBank(formToBankPayload(form)).unwrap();
         setForm(bankProfileToForm(updated));
-        showGlobalToast('Bank details saved');
+        showGlobalToast({
+          variant: 'success',
+          title: 'Saved',
+          message: 'Your bank details have been updated successfully.',
+        });
       } catch (err: unknown) {
-        showGlobalToast(getApiErrorMessage(err, 'Failed to save bank details'));
+        showGlobalToast({
+          variant: 'error',
+          message: getApiErrorMessage(err, 'Failed to save bank details'),
+        });
       }
     })();
   }, [form, updateBank]);

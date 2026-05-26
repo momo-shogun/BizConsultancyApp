@@ -177,12 +177,12 @@ export function useConsultantSlotTimeScreen(): UseConsultantSlotTimeScreenResult
         }
         const nextRange = nextDefaultRangeAfterExisting(day.ranges);
         if (nextRange == null) {
-          showGlobalToast({ message: 'No more time available to add a slot.', variant: 'error' });
+          showGlobalToast({ message: 'No more time left today.', variant: 'error' });
           return day;
         }
         const proposed = [...day.ranges, nextRange];
         if (rangesOverlap(proposed)) {
-          showGlobalToast({ message: 'This time slot conflicts with an existing slot.', variant: 'error' });
+          showGlobalToast({ message: 'This time overlaps another one.', variant: 'error' });
           return day;
         }
         return { ...day, ranges: proposed };
@@ -204,14 +204,14 @@ export function useConsultantSlotTimeScreen(): UseConsultantSlotTimeScreenResult
           for (const range of nextRanges) {
             const key = `${range.startTime.slice(0, 5)}-${range.endTime.slice(0, 5)}`;
             if (seen.has(key)) {
-              showGlobalToast({ message: 'Same time slot already exists.', variant: 'error' });
+              showGlobalToast({ message: 'You already added this time.', variant: 'error' });
               return day;
             }
             seen.add(key);
           }
           if (rangesOverlap(nextRanges)) {
             showGlobalToast({
-              message: 'This time slot conflicts with another slot.',
+              message: 'Times cannot overlap.',
               variant: 'error',
             });
             return day;
@@ -240,11 +240,11 @@ export function useConsultantSlotTimeScreen(): UseConsultantSlotTimeScreenResult
     }
     try {
       await upsertSchedule({ name: scheduleName, days: scheduleDays }).unwrap();
-      showGlobalToast({ message: 'Schedule updated', variant: 'success' });
+      showGlobalToast({ message: 'Saved!', variant: 'success' });
       await refetchSchedule();
     } catch (error: unknown) {
       showGlobalToast({
-        message: readApiErrorMessage(error, 'Failed to update schedule'),
+        message: readApiErrorMessage(error, 'Could not save. Try again.'),
         variant: 'error',
       });
     }
@@ -279,22 +279,22 @@ export function useConsultantSlotTimeScreen(): UseConsultantSlotTimeScreenResult
 
   const saveOverride = useCallback(async (): Promise<void> => {
     if (overrideForm.overrideDate.trim().length < 10) {
-      showGlobalToast({ message: 'Please select a date', variant: 'error' });
+      showGlobalToast({ message: 'Pick a date first', variant: 'error' });
       return;
     }
     try {
       if (overrideEditId != null) {
         await updateOverride({ id: overrideEditId, body: overrideForm }).unwrap();
-        showGlobalToast({ message: 'Override updated', variant: 'success' });
+        showGlobalToast({ message: 'Day off updated', variant: 'success' });
       } else {
         await createOverride(overrideForm).unwrap();
-        showGlobalToast({ message: 'Override added', variant: 'success' });
+        showGlobalToast({ message: 'Day off added', variant: 'success' });
       }
       setOverrideModalVisible(false);
       await refetchOverrides();
     } catch (error: unknown) {
       showGlobalToast({
-        message: readApiErrorMessage(error, 'Failed to save override'),
+        message: readApiErrorMessage(error, 'Could not save. Try again.'),
         variant: 'error',
       });
     }
@@ -304,11 +304,11 @@ export function useConsultantSlotTimeScreen(): UseConsultantSlotTimeScreenResult
     async (overrideId: number): Promise<void> => {
       try {
         await deleteOverrideMutation(overrideId).unwrap();
-        showGlobalToast({ message: 'Override removed', variant: 'success' });
+        showGlobalToast({ message: 'Day off removed', variant: 'success' });
         await refetchOverrides();
       } catch (error: unknown) {
         showGlobalToast({
-          message: readApiErrorMessage(error, 'Failed to delete override'),
+          message: readApiErrorMessage(error, 'Could not remove. Try again.'),
           variant: 'error',
         });
       }

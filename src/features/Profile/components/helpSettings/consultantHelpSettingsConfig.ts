@@ -64,8 +64,8 @@ export const CONSULTANT_HELP_SETTINGS_SECTIONS: SettingsSectionConfig[] = [
         icon: 'time-outline',
         iconColor: '#16A34A',
         iconBgColor: 'rgba(22,163,74,0.10)',
-        title: 'Slot Time',
-        subtitle: 'Manage your available slots',
+        title: 'Booking hours',
+        subtitle: 'Set when clients can book you',
       },
       {
         id: 'services',

@@ -55,13 +55,10 @@ export function OverrideEditorModal({
         <Pressable style={styles.backdrop} onPress={onClose} />
         <View style={styles.sheet}>
           <View style={styles.handle} />
-          <Text style={styles.title}>{isEdit ? 'Edit unavailable block' : 'Add unavailable block'}</Text>
-          <Text style={styles.subtitle}>
-            Mark a date and time range when you are not available for bookings.
-          </Text>
+          <Text style={styles.title}>{isEdit ? 'Change day off' : 'Add day off'}</Text>
 
           <DatePickerField
-            label="Date"
+            label="Which day?"
             value={selectedDate}
             onChange={(date) => {
               const year = date.getFullYear();
@@ -70,23 +67,23 @@ export function OverrideEditorModal({
               onChange({ overrideDate: `${year}-${month}-${day}` });
             }}
             minimumDate={new Date()}
-            accessibilityLabel="Override date"
-            placeholder="Select date"
+            accessibilityLabel="Day off date"
+            placeholder="Choose date"
           />
 
           <View style={styles.timeRow}>
             <View style={styles.timeCol}>
-              <Text style={styles.fieldLabel}>Start</Text>
+              <Text style={styles.fieldLabel}>From</Text>
               <TimeSelectField
-                label="Start time"
+                label="From time"
                 value={form.startTime}
                 onChange={(startTime) => onChange({ startTime })}
               />
             </View>
             <View style={styles.timeCol}>
-              <Text style={styles.fieldLabel}>End</Text>
+              <Text style={styles.fieldLabel}>To</Text>
               <TimeSelectField
-                label="End time"
+                label="To time"
                 value={form.endTime}
                 onChange={(endTime) => onChange({ endTime })}
               />

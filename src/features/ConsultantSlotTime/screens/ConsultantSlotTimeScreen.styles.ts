@@ -5,7 +5,13 @@ import { THEME } from '@/constants/theme';
 export const SLOT_TIME_CANVAS = '#F4F7FB';
 
 export const styles = StyleSheet.create({
-  screen: {
+  screenRoot: {
+    flex: 1,
+  },
+  topChrome: {
+    width: '100%',
+  },
+  scrollView: {
     flex: 1,
     backgroundColor: SLOT_TIME_CANVAS,
   },
@@ -65,6 +71,17 @@ export const styles = StyleSheet.create({
   },
   sectionHeader: {
     gap: 4,
+  },
+  fieldLabel: {
+    fontSize: THEME.typography.size[12],
+    fontWeight: '600',
+    color: '#64748B',
+    marginBottom: 6,
+  },
+  emptyHint: {
+    fontSize: THEME.typography.size[13],
+    color: '#64748B',
+    lineHeight: 18,
   },
   sectionTitle: {
     fontSize: THEME.typography.size[16],
@@ -156,9 +173,31 @@ export const styles = StyleSheet.create({
   },
   overridesHeader: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    gap: THEME.spacing[12],
+    gap: THEME.spacing[10],
+  },
+  overridesHeaderText: {
+    flex: 1,
+    minWidth: 0,
+    gap: 4,
+    paddingRight: THEME.spacing[4],
+  },
+  addBlockBtn: {
+    flexShrink: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingHorizontal: THEME.spacing[12],
+    paddingVertical: THEME.spacing[10],
+    borderRadius: 999,
+    backgroundColor: '#059669',
+  },
+  addBlockBtnText: {
+    color: '#FFFFFF',
+    fontSize: THEME.typography.size[13],
+    fontWeight: '700',
   },
   overrideRow: {
     flexDirection: 'row',
@@ -183,21 +222,5 @@ export const styles = StyleSheet.create({
   },
   iconBtn: {
     padding: 6,
-  },
-  tipCard: {
-    flexDirection: 'row',
-    gap: THEME.spacing[10],
-    padding: THEME.spacing[12],
-    borderRadius: 14,
-    backgroundColor: 'rgba(5,150,105,0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(5,150,105,0.14)',
-  },
-  tipText: {
-    flex: 1,
-    fontSize: THEME.typography.size[12],
-    lineHeight: 18,
-    color: '#047857',
-    fontWeight: '500',
   },
 });
