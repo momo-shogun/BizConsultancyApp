@@ -1,430 +1,259 @@
-import { AccountStackParamList } from '@/navigation/types';
-import { SafeAreaWrapper, ScreenHeader } from '@/shared/components';
-import { NavigationProp, useNavigation } from '@react-navigation/native';
-import React, { useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   FlatList,
   Image,
+  Pressable,
   ScrollView,
-  StatusBar,
-  StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NavigationProp } from '@react-navigation/native';
+import Animated, { Easing, FadeIn, FadeInDown } from 'react-native-reanimated';
+import LinearGradient from 'react-native-linear-gradient';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import type { AccountStackParamList } from '@/navigation/types';
+import { SafeAreaWrapper, ScreenHeader } from '@/shared/components';
+import { THEME } from '@/constants/theme';
+import { getYouTubeThumbnailUrl, getYouTubeVideoId } from '@/utils/youtubeUrl';
 
-const GUIDE_DATA = [
+import {
+  USER_GUIDE_FAQ_ITEMS,
+  USER_GUIDE_VIDEOS,
+  type UserGuideFaqItem,
+  type UserGuideVideo,
+} from '../../constants/userGuideContent';
+import {
+  UserGuideAnimatedTabs,
+  type UserGuideTabKey,
+} from '../../components/UserGuideAnimatedTabs';
+import { UserGuideVideoModal } from '../../components/UserGuideVideoModal';
+import { GUIDE_CANVAS, styles } from './UserGuideScreen.styles';
+
+const EASE_OUT_CUBIC = Easing.bezier(0.25, 0.46, 0.45, 0.94);
+
+const GUIDE_TABS = [
   {
-    id: '1',
-    title: 'Slot Booking',
-    duration: '02:45',
-    image:
-      'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?q=80&w=1200',
-    accent: '#2563EB',
+    key: 'videos' as const,
+    label: 'Videos',
+    icon: 'play-circle-outline' as const,
+    count: USER_GUIDE_VIDEOS.length,
   },
   {
-    id: '2',
-    title: 'Expertise Add',
-    duration: '03:10',
-    image:
-      'https://images.unsplash.com/photo-1551650975-87deedd944c3?q=80&w=1200',
-    accent: '#10B981',
-  },
-  {
-    id: '3',
-    title: 'Consultant Login',
-    duration: '02:30',
-    image:
-      'https://images.unsplash.com/photo-1563986768609-322da13575f3?q=80&w=1200',
-    accent: '#3B82F6',
-  },
-  {
-    id: '4',
-    title: 'Permission Setup',
-    duration: '01:55',
-    image:
-      'https://images.unsplash.com/photo-1522542550221-31fd19575a2d?q=80&w=1200',
-    accent: '#8B5CF6',
-  },
-  {
-    id: '5',
-    title: 'My Locker',
-    duration: '02:20',
-    image:
-      'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=1200',
-    accent: '#F97316',
-  },
-  {
-    id: '6',
-    title: 'Download App',
-    duration: '01:10',
-    image:
-      'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=1200',
-    accent: '#14B8A6',
+    key: 'faq' as const,
+    label: 'FAQ',
+    icon: 'help-circle-outline' as const,
+    count: USER_GUIDE_FAQ_ITEMS.length,
   },
 ];
 
-const FAQ_DATA = [
-  {
-    id: '1',
-    question: 'How to become a User on Biz Consultancy?',
-    answer:
-      'Download the Biz app, create your account using mobile verification, and complete your profile setup.',
-  },
-  {
-    id: '2',
-    question: 'How to become a Consultant on Biz Consultant?',
-    answer:
-      'Submit your expertise details, upload required documents, and wait for verification approval.',
-  },
-  {
-    id: '3',
-    question: 'How to create profile on Biz Consultant?',
-    answer:
-      'Open profile settings, upload your photo, add bio and business details, then save changes.',
-  },
-  {
-    id: '4',
-    question: 'How to add your expertise as Expert on Biz Consultant?',
-    answer:
-      'Go to Expertise section and select your service categories and consultation fields.',
-  },
-  {
-    id: '5',
-    question: 'How to add slot for users on Biz Consultant?',
-    answer:
-      'Use the Slot Booking section to create available consultation timings.',
-  },
-  {
-    id: '6',
-    question: 'How to create document locker and upload document?',
-    answer:
-      'Open My Locker, create folders, and upload documents securely from your device.',
-  },
-];
+interface VideoCardProps {
+  item: UserGuideVideo;
+  onPress: (item: UserGuideVideo) => void;
+}
 
-export default function UserGuideScreen() {
-  const [activeTab, setActiveTab] = useState('videos');
-  const [expandedFAQ, setExpandedFAQ] = useState<string | null>(null);
-
-  const navigation =
-    useNavigation<NavigationProp<AccountStackParamList>>();
-
-  const renderItem = ({ item }: any) => {
-    return (
-      <TouchableOpacity activeOpacity={0.9} style={styles.card}>
-        <Image source={{ uri: item.image }} style={styles.cardImage} />
-
-        <View style={styles.playButton}>
-          <MaterialCommunityIcons
-            name="play"
-            size={24}
-            color={item.accent}
-          />
-        </View>
-
-        <View style={styles.cardFooter}>
-          <View style={{ flex: 1 }}>
-            <Text numberOfLines={1} style={styles.cardTitle}>
-              {item.title}
-            </Text>
-
-            <Text style={styles.cardDuration}>
-              {item.duration}
-            </Text>
-          </View>
-
-          <View
-            style={[
-              styles.indexBadge,
-              {
-                backgroundColor: `${item.accent}15`,
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.indexText,
-                { color: item.accent },
-              ]}
-            >
-              {item.id}
-            </Text>
-          </View>
-        </View>
-      </TouchableOpacity>
-    );
-  };
+function VideoCard(props: VideoCardProps): React.ReactElement {
+  const { item, onPress } = props;
+  const thumb = getYouTubeThumbnailUrl(item.link);
 
   return (
-    <SafeAreaWrapper edges={['top', 'bottom']} bgColor="white">
-      <StatusBar barStyle="dark-content" />
-
-      <ScreenHeader
-        title="User Guide"
-        onBackPress={() => navigation.goBack()}
-      />
-
-      {/* Subtitle */}
-      <View style={styles.header}>
-        <Text style={styles.headerSubtitle}>
-          Step-by-step guides to help you get the most out of Biz.
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Play guide: ${item.title}`}
+      style={({ pressed }) => [styles.videoCard, pressed ? styles.videoCardPressed : null]}
+      onPress={() => onPress(item)}
+    >
+      <View style={styles.thumbWrap}>
+        {thumb != null ? (
+          <Image source={{ uri: thumb }} style={styles.thumb} resizeMode="cover" />
+        ) : (
+          <View style={styles.thumbPlaceholder}>
+            <Ionicons name="videocam-outline" size={26} color="#94A3B8" />
+          </View>
+        )}
+        <View style={styles.thumbOverlay} />
+        <View style={styles.playBtnWrap}>
+          <View style={styles.playBtn}>
+            <Ionicons
+              name="play"
+              size={18}
+              color={THEME.colors.primary}
+              style={styles.playBtnIcon}
+            />
+          </View>
+        </View>
+      </View>
+      <View style={styles.videoBody}>
+        <Text numberOfLines={2} style={styles.videoTitle}>
+          {item.title}
         </Text>
+        <View style={styles.videoMetaRow}>
+          <Ionicons name="logo-youtube" size={12} color={THEME.colors.primary} />
+          <Text style={styles.videoMeta}>Watch guide</Text>
+        </View>
       </View>
-
-      {/* Tabs */}
-      <View style={styles.tabsContainer}>
-        <TouchableOpacity
-          style={[
-            styles.tabButton,
-            activeTab === 'videos' && styles.activeTab,
-          ]}
-          onPress={() => setActiveTab('videos')}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === 'videos' &&
-                styles.activeTabText,
-            ]}
-          >
-            Video Guide
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.tabButton,
-            activeTab === 'faq' && styles.activeTab,
-          ]}
-          onPress={() => setActiveTab('faq')}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === 'faq' &&
-                styles.activeTabText,
-            ]}
-          >
-            FAQ
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* FAQ */}
-      {activeTab === 'faq' ? (
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.faqContainer}
-        >
-          {FAQ_DATA.map((item) => {
-            const isExpanded =
-              expandedFAQ === item.id;
-
-            return (
-              <TouchableOpacity
-                key={item.id}
-                activeOpacity={0.9}
-                style={styles.faqCard}
-                onPress={() =>
-                  setExpandedFAQ(
-                    isExpanded ? null : item.id,
-                  )
-                }
-              >
-                <View style={styles.faqHeader}>
-                  <Text style={styles.faqQuestion}>
-                    {item.question}
-                  </Text>
-
-                  <MaterialCommunityIcons
-                    name={
-                      isExpanded ? 'minus' : 'plus'
-                    }
-                    size={22}
-                    color="#0F172A"
-                  />
-                </View>
-
-                {isExpanded && (
-                  <View style={styles.answerContainer}>
-                    <Text style={styles.faqAnswer}>
-                      {item.answer}
-                    </Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      ) : (
-        <FlatList
-          data={GUIDE_DATA}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.id}
-          numColumns={2}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={
-            styles.gridContainer
-          }
-          columnWrapperStyle={{
-            justifyContent: 'space-between',
-          }}
-        />
-      )}
-    </SafeAreaWrapper>
+    </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
-  header: {
-    paddingHorizontal: 20,
-    marginBottom: 20,
-  },
+function isFaqLeadLine(line: string, lineIndex: number): boolean {
+  return lineIndex === 0 || line.endsWith(':');
+}
 
-  headerSubtitle: {
-    fontSize: 14,
-    lineHeight: 22,
-    color: '#64748B',
-  },
+export default function UserGuideScreen(): React.ReactElement {
+  const [activeTab, setActiveTab] = useState<UserGuideTabKey>('videos');
+  const [expandedFaq, setExpandedFaq] = useState<string | null>(null);
+  const [videoModalVisible, setVideoModalVisible] = useState(false);
+  const [activeVideo, setActiveVideo] = useState<UserGuideVideo | null>(null);
+  const navigation = useNavigation<NavigationProp<AccountStackParamList>>();
 
-  tabsContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#F1F5F9',
-    marginHorizontal: 20,
-    padding: 4,
-    borderRadius: 16,
-    marginBottom: 20,
-  },
+  const activeVideoId = useMemo((): string | null => {
+    if (activeVideo == null) {
+      return null;
+    }
+    return getYouTubeVideoId(activeVideo.link);
+  }, [activeVideo]);
 
-  tabButton: {
-    flex: 1,
-    height: 48,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  const handleVideoPress = useCallback((item: UserGuideVideo): void => {
+    setActiveVideo(item);
+    setVideoModalVisible(true);
+  }, []);
 
-  activeTab: {
-    backgroundColor: '#FFFFFF',
-  },
+  const handleCloseVideo = useCallback((): void => {
+    setVideoModalVisible(false);
+    setActiveVideo(null);
+  }, []);
 
-  tabText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#64748B',
-  },
+  const renderVideoItem = useCallback(
+    ({ item }: { item: UserGuideVideo }) => (
+      <VideoCard item={item} onPress={handleVideoPress} />
+    ),
+    [handleVideoPress],
+  );
 
-  activeTabText: {
-    color: '#0F172A',
-  },
+  const renderFaqItem = useCallback((item: UserGuideFaqItem, index: number): React.ReactElement => {
+    const isExpanded = expandedFaq === item.id;
+    const isLast = index === USER_GUIDE_FAQ_ITEMS.length - 1;
 
-  gridContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 30,
-  },
+    return (
+      <Pressable
+        key={item.id}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: isExpanded }}
+        style={[
+          styles.faqRow,
+          isExpanded ? styles.faqRowExpanded : null,
+          isLast ? styles.faqRowLast : null,
+        ]}
+        onPress={() => setExpandedFaq(isExpanded ? null : item.id)}
+      >
+        <View style={styles.faqHeader}>
+          <View style={styles.faqIndex}>
+            <Text style={styles.faqIndexText}>{index + 1}</Text>
+          </View>
+          <Text style={styles.faqQuestion}>{item.q}</Text>
+          <View style={[styles.faqChevron, isExpanded ? styles.faqChevronExpanded : null]}>
+            <Ionicons
+              name={isExpanded ? 'chevron-up' : 'chevron-down'}
+              size={16}
+              color={THEME.colors.primary}
+            />
+          </View>
+        </View>
+        {isExpanded ? (
+          <View style={styles.faqAnswerBlock}>
+            {item.lines.map((line, lineIndex) => (
+              <Text
+                key={`${item.id}-line-${lineIndex}`}
+                style={[
+                  styles.faqAnswerLine,
+                  isFaqLeadLine(line, lineIndex) ? styles.faqAnswerLineLead : null,
+                ]}
+              >
+                {line}
+              </Text>
+            ))}
+          </View>
+        ) : null}
+      </Pressable>
+    );
+  }, [expandedFaq]);
 
-  card: {
-    width: '48%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    marginBottom: 16,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
+  const sectionTitle = activeTab === 'videos' ? 'Video guides' : 'Frequently asked';
+  const sectionMeta =
+    activeTab === 'videos'
+      ? `${USER_GUIDE_VIDEOS.length} tutorials`
+      : `${USER_GUIDE_FAQ_ITEMS.length} questions`;
 
-  cardImage: {
-    width: '100%',
-    height: 180,
-    backgroundColor: '#F8FAFC',
-  },
+  return (
+    <SafeAreaWrapper edges={['top', 'bottom']} bgColor={GUIDE_CANVAS}>
+      <ScreenHeader title="User Guide" onBackPress={() => navigation.goBack()} />
 
-  playButton: {
-    position: 'absolute',
-    top: 14,
-    right: 14,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+      <LinearGradient
+        colors={['#047857', '#059669', '#0D9488']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.hero}
+      >
+        <Text style={styles.heroEyebrow}>Help center</Text>
+        <Text style={styles.heroTitle}>Learn Biz Consultancy</Text>
+        <Text style={styles.heroSubtitle}>
+          Step-by-step videos and answers to common questions.
+        </Text>
+      </LinearGradient>
 
-  cardFooter: {
-    padding: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
+      <UserGuideAnimatedTabs
+        tabs={GUIDE_TABS}
+        activeKey={activeTab}
+        onChange={setActiveTab}
+        accentColor={THEME.colors.primary}
+      />
 
-  cardTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#0F172A',
-    marginBottom: 4,
-  },
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>{sectionTitle}</Text>
+        <Text style={styles.sectionMeta}>{sectionMeta}</Text>
+      </View>
 
-  cardDuration: {
-    fontSize: 13,
-    color: '#64748B',
-  },
+      {activeTab === 'faq' ? (
+        <Animated.View
+          key="faq"
+          entering={FadeIn.duration(200).easing(EASE_OUT_CUBIC)}
+          style={styles.tabContent}
+        >
+          <ScrollView style={styles.screen} showsVerticalScrollIndicator={false}>
+            <Animated.View entering={FadeInDown.duration(220).delay(30)}>
+              <View style={styles.faqList}>
+                {USER_GUIDE_FAQ_ITEMS.map((item, index) => renderFaqItem(item, index))}
+              </View>
+            </Animated.View>
+          </ScrollView>
+        </Animated.View>
+      ) : (
+        <Animated.View
+          key="videos"
+          entering={FadeIn.duration(200).easing(EASE_OUT_CUBIC)}
+          style={styles.tabContent}
+        >
+          <FlatList
+            style={styles.screen}
+            data={USER_GUIDE_VIDEOS}
+            renderItem={renderVideoItem}
+            keyExtractor={(item) => String(item.id)}
+            numColumns={2}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.gridContainer}
+            columnWrapperStyle={styles.columnWrapper}
+          />
+        </Animated.View>
+      )}
 
-  indexBadge: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  indexText: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-
-  faqContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-  },
-
-  faqCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 18,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-
-  faqHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 14,
-  },
-
-  faqQuestion: {
-    flex: 1,
-    fontSize: 15,
-    lineHeight: 22,
-    fontWeight: '700',
-    color: '#0F172A',
-  },
-
-  answerContainer: {
-    marginTop: 14,
-    paddingTop: 14,
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-  },
-
-  faqAnswer: {
-    fontSize: 14,
-    lineHeight: 22,
-    color: '#64748B',
-  },
-});
+      <UserGuideVideoModal
+        visible={videoModalVisible}
+        videoId={activeVideoId}
+        title={activeVideo?.title ?? ''}
+        onClose={handleCloseVideo}
+      />
+    </SafeAreaWrapper>
+  );
+}
