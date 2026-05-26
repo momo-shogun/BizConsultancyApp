@@ -150,6 +150,7 @@ export const baseApi = createApi({
     'ConsultantProfile',
     'ConsultantWithdrawals',
     'ConsultantWalletTransactions',
+    'ConsultantSchedule',
   ],
   endpoints: () => ({}),
 });
