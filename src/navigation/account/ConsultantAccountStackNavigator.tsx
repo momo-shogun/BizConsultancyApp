@@ -17,7 +17,12 @@ import { ConsultantWalletScreen } from '@/features/Wallet/screens/ConsultantWall
 import { ConsultantWithdrawalsScreen } from '@/features/Wallet/screens/ConsultantWithdrawalsScreen';
 import { ConsultantWalletTransactionsScreen } from '@/features/Wallet/screens/ConsultantWalletTransactionsScreen';
 import { MyDiagnosticPackScreen } from '@/features/Diagnostics/screens/MyDiagnosticPackScreen';
-import UserGuideScreen from '@/features/Profile/screens/User/UserGuideScreen';
+import { ConsultantBookingsScreen } from '@/features/Profile/screens/Consultant/ConsultantBookingsScreen';
+import { ConsultantSlotTimeScreen } from '@/features/Profile/screens/Consultant/ConsultantSlotTimeScreen';
+import { ConsultantMyServicesScreen } from '@/features/Profile/screens/Consultant/ConsultantMyServicesScreen';
+import { ConsultantLockersScreen } from '@/features/Profile/screens/Consultant/ConsultantLockersScreen';
+import { ConsultantExpertiseScreen } from '@/features/Profile/screens/Consultant/ConsultantExpertiseScreen';
+import { ConsultantReviewsScreen } from '@/features/Profile/screens/Consultant/ConsultantReviewsScreen';
 
 const Stack = createNativeStackNavigator<AccountStackParamList>();
 
@@ -80,6 +85,36 @@ export function ConsultantAccountStackNavigator(): React.ReactElement {
       <Stack.Screen
         name={ROUTES.Account.MyDiagnosticPack}
         component={MyDiagnosticPackScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name={ROUTES.Account.ConsultantBookings}
+        component={ConsultantBookingsScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name={ROUTES.Account.ConsultantSlotTime}
+        component={ConsultantSlotTimeScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name={ROUTES.Account.ConsultantMyServices}
+        component={ConsultantMyServicesScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name={ROUTES.Account.ConsultantLockers}
+        component={ConsultantLockersScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name={ROUTES.Account.ConsultantExpertise}
+        component={ConsultantExpertiseScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name={ROUTES.Account.ConsultantReviews}
+        component={ConsultantReviewsScreen}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>

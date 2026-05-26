@@ -69,6 +69,30 @@ export function ConsultantHelpSettingsScreen(
       navigation.navigate(ROUTES.Account.MyDiagnosticPack);
       return;
     }
+    if (rowId === 'bookings') {
+      navigation.navigate(ROUTES.Account.ConsultantBookings);
+      return;
+    }
+    if (rowId === 'slotTime') {
+      navigation.navigate(ROUTES.Account.ConsultantSlotTime);
+      return;
+    }
+    if (rowId === 'services') {
+      navigation.navigate(ROUTES.Account.ConsultantMyServices);
+      return;
+    }
+    if (rowId === 'locker') {
+      navigation.navigate(ROUTES.Account.ConsultantLockers);
+      return;
+    }
+    if (rowId === 'expertise') {
+      navigation.navigate(ROUTES.Account.ConsultantExpertise);
+      return;
+    }
+    if (rowId === 'review') {
+      navigation.navigate(ROUTES.Account.ConsultantReviews);
+      return;
+    }
   };
 
   return (

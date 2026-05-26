@@ -29,5 +29,11 @@ export const BIZ_AI_HIDDEN_NESTED_ROUTES: Readonly<Record<string, readonly strin
     ROUTES.Account.userGuide,
     ROUTES.Account.MyServices,
     ROUTES.Account.ApplyService,
+    ROUTES.Account.ConsultantBookings,
+    ROUTES.Account.ConsultantSlotTime,
+    ROUTES.Account.ConsultantMyServices,
+    ROUTES.Account.ConsultantLockers,
+    ROUTES.Account.ConsultantExpertise,
+    ROUTES.Account.ConsultantReviews,
   ],
 };

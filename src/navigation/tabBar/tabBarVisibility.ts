@@ -31,6 +31,12 @@ export const TAB_BAR_HIDDEN_ROUTES: Readonly<Record<string, readonly string[]>> 
     ROUTES.Account.MyBookings,
     ROUTES.Account.WorkshopBookings,
     ROUTES.Account.MyEdp,
+    ROUTES.Account.ConsultantBookings,
+    ROUTES.Account.ConsultantSlotTime,
+    ROUTES.Account.ConsultantMyServices,
+    ROUTES.Account.ConsultantLockers,
+    ROUTES.Account.ConsultantExpertise,
+    ROUTES.Account.ConsultantReviews,
   ],
   // [ROUTES.App.Account]:[ROUTES.Account.Membership]
 } as const;
