@@ -63,8 +63,12 @@ export function ZeptoHSCategorySpotlight({
 
   else if (categoryId === 'consultation') {
     return (
-      <ExpertConsultation backgroundColor={backgroundColor} accentColor={accentColor} />
-    )
+      <ExpertConsultation
+        backgroundColor={backgroundColor}
+        accentColor={accentColor}
+        onBookConsultationPress={onTalkToExpertPress}
+      />
+    );
   }
 
   else if (categoryId === 'mentorship') {
