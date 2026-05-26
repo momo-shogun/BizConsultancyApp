@@ -12,6 +12,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import LinearGradient from 'react-native-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { AddExpertiseModal } from '@/features/ConsultantExpertise/components/AddExpertiseModal';
@@ -20,10 +21,14 @@ import {
   useSetMyConsultantIndustriesMutation,
 } from '@/features/ConsultantSelf/api/consultantSelfApi';
 import type { ConsultantIndustryItem } from '@/features/ConsultantSelf/types/consultantSelf.types';
-import { PROFILE_HEADER_GRADIENT } from '@/features/Profile/constants/profileScreenTheme';
+import {
+  PROFILE_HEADER_GRADIENT,
+  PROFILE_HEADER_STATUS_BAR,
+} from '@/features/Profile/constants/profileScreenTheme';
 import { ROUTES } from '@/navigation/routeNames';
 import type { AccountStackParamList } from '@/navigation/types';
 import { SafeAreaWrapper, ScreenHeader } from '@/shared/components';
+import { Dialog } from '@/shared/components/dialog';
 import { showGlobalToast } from '@/shared/components/toast';
 import { THEME } from '@/constants/theme';
 import { resolveAwsImageUrl } from '@/utils/awsImageUrl';
@@ -38,7 +43,9 @@ type Nav = NativeStackNavigationProp<
 
 export function ConsultantExpertiseScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const [addOpen, setAddOpen] = useState(false);
+  const [removeTarget, setRemoveTarget] = useState<ConsultantIndustryItem | null>(null);
   const [removingId, setRemovingId] = useState<number | null>(null);
 
   const {
@@ -86,78 +93,108 @@ export function ConsultantExpertiseScreen(): React.ReactElement {
     [industries, setIndustries],
   );
 
-  const handleRemove = useCallback(
-    async (item: ConsultantIndustryItem): Promise<void> => {
-      setRemovingId(item.id);
-      const next = industries
-        .filter((row) => row.id !== item.id)
-        .map((row) => ({
-          industryId: row.industryId,
-          segmentId: row.segmentId ?? row.segment?.id ?? undefined,
-        }));
-      try {
-        await setIndustries(next).unwrap();
-        showGlobalToast('Industry removed');
-      } catch (err: unknown) {
-        showGlobalToast(getApiErrorMessage(err, 'Failed to remove industry'));
-      } finally {
-        setRemovingId(null);
-      }
-    },
-    [industries, setIndustries],
+  const confirmRemoveIndustry = useCallback(async (): Promise<void> => {
+    if (removeTarget == null) {
+      return;
+    }
+    const item = removeTarget;
+    setRemoveTarget(null);
+    setRemovingId(item.id);
+
+    const next = industries
+      .filter((row) => row.id !== item.id)
+      .map((row) => ({
+        industryId: row.industryId,
+        segmentId: row.segmentId ?? row.segment?.id ?? undefined,
+      }));
+
+    try {
+      await setIndustries(next).unwrap();
+      showGlobalToast('Industry removed');
+    } catch (err: unknown) {
+      showGlobalToast(getApiErrorMessage(err, 'Failed to remove industry'));
+    } finally {
+      setRemovingId(null);
+    }
+  }, [industries, removeTarget, setIndustries]);
+
+  const handleRemoveRequest = useCallback((item: ConsultantIndustryItem): void => {
+    if (removingId != null || isSaving) {
+      return;
+    }
+    setRemoveTarget(item);
+  }, [isSaving, removingId]);
+
+  const headerAddAction = (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Add industry"
+      onPress={() => setAddOpen(true)}
+      style={({ pressed }) => [styles.headerAddBtn, pressed ? styles.pressed : null]}
+    >
+      <Ionicons name="add" size={18} color="#059669" />
+      <Text style={styles.headerAddText}>Add</Text>
+    </Pressable>
+  );
+
+  const topChrome = (
+    <LinearGradient
+      colors={[...PROFILE_HEADER_GRADIENT]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={[styles.topChrome, { paddingTop: insets.top }]}
+    >
+      <ScreenHeader
+        title="Expertise"
+        onBackPress={() => navigation.goBack()}
+        headerColor="transparent"
+        rightAction={headerAddAction}
+      />
+    </LinearGradient>
   );
 
   if (isLoading) {
     return (
-      <SafeAreaWrapper edges={['top', 'bottom']} bgColor={CANVAS}>
-        <ScreenHeader title="Expertise" onBackPress={() => navigation.goBack()} />
+      <SafeAreaWrapper
+        edges={['bottom']}
+        bgColor={PROFILE_HEADER_STATUS_BAR}
+        contentBgColor={CANVAS}
+        statusBarStyle="light-content"
+        style={styles.screen}
+      >
+        {topChrome}
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#DB2777" />
+          <ActivityIndicator size="large" color="#059669" />
         </View>
       </SafeAreaWrapper>
     );
   }
 
+  const removeIndustryName =
+    removeTarget?.industry?.name ?? `Industry #${removeTarget?.industryId ?? ''}`;
+
   return (
-    <SafeAreaWrapper edges={['top', 'bottom']} bgColor={CANVAS}>
-      <ScreenHeader title="Expertise" onBackPress={() => navigation.goBack()} />
+    <SafeAreaWrapper
+      edges={['bottom']}
+      bgColor={PROFILE_HEADER_STATUS_BAR}
+      contentBgColor={CANVAS}
+      statusBarStyle="light-content"
+      style={styles.screen}
+    >
+      {topChrome}
 
       <ScrollView
+        style={styles.scrollView}
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={isFetching && !isLoading} onRefresh={refetch} tintColor="#DB2777" />
+          <RefreshControl
+            refreshing={isFetching && !isLoading}
+            onRefresh={refetch}
+            tintColor="#059669"
+          />
         }
       >
-        <LinearGradient
-          colors={[...PROFILE_HEADER_GRADIENT]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.hero}
-        >
-          <View style={styles.heroRow}>
-            <View style={styles.heroText}>
-              <Text style={styles.heroEyebrow}>Consultant dashboard</Text>
-              <Text style={styles.heroTitle}>Expertise</Text>
-              <Text style={styles.heroSubtitle}>
-                Showcase the industries and segments you consult on.
-              </Text>
-            </View>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => setAddOpen(true)}
-              style={({ pressed }) => [styles.addBtn, pressed ? styles.pressed : null]}
-            >
-              <Ionicons name="add" size={18} color="#DB2777" />
-              <Text style={styles.addBtnText}>Add</Text>
-            </Pressable>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Industries</Text>
-            <Text style={styles.statValue}>{industries.length}</Text>
-          </View>
-        </LinearGradient>
-
         {errorMessage != null ? (
           <View style={styles.errorBanner}>
             <Text style={styles.errorText}>{errorMessage}</Text>
@@ -170,7 +207,7 @@ export function ConsultantExpertiseScreen(): React.ReactElement {
         {industries.length === 0 ? (
           <View style={styles.empty}>
             <View style={styles.emptyIcon}>
-              <Ionicons name="ribbon-outline" size={28} color="#DB2777" />
+              <Ionicons name="ribbon-outline" size={28} color="#059669" />
             </View>
             <Text style={styles.emptyTitle}>No industries yet</Text>
             <Text style={styles.emptyBody}>
@@ -189,6 +226,8 @@ export function ConsultantExpertiseScreen(): React.ReactElement {
             {industries.map((item) => {
               const thumb = item.industry?.thumbnail;
               const imageUri = thumb != null ? resolveAwsImageUrl(thumb) : null;
+              const isRemoving = removingId === item.id;
+
               return (
                 <View key={item.id} style={styles.card}>
                   <View style={styles.thumb}>
@@ -208,17 +247,19 @@ export function ConsultantExpertiseScreen(): React.ReactElement {
                   </View>
                   <Pressable
                     accessibilityRole="button"
-                    disabled={removingId === item.id || isSaving}
-                    onPress={() => void handleRemove(item)}
+                    disabled={isRemoving || isSaving || removingId != null}
+                    onPress={() => handleRemoveRequest(item)}
                     style={({ pressed }) => [
                       styles.removeBtn,
                       pressed ? styles.pressed : null,
-                      removingId === item.id ? styles.disabled : null,
+                      isRemoving ? styles.disabled : null,
                     ]}
                   >
-                    <Text style={styles.removeText}>
-                      {removingId === item.id ? '…' : 'Remove'}
-                    </Text>
+                    {isRemoving ? (
+                      <ActivityIndicator size="small" color="#DC2626" />
+                    ) : (
+                      <Text style={styles.removeText}>Remove</Text>
+                    )}
                   </Pressable>
                 </View>
               );
@@ -233,12 +274,56 @@ export function ConsultantExpertiseScreen(): React.ReactElement {
         onClose={() => setAddOpen(false)}
         onSubmit={(payload) => void handleAdd(payload)}
       />
+
+      <Dialog
+        visible={removeTarget != null}
+        onClose={() => setRemoveTarget(null)}
+        variant="warning"
+        title="Remove industry?"
+        description={
+          removeTarget != null
+            ? `Remove "${removeIndustryName}" from your expertise? This cannot be undone.`
+            : undefined
+        }
+        actions={[
+          { label: 'Cancel', variant: 'ghost', onPress: () => setRemoveTarget(null) },
+          {
+            label: 'Remove',
+            variant: 'destructive',
+            onPress: () => void confirmRemoveIndustry(),
+          },
+        ]}
+      />
     </SafeAreaWrapper>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+  },
+  topChrome: {
+    width: '100%',
+  },
+  headerAddBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+  },
+  headerAddText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#059669',
+  },
+  scrollView: {
+    flex: 1,
+  },
   scroll: {
+    paddingTop: THEME.spacing[12],
     paddingHorizontal: THEME.spacing[16],
     paddingBottom: THEME.spacing[28],
   },
@@ -249,8 +334,6 @@ const styles = StyleSheet.create({
     marginBottom: THEME.spacing[14],
     overflow: 'hidden',
   },
-  heroRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
-  heroText: { flex: 1 },
   heroEyebrow: {
     fontSize: 11,
     fontWeight: '600',
@@ -270,16 +353,6 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.9)',
     lineHeight: 18,
   },
-  addBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.95)',
-  },
-  addBtnText: { fontSize: 13, fontWeight: '700', color: '#DB2777' },
   statCard: {
     marginTop: 14,
     alignSelf: 'flex-start',
@@ -315,7 +388,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 20,
-    backgroundColor: 'rgba(219,39,119,0.10)',
+    backgroundColor: 'rgba(5,150,105,0.10)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -333,7 +406,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 999,
-    backgroundColor: '#DB2777',
+    backgroundColor: '#059669',
   },
   emptyCtaText: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
   list: { gap: 10 },
@@ -361,12 +434,15 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 15, fontWeight: '700', color: '#0F172A' },
   cardSub: { marginTop: 2, fontSize: 12, color: '#64748B' },
   removeBtn: {
+    minWidth: 72,
     paddingHorizontal: 10,
     paddingVertical: 8,
     borderRadius: 10,
     backgroundColor: '#FEF2F2',
     borderWidth: 1,
     borderColor: '#FECACA',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   removeText: { fontSize: 12, fontWeight: '700', color: '#DC2626' },
   pressed: { opacity: 0.9 },

@@ -12,11 +12,15 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import LinearGradient from 'react-native-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { useGetConsultantReviewsQuery } from '@/features/ConsultantSelf/api/consultantSelfApi';
 import type { ConsultantReview } from '@/features/ConsultantSelf/types/consultantSelf.types';
-import { PROFILE_HEADER_GRADIENT } from '@/features/Profile/constants/profileScreenTheme';
+import {
+  PROFILE_HEADER_GRADIENT,
+  PROFILE_HEADER_STATUS_BAR,
+} from '@/features/Profile/constants/profileScreenTheme';
 import { ROUTES } from '@/navigation/routeNames';
 import type { AccountStackParamList } from '@/navigation/types';
 import { SafeAreaWrapper, ScreenHeader } from '@/shared/components';
@@ -92,6 +96,7 @@ function ReviewCard({ review }: { review: ConsultantReview }): React.ReactElemen
 
 export function ConsultantReviewsScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchDebounced, setSearchDebounced] = useState('');
@@ -115,22 +120,50 @@ export function ConsultantReviewsScreen(): React.ReactElement {
   const errorMessage =
     error != null ? getApiErrorMessage(error, 'Failed to load reviews') : null;
 
+  const topChrome = (
+    <LinearGradient
+      colors={[...PROFILE_HEADER_GRADIENT]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={[styles.topChrome, { paddingTop: insets.top }]}
+    >
+      <ScreenHeader
+        title="Reviews"
+        onBackPress={() => navigation.goBack()}
+        headerColor="transparent"
+      />
+    </LinearGradient>
+  );
+
   if (isLoading && reviews.length === 0) {
     return (
-      <SafeAreaWrapper edges={['top', 'bottom']} bgColor={CANVAS}>
-        <ScreenHeader title="Review" onBackPress={() => navigation.goBack()} />
+      <SafeAreaWrapper
+        edges={['bottom']}
+        bgColor={PROFILE_HEADER_STATUS_BAR}
+        contentBgColor={CANVAS}
+        statusBarStyle="light-content"
+        style={styles.screen}
+      >
+        {topChrome}
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#2563EB" />
+          <ActivityIndicator size="large" color="#059669" />
         </View>
       </SafeAreaWrapper>
     );
   }
 
   return (
-    <SafeAreaWrapper edges={['top', 'bottom']} bgColor={CANVAS}>
-      <ScreenHeader title="Review" onBackPress={() => navigation.goBack()} />
+    <SafeAreaWrapper
+      edges={['bottom']}
+      bgColor={PROFILE_HEADER_STATUS_BAR}
+      contentBgColor={CANVAS}
+      statusBarStyle="light-content"
+      style={styles.screen}
+    >
+      {topChrome}
 
       <ScrollView
+        style={styles.scrollView}
         contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -138,28 +171,10 @@ export function ConsultantReviewsScreen(): React.ReactElement {
           <RefreshControl
             refreshing={isFetching && !isLoading}
             onRefresh={refetch}
-            tintColor="#2563EB"
+            tintColor="#059669"
           />
         }
       >
-        <LinearGradient
-          colors={[...PROFILE_HEADER_GRADIENT]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.hero}
-        >
-          <Text style={styles.heroEyebrow}>Consultant dashboard</Text>
-          <Text style={styles.heroTitle}>Ratings & review</Text>
-          <Text style={styles.heroSubtitle}>
-            Read feedback from clients after completed consultations.
-          </Text>
-          {meta != null ? (
-            <View style={styles.statCard}>
-              <Text style={styles.statLabel}>Total reviews</Text>
-              <Text style={styles.statValue}>{meta.total}</Text>
-            </View>
-          ) : null}
-        </LinearGradient>
 
         <View style={styles.searchWrap}>
           <Ionicons name="search-outline" size={18} color="#94A3B8" style={styles.searchIcon} />
@@ -187,7 +202,7 @@ export function ConsultantReviewsScreen(): React.ReactElement {
         {reviews.length === 0 ? (
           <View style={styles.empty}>
             <View style={styles.emptyIcon}>
-              <Ionicons name="chatbubble-ellipses-outline" size={28} color="#2563EB" />
+              <Ionicons name="chatbubble-ellipses-outline" size={28} color="#059669" />
             </View>
             <Text style={styles.emptyTitle}>No reviews yet</Text>
             <Text style={styles.emptyBody}>
@@ -238,6 +253,15 @@ export function ConsultantReviewsScreen(): React.ReactElement {
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+  },
+  topChrome: {
+    width: '100%',
+  },
+  scrollView: {
+    flex: 1,
+  },
   scroll: {
     paddingHorizontal: THEME.spacing[16],
     paddingBottom: THEME.spacing[28],
@@ -284,6 +308,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 14,
+    marginTop: THEME.spacing[12],
     borderRadius: 14,
     borderWidth: 1,
     borderColor: '#E2E8F0',
@@ -315,7 +340,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 20,
-    backgroundColor: 'rgba(37,99,235,0.10)',
+    backgroundColor: 'rgba(5,150,105,0.10)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 14,
@@ -342,11 +367,11 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#DBEAFE',
+    backgroundColor: '#ECFDF5',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: { fontSize: 16, fontWeight: '800', color: '#1D4ED8' },
+  avatarText: { fontSize: 16, fontWeight: '800', color: '#047857' },
   reviewBody: { flex: 1, minWidth: 0 },
   reviewTop: {
     flexDirection: 'row',
@@ -377,7 +402,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#059669',
     alignItems: 'center',
   },
   pageBtnDisabled: { opacity: 0.45 },
