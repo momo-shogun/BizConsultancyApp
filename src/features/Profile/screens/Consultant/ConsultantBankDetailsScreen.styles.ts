@@ -2,80 +2,95 @@ import { StyleSheet } from 'react-native';
 
 import { THEME } from '@/constants/theme';
 
+const CANVAS_FOOTER = '#F4F7FB';
+
 export const styles = StyleSheet.create({
-  // ── Scroll ────────────────────────────────────────────────
+  screen: {
+    flex: 1,
+  },
+  flex: {
+    flex: 1,
+  },
+  topChrome: {
+    width: '100%',
+  },
+  scrollView: {
+    flex: 1,
+  },
   scroll: {
     paddingHorizontal: THEME.spacing[16],
     paddingTop: THEME.spacing[16],
-    paddingBottom: 110,
-    gap: THEME.spacing[4],
   },
-
-  // ── Info banner ───────────────────────────────────────────
+  centered: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   banner: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: THEME.spacing[10],
-    borderRadius: 12,
+    borderRadius: 14,
     padding: THEME.spacing[14],
     marginBottom: THEME.spacing[16],
   },
   bannerText: {
     flex: 1,
     fontSize: 13,
-    color: THEME.colors.textPrimary,
+    color: '#065F46',
     lineHeight: 20,
   },
-
-  // ── Section label ─────────────────────────────────────────
-  sectionLabel: {
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 12,
+    borderRadius: 14,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    marginBottom: 12,
+  },
+  errorText: {
+    flex: 1,
+    fontSize: THEME.typography.size[12],
+    color: '#EF4444',
+    fontWeight: THEME.typography.weight.medium,
+  },
+  retry: {
     fontSize: 13,
-    fontWeight: THEME.typography.weight.semibold,
-    color: THEME.colors.textSecondary,
+    fontWeight: '700',
+    color: '#059669',
+  },
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#64748B',
     letterSpacing: 0.4,
     textTransform: 'uppercase',
     marginBottom: THEME.spacing[8],
-    marginTop: THEME.spacing[4],
   },
-
-  // ── Card ──────────────────────────────────────────────────
   card: {
-    backgroundColor: THEME.colors.white,
-    borderRadius: 14,
-    borderWidth: 0.5,
-    borderColor: 'rgba(0,0,0,0.08)',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E8EEF4',
     padding: THEME.spacing[16],
     gap: THEME.spacing[14],
     marginBottom: THEME.spacing[16],
-    shadowColor: THEME.colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
   },
-
-  // ── Error row ─────────────────────────────────────────────
   errorRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     marginTop: -THEME.spacing[8],
   },
-  errorText: {
-    fontSize: THEME.typography.size[12],
-    color: '#EF4444',
-    fontWeight: THEME.typography.weight.medium,
-  },
-
-  // ── Helper text ───────────────────────────────────────────
   helperText: {
     fontSize: THEME.typography.size[12],
-    color: THEME.colors.textSecondary,
+    color: '#64748B',
     lineHeight: 18,
     marginTop: -6,
   },
-
-  // ── Security note ─────────────────────────────────────────
   securityNote: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -86,22 +101,15 @@ export const styles = StyleSheet.create({
   securityText: {
     flex: 1,
     fontSize: THEME.typography.size[12],
-    color: THEME.colors.textSecondary,
+    color: '#64748B',
     lineHeight: 18,
   },
-
-  // ── Sticky footer ─────────────────────────────────────────
-  stickyFooter: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: THEME.colors.background,
-    borderTopWidth: 0.5,
-    borderTopColor: 'rgba(0,0,0,0.08)',
+  footer: {
     paddingHorizontal: THEME.spacing[16],
-    paddingTop: THEME.spacing[14],
-    paddingBottom: THEME.spacing[24],
+    paddingTop: THEME.spacing[12],
+    backgroundColor: CANVAS_FOOTER,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E2E8F0',
   },
   saveBtn: {
     width: '100%',

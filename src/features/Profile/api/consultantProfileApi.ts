@@ -5,6 +5,7 @@ import {
 } from '@/services/api/multipartFetch';
 import type { RootState } from '@/store';
 
+import type { ConsultantBankDetailsPayload } from '../types/consultantBankDetails.types';
 import type {
   ConsultantMyProfileDto,
   ConsultantProfileFormState,
@@ -110,8 +111,55 @@ export const consultantProfileApi = baseApi.injectEndpoints({
       },
       invalidatesTags: [{ type: 'ConsultantProfile', id: 'ME' }],
     }),
+    updateConsultantBankDetails: build.mutation<ConsultantMyProfileDto, ConsultantBankDetailsPayload>({
+      async queryFn(payload, api) {
+        const state = api.getState() as RootState;
+        const token = state.auth?.token ?? null;
+
+        const result = await patchMultipartJsonPayload(
+          'frontend/consultant/profile',
+          'payload',
+          {
+            profile: {
+              bankName: payload.bankName ?? '',
+              branchName: payload.branchName ?? '',
+              accountName: payload.accountName ?? '',
+              accountNo: payload.accountNo ?? '',
+              ifscCode: payload.ifscCode ?? '',
+            },
+          },
+          null,
+          null,
+          token,
+        );
+
+        if (!result.ok) {
+          return {
+            error: {
+              status: result.status || 500,
+              data: readApiErrorMessage(result.data, 'Failed to save bank details'),
+            },
+          };
+        }
+
+        try {
+          return { data: parseConsultantMyProfileDto(result.data) };
+        } catch {
+          return {
+            error: {
+              status: 500,
+              data: 'Invalid profile response',
+            },
+          };
+        }
+      },
+      invalidatesTags: [{ type: 'ConsultantProfile', id: 'ME' }],
+    }),
   }),
 });
 
-export const { useGetConsultantMyProfileQuery, useUpdateConsultantMyProfileMutation } =
-  consultantProfileApi;
+export const {
+  useGetConsultantMyProfileQuery,
+  useUpdateConsultantMyProfileMutation,
+  useUpdateConsultantBankDetailsMutation,
+} = consultantProfileApi;

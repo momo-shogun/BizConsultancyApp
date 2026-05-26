@@ -9,7 +9,7 @@ import { ConsultantProfileScreen } from '@/features/Profile/screens/Consultant/C
 import { ROUTES } from '../routeNames';
 import type { AccountStackParamList } from '../types';
 import { accountStackScreenOptions } from './accountStackScreenOptions';
-import { ConsultantBankDetailsScreen } from '@/features/Profile/screens/Consultant/Consultantbankdetailsscreen ';
+import { ConsultantBankDetailsScreen } from '@/features/Profile/screens/Consultant/ConsultantBankDetailsScreen';
 import { ConsultantExpertVideosScreen } from '@/features/ConsultantExpertVideos/screens/ConsultantExpertVideosScreen';
 import { ConsultantEditProfileScreen } from '@/features/Profile/screens/Consultant/ConsultantEditProfileScreen';
 import CreditsScreen from '@/features/Profile/screens/Consultant/CreditsScreen';
