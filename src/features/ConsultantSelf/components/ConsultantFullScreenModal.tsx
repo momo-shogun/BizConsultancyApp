@@ -97,7 +97,7 @@ export function ConsultantFullScreenModal({
         />
 
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={[styles.sheetHost, { maxHeight: maxSheetHeight }]}
           pointerEvents="box-none"
         >
@@ -124,6 +124,8 @@ export function ConsultantFullScreenModal({
             <ScrollView
               style={{ maxHeight: scrollMaxHeight }}
               keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              automaticallyAdjustKeyboardInsets
               showsVerticalScrollIndicator
               nestedScrollEnabled
               bounces

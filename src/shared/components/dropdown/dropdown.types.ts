@@ -1,5 +1,6 @@
 import type { StyleProp, ViewStyle } from 'react-native';
 
+import type { AnchorMenuMode } from './anchoredSelectField';
 import type { DropdownMenuTheme } from './dropdown.styles';
 import type { DropdownProps as ElementDropdownProps } from 'react-native-element-dropdown/lib/typescript/components/Dropdown/model';
 
@@ -22,4 +23,6 @@ export type DropdownProps<T> = Omit<
   anchorMenu?: boolean;
   /** Panel colors when `anchorMenu` is true. `consultant` matches profile header green. */
   anchorMenuTheme?: DropdownMenuTheme;
+  /** `inline` = menu under field (modals). `overlay` = window-positioned menu. */
+  anchorMenuMode?: AnchorMenuMode;
 };

@@ -11,6 +11,7 @@ interface ScreenHeaderProps {
   onBackPress?: () => void;
   onSearchPress?: () => void;
   headerColor?: string;
+  rightAction?: React.ReactNode;
   showConsultantActions?: boolean;
   onCallPress?: () => void;
   onMessagePress?: () => void;
@@ -24,6 +25,7 @@ interface ScreenHeaderProps {
 export function ScreenHeader(props: ScreenHeaderProps): React.ReactElement {
   const hasBack = props.onBackPress != null;
   const hasSearch = props.onSearchPress != null;
+  const hasRightAction = props.rightAction != null;
 
   const isCustomHeader = !!props.headerColor;
   const showConsultantActions = props.showConsultantActions ?? false;
@@ -43,7 +45,7 @@ export function ScreenHeader(props: ScreenHeaderProps): React.ReactElement {
         },
       ]}
     >
-      <View style={styles.left}>
+      <View style={[styles.left, hasRightAction ? styles.leftWithAction : null]}>
         {hasBack ? (
           <Pressable
             accessibilityRole="button"
@@ -63,18 +65,24 @@ export function ScreenHeader(props: ScreenHeaderProps): React.ReactElement {
         <Text
           style={[
             styles.title,
+            hasRightAction ? styles.titleWithAction : null,
             {
               color: isCustomHeader
                 ? "#fff"
                 : THEME.colors.textPrimary,
             },
           ]}
+          numberOfLines={1}
         >
           {props.title}
         </Text>
       </View>
 
-      {hasSearch ? (
+      {hasRightAction ? (
+        <View style={styles.rightActionSlot}>{props.rightAction}</View>
+      ) : null}
+
+      {hasSearch && !hasRightAction ? (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Search"
@@ -90,7 +98,7 @@ export function ScreenHeader(props: ScreenHeaderProps): React.ReactElement {
         </Pressable>
       ) : null}
 
-      {showConsultantActions ? (
+      {showConsultantActions && !hasRightAction ? (
         <View style={styles.consultant}>
           {/* Call Button */}
           <Pressable
@@ -133,7 +141,7 @@ export function ScreenHeader(props: ScreenHeaderProps): React.ReactElement {
 
       ) : null}
 
-      {isLang ? (
+      {isLang && !hasRightAction ? (
         <View style={styles.langToggle}>
           <Pressable
             style={[styles.langBtn, lang === 'ENG' && styles.langBtnActive]}
@@ -183,6 +191,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: THEME.spacing[8],
+    flex: 1,
+    minWidth: 0,
+  },
+  leftWithAction: {
+    flex: 1,
+  },
+  titleWithAction: {
+    flexShrink: 1,
+  },
+  rightActionSlot: {
+    flexShrink: 0,
+    marginLeft: THEME.spacing[8],
   },
   right: {
     width: 32,

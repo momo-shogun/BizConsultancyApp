@@ -129,6 +129,21 @@ export const consultantSelfApi = baseApi.injectEndpoints({
         method: 'PATCH',
         body: { status },
       }),
+      async onQueryStarted({ id, status }, { dispatch, queryFulfilled }) {
+        const patch = dispatch(
+          consultantSelfApi.util.updateQueryData('getMyExpertVideos', undefined, (draft) => {
+            const row = draft.find((item) => item.id === id);
+            if (row != null) {
+              row.status = status;
+            }
+          }),
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          patch.undo();
+        }
+      },
       invalidatesTags: [{ type: 'ConsultantExpertVideos', id: 'LIST' }],
     }),
     deleteMyExpertVideo: build.mutation<{ ok: true }, number>({

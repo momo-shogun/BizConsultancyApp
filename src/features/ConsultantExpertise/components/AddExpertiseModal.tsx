@@ -119,6 +119,7 @@ export function AddExpertiseModal({
       <Field label="Category">
         <Dropdown
           anchorMenu
+          anchorMenuMode="inline"
           anchorMenuTheme="consultant"
           data={categoryOptions}
           labelField="label"
@@ -135,6 +136,7 @@ export function AddExpertiseModal({
       <Field label="Segment">
         <Dropdown
           anchorMenu
+          anchorMenuMode="inline"
           anchorMenuTheme="consultant"
           data={segmentOptions}
           labelField="label"
@@ -152,6 +154,7 @@ export function AddExpertiseModal({
       <Field label="Industry">
         <Dropdown
           anchorMenu
+          anchorMenuMode="inline"
           anchorMenuTheme="consultant"
           data={industryOptions}
           labelField="label"
@@ -188,6 +191,7 @@ function Field({
 const styles = StyleSheet.create({
   field: {
     marginBottom: 16,
+    zIndex: 10,
   },
   fieldLabel: {
     fontSize: 12,

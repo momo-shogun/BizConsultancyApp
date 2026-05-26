@@ -221,9 +221,10 @@ export function CreateExpertVideoModal({
         </Pressable>
       </Field>
 
-      <Field label="Category">
+      <Field label="Category" elevated>
         <Dropdown
           anchorMenu
+          anchorMenuMode="inline"
           anchorMenuTheme="consultant"
           data={categoryOptions}
           labelField="label"
@@ -238,9 +239,10 @@ export function CreateExpertVideoModal({
           }}
         />
       </Field>
-      <Field label="Segment">
+      <Field label="Segment" elevated>
         <Dropdown
           anchorMenu
+          anchorMenuMode="inline"
           anchorMenuTheme="consultant"
           data={segmentOptions}
           labelField="label"
@@ -255,9 +257,10 @@ export function CreateExpertVideoModal({
           }}
         />
       </Field>
-      <Field label="Industry">
+      <Field label="Industry" elevated>
         <Dropdown
           anchorMenu
+          anchorMenuMode="inline"
           anchorMenuTheme="consultant"
           data={industryOptions}
           labelField="label"
@@ -272,9 +275,10 @@ export function CreateExpertVideoModal({
           }}
         />
       </Field>
-      <Field label="Type">
+      <Field label="Type" elevated>
         <Dropdown
           anchorMenu
+          anchorMenuMode="inline"
           anchorMenuTheme="consultant"
           data={typeOptions}
           labelField="label"
@@ -307,12 +311,14 @@ export function CreateExpertVideoModal({
 function Field({
   label,
   children,
+  elevated,
 }: {
   label: string;
   children: React.ReactNode;
+  elevated?: boolean;
 }): React.ReactElement {
   return (
-    <View style={styles.field}>
+    <View style={[styles.field, elevated ? styles.fieldElevated : null]}>
       <Text style={styles.fieldLabel}>{label}</Text>
       {children}
     </View>
@@ -321,6 +327,9 @@ function Field({
 
 const styles = StyleSheet.create({
   field: { marginBottom: 14 },
+  fieldElevated: {
+    zIndex: 10,
+  },
   fieldLabel: {
     fontSize: 12,
     fontWeight: '700',

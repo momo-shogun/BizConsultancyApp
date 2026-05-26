@@ -1,9 +1,10 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Dimensions,
   FlatList,
-  InteractionManager,
+  Keyboard,
   Modal,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -21,6 +22,8 @@ import {
   type DropdownMenuTheme,
 } from './dropdown.styles';
 
+export type AnchorMenuMode = 'inline' | 'overlay';
+
 export interface AnchoredSelectOption {
   label: string;
   value: string;
@@ -37,6 +40,8 @@ export interface AnchoredSelectFieldProps {
   containerStyle?: StyleProp<ViewStyle>;
   menuContainerStyle?: StyleProp<ViewStyle>;
   theme?: DropdownMenuTheme;
+  /** Kept for API compatibility — menu always opens just under the trigger. */
+  anchorMode?: AnchorMenuMode;
   onChange: (value: string) => void;
 }
 
@@ -55,6 +60,7 @@ const MENU_GAP = 4;
 const MENU_MAX_HEIGHT = 220;
 const MENU_MIN_HEIGHT = 96;
 const VIEWPORT_EDGE = 8;
+const OPEN_BELOW_MIN_SPACE = 72;
 
 export function AnchoredSelectField({
   data,
@@ -74,6 +80,24 @@ export function AnchoredSelectField({
   const [open, setOpen] = useState(false);
   const [anchor, setAnchor] = useState<MenuAnchor | null>(null);
   const [searchText, setSearchText] = useState('');
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSub = Keyboard.addListener(showEvent, (event) => {
+      setKeyboardHeight(event.endCoordinates.height);
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   const selectedLabel = useMemo((): string => {
     if (value == null || value.length === 0) {
@@ -90,43 +114,53 @@ export function AnchoredSelectField({
     return data.filter((item) => item.label.toLowerCase().includes(query));
   }, [data, search, searchText]);
 
+  const computeAnchor = useCallback(
+    (pageX: number, pageY: number, width: number, height: number): MenuAnchor => {
+      const windowHeight = Dimensions.get('window').height;
+      const triggerBottom = pageY + height;
+      const viewportBottom = windowHeight - keyboardHeight;
+      const spaceBelow = viewportBottom - triggerBottom - MENU_GAP - VIEWPORT_EDGE;
+      const spaceAbove = pageY - MENU_GAP - VIEWPORT_EDGE;
+      const openBelow = spaceBelow >= OPEN_BELOW_MIN_SPACE || spaceBelow >= spaceAbove;
+
+      if (openBelow) {
+        return {
+          top: triggerBottom + MENU_GAP,
+          left: pageX,
+          width,
+          maxHeight: Math.min(MENU_MAX_HEIGHT, Math.max(MENU_MIN_HEIGHT, spaceBelow)),
+        };
+      }
+
+      const maxHeight = Math.min(MENU_MAX_HEIGHT, Math.max(MENU_MIN_HEIGHT, spaceAbove));
+      return {
+        top: Math.max(VIEWPORT_EDGE, pageY - maxHeight - MENU_GAP),
+        left: pageX,
+        width,
+        maxHeight,
+      };
+    },
+    [keyboardHeight],
+  );
+
   const measureAndOpen = useCallback((): void => {
     if (disabled) {
       return;
     }
 
-    InteractionManager.runAfterInteractions(() => {
-      requestAnimationFrame(() => {
-        triggerRef.current?.measureInWindow((pageX, pageY, width, height) => {
-          const windowHeight = Dimensions.get('window').height;
-          const triggerBottom = pageY + height;
-          const spaceBelow = windowHeight - triggerBottom - MENU_GAP - VIEWPORT_EDGE;
-          const spaceAbove = pageY - MENU_GAP - VIEWPORT_EDGE;
-          const preferBelow = spaceBelow >= spaceAbove;
+    Keyboard.dismiss();
 
-          let top: number;
-          let maxHeight: number;
-
-          if (preferBelow) {
-            top = triggerBottom + MENU_GAP;
-            maxHeight = Math.min(MENU_MAX_HEIGHT, Math.max(MENU_MIN_HEIGHT, spaceBelow));
-          } else {
-            maxHeight = Math.min(MENU_MAX_HEIGHT, Math.max(MENU_MIN_HEIGHT, spaceAbove));
-            top = Math.max(VIEWPORT_EDGE, pageY - maxHeight - MENU_GAP);
-          }
-
-          setAnchor({
-            top,
-            left: pageX,
-            width,
-            maxHeight,
-          });
-          setSearchText('');
-          setOpen(true);
-        });
+    const runMeasure = (): void => {
+      triggerRef.current?.measureInWindow((pageX, pageY, width, height) => {
+        setAnchor(computeAnchor(pageX, pageY, width, height));
+        setSearchText('');
+        setOpen(true);
       });
-    });
-  }, [disabled]);
+    };
+
+    const delayMs = Platform.OS === 'ios' ? 100 : 60;
+    setTimeout(runMeasure, delayMs);
+  }, [computeAnchor, disabled]);
 
   const close = useCallback((): void => {
     setOpen(false);
@@ -141,11 +175,12 @@ export function AnchoredSelectField({
     [close, onChange],
   );
 
-  const listMaxHeight = anchor != null ? anchor.maxHeight - (search ? 50 : 0) : MENU_MAX_HEIGHT;
+  const listMaxHeight =
+    anchor != null ? anchor.maxHeight - (search ? 50 : 0) : MENU_MAX_HEIGHT;
 
   return (
     <>
-      <View ref={triggerRef} collapsable={false}>
+      <View ref={triggerRef} collapsable={false} style={open ? styles.hostOpen : null}>
         <Pressable
           accessibilityRole="button"
           disabled={disabled}
@@ -267,6 +302,9 @@ export function AnchoredSelectField({
 }
 
 const styles = StyleSheet.create({
+  hostOpen: {
+    zIndex: 1,
+  },
   triggerInner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -292,7 +330,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1.5,
     overflow: 'hidden',
-    elevation: 8,
+    elevation: 16,
     shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.12,

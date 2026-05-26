@@ -18,6 +18,7 @@ function DropdownInner(
     rightIcon,
     anchorMenu,
     anchorMenuTheme,
+    anchorMenuMode,
     containerStyle,
     menuContainerStyle,
     placeholderStyle,
@@ -86,6 +87,7 @@ function DropdownInner(
         containerStyle={containerStyle}
         menuContainerStyle={menuContainerStyle}
         theme={anchorMenuTheme}
+        anchorMode={anchorMenuMode ?? 'inline'}
         onChange={(nextValue) => {
           const selected = (rest.data ?? []).find(
             (item) => String(item[rest.valueField as string] ?? '') === nextValue,

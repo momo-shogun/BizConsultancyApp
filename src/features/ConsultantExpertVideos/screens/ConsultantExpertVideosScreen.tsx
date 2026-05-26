@@ -1,7 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -12,6 +11,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import LinearGradient from 'react-native-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { CreateExpertVideoModal } from '@/features/ConsultantExpertVideos/components/CreateExpertVideoModal';
@@ -23,10 +23,14 @@ import {
   useUpdateMyExpertVideoStatusMutation,
 } from '@/features/ConsultantSelf/api/consultantSelfApi';
 import type { ConsultantExpertVideo, ExpertVideoFilterTab } from '@/features/ConsultantSelf/types/consultantSelf.types';
-import { PROFILE_HEADER_GRADIENT } from '@/features/Profile/constants/profileScreenTheme';
+import {
+  PROFILE_HEADER_GRADIENT,
+  PROFILE_HEADER_STATUS_BAR,
+} from '@/features/Profile/constants/profileScreenTheme';
 import { ROUTES } from '@/navigation/routeNames';
 import type { AccountStackParamList } from '@/navigation/types';
 import { SafeAreaWrapper, ScreenHeader } from '@/shared/components';
+import { Dialog } from '@/shared/components/dialog';
 import { showGlobalToast } from '@/shared/components/toast';
 import { THEME } from '@/constants/theme';
 import { getApiErrorMessage } from '@/utils/apiError';
@@ -46,9 +50,15 @@ type Nav = NativeStackNavigationProp<
 
 export function ConsultantExpertVideosScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<ExpertVideoFilterTab>('all');
   const [createOpen, setCreateOpen] = useState(false);
-  const [busyVideoId, setBusyVideoId] = useState<number | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ConsultantExpertVideo | null>(null);
+  const [statusUpdate, setStatusUpdate] = useState<{
+    videoId: number;
+    targetActive: boolean;
+  } | null>(null);
+  const [deletingVideoId, setDeletingVideoId] = useState<number | null>(null);
 
   const {
     data: videos = [],
@@ -101,50 +111,86 @@ export function ConsultantExpertVideosScreen(): React.ReactElement {
   );
 
   const handleToggleStatus = useCallback(
-    async (video: ConsultantExpertVideo): Promise<void> => {
-      setBusyVideoId(video.id);
-      const nextStatus = video.status === 1 ? 0 : 1;
+    async (video: ConsultantExpertVideo, nextActive: boolean): Promise<void> => {
+      const nextStatus = nextActive ? 1 : 0;
+      if (video.status === nextStatus) {
+        return;
+      }
+      if (statusUpdate != null || deletingVideoId != null) {
+        return;
+      }
+
+      setStatusUpdate({ videoId: video.id, targetActive: nextActive });
       try {
         await updateStatus({ id: video.id, status: nextStatus }).unwrap();
       } catch (err: unknown) {
-        showGlobalToast(getApiErrorMessage(err, 'Failed to update status'));
+        showGlobalToast(getApiErrorMessage(err, 'Failed to update visibility'));
       } finally {
-        setBusyVideoId(null);
+        setStatusUpdate(null);
       }
     },
-    [updateStatus],
+    [deletingVideoId, statusUpdate, updateStatus],
   );
 
-  const handleDelete = useCallback(
-    (video: ConsultantExpertVideo): void => {
-      Alert.alert('Delete video?', 'This cannot be undone.', [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            setBusyVideoId(video.id);
-            void (async (): Promise<void> => {
-              try {
-                await deleteVideo(video.id).unwrap();
-                showGlobalToast('Video deleted');
-              } catch (err: unknown) {
-                showGlobalToast(getApiErrorMessage(err, 'Failed to delete video'));
-              } finally {
-                setBusyVideoId(null);
-              }
-            })();
-          },
-        },
-      ]);
-    },
-    [deleteVideo],
+  const confirmDeleteVideo = useCallback(async (): Promise<void> => {
+    if (deleteTarget == null) {
+      return;
+    }
+    const videoId = deleteTarget.id;
+    setDeleteTarget(null);
+    setDeletingVideoId(videoId);
+    try {
+      await deleteVideo(videoId).unwrap();
+      showGlobalToast('Video deleted');
+    } catch (err: unknown) {
+      showGlobalToast(getApiErrorMessage(err, 'Failed to delete video'));
+    } finally {
+      setDeletingVideoId(null);
+    }
+  }, [deleteTarget, deleteVideo]);
+
+  const handleDeleteRequest = useCallback((video: ConsultantExpertVideo): void => {
+    setDeleteTarget(video);
+  }, []);
+
+  const headerAddAction = (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Add expert video"
+      onPress={() => setCreateOpen(true)}
+      style={({ pressed }) => [styles.headerAddBtn, pressed ? styles.pressed : null]}
+    >
+      <Ionicons name="add" size={18} color="#EA580C" />
+      <Text style={styles.headerAddText}>Add</Text>
+    </Pressable>
+  );
+
+  const topChrome = (
+    <LinearGradient
+      colors={[...PROFILE_HEADER_GRADIENT]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={[styles.topChrome, { paddingTop: insets.top }]}
+    >
+      <ScreenHeader
+        title="Expert Video"
+        onBackPress={() => navigation.goBack()}
+        headerColor="transparent"
+        rightAction={headerAddAction}
+      />
+    </LinearGradient>
   );
 
   if (isLoading) {
     return (
-      <SafeAreaWrapper edges={['top', 'bottom']} bgColor={CANVAS}>
-        <ScreenHeader title="Expert Video" onBackPress={() => navigation.goBack()} />
+      <SafeAreaWrapper
+        edges={['bottom']}
+        bgColor={PROFILE_HEADER_STATUS_BAR}
+        contentBgColor={CANVAS}
+        statusBarStyle="light-content"
+        style={styles.screen}
+      >
+        {topChrome}
         <View style={styles.centered}>
           <ActivityIndicator size="large" color="#EA580C" />
         </View>
@@ -153,8 +199,14 @@ export function ConsultantExpertVideosScreen(): React.ReactElement {
   }
 
   return (
-    <SafeAreaWrapper edges={['top', 'bottom']} bgColor={CANVAS}>
-      <ScreenHeader title="Expert Video" onBackPress={() => navigation.goBack()} />
+    <SafeAreaWrapper
+      edges={['bottom']}
+      bgColor={PROFILE_HEADER_STATUS_BAR}
+      contentBgColor={CANVAS}
+      statusBarStyle="light-content"
+      style={styles.screen}
+    >
+      {topChrome}
 
       <ScrollView
         style={styles.scrollView}
@@ -168,29 +220,17 @@ export function ConsultantExpertVideosScreen(): React.ReactElement {
           />
         }
       >
-        <LinearGradient
+        {/* <LinearGradient
           colors={[...PROFILE_HEADER_GRADIENT]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.hero}
         >
-          <View style={styles.heroRow}>
-            <View style={styles.heroText}>
-              <Text style={styles.heroEyebrow}>Consultant dashboard</Text>
-              <Text style={styles.heroTitle}>Expert videos</Text>
-              <Text style={styles.heroSubtitle}>
-                Publish free or paid sessions linked to your expertise industries.
-              </Text>
-            </View>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => setCreateOpen(true)}
-              style={({ pressed }) => [styles.addBtn, pressed ? styles.pressed : null]}
-            >
-              <Ionicons name="add" size={18} color="#EA580C" />
-              <Text style={styles.addBtnText}>Add</Text>
-            </Pressable>
-          </View>
+          <Text style={styles.heroEyebrow}>Consultant dashboard</Text>
+          <Text style={styles.heroTitle}>Expert videos</Text>
+          <Text style={styles.heroSubtitle}>
+            Publish free or paid sessions linked to your expertise industries.
+          </Text>
           <View style={styles.statsRow}>
             <View style={styles.statCard}>
               <Text style={styles.statLabel}>Total</Text>
@@ -205,7 +245,7 @@ export function ConsultantExpertVideosScreen(): React.ReactElement {
               <Text style={styles.statValue}>{tabCounts.paid}</Text>
             </View>
           </View>
-        </LinearGradient>
+        </LinearGradient> */}
 
         <View style={styles.tabsRow}>
           {FILTER_TABS.map((tab) => {
@@ -248,15 +288,28 @@ export function ConsultantExpertVideosScreen(): React.ReactElement {
           </View>
         ) : (
           <View style={styles.list}>
-            {filtered.map((video) => (
-              <ExpertVideoCard
-                key={video.id}
-                video={video}
-                isBusy={busyVideoId === video.id}
-                onToggleStatus={() => void handleToggleStatus(video)}
-                onDelete={() => handleDelete(video)}
-              />
-            ))}
+            {filtered.map((video) => {
+              const isStatusUpdating = statusUpdate?.videoId === video.id;
+              const displayActive = isStatusUpdating
+                ? statusUpdate.targetActive
+                : video.status === 1;
+              const isLocked =
+                deletingVideoId != null ||
+                (statusUpdate != null && statusUpdate.videoId !== video.id);
+
+              return (
+                <ExpertVideoCard
+                  key={video.id}
+                  video={video}
+                  displayActive={displayActive}
+                  isStatusUpdating={isStatusUpdating}
+                  isDeleting={deletingVideoId === video.id}
+                  isLocked={isLocked}
+                  onToggleStatus={(nextActive) => void handleToggleStatus(video, nextActive)}
+                  onDelete={() => handleDeleteRequest(video)}
+                />
+              );
+            })}
           </View>
         )}
       </ScrollView>
@@ -267,11 +320,51 @@ export function ConsultantExpertVideosScreen(): React.ReactElement {
         onClose={() => setCreateOpen(false)}
         onSubmit={(payload) => void handleCreate(payload)}
       />
+
+      <Dialog
+        visible={deleteTarget != null}
+        onClose={() => setDeleteTarget(null)}
+        variant="warning"
+        title="Delete video?"
+        description={
+          deleteTarget != null
+            ? `Remove "${deleteTarget.title}"? This cannot be undone.`
+            : undefined
+        }
+        actions={[
+          { label: 'Cancel', variant: 'ghost', onPress: () => setDeleteTarget(null) },
+          {
+            label: 'Delete',
+            variant: 'destructive',
+            onPress: () => void confirmDeleteVideo(),
+          },
+        ]}
+      />
     </SafeAreaWrapper>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+  },
+  topChrome: {
+    width: '100%',
+  },
+  headerAddBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+  },
+  headerAddText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#EA580C',
+  },
   scrollView: {
     flex: 1,
   },
@@ -286,8 +379,6 @@ const styles = StyleSheet.create({
     marginBottom: THEME.spacing[12],
     overflow: 'hidden',
   },
-  heroRow: { flexDirection: 'row', gap: 12 },
-  heroText: { flex: 1 },
   heroEyebrow: {
     fontSize: 11,
     fontWeight: '600',
@@ -302,16 +393,6 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.9)',
     lineHeight: 18,
   },
-  addBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.95)',
-  },
-  addBtnText: { fontSize: 13, fontWeight: '700', color: '#EA580C' },
   statsRow: { flexDirection: 'row', gap: 10, marginTop: 14 },
   statCard: {
     flex: 1,
@@ -334,6 +415,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     marginBottom: 12,
+    marginTop: THEME.spacing[12],
   },
   tab: {
     paddingHorizontal: 12,
@@ -378,6 +460,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: 20,
   },
-  list: { gap: 12 },
+  list: { gap: 10 },
   pressed: { opacity: 0.9 },
 });
