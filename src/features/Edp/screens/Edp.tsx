@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import type { NavigationProp } from '@react-navigation/native';
 import { Pressable, Text, View } from 'react-native';
@@ -6,8 +6,8 @@ import Animated from 'react-native-reanimated';
 
 import { ROUTES } from '@/navigation/routeNames';
 import type { EdpStackParamList } from '@/navigation/types';
+import FAQSection from '@/features/Services/screens/components/faq/faq';
 import {
-  EdpFaqCard,
   EdpLearningJourneyCard,
   EdpMetricCard,
   EdpModuleCard,
@@ -53,8 +53,18 @@ export default function EDPScreen({
     navigation.navigate(ROUTES.Edp.Modules);
   };
 
+  const edpFaqs = useMemo(
+    () => ({
+      faqs: EDP_FAQ_ITEMS.map((item) => ({
+        question: item.question,
+        answer: item.answer,
+      })),
+    }),
+    [],
+  );
+
   return (
-    <SafeAreaWrapper edges={['top']} bgColor={EDP_HERO_BG}>
+    <SafeAreaWrapper edges={['top']} bgColor={EDP_HERO_BG} statusBarStyle="light-content">
       <View style={styles.root}>
         <ScreenHeader title="EDP Programme" headerColor={EDP_HERO_BG} onSearchPress={() => {}} />
 
@@ -110,9 +120,12 @@ export default function EDPScreen({
 
           <View style={styles.section}>
             <EdpSectionHeader title="Quick answers" count={EDP_FAQ_ITEMS.length} />
-            {EDP_FAQ_ITEMS.map((item) => (
-              <EdpFaqCard key={item.id} question={item.question} answer={item.answer} />
-            ))}
+            <FAQSection
+              faqs={edpFaqs}
+              variant="embedded"
+              showHeader={false}
+              initialActiveIndex={null}
+            />
           </View>
 
           <View style={styles.ctaSection}>
