@@ -2,7 +2,9 @@ import { Platform, StyleSheet } from 'react-native';
 
 import { THEME } from '@/constants/theme';
 
-export const USER_CANVAS = '#F8FAFC';
+import { PROFILE_CANVAS } from '../../constants/profileScreenTheme';
+
+export const USER_CANVAS = PROFILE_CANVAS;
 const SLATE_LINE = '#E2E8F0';
 
 const CARD_SHADOW_RESET = Platform.select({
@@ -22,57 +24,48 @@ export const styles = StyleSheet.create({
     backgroundColor: USER_CANVAS,
   },
   scrollContent: {
+    paddingTop: THEME.spacing[16],
     paddingBottom: THEME.spacing[24],
+    paddingHorizontal: THEME.spacing[16],
   },
-  topBar: {
+  editProfileRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: THEME.spacing[12],
-    paddingVertical: THEME.spacing[10],
-    backgroundColor: USER_CANVAS,
-  },
-  pageTitle: {
-    fontSize: THEME.typography.size[18],
-    fontWeight: THEME.typography.weight.bold as '700',
-    color: THEME.colors.textPrimary,
-    letterSpacing: -0.25,
-  },
-  settingsBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: THEME.spacing[4],
-    paddingHorizontal: THEME.spacing[12],
-    paddingVertical: THEME.spacing[8],
-    borderRadius: THEME.radius[12],
-    backgroundColor: THEME.colors.white,
+    gap: THEME.spacing[12],
+    marginBottom: THEME.spacing[12],
+    padding: THEME.spacing[14],
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: SLATE_LINE,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#0F172A',
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        shadowOffset: { width: 0, height: 2 },
-      },
-      android: { elevation: 2 },
-      default: {},
-    }),
+    backgroundColor: THEME.colors.white,
   },
-  settingsBtnText: {
-    fontSize: THEME.typography.size[12],
-    fontWeight: THEME.typography.weight.semibold as '600',
+  editProfileIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(5,150,105,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  editProfileTextBlock: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  editProfileTitle: {
+    fontSize: THEME.typography.size[14],
+    fontWeight: '700',
     color: THEME.colors.textPrimary,
-    letterSpacing: 0.1,
   },
-  subscriptionCard: {
+  editProfileSubtitle: {
+    fontSize: THEME.typography.size[12],
+    color: '#64748B',
+  },
+  accountCard: {
     marginHorizontal: 0,
-    marginTop: THEME.spacing[4],
+    marginTop: 0,
     marginBottom: 0,
     borderRadius: THEME.radius[16],
-    borderWidth: 0,
-    backgroundColor: 'transparent',
-    padding: 0,
     ...CARD_SHADOW_RESET,
   },
   section: {

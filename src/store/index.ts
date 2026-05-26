@@ -24,6 +24,7 @@ import '@/features/Home/api/homePublicApi';
 import '@/features/Diagnostics/api/diagnosticsApi';
 import '@/features/Profile/api/userFeedbackApi';
 import '@/features/Profile/api/userProfileApi';
+import '@/features/Profile/api/membershipRegistrationApi';
 
 const MMKV = new MMKVStorage.Loader().initialize();
 

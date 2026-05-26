@@ -11,12 +11,25 @@ import { NavigationProp, useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { THEME } from '@/constants/theme';
+import { selectIsAuthenticated } from '@/features/Auth/store/authSelectors';
 import { useGetPublicMembershipsQuery } from '@/features/Home/api/homePublicApi';
+import { useAppSelector } from '@/store/typedHooks';
 import type { AccountStackParamList } from '@/navigation/types';
 import { SafeAreaWrapper, ScreenHeader, ScreenWrapper } from '@/shared/components';
 
-import type { MembershipPlan, MembershipPlansScreenConfig } from '../../types/membershipPlan.types';
+import { MembershipCheckoutModal } from '../../components/MembershipCheckoutModal';
+import { useMembershipPurchase } from '../../hooks/useMembershipPurchase';
+import { useGetMyMembershipPurchaseStateQuery } from '../../api/membershipRegistrationApi';
+import type {
+  MembershipPlan,
+  MembershipPlanCtaMode,
+  MembershipPlansScreenConfig,
+} from '../../types/membershipPlan.types';
 import { mapPublicMembershipsToMembershipPlans } from '../../utils/membershipScreenMappers';
+import {
+  membershipPlanCtaLabel,
+  resolveMembershipPlanCta,
+} from '../../utils/membershipPlanCta';
 import { styles } from './MembershipPlansScreen.styles';
 
 function formatRupee(value: number): string {
@@ -238,8 +251,14 @@ function PlanCard({
 
 function StickyFooter({
   plan,
+  ctaLabel,
+  ctaDisabled,
+  onPress,
 }: {
   plan: MembershipPlan;
+  ctaLabel: string;
+  ctaDisabled: boolean;
+  onPress: () => void;
 }): React.ReactElement {
   const { theme } = plan;
 
@@ -276,10 +295,18 @@ function StickyFooter({
       </View>
 
       <TouchableOpacity
-        style={[styles.upgradeCta, { backgroundColor: theme.accent }]}
+        style={[
+          styles.upgradeCta,
+          { backgroundColor: theme.accent },
+          ctaDisabled ? styles.upgradeCtaDisabled : null,
+        ]}
         activeOpacity={0.85}
+        disabled={ctaDisabled}
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={ctaLabel}
       >
-        <Text style={styles.upgradeCtaText}>{plan.ctaLabel}</Text>
+        <Text style={styles.upgradeCtaText}>{ctaLabel}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -289,16 +316,42 @@ export interface MembershipPlansScreenProps {
   config: MembershipPlansScreenConfig;
 }
 
+function isCtaDisabled(mode: MembershipPlanCtaMode): boolean {
+  return mode === 'active' || mode === 'disabled';
+}
+
 export function MembershipPlansScreen({ config }: MembershipPlansScreenProps): React.ReactElement {
   const navigation = useNavigation<NavigationProp<AccountStackParamList>>();
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const purchase = useMembershipPurchase();
   const { data, isLoading, isError, refetch } = useGetPublicMembershipsQuery({
     type: config.membershipApiType,
   });
+  const { data: purchaseState } = useGetMyMembershipPurchaseStateQuery(undefined, {
+    skip: !isAuthenticated,
+  });
 
-  const plans = useMemo(
+  const basePlans = useMemo(
     () => mapPublicMembershipsToMembershipPlans(data ?? []),
     [data],
   );
+
+  const purchaseLine = (purchaseState?.membershipType ?? '').trim().toLowerCase();
+  const lineCurrent =
+    purchaseState?.current != null && purchaseLine === config.membershipApiType
+      ? purchaseState.current
+      : null;
+
+  const plans = useMemo(() => {
+    return basePlans.map((plan) => {
+      const { mode } = resolveMembershipPlanCta(plan, lineCurrent, basePlans);
+      return {
+        ...plan,
+        ctaMode: mode,
+        ctaLabel: membershipPlanCtaLabel(plan, mode),
+      };
+    });
+  }, [basePlans, lineCurrent]);
 
   const [activePlanId, setActivePlanId] = useState<string>('');
 
@@ -312,6 +365,10 @@ export function MembershipPlansScreen({ config }: MembershipPlansScreenProps): R
   }, [plans]);
 
   const activePlan = plans.find((plan) => plan.id === activePlanId) ?? plans[0];
+
+  const handlePlanCta = (plan: MembershipPlan): void => {
+    purchase.openCheckout(plan);
+  };
 
   return (
     <SafeAreaWrapper edges={['top', 'bottom']} bgColor="white">
@@ -353,10 +410,18 @@ export function MembershipPlansScreen({ config }: MembershipPlansScreenProps): R
               ))}
             </ScrollView>
 
-            {activePlan != null ? <StickyFooter plan={activePlan} /> : null}
+            {activePlan != null ? (
+              <StickyFooter
+                plan={activePlan}
+                ctaLabel={activePlan.ctaLabel}
+                ctaDisabled={isCtaDisabled(activePlan.ctaMode)}
+                onPress={() => handlePlanCta(activePlan)}
+              />
+            ) : null}
           </>
         )}
       </ScreenWrapper>
+      <MembershipCheckoutModal purchase={purchase} />
     </SafeAreaWrapper>
   );
 }

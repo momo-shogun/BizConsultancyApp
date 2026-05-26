@@ -273,6 +273,9 @@ export const styles = StyleSheet.create({
     color: THEME.colors.textSecondary,
     marginTop: 2,
   },
+  upgradeCtaDisabled: {
+    opacity: 0.55,
+  },
   upgradeCta: {
     paddingHorizontal: THEME.spacing[20],
     paddingVertical: THEME.spacing[14],

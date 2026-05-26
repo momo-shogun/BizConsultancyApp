@@ -82,8 +82,14 @@ export function mapPublicMembershipToMembershipPlan(
   const termConditions =
     row.termCondition?.map((item) => item.trim()).filter((item) => item.length > 0) ?? [];
 
+  const membershipId = row.id;
+  const tierRank = row.tierRank > 0 ? row.tierRank : membershipId;
+
   return {
-    id: String(row.id),
+    id: String(membershipId),
+    membershipId,
+    tierRank,
+    membershipType: row.membershipType.trim(),
     name,
     slug: row.slug?.trim() ?? '',
     description: description != null && description !== name ? description : null,
@@ -99,6 +105,7 @@ export function mapPublicMembershipToMembershipPlan(
     features,
     termConditions,
     ctaLabel: `Choose ${name}`,
+    ctaMode: 'choose',
     theme: getMembershipPlanTheme(index),
   };
 }

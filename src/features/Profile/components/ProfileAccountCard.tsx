@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { Image, Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { useAuth } from '@/app/providers/AuthProvider';
@@ -16,6 +16,8 @@ import { formatIndianMobile, isValidIndianMobile } from '@/utils/formatPhone';
 
 export interface ProfileAccountCardProps {
   accountRole: AuthRole;
+  avatarUri?: string | null;
+  onPress?: () => void;
   style?: ViewStyle;
 }
 
@@ -72,15 +74,17 @@ export function ProfileAccountCard(props: ProfileAccountCardProps): React.ReactE
       <View style={styles.row}>
         <Pressable
           style={styles.left}
-          onPress={hasPhone ? undefined : handleLoginPress}
-          disabled={hasPhone}
-          accessibilityRole={hasPhone ? 'text' : 'button'}
+          onPress={hasPhone ? props.onPress : handleLoginPress}
+          disabled={hasPhone ? props.onPress == null : false}
+          accessibilityRole={hasPhone && props.onPress != null ? 'button' : hasPhone ? 'text' : 'button'}
           accessibilityLabel={
             hasPhone ? `${titleText}, ${subtitleText}` : 'Sign in to view your mobile number'
           }
         >
           <View style={styles.avatar}>
-            {hasPhone ? (
+            {hasPhone && props.avatarUri != null ? (
+              <Image source={{ uri: props.avatarUri }} style={styles.avatarImage} resizeMode="cover" />
+            ) : hasPhone ? (
               <Text style={styles.avatarInitial}>{avatarInitial}</Text>
             ) : (
               <Ionicons name="person-outline" size={22} color={THEME.colors.primary} />
@@ -142,14 +146,19 @@ const styles = StyleSheet.create({
     gap: THEME.spacing[12],
   },
   avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     backgroundColor: 'rgba(15,81,50,0.08)',
     borderWidth: 1,
     borderColor: 'rgba(15,81,50,0.14)',
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
   },
   avatarInitial: {
     fontSize: THEME.typography.size[18],

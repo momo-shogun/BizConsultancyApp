@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   ActivityIndicator,
-  Image,
   Pressable,
   ScrollView,
   Text,
@@ -9,23 +8,17 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { THEME } from '@/constants/theme';
 import { ROUTES } from '@/navigation/routeNames';
 import type { AccountStackParamList } from '@/navigation/types';
-import {
-  Input,
-  KeyboardWrapper,
-  Loader,
-  SafeAreaWrapper,
-  ScreenHeader,
-} from '@/shared/components';
+import { Input, KeyboardWrapper, Loader } from '@/shared/components';
 
+import { ProfileScreenHeaderChrome } from '../../components/ProfileScreenHeaderChrome';
 import { useUserEditProfileScreen } from '../../hooks/useUserEditProfileScreen';
 import type { UserGenderValue } from '../../types/userProfile.types';
-import { PROFILE_CANVAS, styles } from './UserEditProfileScreen.styles';
+import { styles } from './UserEditProfileScreen.styles';
 
 type Nav = NativeStackNavigationProp<AccountStackParamList, typeof ROUTES.Account.EditProfile>;
 
@@ -69,39 +62,56 @@ export function UserEditProfileScreen(): React.ReactElement {
     avatarInitial,
     pendingImageName,
     form,
+    fieldErrors,
     setFormField,
     pickProfileImage,
     handleSave,
     refetch,
   } = useUserEditProfileScreen();
 
+  const handleBack = (): void => {
+    navigation.goBack();
+  };
+
+  const photoHint =
+    pendingImageName != null
+      ? `${pendingImageName} — tap Save to upload`
+      : 'Tap photo to change · JPEG, PNG, GIF or WebP · max 5MB';
+
+  const chromeProps = {
+    title: 'My Profile',
+    onBackPress: handleBack,
+    avatarUri,
+    avatarInitial,
+    displayName: readOnlyName !== '—' ? readOnlyName : undefined,
+    displaySubtitle: readOnlyMobile !== '—' ? readOnlyMobile : undefined,
+    onAvatarPress: () => void pickProfileImage(),
+  };
+
   if (!isAuthenticated) {
     return (
-      <SafeAreaWrapper edges={['top', 'bottom']} bgColor={PROFILE_CANVAS}>
-        <ScreenHeader title="My Profile" onBackPress={() => navigation.goBack()} />
+      <ProfileScreenHeaderChrome {...chromeProps} onAvatarPress={undefined}>
         <View style={styles.centered}>
           <Ionicons name="person-circle-outline" size={48} color="#94A3B8" />
           <Text style={styles.centeredText}>Sign in to view and edit your profile.</Text>
         </View>
-      </SafeAreaWrapper>
+      </ProfileScreenHeaderChrome>
     );
   }
 
   if (isLoading) {
     return (
-      <SafeAreaWrapper edges={['top', 'bottom']} bgColor={PROFILE_CANVAS}>
-        <ScreenHeader title="My Profile" onBackPress={() => navigation.goBack()} />
+      <ProfileScreenHeaderChrome {...chromeProps} onAvatarPress={undefined}>
         <View style={styles.centered}>
-          <Loader />
+          <Loader visible />
         </View>
-      </SafeAreaWrapper>
+      </ProfileScreenHeaderChrome>
     );
   }
 
   if (loadError != null) {
     return (
-      <SafeAreaWrapper edges={['top', 'bottom']} bgColor={PROFILE_CANVAS}>
-        <ScreenHeader title="My Profile" onBackPress={() => navigation.goBack()} />
+      <ProfileScreenHeaderChrome {...chromeProps} onAvatarPress={undefined}>
         <View style={styles.centered}>
           <Ionicons name="cloud-offline-outline" size={40} color="#94A3B8" />
           <Text style={styles.centeredText}>{loadError}</Text>
@@ -114,65 +124,23 @@ export function UserEditProfileScreen(): React.ReactElement {
             <Text style={styles.retryButtonText}>Try again</Text>
           </Pressable>
         </View>
-      </SafeAreaWrapper>
+      </ProfileScreenHeaderChrome>
     );
   }
 
   return (
-    <SafeAreaWrapper edges={['top', 'bottom']} bgColor={PROFILE_CANVAS}>
-      <ScreenHeader title="My Profile" onBackPress={() => navigation.goBack()} />
+    <ProfileScreenHeaderChrome {...chromeProps}>
       <KeyboardWrapper style={styles.flex}>
         <ScrollView
+          style={styles.flex}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           showsVerticalScrollIndicator={false}
         >
-          <LinearGradient
-            colors={['#047857', '#059669', '#0D9488']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.hero}
-          >
-            <Text style={styles.heroTitle}>Personal details</Text>
-            <Text style={styles.heroSubtitle}>
-              Name and mobile are verified. You can update contact, location, gender, and photo.
-            </Text>
-          </LinearGradient>
-
-          <View style={styles.avatarSection}>
-            <Pressable
-              onPress={() => void pickProfileImage()}
-              accessibilityRole="button"
-              accessibilityLabel="Change profile photo"
-            >
-              <View style={styles.avatarRing}>
-                <View style={styles.avatarInner}>
-                  {avatarUri != null ? (
-                    <Image source={{ uri: avatarUri }} style={styles.avatarImage} resizeMode="cover" />
-                  ) : (
-                    <Text style={styles.avatarInitial}>{avatarInitial}</Text>
-                  )}
-                </View>
-                <View style={styles.avatarEditBadge}>
-                  <Ionicons name="camera" size={16} color="#FFFFFF" />
-                </View>
-              </View>
-            </Pressable>
-            <Pressable
-              style={styles.changePhotoBtn}
-              onPress={() => void pickProfileImage()}
-              accessibilityRole="button"
-              accessibilityLabel="Choose profile image"
-            >
-              <Ionicons name="image-outline" size={16} color={THEME.colors.primary} />
-              <Text style={styles.changePhotoText}>Change photo</Text>
-            </Pressable>
-            <Text style={styles.photoHint}>
-              {pendingImageName != null
-                ? `${pendingImageName} — tap Save to upload`
-                : 'JPEG, PNG, GIF or WebP · max 5MB'}
-            </Text>
+          <View style={styles.photoHintBanner}>
+            <Ionicons name="information-circle-outline" size={18} color={THEME.colors.primary} />
+            <Text style={styles.photoHintText}>{photoHint}</Text>
           </View>
 
           <Text style={styles.sectionLabel}>Basic</Text>
@@ -192,6 +160,7 @@ export function UserEditProfileScreen(): React.ReactElement {
               textContentType="emailAddress"
               autoCapitalize="none"
               accessibilityLabel="Email"
+              error={fieldErrors.email}
             />
           </View>
 
@@ -205,6 +174,7 @@ export function UserEditProfileScreen(): React.ReactElement {
                   onChangeText={(text) => setFormField('city', text)}
                   placeholder="City"
                   accessibilityLabel="City"
+                  error={fieldErrors.city}
                 />
               </View>
               <View style={styles.rowField}>
@@ -214,6 +184,7 @@ export function UserEditProfileScreen(): React.ReactElement {
                   onChangeText={(text) => setFormField('state', text)}
                   placeholder="State"
                   accessibilityLabel="State"
+                  error={fieldErrors.state}
                 />
               </View>
             </View>
@@ -227,28 +198,35 @@ export function UserEditProfileScreen(): React.ReactElement {
               keyboardType="number-pad"
               maxLength={6}
               accessibilityLabel="Pincode"
+              error={fieldErrors.pincode}
             />
           </View>
 
           <Text style={styles.sectionLabel}>Gender</Text>
-          <View style={styles.card}>
+          <View style={[styles.card, fieldErrors.gender != null ? styles.genderCardError : null]}>
             <View style={styles.genderWrap}>
               <Text style={styles.genderLabel}>Select gender</Text>
               <View style={styles.genderRow}>
                 {GENDER_OPTIONS.map((option) => {
                   const selected = form.gender === option.value;
+                  const chipHasError = fieldErrors.gender != null;
                   return (
                     <Pressable
                       key={option.value}
                       accessibilityRole="button"
                       accessibilityState={{ selected }}
                       onPress={() => setFormField('gender', option.value)}
-                      style={[styles.genderChip, selected ? styles.genderChipActive : null]}
+                      style={[
+                        styles.genderChip,
+                        selected ? styles.genderChipActive : null,
+                        chipHasError && !selected ? styles.genderChipError : null,
+                      ]}
                     >
                       <Text
                         style={[
                           styles.genderChipText,
                           selected ? styles.genderChipTextActive : null,
+                          chipHasError && !selected ? styles.genderChipTextError : null,
                         ]}
                       >
                         {option.label}
@@ -257,9 +235,14 @@ export function UserEditProfileScreen(): React.ReactElement {
                   );
                 })}
               </View>
+              {fieldErrors.gender != null ? (
+                <Text style={styles.fieldErrorText}>{fieldErrors.gender}</Text>
+              ) : null}
             </View>
           </View>
+        </ScrollView>
 
+        <View style={styles.saveFooter}>
           <Pressable
             style={[styles.saveButton, isSaving ? styles.saveButtonDisabled : null]}
             onPress={() => void handleSave()}
@@ -274,8 +257,8 @@ export function UserEditProfileScreen(): React.ReactElement {
               <Text style={styles.saveButtonText}>Save changes</Text>
             )}
           </Pressable>
-        </ScrollView>
+        </View>
       </KeyboardWrapper>
-    </SafeAreaWrapper>
+    </ProfileScreenHeaderChrome>
   );
 }

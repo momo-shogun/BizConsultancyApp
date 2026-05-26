@@ -25,14 +25,25 @@ interface InputProps {
   containerStyle?: StyleProp<ViewStyle>;
   inputStyle?: StyleProp<TextStyle>;
   rightAdornment?: React.ReactNode;
+  error?: string | null;
   onFocus?: () => void;
   onBlur?: () => void;
 }
 
 export function Input(props: InputProps): React.ReactElement {
   const focus = useSharedValue(0);
+  const hasError = props.error != null && props.error.length > 0;
 
   const animatedContainerStyle = useAnimatedStyle(() => {
+    if (hasError) {
+      return {
+        borderColor: THEME.colors.danger,
+        shadowOpacity: 0,
+        shadowRadius: 0,
+        elevation: 0,
+      };
+    }
+
     const borderColor = interpolateColor(
       focus.value,
       [0, 1],
@@ -62,13 +73,18 @@ export function Input(props: InputProps): React.ReactElement {
         easing: Easing.out(Easing.cubic),
       }),
     };
-  }, []);
+  }, [hasError]);
 
   return (
     <View style={styles.container}>
       {props.label ? <Text style={styles.label}>{props.label}</Text> : null}
       <Animated.View
-        style={[styles.inputContainer, animatedContainerStyle, props.containerStyle]}
+        style={[
+          styles.inputContainer,
+          hasError ? styles.inputContainerError : null,
+          animatedContainerStyle,
+          props.containerStyle,
+        ]}
       >
         <View style={styles.row}>
           <TextInput
@@ -97,6 +113,7 @@ export function Input(props: InputProps): React.ReactElement {
           ) : null}
         </View>
       </Animated.View>
+      {hasError ? <Text style={styles.errorText}>{props.error}</Text> : null}
     </View>
   );
 }
@@ -116,6 +133,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: THEME.colors.border,
     backgroundColor: THEME.colors.white,
+  },
+  inputContainerError: {
+    backgroundColor: '#FEF2F2',
+  },
+  errorText: {
+    fontSize: THEME.typography.size[12],
+    lineHeight: 16,
+    color: THEME.colors.danger,
+    fontWeight: THEME.typography.weight.medium as '500',
   },
   row: {
     minHeight: 48,

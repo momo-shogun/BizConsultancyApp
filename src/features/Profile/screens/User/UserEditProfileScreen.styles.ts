@@ -2,7 +2,10 @@ import { StyleSheet } from 'react-native';
 
 import { THEME } from '@/constants/theme';
 
-export const PROFILE_CANVAS = '#F4F7FB';
+import { PROFILE_CANVAS } from '../../constants/profileScreenTheme';
+
+export { PROFILE_CANVAS };
+
 const SLATE_LINE = '#E2E8F0';
 const SLATE_MUTED = '#64748B';
 
@@ -11,93 +14,27 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: THEME.spacing[28],
+    paddingTop: THEME.spacing[4],
+    paddingBottom: THEME.spacing[16],
   },
-  hero: {
-    marginHorizontal: THEME.spacing[16],
-    marginBottom: THEME.spacing[14],
-    borderRadius: 18,
-    paddingHorizontal: THEME.spacing[16],
-    paddingVertical: THEME.spacing[14],
-    overflow: 'hidden',
-  },
-  heroTitle: {
-    fontSize: THEME.typography.size[16],
-    fontWeight: '700',
-    color: '#FFFFFF',
-    letterSpacing: -0.2,
-  },
-  heroSubtitle: {
-    marginTop: 6,
-    fontSize: THEME.typography.size[12],
-    lineHeight: 18,
-    color: 'rgba(255,255,255,0.9)',
-  },
-  avatarSection: {
-    alignItems: 'center',
-    marginBottom: THEME.spacing[16],
-    gap: THEME.spacing[10],
-  },
-  avatarRing: {
-    width: 108,
-    height: 108,
-    borderRadius: 54,
-    padding: 3,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: SLATE_LINE,
-  },
-  avatarInner: {
-    flex: 1,
-    borderRadius: 51,
-    overflow: 'hidden',
-    backgroundColor: '#E2E8F0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarImage: {
-    width: '100%',
-    height: '100%',
-  },
-  avatarInitial: {
-    fontSize: 36,
-    fontWeight: '700',
-    color: THEME.colors.primary,
-  },
-  avatarEditBadge: {
-    position: 'absolute',
-    right: 2,
-    bottom: 2,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: THEME.colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-  },
-  changePhotoBtn: {
+  photoHintBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: THEME.spacing[14],
-    paddingVertical: THEME.spacing[8],
-    borderRadius: 999,
+    gap: THEME.spacing[8],
+    marginHorizontal: THEME.spacing[16],
+    marginBottom: THEME.spacing[14],
+    paddingHorizontal: THEME.spacing[12],
+    paddingVertical: THEME.spacing[10],
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: SLATE_LINE,
-    backgroundColor: THEME.colors.white,
+    borderColor: 'rgba(5,150,105,0.18)',
+    backgroundColor: 'rgba(5,150,105,0.06)',
   },
-  changePhotoText: {
+  photoHintText: {
+    flex: 1,
     fontSize: THEME.typography.size[12],
-    fontWeight: '600',
-    color: THEME.colors.primary,
-  },
-  photoHint: {
-    fontSize: 11,
+    lineHeight: 17,
     color: SLATE_MUTED,
-    textAlign: 'center',
-    paddingHorizontal: THEME.spacing[24],
   },
   sectionLabel: {
     marginHorizontal: THEME.spacing[16],
@@ -110,7 +47,7 @@ export const styles = StyleSheet.create({
   },
   card: {
     marginHorizontal: THEME.spacing[16],
-    marginBottom: THEME.spacing[14],
+    marginBottom: THEME.spacing[12],
     padding: THEME.spacing[14],
     borderRadius: 16,
     borderWidth: 1,
@@ -197,9 +134,32 @@ export const styles = StyleSheet.create({
   genderChipTextActive: {
     color: THEME.colors.primary,
   },
+  genderChipError: {
+    borderColor: THEME.colors.danger,
+  },
+  genderChipTextError: {
+    color: THEME.colors.danger,
+  },
+  genderCardError: {
+    borderColor: THEME.colors.danger,
+    backgroundColor: '#FEF2F2',
+  },
+  fieldErrorText: {
+    fontSize: THEME.typography.size[12],
+    lineHeight: 16,
+    color: THEME.colors.danger,
+    fontWeight: '500',
+    marginTop: 4,
+  },
+  saveFooter: {
+    paddingHorizontal: THEME.spacing[16],
+    paddingTop: THEME.spacing[12],
+    paddingBottom: THEME.spacing[12],
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: SLATE_LINE,
+    backgroundColor: THEME.colors.white,
+  },
   saveButton: {
-    marginHorizontal: THEME.spacing[16],
-    marginTop: THEME.spacing[4],
     minHeight: 50,
     borderRadius: 14,
     backgroundColor: THEME.colors.primary,

@@ -1,5 +1,7 @@
 import type { MembershipPlanTheme } from '../utils/membershipPlanTheme';
 
+export type MembershipPlanCtaMode = 'choose' | 'active' | 'upgrade' | 'disabled';
+
 export interface MembershipPlanScope {
   id: number;
   title: string;
@@ -8,6 +10,9 @@ export interface MembershipPlanScope {
 
 export interface MembershipPlan {
   id: string;
+  membershipId: number;
+  tierRank: number;
+  membershipType: string;
   name: string;
   slug: string;
   description: string | null;
@@ -23,6 +28,7 @@ export interface MembershipPlan {
   features: string[];
   termConditions: string[];
   ctaLabel: string;
+  ctaMode: MembershipPlanCtaMode;
   theme: MembershipPlanTheme;
 }
 

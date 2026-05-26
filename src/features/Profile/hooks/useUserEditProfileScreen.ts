@@ -10,6 +10,12 @@ import { showGlobalError, showGlobalToast } from '@/shared/components/toast';
 import { useGetUserMeQuery, useUpdateUserMeMutation } from '../api/userProfileApi';
 import type { UserGenderValue, UserProfileFormState } from '../types/userProfile.types';
 import { pickProfileImageFromLibrary } from '../utils/profileImagePicker';
+import {
+  normalizeUserProfileForm,
+  validateUserProfileForm,
+  type UserProfileFieldErrors,
+  type UserProfileFieldKey,
+} from '../validation/userProfileSchema';
 
 function formFromProfile(profile: {
   email: string | null;
@@ -54,6 +60,7 @@ export interface UseUserEditProfileScreenResult {
   avatarInitial: string;
   pendingImageName: string | null;
   form: UserProfileFormState;
+  fieldErrors: UserProfileFieldErrors;
   setFormField: <K extends keyof UserProfileFormState>(
     key: K,
     value: UserProfileFormState[K],
@@ -81,6 +88,7 @@ export function useUserEditProfileScreen(): UseUserEditProfileScreenResult {
   const [previewAsset, setPreviewAsset] = useState<Asset | null>(null);
   const [previewUri, setPreviewUri] = useState<string | null>(null);
   const [pendingImageName, setPendingImageName] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<UserProfileFieldErrors>({});
 
   useEffect(() => {
     if (profile != null) {
@@ -114,6 +122,14 @@ export function useUserEditProfileScreen(): UseUserEditProfileScreenResult {
   const setFormField = useCallback(
     <K extends keyof UserProfileFormState>(key: K, value: UserProfileFormState[K]): void => {
       setForm((prev) => ({ ...prev, [key]: value }));
+      setFieldErrors((prev) => {
+        if (prev[key] == null) {
+          return prev;
+        }
+        const next = { ...prev };
+        delete next[key as UserProfileFieldKey];
+        return next;
+      });
     },
     [],
   );
@@ -138,14 +154,23 @@ export function useUserEditProfileScreen(): UseUserEditProfileScreenResult {
       return;
     }
 
+    const validation = validateUserProfileForm(form);
+    if (!validation.success) {
+      setFieldErrors(validation.errors);
+      showGlobalError('Please fix the highlighted fields.');
+      return;
+    }
+
+    const normalized = normalizeUserProfileForm(validation.data ?? form);
+
     try {
       const updated = await updateUserMe({
-        ...form,
-        pincode: form.pincode.replace(/\D/g, '').slice(0, 6),
+        ...normalized,
         imageAsset: previewAsset,
       }).unwrap();
 
       setForm(formFromProfile(updated));
+      setFieldErrors({});
       setPreviewAsset(null);
       setPreviewUri(null);
       setPendingImageName(null);
@@ -182,6 +207,7 @@ export function useUserEditProfileScreen(): UseUserEditProfileScreenResult {
     avatarInitial,
     pendingImageName,
     form,
+    fieldErrors,
     setFormField,
     pickProfileImage,
     handleSave,
