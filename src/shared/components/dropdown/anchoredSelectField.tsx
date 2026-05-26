@@ -2,6 +2,7 @@ import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   Dimensions,
   FlatList,
+  InteractionManager,
   Modal,
   Pressable,
   StyleSheet,
@@ -47,10 +48,13 @@ interface MenuAnchor {
   top: number;
   left: number;
   width: number;
+  maxHeight: number;
 }
 
 const MENU_GAP = 4;
 const MENU_MAX_HEIGHT = 220;
+const MENU_MIN_HEIGHT = 96;
+const VIEWPORT_EDGE = 8;
 
 export function AnchoredSelectField({
   data,
@@ -90,21 +94,37 @@ export function AnchoredSelectField({
     if (disabled) {
       return;
     }
-    triggerRef.current?.measureInWindow((pageX, pageY, width, height) => {
-      const windowHeight = Dimensions.get('window').height;
-      const spaceBelow = windowHeight - (pageY + height);
-      const openAbove = spaceBelow < MENU_MAX_HEIGHT + 24;
-      const top = openAbove
-        ? Math.max(8, pageY - MENU_MAX_HEIGHT - MENU_GAP)
-        : pageY + height + MENU_GAP;
 
-      setAnchor({
-        top,
-        left: pageX,
-        width,
+    InteractionManager.runAfterInteractions(() => {
+      requestAnimationFrame(() => {
+        triggerRef.current?.measureInWindow((pageX, pageY, width, height) => {
+          const windowHeight = Dimensions.get('window').height;
+          const triggerBottom = pageY + height;
+          const spaceBelow = windowHeight - triggerBottom - MENU_GAP - VIEWPORT_EDGE;
+          const spaceAbove = pageY - MENU_GAP - VIEWPORT_EDGE;
+          const preferBelow = spaceBelow >= spaceAbove;
+
+          let top: number;
+          let maxHeight: number;
+
+          if (preferBelow) {
+            top = triggerBottom + MENU_GAP;
+            maxHeight = Math.min(MENU_MAX_HEIGHT, Math.max(MENU_MIN_HEIGHT, spaceBelow));
+          } else {
+            maxHeight = Math.min(MENU_MAX_HEIGHT, Math.max(MENU_MIN_HEIGHT, spaceAbove));
+            top = Math.max(VIEWPORT_EDGE, pageY - maxHeight - MENU_GAP);
+          }
+
+          setAnchor({
+            top,
+            left: pageX,
+            width,
+            maxHeight,
+          });
+          setSearchText('');
+          setOpen(true);
+        });
       });
-      setSearchText('');
-      setOpen(true);
     });
   }, [disabled]);
 
@@ -120,6 +140,8 @@ export function AnchoredSelectField({
     },
     [close, onChange],
   );
+
+  const listMaxHeight = anchor != null ? anchor.maxHeight - (search ? 50 : 0) : MENU_MAX_HEIGHT;
 
   return (
     <>
@@ -144,7 +166,9 @@ export function AnchoredSelectField({
               selectedLabel.length > 0
                 ? [
                     dropdownStyles.selectedText,
-                    theme === 'consultant' ? { color: consultantDropdownTokens.selectedText } : null,
+                    theme === 'consultant'
+                      ? { color: consultantDropdownTokens.selectedText }
+                      : null,
                   ]
                 : dropdownStyles.placeholderText,
             ]}
@@ -179,7 +203,7 @@ export function AnchoredSelectField({
                   top: anchor.top,
                   left: anchor.left,
                   width: anchor.width,
-                  maxHeight: MENU_MAX_HEIGHT,
+                  maxHeight: anchor.maxHeight,
                   borderColor: tokens.menuBorder,
                 },
                 menuContainerStyle,
@@ -202,6 +226,7 @@ export function AnchoredSelectField({
                 keyboardShouldPersistTaps="handled"
                 nestedScrollEnabled
                 showsVerticalScrollIndicator
+                style={{ maxHeight: listMaxHeight }}
                 ListEmptyComponent={
                   <Text style={[styles.emptyText, { color: tokens.placeholder }]}>
                     No options found

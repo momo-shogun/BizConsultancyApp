@@ -157,6 +157,7 @@ export function ConsultantExpertVideosScreen(): React.ReactElement {
       <ScreenHeader title="Expert Video" onBackPress={() => navigation.goBack()} />
 
       <ScrollView
+        style={styles.scrollView}
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -275,7 +276,11 @@ export function ConsultantExpertVideosScreen(): React.ReactElement {
 }
 
 const styles = StyleSheet.create({
+  scrollView: {
+    flex: 1,
+  },
   scroll: {
+    flexGrow: 1,
     paddingHorizontal: THEME.spacing[16],
     paddingBottom: THEME.spacing[28],
   },

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Modal,
@@ -7,7 +7,9 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
+  type LayoutChangeEvent,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
@@ -19,6 +21,8 @@ import { PROFILE_HEADER_GRADIENT } from '@/features/Profile/constants/profileScr
 export const CONSULTANT_MODAL_SCRIM = 'rgba(15, 23, 42, 0.72)';
 
 const FOOTER_PADDING = 12;
+const HANDLE_ROW_HEIGHT = 14;
+const MIN_SCROLL_HEIGHT = 120;
 
 export interface ConsultantFullScreenModalProps {
   visible: boolean;
@@ -42,7 +46,38 @@ export function ConsultantFullScreenModal({
   contentContainerStyle,
 }: ConsultantFullScreenModalProps): React.ReactElement {
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
   const footerBottomInset = FOOTER_PADDING + insets.bottom;
+  const maxSheetHeight = Math.round(windowHeight * 0.92);
+
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const [footerHeight, setFooterHeight] = useState(0);
+
+  const onHeaderLayout = useCallback((event: LayoutChangeEvent): void => {
+    setHeaderHeight(event.nativeEvent.layout.height);
+  }, []);
+
+  const onFooterLayout = useCallback((event: LayoutChangeEvent): void => {
+    setFooterHeight(event.nativeEvent.layout.height);
+  }, []);
+
+  useEffect(() => {
+    if (!visible) {
+      setHeaderHeight(0);
+      setFooterHeight(0);
+    }
+  }, [visible]);
+
+  useEffect(() => {
+    if (footer == null) {
+      setFooterHeight(0);
+    }
+  }, [footer]);
+
+  const scrollMaxHeight = Math.max(
+    MIN_SCROLL_HEIGHT,
+    maxSheetHeight - headerHeight - footerHeight - HANDLE_ROW_HEIGHT,
+  );
 
   return (
     <Modal
@@ -63,39 +98,45 @@ export function ConsultantFullScreenModal({
 
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.sheetHost}
+          style={[styles.sheetHost, { maxHeight: maxSheetHeight }]}
           pointerEvents="box-none"
         >
-          <View style={styles.sheet} pointerEvents="auto">
+          <View style={[styles.sheet, { maxHeight: maxSheetHeight }]} pointerEvents="auto">
             <View style={styles.handleRow}>
               <View style={styles.handle} />
             </View>
 
-            <LinearGradient
-              colors={[...PROFILE_HEADER_GRADIENT]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.header}
-            >
-              <Text style={styles.eyebrow}>{eyebrow}</Text>
-              <Text style={styles.title}>{title}</Text>
-              {subtitle != null && subtitle.length > 0 ? (
-                <Text style={styles.subtitle}>{subtitle}</Text>
-              ) : null}
-            </LinearGradient>
+            <View onLayout={onHeaderLayout}>
+              <LinearGradient
+                colors={[...PROFILE_HEADER_GRADIENT]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.header}
+              >
+                <Text style={styles.eyebrow}>{eyebrow}</Text>
+                <Text style={styles.title}>{title}</Text>
+                {subtitle != null && subtitle.length > 0 ? (
+                  <Text style={styles.subtitle}>{subtitle}</Text>
+                ) : null}
+              </LinearGradient>
+            </View>
 
             <ScrollView
-              style={styles.scroll}
+              style={{ maxHeight: scrollMaxHeight }}
               keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-              bounces={false}
+              showsVerticalScrollIndicator
+              nestedScrollEnabled
+              bounces
               contentContainerStyle={[styles.scrollBody, contentContainerStyle]}
             >
               {children}
             </ScrollView>
 
             {footer != null ? (
-              <View style={[styles.footer, { paddingBottom: footerBottomInset }]}>
+              <View
+                onLayout={onFooterLayout}
+                style={[styles.footer, { paddingBottom: footerBottomInset }]}
+              >
                 {footer}
               </View>
             ) : null}
@@ -114,7 +155,6 @@ const styles = StyleSheet.create({
   },
   sheetHost: {
     width: '100%',
-    maxHeight: '92%',
   },
   sheet: {
     width: '100%',
@@ -163,15 +203,10 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.9)',
     lineHeight: 18,
   },
-  scroll: {
-    flexGrow: 0,
-    flexShrink: 1,
-  },
   scrollBody: {
-    flexGrow: 0,
     paddingHorizontal: 20,
     paddingTop: 16,
-    paddingBottom: 4,
+    paddingBottom: 16,
   },
   footer: {
     paddingHorizontal: 20,
