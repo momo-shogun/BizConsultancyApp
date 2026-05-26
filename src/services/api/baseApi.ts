@@ -61,6 +61,9 @@ const baseQueryWithReauth: BaseQueryFn<
   }
 
   const state = api.getState() as RootState;
+  if (state.auth.isGuestSession) {
+    return result;
+  }
   if (state.auth.refreshToken == null || state.auth.refreshToken.length === 0) {
     api.dispatch(logout());
     return result;

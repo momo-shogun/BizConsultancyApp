@@ -36,6 +36,8 @@ export interface AuthState {
   refreshToken: string | null;
   tokenExpiresAt: number | null;
   isAuthenticated: boolean;
+  /** Browsing app without OTP/login; 401 responses must not force logout. */
+  isGuestSession: boolean;
   isRestoringSession: boolean;
   /** Persisted mobile from login / OTP (shown on profile). */
   mobile: string | null;

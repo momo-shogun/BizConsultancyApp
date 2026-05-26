@@ -9,6 +9,8 @@ export const selectToken = (state: RootState): string | null => state.auth.token
 
 export const selectIsAuthenticated = (state: RootState): boolean => state.auth.isAuthenticated;
 
+export const selectIsGuestSession = (state: RootState): boolean => state.auth.isGuestSession;
+
 export const selectIsRestoringSession = (state: RootState): boolean =>
   state.auth.isRestoringSession;
 

@@ -9,6 +9,7 @@ const initialState: AuthState = {
   refreshToken: null,
   tokenExpiresAt: null,
   isAuthenticated: false,
+  isGuestSession: false,
   isRestoringSession: true,
   mobile: null,
   displayName: null,
@@ -39,6 +40,7 @@ export const authSlice = createSlice({
       state.refreshToken = action.payload.refreshToken ?? null;
       state.tokenExpiresAt = action.payload.tokenExpiresAt ?? null;
       state.isAuthenticated = true;
+      state.isGuestSession = false;
       state.mobile = action.payload.user.phone;
       state.displayName = action.payload.user.name;
       state.email = action.payload.user.email ?? null;
@@ -51,6 +53,7 @@ export const authSlice = createSlice({
       state.refreshToken = payload.refreshToken ?? null;
       state.tokenExpiresAt = payload.tokenExpiresAt ?? null;
       state.isAuthenticated = true;
+      state.isGuestSession = false;
       state.mobile = payload.mobile;
       state.displayName = payload.displayName ?? null;
       state.email = payload.email ?? null;
@@ -59,6 +62,24 @@ export const authSlice = createSlice({
 
     establishSession: (state) => {
       state.isAuthenticated = true;
+      state.isGuestSession = false;
+    },
+
+    establishGuestSession: (
+      state,
+      action: PayloadAction<{ accountRole?: AuthRole | null } | undefined>,
+    ) => {
+      state.isAuthenticated = true;
+      state.isGuestSession = true;
+      state.token = null;
+      state.refreshToken = null;
+      state.tokenExpiresAt = null;
+      state.user = null;
+      state.loginSession = null;
+      state.mobile = null;
+      state.displayName = null;
+      state.email = null;
+      state.accountRole = action.payload?.accountRole ?? 'user';
     },
 
     setRestoringSession: (state, action: PayloadAction<boolean>) => {
@@ -117,6 +138,7 @@ export const authSlice = createSlice({
       state.refreshToken = null;
       state.tokenExpiresAt = null;
       state.isAuthenticated = false;
+      state.isGuestSession = false;
       state.mobile = null;
       state.displayName = null;
       state.email = null;
@@ -130,6 +152,7 @@ export const {
   setCredentials,
   setAuthSession,
   establishSession,
+  establishGuestSession,
   setRestoringSession,
   setLoggedInMobile,
   setAuthProfile,

@@ -97,8 +97,12 @@ export const restoreSession = createAsyncThunk<boolean, void, { state: RootState
         return true;
       }
 
-      // Guest / skip path: authenticated flag without phone (not recommended for production APIs).
-      return true;
+      if (auth.isGuestSession) {
+        return true;
+      }
+
+      dispatch(logout());
+      return false;
     } finally {
       dispatch(setRestoringSession(false));
     }

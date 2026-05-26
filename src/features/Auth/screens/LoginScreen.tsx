@@ -6,8 +6,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ROUTES } from '@/navigation/routeNames';
 import type { AuthStackParamList } from '@/navigation/types';
 import { useAuth } from '@/app/providers/AuthProvider';
-import { establishSession } from '@/features/Auth/store/authSlice';
-import { navigationRef } from '@/navigation/RootNavigator';
+import { establishGuestSession } from '@/features/Auth/store/authSlice';
 import { useAppDispatch } from '@/store/typedHooks';
 import { Button, EmptyState, ScreenWrapper, SafeAreaWrapper } from '@/shared/components';
 import { useLoginFlow } from '@/features/Auth/hooks/useLoginFlow';
@@ -19,19 +18,15 @@ type Nav = NativeStackNavigationProp<AuthStackParamList, typeof ROUTES.Auth.Logi
 export function LoginScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
   const dispatch = useAppDispatch();
-  const { state, completeOnboarding } = useAuth();
+  const { state } = useAuth();
   const { submitMobile, isLoading, error } = useLoginFlow();
 
   const onSkip = (): void => {
-    dispatch(establishSession());
-    completeOnboarding();
-    // Force landing on dashboard even if auth stack doesn't re-render immediately.
-    if (navigationRef.isReady()) {
-      navigationRef.resetRoot({
-        index: 0,
-        routes: [{ name: ROUTES.Root.App }],
-      });
-    }
+    dispatch(
+      establishGuestSession({
+        accountRole: state.userType ?? 'user',
+      }),
+    );
   };
 
   const onContinue = async (contact: string): Promise<void> => {
@@ -85,4 +80,3 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
 });
-
