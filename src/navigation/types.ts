@@ -68,6 +68,8 @@ export type RootStackParamList = {
   [ROUTES.Root.ConsultantsList]: {
     categoryId?: number;
     segmentId?: number;
+    /** When set, header back opens Services tab list instead of `goBack()`. */
+    returnTo?: 'services-list';
   } | undefined;
   [ROUTES.Root.ConsultantDetail]: { slug: string };
   [ROUTES.Root.Wallet]: undefined;

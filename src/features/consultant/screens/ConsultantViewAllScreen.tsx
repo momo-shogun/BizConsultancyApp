@@ -42,6 +42,7 @@ import {
 } from '@/features/consultant/utils/consultantListFilters';
 import { getApiErrorMessage } from '@/utils/apiError';
 import { ROUTES } from '@/navigation/routeNames';
+import { navigationRef } from '@/navigation/navigationContainerRef';
 import type { RootStackParamList } from '@/navigation/types';
 import {
   ContentPlaceholder,
@@ -368,6 +369,19 @@ export function ConsultantViewAllScreen(): React.ReactElement {
     segmentOptions,
   ]);
 
+  const handleBackPress = useCallback((): void => {
+    if (route.params?.returnTo === 'services-list' && navigationRef.isReady()) {
+      navigationRef.navigate(ROUTES.Root.App, {
+        screen: ROUTES.App.Services,
+        params: { screen: ROUTES.Services.List },
+      });
+      return;
+    }
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    }
+  }, [navigation, route.params?.returnTo]);
+
   const keyExtractor = useCallback((item: TopConsultantItem): string => item.id, []);
 
   const renderConsultantItem = useCallback<ListRenderItem<TopConsultantItem>>(
@@ -449,7 +463,7 @@ export function ConsultantViewAllScreen(): React.ReactElement {
     <SafeAreaWrapper edges={['top', 'bottom']}>
       <ScreenHeader
         title="Consultants"
-        onBackPress={() => navigation.goBack()}
+        onBackPress={handleBackPress}
         onSearchPress={() => setIsSearchOpen((v) => !v)}
       />
 
