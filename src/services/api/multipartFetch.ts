@@ -213,6 +213,26 @@ export async function patchMultipartJsonPayload(
   return sendMultipartFormWithXhr('PATCH', url, formData, token);
 }
 
+/** POST multipart with string fields and an optional file (e.g. expert video create). */
+export async function postMultipartFields(
+  path: string,
+  fields: Record<string, string>,
+  fileFieldName: string | null,
+  file: MultipartFilePayload | null,
+  token: string | null,
+): Promise<MultipartUploadResult> {
+  const formData = buildFieldsFormData(fields);
+  if (file != null && fileFieldName != null) {
+    formData.append(fileFieldName, {
+      uri: file.uri,
+      name: file.name,
+      type: file.type,
+    } as unknown as Blob);
+  }
+  const url = joinApiUrl(path);
+  return sendMultipartFormWithXhr('POST', url, formData, token);
+}
+
 /** PATCH multipart (e.g. `users/me` profile + optional image file). */
 export async function patchMultipartForm(
   path: string,

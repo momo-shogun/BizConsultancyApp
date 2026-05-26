@@ -18,6 +18,7 @@ import '@/features/Bookings/api/myConsultantBookingsApi';
 import '@/features/Bookings/api/consultantSelfBookingsApi';
 import '@/features/ConsultantSlotTime/api/consultantScheduleApi';
 import '@/features/DocumentVault/api/documentVaultApi';
+import '@/features/ConsultantSelf/api/consultantSelfApi';
 import '@/features/Edp/api/edpPurchasesApi';
 import '@/features/Home/api/workshopsApi';
 import '@/features/Home/api/workshopBookingsApi';

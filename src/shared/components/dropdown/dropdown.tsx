@@ -6,6 +6,7 @@ import {
   type IDropdownRef,
 } from 'react-native-element-dropdown';
 
+import { AnchoredSelectField } from './anchoredSelectField';
 import type { DropdownProps } from './dropdown.types';
 import { dropdownStyles, dropdownTokens } from './dropdown.styles';
 
@@ -15,6 +16,8 @@ function DropdownInner(
     error,
     leftIcon,
     rightIcon,
+    anchorMenu,
+    anchorMenuTheme,
     containerStyle,
     menuContainerStyle,
     placeholderStyle,
@@ -58,6 +61,42 @@ function DropdownInner(
     ),
     [itemContainerStyle, itemTextStyle, labelField],
   );
+
+  if (anchorMenu) {
+    const options = (rest.data ?? []).map((item) => ({
+      label: String(item[labelField as string] ?? ''),
+      value: String(item[rest.valueField as string] ?? ''),
+    }));
+    const currentValue =
+      rest.value == null
+        ? null
+        : typeof rest.value === 'object'
+          ? String((rest.value as Record<string, unknown>)[rest.valueField as string] ?? '')
+          : String(rest.value);
+
+    return (
+      <AnchoredSelectField
+        data={options}
+        value={currentValue}
+        placeholder={rest.placeholder}
+        disabled={disabled}
+        error={error}
+        search={rest.search}
+        searchPlaceholder={rest.searchPlaceholder}
+        containerStyle={containerStyle}
+        menuContainerStyle={menuContainerStyle}
+        theme={anchorMenuTheme}
+        onChange={(nextValue) => {
+          const selected = (rest.data ?? []).find(
+            (item) => String(item[rest.valueField as string] ?? '') === nextValue,
+          );
+          if (selected != null) {
+            rest.onChange(selected);
+          }
+        }}
+      />
+    );
+  }
 
   return (
     <ElementDropdown

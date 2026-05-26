@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
 
+import { CONSULTANT_MODAL_SCRIM } from '@/features/ConsultantSelf/components/ConsultantFullScreenModal';
 import { PROFILE_HEADER_GRADIENT } from '@/features/Profile/constants/profileScreenTheme';
 import { Dropdown } from '@/shared/components/dropdown/dropdown';
 import type { VaultImagePickerSource } from '@/features/MyServices/utils/vaultImagePicker';
@@ -53,9 +54,17 @@ export function VaultUploadModal({
       onRequestClose={onClose}
     >
       <View style={styles.root}>
-        <Pressable accessibilityRole="button" style={styles.backdrop} onPress={onClose} />
+        <Pressable
+          accessibilityRole="button"
+          style={StyleSheet.absoluteFill}
+          onPress={onClose}
+        />
 
-        <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+        <View style={styles.sheetHost} pointerEvents="box-none">
+          <View style={styles.sheet}>
+            <View style={styles.handleRow}>
+              <View style={styles.handle} />
+            </View>
           <LinearGradient
             colors={[...PROFILE_HEADER_GRADIENT]}
             start={{ x: 0, y: 0 }}
@@ -69,6 +78,8 @@ export function VaultUploadModal({
           <View style={styles.body}>
             <Text style={styles.label}>Document type</Text>
             <Dropdown
+              anchorMenu
+              anchorMenuTheme="consultant"
               data={typeOptions}
               labelField="label"
               valueField="value"
@@ -111,13 +122,16 @@ export function VaultUploadModal({
             ) : null}
           </View>
 
-          <Pressable
-            accessibilityRole="button"
-            onPress={onClose}
-            style={({ pressed }) => [styles.cancelBtn, pressed ? styles.pressed : null]}
-          >
-            <Text style={styles.cancelText}>Cancel</Text>
-          </Pressable>
+          <View style={[styles.bottomBar, { paddingBottom: 12 + insets.bottom }]}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={onClose}
+              style={({ pressed }) => [styles.cancelBtn, pressed ? styles.pressed : null]}
+            >
+              <Text style={styles.cancelText}>Cancel</Text>
+            </Pressable>
+          </View>
+          </View>
         </View>
       </View>
     </Modal>
@@ -127,17 +141,37 @@ export function VaultUploadModal({
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+    backgroundColor: CONSULTANT_MODAL_SCRIM,
     justifyContent: 'flex-end',
   },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(15,23,42,0.45)',
+  sheetHost: {
+    width: '100%',
+    maxHeight: '92%',
+  },
+  bottomBar: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    backgroundColor: '#FFFFFF',
   },
   sheet: {
+    width: '100%',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     backgroundColor: '#FFFFFF',
     overflow: 'hidden',
+    elevation: 12,
+  },
+  handleRow: {
+    alignItems: 'center',
+    paddingTop: 10,
+    paddingBottom: 4,
+    backgroundColor: '#FFFFFF',
+  },
+  handle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#E2E8F0',
   },
   header: {
     paddingHorizontal: 20,
@@ -202,9 +236,6 @@ const styles = StyleSheet.create({
     color: '#64748B',
   },
   cancelBtn: {
-    marginHorizontal: 20,
-    marginTop: 12,
-    marginBottom: 4,
     paddingVertical: 14,
     alignItems: 'center',
     borderRadius: 12,

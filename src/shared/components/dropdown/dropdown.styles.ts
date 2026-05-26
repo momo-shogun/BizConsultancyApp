@@ -14,6 +14,21 @@ export const dropdownTokens = {
   menuBorder: '#E2E8F0',
 } as const;
 
+/** Matches consultant modal header (`PROFILE_HEADER_GRADIENT`). */
+export const consultantDropdownTokens = {
+  border: '#6EE7B7',
+  background: '#FFFFFF',
+  text: '#065F46',
+  placeholder: '#6B7280',
+  icon: '#059669',
+  activeItem: '#ECFDF5',
+  overlay: 'rgba(4, 120, 87, 0.28)',
+  menuBorder: '#059669',
+  selectedText: '#047857',
+} as const;
+
+export type DropdownMenuTheme = 'default' | 'consultant';
+
 const trigger: ViewStyle = {
   borderWidth: 1,
   borderColor: dropdownTokens.border,

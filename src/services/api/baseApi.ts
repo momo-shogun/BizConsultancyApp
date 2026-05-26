@@ -152,6 +152,9 @@ export const baseApi = createApi({
     'ConsultantWalletTransactions',
     'ConsultantSchedule',
     'DocumentVault',
+    'ConsultantExpertise',
+    'ConsultantExpertVideos',
+    'ConsultantReviews',
   ],
   endpoints: () => ({}),
 });

@@ -10,7 +10,7 @@ import { ROUTES } from '../routeNames';
 import type { AccountStackParamList } from '../types';
 import { accountStackScreenOptions } from './accountStackScreenOptions';
 import { ConsultantBankDetailsScreen } from '@/features/Profile/screens/Consultant/Consultantbankdetailsscreen ';
-import { ExpertVideosScreen } from '@/features/Profile/screens/Consultant/Expertvideosscreen';
+import { ConsultantExpertVideosScreen } from '@/features/ConsultantExpertVideos/screens/ConsultantExpertVideosScreen';
 import { ConsultantEditProfileScreen } from '@/features/Profile/screens/Consultant/ConsultantEditProfileScreen';
 import CreditsScreen from '@/features/Profile/screens/Consultant/CreditsScreen';
 import { ConsultantWalletScreen } from '@/features/Wallet/screens/ConsultantWalletScreen';
@@ -22,8 +22,8 @@ import { ConsultantSlotTimeScreen } from '@/features/ConsultantSlotTime/screens/
 import { ApplyServiceScreen } from '@/features/MyServices/screens/ApplyServiceScreen';
 import { ConsultantMyServicesScreen } from '@/features/MyServices/screens/ConsultantMyServicesScreen';
 import { ConsultantDocumentVaultScreen } from '@/features/DocumentVault/screens/ConsultantDocumentVaultScreen';
-import { ConsultantExpertiseScreen } from '@/features/Profile/screens/Consultant/ConsultantExpertiseScreen';
-import { ConsultantReviewsScreen } from '@/features/Profile/screens/Consultant/ConsultantReviewsScreen';
+import { ConsultantExpertiseScreen } from '@/features/ConsultantExpertise/screens/ConsultantExpertiseScreen';
+import { ConsultantReviewsScreen } from '@/features/ConsultantReviews/screens/ConsultantReviewsScreen';
 
 const Stack = createNativeStackNavigator<AccountStackParamList>();
 
@@ -55,7 +55,7 @@ export function ConsultantAccountStackNavigator(): React.ReactElement {
       />
        <Stack.Screen
         name={ROUTES.Account.ExpertVideosScreen}
-        component={ExpertVideosScreen}
+        component={ConsultantExpertVideosScreen}
         options={{ headerShown: false }}
       />
        <Stack.Screen

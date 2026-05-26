@@ -9,7 +9,7 @@ export interface MasterDataItem {
 }
 
 export interface MasterSegmentsQuery {
-  categoryId: string;
+  categoryId?: string;
 }
 
 export interface MasterIndustriesQuery {

@@ -65,6 +65,7 @@ export function MembershipCheckoutModal(props: MembershipCheckoutModalProps): Re
               <View style={styles.fieldBlock}>
                 <Text style={styles.fieldLabel}>Business category</Text>
                 <Dropdown
+                  anchorMenu
                   data={purchase.categoryOptions}
                   labelField="label"
                   valueField="value"
@@ -86,6 +87,7 @@ export function MembershipCheckoutModal(props: MembershipCheckoutModalProps): Re
               <View style={styles.fieldBlock}>
                 <Text style={styles.fieldLabel}>Business segment</Text>
                 <Dropdown
+                  anchorMenu
                   data={purchase.segmentOptions}
                   labelField="label"
                   valueField="value"

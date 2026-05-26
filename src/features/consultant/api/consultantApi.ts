@@ -91,10 +91,10 @@ export const consultantApi = baseApi.injectEndpoints({
       query: () => ({ url: 'public/master-categories' }),
       transformResponse: (response: unknown): MasterDataItem[] => parseMasterDataList(response),
     }),
-    getMasterSegments: build.query<MasterDataItem[], MasterSegmentsQuery>({
-      query: ({ categoryId }) => ({
+    getMasterSegments: build.query<MasterDataItem[], MasterSegmentsQuery | void>({
+      query: (params) => ({
         url: 'public/master-segments',
-        params: { categoryId },
+        params: params?.categoryId != null ? { categoryId: params.categoryId } : {},
       }),
       transformResponse: (response: unknown): MasterDataItem[] => parseMasterDataList(response),
     }),
