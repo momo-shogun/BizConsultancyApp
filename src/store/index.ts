@@ -23,6 +23,7 @@ import '@/features/Wallet/api/walletApi';
 import '@/features/Home/api/homePublicApi';
 import '@/features/Diagnostics/api/diagnosticsApi';
 import '@/features/Profile/api/userFeedbackApi';
+import '@/features/Profile/api/userProfileApi';
 
 const MMKV = new MMKVStorage.Loader().initialize();
 

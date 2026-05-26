@@ -110,9 +110,40 @@ function postMultipartFormWithXhr(
   formData: FormData,
   token: string | null,
 ): Promise<MultipartUploadResult> {
+  return sendMultipartFormWithXhr('POST', url, formData, token);
+}
+
+export async function postMultipartForm(
+  path: string,
+  fields: Record<string, string>,
+  fileFieldName: string,
+  file: MultipartFilePayload,
+  token: string | null,
+): Promise<MultipartUploadResult> {
+  const formData = buildFormData(fields, fileFieldName, file);
+  const url = joinApiUrl(path);
+  return postMultipartFormWithXhr(url, formData, token);
+}
+
+function buildFieldsFormData(fields: Record<string, string>): FormData {
+  const formData = new FormData();
+  for (const [key, value] of Object.entries(fields)) {
+    if (value.length > 0) {
+      formData.append(key, value);
+    }
+  }
+  return formData;
+}
+
+function sendMultipartFormWithXhr(
+  method: 'POST' | 'PATCH',
+  url: string,
+  formData: FormData,
+  token: string | null,
+): Promise<MultipartUploadResult> {
   return new Promise((resolve) => {
     const xhr = new XMLHttpRequest();
-    xhr.open('POST', url);
+    xhr.open(method, url);
     xhr.timeout = UPLOAD_TIMEOUT_MS;
     xhr.setRequestHeader('Accept', 'application/json');
     if (token != null && token.length > 0) {
@@ -150,7 +181,7 @@ function postMultipartFormWithXhr(
     try {
       xhr.send(formData);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Upload failed';
+      const message = err instanceof Error ? err.message : 'Request failed';
       resolve({
         ok: false,
         status: 0,
@@ -160,14 +191,22 @@ function postMultipartFormWithXhr(
   });
 }
 
-export async function postMultipartForm(
+/** PATCH multipart (e.g. `users/me` profile + optional image file). */
+export async function patchMultipartForm(
   path: string,
   fields: Record<string, string>,
-  fileFieldName: string,
-  file: MultipartFilePayload,
+  fileFieldName: string | null,
+  file: MultipartFilePayload | null,
   token: string | null,
 ): Promise<MultipartUploadResult> {
-  const formData = buildFormData(fields, fileFieldName, file);
+  const formData = buildFieldsFormData(fields);
+  if (file != null && fileFieldName != null) {
+    formData.append(fileFieldName, {
+      uri: file.uri,
+      name: file.name,
+      type: file.type,
+    } as unknown as Blob);
+  }
   const url = joinApiUrl(path);
-  return postMultipartFormWithXhr(url, formData, token);
+  return sendMultipartFormWithXhr('PATCH', url, formData, token);
 }

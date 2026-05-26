@@ -145,6 +145,7 @@ export const baseApi = createApi({
     'Diagnostics',
     'ConsultantBooking',
     'EdpPurchase',
+    'UserProfile',
   ],
   endpoints: () => ({}),
 });

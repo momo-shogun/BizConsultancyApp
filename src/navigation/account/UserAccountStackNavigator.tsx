@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { UserHelpSettingsScreen } from '@/features/Profile/screens/User/UserHelpSettingsScreen';
 import { UserMembershipScreen } from '@/features/Profile/screens/User/UserMembershipScreen';
+import { UserEditProfileScreen } from '@/features/Profile/screens/User/UserEditProfileScreen';
 import { UserProfileScreen } from '@/features/Profile/screens/User/UserProfileScreen';
 
 import { ROUTES } from '../routeNames';
@@ -34,6 +35,11 @@ export function UserAccountStackNavigator(): React.ReactElement {
       <Stack.Screen
         name={ROUTES.Account.HelpSettings}
         component={UserHelpSettingsScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name={ROUTES.Account.EditProfile}
+        component={UserEditProfileScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen

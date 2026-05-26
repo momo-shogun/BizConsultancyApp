@@ -32,6 +32,9 @@ export function UserHelpSettingsScreen(props: UserHelpSettingsScreenProps): Reac
   const handleRowPress = (rowId: string): void => {
     props.onRowPress?.(rowId);
 
+    if (rowId === 'profile') {
+      navigation.navigate(ROUTES.Account.EditProfile);
+    }
     if (rowId === 'membership') {
       navigation.navigate(ROUTES.Account.Membership);
     }
