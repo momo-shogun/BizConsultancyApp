@@ -42,6 +42,11 @@ src/
 - Explicit return types on all functions
 - `interface` for object shapes; `type` for unions
 
+## Dialogs & modals
+
+- Use shared **`Dialog`** (`@/shared/components/dialog`) for overlays in features — see `docs/dialog-rules.md` and `.cursor/rules/dialog-modals.mdc`
+- ❌ `Alert.alert` or raw `react-native` `Modal` in feature code
+
 ## Anti-Patterns
 
 - ❌ HTML elements (`div`, `span`) — use `View`, `Text`, `Pressable`

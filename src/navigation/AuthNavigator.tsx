@@ -1,6 +1,9 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
+import { selectPreferredAccountRole } from '@/features/Auth/store/authSelectors';
+import { useAppSelector } from '@/store/typedHooks';
+
 import type { AuthStackParamList } from './types';
 import { ROUTES } from './routeNames';
 
@@ -16,8 +19,16 @@ import Edp from '@/features/Edp/screens/Edp';
 const Stack = createNativeStackNavigator<AuthStackParamList>();
 
 export function AuthNavigator(): React.ReactElement {
+  const preferredRole = useAppSelector(selectPreferredAccountRole);
+  const initialRouteName =
+    preferredRole != null ? ROUTES.Auth.Login : ROUTES.Auth.Splash;
+
   return (
-    <Stack.Navigator initialRouteName={ROUTES.Auth.Splash} screenOptions={{ headerShown: false }}>
+    <Stack.Navigator
+      key={initialRouteName}
+      initialRouteName={initialRouteName}
+      screenOptions={{ headerShown: false }}
+    >
       <Stack.Screen name={ROUTES.Auth.Splash} component={SplashScreen} />
       <Stack.Screen name={ROUTES.Auth.Landing} component={LandingScreen} />
       <Stack.Screen name={ROUTES.Auth.ChooseAccountType} component={ChooseAccountTypeScreen} />

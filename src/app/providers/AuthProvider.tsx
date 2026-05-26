@@ -1,8 +1,15 @@
 import React, { createContext, useCallback, useContext, useMemo, useReducer } from 'react';
 
 import { authApi } from '@/features/Auth/api/authApi';
-import { establishSession, logout as logoutAuth } from '@/features/Auth/store/authSlice';
-import { selectAccountRole, selectIsAuthenticated } from '@/features/Auth/store/authSelectors';
+import {
+  establishSession,
+  logout as logoutAuth,
+  setPreferredAccountRole,
+} from '@/features/Auth/store/authSlice';
+import {
+  selectEffectiveAccountRole,
+  selectIsAuthenticated,
+} from '@/features/Auth/store/authSelectors';
 import { useAppDispatch, useAppSelector } from '@/store/typedHooks';
 
 interface AuthFlowState {
@@ -64,12 +71,13 @@ export function AuthProvider(props: React.PropsWithChildren): React.ReactElement
 
   const selectAccountContext = useCallback(
     (input: { userType: 'user' | 'consultant'; authIntent: 'login' | 'signup' }): void => {
+      dispatch(setPreferredAccountRole(input.userType));
       dispatchFlow({
         type: 'AUTH/SET_ACCOUNT_CONTEXT',
         payload: { userType: input.userType, authIntent: input.authIntent },
       });
     },
-    [],
+    [dispatch],
   );
 
   const value = useMemo<AuthContextValue>(
@@ -100,7 +108,7 @@ export function useAuth(): {
 } {
   const context = useContext(AuthContext);
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
-  const accountRole = useAppSelector(selectAccountRole);
+  const effectiveAccountRole = useAppSelector(selectEffectiveAccountRole);
 
   if (context == null) {
     throw new Error('useAuth must be used within AuthProvider');
@@ -109,7 +117,7 @@ export function useAuth(): {
   return {
     state: {
       isAuthenticated,
-      userType: context.flow.userType ?? accountRole,
+      userType: context.flow.userType ?? effectiveAccountRole,
       authIntent: context.flow.authIntent,
     },
     completeOnboarding: context.completeOnboarding,

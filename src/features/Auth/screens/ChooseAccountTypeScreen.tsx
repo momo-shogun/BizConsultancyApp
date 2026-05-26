@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Image,
   Pressable,
@@ -16,7 +16,9 @@ import { THEME } from '@/constants/theme';
 import { ROUTES } from '@/navigation/routeNames';
 import type { AuthStackParamList } from '@/navigation/types';
 import { useAuth } from '@/app/providers/AuthProvider';
+import { selectPreferredAccountRole } from '@/features/Auth/store/authSelectors';
 import { SafeAreaWrapper } from '@/shared/components';
+import { useAppSelector } from '@/store/typedHooks';
 
 import lightLogo from '@/assets/lightlogo.png';
 
@@ -143,7 +145,9 @@ export function ChooseAccountTypeScreen(): React.ReactElement {
   const { selectAccountContext } = useAuth();
 
   const next = route.params.next ?? 'login';
+  const preferredRole = useAppSelector(selectPreferredAccountRole);
   const [role, setRole] = useState<Role | null>(null);
+  const didAutoNavigate = useRef(false);
 
   const subtitleMaxWidth = Math.min(400, windowWidth - 40);
 
@@ -161,6 +165,14 @@ export function ChooseAccountTypeScreen(): React.ReactElement {
     },
     [navigation, next, selectAccountContext],
   );
+
+  useEffect(() => {
+    if (preferredRole == null || didAutoNavigate.current) {
+      return;
+    }
+    didAutoNavigate.current = true;
+    choose(preferredRole);
+  }, [choose, preferredRole]);
 
   const onContinue = useCallback((): void => {
     if (role != null) {

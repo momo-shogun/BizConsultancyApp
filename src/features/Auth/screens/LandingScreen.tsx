@@ -6,24 +6,19 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import LinearGradient from 'react-native-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { THEME } from '@/constants/theme';
-import { ROUTES } from '@/navigation/routeNames';
-import type { AuthStackParamList } from '@/navigation/types';
+import { useAuthRoleEntry } from '@/features/Auth/hooks/useAuthRoleEntry';
 import { Button, SafeAreaWrapper } from '@/shared/components';
 
 import landingBackground from '@/assets/background.png';
 
-type Nav = NativeStackNavigationProp<AuthStackParamList, typeof ROUTES.Auth.Landing>;
-
 export function LandingScreen(): React.ReactElement {
-  const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
+  const { startAuthFlow } = useAuthRoleEntry();
 
   return (
     <SafeAreaWrapper edges={['bottom']} style={styles.safeRoot}>
@@ -73,14 +68,14 @@ export function LandingScreen(): React.ReactElement {
             <Button
               label="Log in"
               accessibilityLabel="Log in"
-              onPress={() => navigation.navigate(ROUTES.Auth.ChooseAccountType, { next: 'login' })}
+              onPress={() => startAuthFlow('login')}
               style={styles.btnPrimary}
             />
             <Button
               label="Create account"
               accessibilityLabel="Create account"
               variant="secondary"
-              onPress={() => navigation.navigate(ROUTES.Auth.ChooseAccountType, { next: 'signup' })}
+              onPress={() => startAuthFlow('signup')}
               style={styles.btnSecondary}
             />
           </View>

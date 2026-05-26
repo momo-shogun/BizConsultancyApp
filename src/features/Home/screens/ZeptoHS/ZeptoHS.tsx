@@ -178,13 +178,8 @@ export function ZeptoHS(props: ZeptoHSProps): React.ReactElement {
   }, []);
 
   const onTopCategoryChange = useCallback((index: number): void => {
-    const tabId = ZEPTO_HS_TOP_CATEGORY_TABS[index]?.id;
-    if (tabId === 'diagnosis') {
-      onBusinessDiagnosisPress();
-      return;
-    }
     setActiveTopCategoryIndex(index);
-  }, [onBusinessDiagnosisPress]);
+  }, []);
 
   const onOpenSearch = useCallback((): void => {
     navigation.navigate(ROUTES.Root.Search, {

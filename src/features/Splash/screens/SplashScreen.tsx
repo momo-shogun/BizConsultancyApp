@@ -5,9 +5,11 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { THEME } from '@/constants/theme';
+import { selectPreferredAccountRole } from '@/features/Auth/store/authSelectors';
 import { ROUTES } from '@/navigation/routeNames';
 import type { AuthStackParamList } from '@/navigation/types';
 import { SafeAreaWrapper } from '@/shared/components';
+import { useAppSelector } from '@/store/typedHooks';
 
 import splashLogo from '@/assets/lightlogo.png';
 
@@ -38,15 +40,18 @@ type Nav = NativeStackNavigationProp<AuthStackParamList, typeof ROUTES.Auth.Spla
 
 export function SplashScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
+  const preferredRole = useAppSelector(selectPreferredAccountRole);
   const logoOpacity = useRef(new Animated.Value(0)).current;
   const logoScale = useRef(new Animated.Value(0.94)).current;
 
   useEffect(() => {
+    const nextRoute =
+      preferredRole != null ? ROUTES.Auth.Login : ROUTES.Auth.Landing;
     const id = setTimeout(() => {
-      navigation.replace(ROUTES.Auth.Landing);
+      navigation.replace(nextRoute);
     }, 800);
     return () => clearTimeout(id);
-  }, [navigation]);
+  }, [navigation, preferredRole]);
 
   useEffect(() => {
     let cancelled = false;

@@ -44,5 +44,7 @@ export interface AuthState {
   displayName: string | null;
   email: string | null;
   accountRole: AuthRole | null;
+  /** Last chosen role; kept across logout so login/signup can skip role picker. */
+  preferredAccountRole: AuthRole | null;
   loginSession: LoginSession | null;
 }

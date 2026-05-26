@@ -6,10 +6,12 @@ import { isValidIndianMobile } from '@/utils/formatPhone';
 import { authApi } from '../api/authApi';
 import type { AuthRole, VerifyOtpDto } from '../types/authApi.types';
 import { isTokenExpired, parseAuthSessionPayload } from '../utils/authSessionParsing';
+import { loadPreferredAccountRole } from '../storage/accountRoleStorage';
 import {
   establishSession,
   logout,
   setAuthSession,
+  setPreferredAccountRole,
   setRestoringSession,
 } from './authSlice';
 import type { AuthSessionPayload } from './authTypes';
@@ -61,6 +63,21 @@ export const refreshAuthToken = createAsyncThunk<boolean, void, { state: RootSta
 
     await dispatch(applyAuthSession(parsed));
     return true;
+  },
+);
+
+/** Sync MMKV preferred role into Redux after persist rehydration. */
+export const hydratePreferredAccountRole = createAsyncThunk<void, void, { state: RootState }>(
+  'auth/hydratePreferredAccountRole',
+  async (_arg, { dispatch, getState }) => {
+    const fromRedux = getState().auth.preferredAccountRole;
+    if (fromRedux != null) {
+      return;
+    }
+    const fromStorage = await loadPreferredAccountRole();
+    if (fromStorage != null) {
+      dispatch(setPreferredAccountRole(fromStorage));
+    }
   },
 );
 

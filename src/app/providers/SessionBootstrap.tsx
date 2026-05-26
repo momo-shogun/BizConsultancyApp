@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 
-import { restoreSession } from '@/features/Auth/store/authThunks';
+import { hydratePreferredAccountRole, restoreSession } from '@/features/Auth/store/authThunks';
 import { useAppDispatch } from '@/store/typedHooks';
 
 import { SessionRestoreScreen } from './SessionRestoreScreen';
@@ -22,7 +22,10 @@ export function SessionBootstrap(props: SessionBootstrapProps): React.ReactEleme
       return;
     }
     hasRestoredRef.current = true;
-    void dispatch(restoreSession());
+    void (async () => {
+      await dispatch(hydratePreferredAccountRole());
+      await dispatch(restoreSession());
+    })();
   }, [dispatch, props.bootstrapped]);
 
   if (!props.bootstrapped) {

@@ -1,5 +1,6 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
+import { persistPreferredAccountRole } from '../storage/accountRoleStorage';
 import type { AuthRole } from '../types/authApi.types';
 import type { AuthSessionPayload, AuthState, LoginSession, User } from './authTypes';
 
@@ -15,8 +16,16 @@ const initialState: AuthState = {
   displayName: null,
   email: null,
   accountRole: null,
+  preferredAccountRole: null,
   loginSession: null,
 };
+
+function rememberPreferredRole(state: AuthState, role: AuthRole | null | undefined): void {
+  if (role != null) {
+    state.preferredAccountRole = role;
+    void persistPreferredAccountRole(role);
+  }
+}
 
 type SetAuthSessionPayload = AuthSessionPayload & {
   user: User;
@@ -58,6 +67,7 @@ export const authSlice = createSlice({
       state.displayName = payload.displayName ?? null;
       state.email = payload.email ?? null;
       state.accountRole = payload.accountRole;
+      rememberPreferredRole(state, payload.accountRole);
     },
 
     establishSession: (state) => {
@@ -79,7 +89,9 @@ export const authSlice = createSlice({
       state.mobile = null;
       state.displayName = null;
       state.email = null;
-      state.accountRole = action.payload?.accountRole ?? 'user';
+      const role = action.payload?.accountRole ?? 'user';
+      state.accountRole = role;
+      rememberPreferredRole(state, role);
     },
 
     setRestoringSession: (state, action: PayloadAction<boolean>) => {
@@ -107,6 +119,7 @@ export const authSlice = createSlice({
       }
       if (action.payload.accountRole !== undefined) {
         state.accountRole = action.payload.accountRole;
+        rememberPreferredRole(state, action.payload.accountRole);
       }
       if (action.payload.mobile !== undefined) {
         state.mobile = action.payload.mobile;
@@ -126,6 +139,11 @@ export const authSlice = createSlice({
       state.loginSession = action.payload;
       state.mobile = action.payload.mobile;
       state.accountRole = action.payload.role;
+      rememberPreferredRole(state, action.payload.role);
+    },
+
+    setPreferredAccountRole: (state, action: PayloadAction<AuthRole>) => {
+      rememberPreferredRole(state, action.payload);
     },
 
     clearLoginSession: (state) => {
@@ -133,6 +151,7 @@ export const authSlice = createSlice({
     },
 
     logout: (state) => {
+      const preferred = state.preferredAccountRole ?? state.accountRole;
       state.user = null;
       state.token = null;
       state.refreshToken = null;
@@ -144,6 +163,9 @@ export const authSlice = createSlice({
       state.email = null;
       state.accountRole = null;
       state.loginSession = null;
+      if (preferred != null) {
+        state.preferredAccountRole = preferred;
+      }
     },
   },
 });
@@ -158,5 +180,6 @@ export const {
   setAuthProfile,
   setLoginSession,
   clearLoginSession,
+  setPreferredAccountRole,
   logout,
 } = authSlice.actions;

@@ -37,6 +37,7 @@ export {
 export { ImagePlaceholder, type ImagePlaceholderProps, type ImagePlaceholderVariant } from './media/ImagePlaceholder';
 export { RemoteImage, type RemoteImageProps } from './media/RemoteImage';
 export { ToastProvider, showGlobalToast, showGlobalError } from './toast';
+export { Dialog, type DialogAction, type DialogProps, type DialogVariant } from './dialog';
 
 export { OTPInput } from './otp/OTPInput';
 export { SectionHeader } from './sections/SectionHeader';
