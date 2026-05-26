@@ -518,6 +518,7 @@ const styles = StyleSheet.create({
     width: 220,
     marginRight: THEME.spacing[10],
     borderRadius: THEME.radius[16],
+    
     backgroundColor: THEME.colors.white,
     overflow: 'hidden',
     borderWidth: StyleSheet.hairlineWidth,
