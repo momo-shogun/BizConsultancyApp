@@ -207,11 +207,7 @@ export function ConsultantExpertVideosScreen(): React.ReactElement {
           </View>
         </LinearGradient>
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.tabsRow}
-        >
+        <View style={styles.tabsRow}>
           {FILTER_TABS.map((tab) => {
             const active = activeTab === tab.id;
             return (
@@ -227,7 +223,7 @@ export function ConsultantExpertVideosScreen(): React.ReactElement {
               </Pressable>
             );
           })}
-        </ScrollView>
+        </View>
 
         {errorMessage != null ? (
           <View style={styles.errorBanner}>
@@ -280,7 +276,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scroll: {
-    flexGrow: 1,
     paddingHorizontal: THEME.spacing[16],
     paddingBottom: THEME.spacing[28],
   },
@@ -333,17 +328,24 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   statValue: { marginTop: 2, fontSize: 18, fontWeight: '800', color: '#FFFFFF' },
-  tabsRow: { gap: 8, paddingBottom: 14 },
+  tabsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
   tab: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 999,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    alignSelf: 'flex-start',
   },
   tabActive: { backgroundColor: '#EA580C', borderColor: '#EA580C' },
-  tabText: { fontSize: 13, fontWeight: '600', color: '#64748B' },
+  tabText: { fontSize: 12, fontWeight: '600', color: '#64748B', lineHeight: 16 },
   tabTextActive: { color: '#FFFFFF' },
   errorBanner: {
     flexDirection: 'row',
