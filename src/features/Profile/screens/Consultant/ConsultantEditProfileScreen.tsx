@@ -1,316 +1,380 @@
-import React, { useState } from 'react';
+import React, { useMemo } from 'react';
 import {
+  ActivityIndicator,
+  Pressable,
   ScrollView,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
+import { useNavigation } from '@react-navigation/native';
+import type { NavigationProp } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { THEME } from '@/constants/theme';
-import {
-  Button,
-  Input,
-  SafeAreaWrapper,
-  ScreenHeader,
-  ScreenWrapper,
-} from '@/shared/components';
+import type { AccountStackParamList } from '@/navigation/types';
+import { DatePickerField, Input, KeyboardWrapper, Loader } from '@/shared/components';
+
+import { ProfileScreenHeaderChrome } from '../../components/ProfileScreenHeaderChrome';
+import { CONSULTANT_EXPERIENCE_HELPER } from '../../utils/consultantExperience';
+import type { ConsultantGenderValue } from '../../types/consultantProfile.types';
+import { useConsultantEditProfileScreen } from '../../hooks/useConsultantEditProfileScreen';
 
 import { styles } from './ConsultantEditProfileScreen.styles';
-import { AccountStackParamList } from '@/navigation/types';
-import { NavigationProp, useNavigation } from '@react-navigation/native';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-interface FormState {
-  email: string;
-  gender: string;
-  pinCode: string;
-  city: string;
-  state: string;
-  address: string;
-  experience: string;
-  dob: string;
-  qualification: string;
-  summary: string;
-  audioFee: string;
-  videoFee: string;
-}
+const SLATE_PLACEHOLDER = '#94A3B8';
 
-const GENDER_OPTIONS = [
+const GENDER_OPTIONS: { label: string; value: ConsultantGenderValue }[] = [
   { label: 'Male', value: 'male' },
   { label: 'Female', value: 'female' },
   { label: 'Other', value: 'other' },
   { label: 'Prefer not to say', value: 'prefer_not' },
 ];
 
-// ── Sub-components ────────────────────────────────────────────────────────────
-function ReadOnlyField({ label, value }: { label: string; value: string }) {
+interface ReadOnlyFieldProps {
+  label: string;
+  value: string;
+}
+
+function ReadOnlyField(props: ReadOnlyFieldProps): React.ReactElement {
   return (
     <View style={styles.readOnlyWrap}>
-      <Text style={styles.readOnlyLabel}>{label}</Text>
+      <Text style={styles.readOnlyLabel}>{props.label}</Text>
       <View style={styles.readOnlyBox}>
-        <Text style={styles.readOnlyText}>{value}</Text>
+        <Text style={styles.readOnlyValue} numberOfLines={1}>
+          {props.value}
+        </Text>
         <View style={styles.readOnlyBadge}>
-          <Text style={styles.readOnlyBadgeText}>Read only</Text>
+          <Text style={styles.readOnlyBadgeText}>Locked</Text>
         </View>
       </View>
     </View>
   );
 }
 
-function SectionLabel({ title }: { title: string }) {
-  return <Text style={styles.sectionLabel}>{title}</Text>;
-}
-
-function GenderPicker({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <View style={styles.dropdownWrap}>
-      <Text style={styles.dropdownLabel}>Gender</Text>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-        {GENDER_OPTIONS.map((opt) => {
-          const selected = value === opt.value;
-          return (
-            <TouchableOpacity
-              key={opt.value}
-              onPress={() => onChange(opt.value)}
-              activeOpacity={0.8}
-              style={{
-                paddingHorizontal: 14,
-                paddingVertical: 8,
-                borderRadius: 20,
-                borderWidth: 1.5,
-                borderColor: selected ? THEME.colors.primary : THEME.colors.border,
-                backgroundColor: selected ? '#F0FAF5' : THEME.colors.white,
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: THEME.typography.size[12],
-                  fontWeight: selected
-                    ? THEME.typography.weight.semibold
-                    : THEME.typography.weight.regular,
-                  color: selected ? THEME.colors.primary : THEME.colors.textSecondary,
-                }}
-              >
-                {opt.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-    </View>
-  );
-}
-
-// ── Main export ───────────────────────────────────────────────────────────────
 export function ConsultantEditProfileScreen(): React.ReactElement {
-  const [form, setForm] = useState<FormState>({
-    email: '',
-    gender: '',
-    pinCode: '',
-    city: '',
-    state: '',
-    address: '',
-    experience: '',
-    dob: '',
-    qualification: '',
-    summary: '',
-    audioFee: '',
-    videoFee: '',
-  });
   const navigation = useNavigation<NavigationProp<AccountStackParamList>>();
+  const {
+    isAuthenticated,
+    isLoading,
+    isSaving,
+    loadError,
+    readOnlyName,
+    readOnlyMobile,
+    avatarUri,
+    avatarInitial,
+    pendingImageName,
+    form,
+    dobDate,
+    fieldErrors,
+    setFormField,
+    setDobDate,
+    pickProfileImage,
+    handleSave,
+    refetch,
+  } = useConsultantEditProfileScreen();
 
-  function set(key: keyof FormState) {
-    return (val: string) => setForm((prev) => ({ ...prev, [key]: val }));
+  const handleBack = (): void => {
+    navigation.goBack();
+  };
+
+  const photoHint = useMemo((): string => {
+    if (pendingImageName != null) {
+      return `${pendingImageName} — tap Save to upload your profile photo`;
+    }
+    return 'Tap your photo to change · JPEG, PNG, GIF or WebP · max 5MB';
+  }, [pendingImageName]);
+
+  const maxDob = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return today;
+  }, []);
+
+  const chromeProps = {
+    title: 'Edit Profile',
+    onBackPress: handleBack,
+    avatarUri,
+    avatarInitial,
+    displayName: readOnlyName !== '—' ? readOnlyName : undefined,
+    displaySubtitle: readOnlyMobile !== '—' ? readOnlyMobile : undefined,
+    onAvatarPress: () => void pickProfileImage(),
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <ProfileScreenHeaderChrome {...chromeProps} onAvatarPress={undefined}>
+        <View style={styles.centered}>
+          <Ionicons name="person-circle-outline" size={48} color="#94A3B8" />
+          <Text style={styles.centeredText}>Sign in to view and edit your profile.</Text>
+        </View>
+      </ProfileScreenHeaderChrome>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <ProfileScreenHeaderChrome {...chromeProps} onAvatarPress={undefined}>
+        <View style={styles.centered}>
+          <Loader visible />
+        </View>
+      </ProfileScreenHeaderChrome>
+    );
+  }
+
+  if (loadError != null) {
+    return (
+      <ProfileScreenHeaderChrome {...chromeProps} onAvatarPress={undefined}>
+        <View style={styles.centered}>
+          <Ionicons name="cloud-offline-outline" size={40} color="#94A3B8" />
+          <Text style={styles.centeredText}>{loadError}</Text>
+          <Pressable
+            style={styles.retryButton}
+            onPress={refetch}
+            accessibilityRole="button"
+            accessibilityLabel="Retry loading profile"
+          >
+            <Text style={styles.retryButtonText}>Try again</Text>
+          </Pressable>
+        </View>
+      </ProfileScreenHeaderChrome>
+    );
   }
 
   return (
-    <SafeAreaWrapper edges={['top', 'bottom']} bgColor="white">
-             <ScreenHeader
-               title="Edit Profile"
-               onBackPress={() => navigation.goBack()}
-             />
-      <ScreenWrapper style={{ padding: 0 }}>
+    <ProfileScreenHeaderChrome {...chromeProps}>
+      <KeyboardWrapper style={styles.flex}>
         <ScrollView
-          contentContainerStyle={styles.scroll}
-          showsVerticalScrollIndicator={false}
+          style={styles.flex}
+          contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          showsVerticalScrollIndicator={false}
         >
-          {/* ── Info banner ── */}
-          <LinearGradient
-            colors={['#F0FAF5', '#E8F5E9']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.banner}
-          >
+          <View style={styles.photoHintBanner}>
             <Ionicons name="information-circle-outline" size={18} color={THEME.colors.primary} />
-            <Text style={styles.bannerText}>
-              Name and phone are read-only. You can update your email and other profile details below.
-            </Text>
-          </LinearGradient>
+            <Text style={styles.photoHintText}>{photoHint}</Text>
+          </View>
 
-          {/* ── Basic Info ── */}
-          <SectionLabel title="Basic Info" />
+          <Text style={styles.sectionLabel}>Basic</Text>
           <View style={styles.card}>
-            <ReadOnlyField label="Full Name" value="Krishna" />
-            <ReadOnlyField label="Phone Number" value="8433011748" />
+            <ReadOnlyField label="Name" value={readOnlyName} />
+            <ReadOnlyField label="Mobile" value={readOnlyMobile} />
+          </View>
+
+          <Text style={styles.sectionLabel}>Contact</Text>
+          <View style={styles.card}>
             <Input
-              label="Email Address"
+              label="Email"
               value={form.email}
-              onChangeText={set('email')}
+              onChangeText={(text) => setFormField('email', text)}
               placeholder="you@example.com"
               keyboardType="email-address"
               textContentType="emailAddress"
               autoCapitalize="none"
-              accessibilityLabel="Email Address"
+              accessibilityLabel="Email"
+              error={fieldErrors.email}
             />
-            <GenderPicker value={form.gender} onChange={set('gender')} />
+            <View style={[styles.genderWrap, fieldErrors.gender != null ? styles.genderCardError : null]}>
+              <Text style={styles.genderLabel}>Select gender</Text>
+              <View style={styles.genderRow}>
+                {GENDER_OPTIONS.map((option) => {
+                  const selected = form.gender === option.value;
+                  const chipHasError = fieldErrors.gender != null;
+                  return (
+                    <Pressable
+                      key={option.value}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected }}
+                      onPress={() => setFormField('gender', option.value)}
+                      style={[
+                        styles.genderChip,
+                        selected ? styles.genderChipActive : null,
+                        chipHasError && !selected ? styles.genderChipError : null,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.genderChipText,
+                          selected ? styles.genderChipTextActive : null,
+                          chipHasError && !selected ? styles.genderChipTextError : null,
+                        ]}
+                      >
+                        {option.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              {fieldErrors.gender != null ? (
+                <Text style={styles.fieldErrorText}>{fieldErrors.gender}</Text>
+              ) : null}
+            </View>
           </View>
 
-          {/* ── Location ── */}
-          <SectionLabel title="Location" />
+          <Text style={styles.sectionLabel}>Location</Text>
           <View style={styles.card}>
-            <View style={styles.row}>
-              <View style={styles.rowItem}>
+            <View style={styles.rowTwo}>
+              <View style={styles.rowField}>
                 <Input
-                  label="Pin Code"
-                  value={form.pinCode}
-                  onChangeText={set('pinCode')}
-                  placeholder="e.g. 226022"
+                  label="Pincode"
+                  value={form.pincode}
+                  onChangeText={(text) =>
+                    setFormField('pincode', text.replace(/\D/g, '').slice(0, 6))
+                  }
+                  placeholder="6-digit pincode"
                   keyboardType="number-pad"
-                  accessibilityLabel="Pin Code"
+                  maxLength={6}
+                  accessibilityLabel="Pincode"
+                  error={fieldErrors.pincode}
                 />
               </View>
-              <View style={styles.rowItem}>
+              <View style={styles.rowField}>
                 <Input
                   label="City"
                   value={form.city}
-                  onChangeText={set('city')}
+                  onChangeText={(text) => setFormField('city', text)}
                   placeholder="City"
-                  autoCapitalize="words"
                   accessibilityLabel="City"
+                  error={fieldErrors.city}
                 />
               </View>
             </View>
             <Input
               label="State"
               value={form.state}
-              onChangeText={set('state')}
+              onChangeText={(text) => setFormField('state', text)}
               placeholder="State"
-              autoCapitalize="words"
               accessibilityLabel="State"
+              error={fieldErrors.state}
             />
             <View style={styles.textareaWrap}>
               <Text style={styles.textareaLabel}>Address</Text>
               <TextInput
-                style={styles.textarea}
+                style={[
+                  styles.textarea,
+                  fieldErrors.address != null ? styles.textareaError : null,
+                ]}
                 value={form.address}
-                onChangeText={set('address')}
+                onChangeText={(text) => setFormField('address', text)}
                 placeholder="Street, area, landmark"
-                placeholderTextColor={THEME.colors.textSecondary}
+                placeholderTextColor={SLATE_PLACEHOLDER}
                 multiline
                 numberOfLines={3}
                 autoCapitalize="sentences"
+                accessibilityLabel="Address"
               />
+              {fieldErrors.address != null ? (
+                <Text style={styles.fieldErrorText}>{fieldErrors.address}</Text>
+              ) : null}
             </View>
           </View>
 
-          {/* ── Professional Details ── */}
-          <SectionLabel title="Professional Details" />
+          <Text style={styles.sectionLabel}>Professional</Text>
           <View style={styles.card}>
-            <View style={styles.row}>
-              <View style={styles.rowItem}>
+            <View style={styles.rowTwo}>
+              <View style={styles.rowField}>
                 <Input
-                  label="Years of Experience"
+                  label="Experience (years)"
                   value={form.experience}
-                  onChangeText={set('experience')}
+                  onChangeText={(text) =>
+                    setFormField('experience', text.replace(/\D/g, '').slice(0, 2))
+                  }
                   placeholder="e.g. 6"
                   keyboardType="number-pad"
-                  accessibilityLabel="Years of Experience"
+                  accessibilityLabel="Years of experience"
+                  error={fieldErrors.experience}
                 />
               </View>
-              <View style={styles.rowItem}>
-                <Input
-                  label="Date of Birth"
-                  value={form.dob}
-                  onChangeText={set('dob')}
-                  placeholder="DD/MM/YYYY"
-                  keyboardType="number-pad"
-                  accessibilityLabel="Date of Birth"
+              <View style={styles.rowField}>
+                <DatePickerField
+                  label="Date of birth"
+                  value={dobDate}
+                  onChange={setDobDate}
+                  maximumDate={maxDob}
+                  placeholder="Pick date"
+                  accessibilityLabel="Date of birth"
                 />
               </View>
             </View>
-            <Text style={styles.helperText}>
-              Numbers only for experience. We add "years" — e.g. 5 is shown as 5 years.
-            </Text>
+            <Text style={styles.helperText}>{CONSULTANT_EXPERIENCE_HELPER}</Text>
             <Input
-              label="Highest Qualification"
+              label="Highest qualification"
               value={form.qualification}
-              onChangeText={set('qualification')}
+              onChangeText={(text) => setFormField('qualification', text)}
               placeholder="e.g. MCA"
               autoCapitalize="characters"
-              accessibilityLabel="Highest Qualification"
+              accessibilityLabel="Highest qualification"
+              error={fieldErrors.qualification}
             />
             <View style={styles.textareaWrap}>
-              <Text style={styles.textareaLabel}>Profile Summary</Text>
+              <Text style={styles.textareaLabel}>Profile summary</Text>
               <TextInput
-                style={styles.textarea}
+                style={[
+                  styles.textarea,
+                  fieldErrors.summary != null ? styles.textareaError : null,
+                ]}
                 value={form.summary}
-                onChangeText={set('summary')}
+                onChangeText={(text) => setFormField('summary', text)}
                 placeholder="Write a short professional summary"
-                placeholderTextColor={THEME.colors.textSecondary}
+                placeholderTextColor={SLATE_PLACEHOLDER}
                 multiline
                 numberOfLines={4}
                 autoCapitalize="sentences"
+                accessibilityLabel="Profile summary"
               />
+              {fieldErrors.summary != null ? (
+                <Text style={styles.fieldErrorText}>{fieldErrors.summary}</Text>
+              ) : null}
             </View>
           </View>
 
-          {/* ── Consultation Fees ── */}
-          <SectionLabel title="Consultation Fees" />
+          <Text style={styles.sectionLabel}>Consultation fees</Text>
           <View style={styles.card}>
-            <View style={styles.row}>
-              <View style={styles.rowItem}>
+            <View style={styles.rowTwo}>
+              <View style={styles.rowField}>
                 <Input
-                  label="Audio Fee (₹)"
+                  label="Audio fee (₹)"
                   value={form.audioFee}
-                  onChangeText={set('audioFee')}
+                  onChangeText={(text) => setFormField('audioFee', text)}
                   placeholder="e.g. 354"
                   keyboardType="number-pad"
-                  accessibilityLabel="Audio Fee"
+                  accessibilityLabel="Audio consultation fee"
+                  error={fieldErrors.audioFee}
                 />
               </View>
-              <View style={styles.rowItem}>
+              <View style={styles.rowField}>
                 <Input
-                  label="Video Fee (₹)"
+                  label="Video fee (₹)"
                   value={form.videoFee}
-                  onChangeText={set('videoFee')}
+                  onChangeText={(text) => setFormField('videoFee', text)}
                   placeholder="e.g. 708"
                   keyboardType="number-pad"
-                  accessibilityLabel="Video Fee"
+                  accessibilityLabel="Video consultation fee"
+                  error={fieldErrors.videoFee}
                 />
               </View>
             </View>
           </View>
         </ScrollView>
-      </ScreenWrapper>
 
-      <View style={styles.stickyFooter}>
-        <Button
-          label="Save Changes"
-          onPress={() => {}}
-          accessibilityLabel="Save Changes"
-          style={styles.saveBtn}
-        />
-      </View>
-    </SafeAreaWrapper>
+        <View style={styles.saveFooter}>
+          <Pressable
+            style={[styles.saveButton, isSaving ? styles.saveButtonDisabled : null]}
+            onPress={() => void handleSave()}
+            disabled={isSaving}
+            accessibilityRole="button"
+            accessibilityLabel="Save profile changes"
+            accessibilityState={{ disabled: isSaving }}
+          >
+            {isSaving ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text style={styles.saveButtonText}>Save changes</Text>
+            )}
+          </Pressable>
+        </View>
+      </KeyboardWrapper>
+    </ProfileScreenHeaderChrome>
   );
 }

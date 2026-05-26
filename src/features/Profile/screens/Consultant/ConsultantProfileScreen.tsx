@@ -1,19 +1,29 @@
 import React, { useMemo } from 'react';
-import { Pressable, Text, useWindowDimensions, View } from 'react-native';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
+import {
+  selectDisplayName,
+  selectIsAuthenticated,
+  selectLoggedInMobile,
+} from '@/features/Auth/store/authSelectors';
+import { useBizAIScrollReporter } from '@/features/BizAI/hooks/useBizAIScrollReporter';
 import { THEME } from '@/constants/theme';
 import { ROUTES } from '@/navigation/routeNames';
 import type { AccountStackParamList } from '@/navigation/types';
-import { useBizAIScrollReporter } from '@/features/BizAI/hooks/useBizAIScrollReporter';
-import { ProfileAccountCard } from '@/features/Profile/components/ProfileAccountCard';
-import { SafeAreaWrapper, ScreenWrapper } from '@/shared/components';
+import { useAppSelector } from '@/store/typedHooks';
+import { formatIndianMobile } from '@/utils/formatPhone';
 import { Card } from '@/shared/components/card';
 
-import { CONSULTANT_CANVAS, styles } from './ConsultantProfileScreen.styles';
+import { ProfileAccountCard } from '@/features/Profile/components/ProfileAccountCard';
+import { ProfileScreenHeaderChrome } from '@/features/Profile/components/ProfileScreenHeaderChrome';
+import { UserProfileMembershipSection } from '@/features/Profile/components/UserProfileMembershipSection';
+import { useGetConsultantMyProfileQuery } from '@/features/Profile/api/consultantProfileApi';
+
+import { styles } from './ConsultantProfileScreen.styles';
 
 type StatIconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -78,6 +88,35 @@ const CONSULTANT_STATS: ConsultantStatItem[] = [
 
 type AccountNav = NativeStackNavigationProp<AccountStackParamList, typeof ROUTES.Account.Home>;
 
+function SettingsHeaderButton(props: { onPress: () => void }): React.ReactElement {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Help and settings"
+      onPress={props.onPress}
+      style={({ pressed }) => [headerBtnStyles.btn, pressed ? headerBtnStyles.btnPressed : null]}
+    >
+      <Ionicons name="options-outline" size={20} color="#FFFFFF" />
+    </Pressable>
+  );
+}
+
+const headerBtnStyles = StyleSheet.create({
+  btn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.16)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.22)',
+  },
+  btnPressed: {
+    opacity: 0.88,
+  },
+});
+
 function SectionHeading(props: { title: string }): React.ReactElement {
   return (
     <View style={styles.sectionHeader}>
@@ -123,56 +162,107 @@ function StatCard(props: StatCardProps): React.ReactElement {
 }
 
 const GRID_GAP = THEME.spacing[10];
-const GRID_H_PADDING = THEME.spacing[12];
 
 export function ConsultantProfileScreen(): React.ReactElement {
   const navigation = useNavigation<AccountNav>();
   const onBizAiScroll = useBizAIScrollReporter();
   const { width: screenWidth } = useWindowDimensions();
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const displayName = useAppSelector(selectDisplayName);
+  const storedMobile = useAppSelector(selectLoggedInMobile);
+
+  const { data: profile } = useGetConsultantMyProfileQuery(undefined, {
+    skip: !isAuthenticated,
+  });
+
+  const heroName = useMemo((): string | undefined => {
+    const fromApi = profile?.name?.trim();
+    if (fromApi != null && fromApi.length > 0) {
+      return fromApi;
+    }
+    const fromStore = displayName?.trim();
+    if (fromStore != null && fromStore.length > 0) {
+      return fromStore;
+    }
+    return undefined;
+  }, [displayName, profile?.name]);
+
+  const heroSubtitle = useMemo((): string | undefined => {
+    const mobile = profile?.mobile?.trim() ?? storedMobile?.trim() ?? '';
+    if (mobile.length === 0) {
+      return undefined;
+    }
+    return formatIndianMobile(mobile) ?? mobile;
+  }, [profile?.mobile, storedMobile]);
+
+  const avatarUri = profile?.thumbnail ?? null;
+  const avatarInitial = (heroName ?? 'C').charAt(0).toUpperCase();
 
   const statCardWidth = useMemo((): number => {
-    const inner = screenWidth - GRID_H_PADDING * 2 - GRID_GAP;
+    const inner = screenWidth - THEME.spacing[16] * 2 - GRID_GAP;
     return Math.floor(inner / 2);
   }, [screenWidth]);
 
+  const openEditProfile = (): void => {
+    navigation.navigate(ROUTES.Account.EditProfile);
+  };
+
+  const openHelpSettings = (): void => {
+    navigation.navigate(ROUTES.Account.HelpSettings);
+  };
+
   return (
-    <SafeAreaWrapper
-      edges={['top', 'bottom']}
-      bgColor={CONSULTANT_CANVAS}
-      contentBgColor={CONSULTANT_CANVAS}
+    <ProfileScreenHeaderChrome
+      title="My Profile"
+      avatarUri={isAuthenticated ? avatarUri : null}
+      avatarInitial={avatarInitial}
+      displayName={heroName}
+      displaySubtitle={heroSubtitle}
+      onAvatarPress={isAuthenticated ? openEditProfile : undefined}
+      rightAction={<SettingsHeaderButton onPress={openHelpSettings} />}
     >
-      <View style={styles.topBar}>
-        <Text style={styles.pageTitle}>My Profile</Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Help and settings"
-          onPress={() => navigation.navigate(ROUTES.Account.HelpSettings)}
-          style={({ pressed }) => [styles.settingsBtn, pressed ? { opacity: 0.88 } : null]}
-        >
-          <Ionicons name="options-outline" size={17} color={THEME.colors.primary} />
-          <Text style={styles.settingsBtnText}>Help & Settings</Text>
-        </Pressable>
-      </View>
+      <Animated.ScrollView
+        style={styles.screen}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        onScroll={onBizAiScroll}
+        scrollEventThrottle={16}
+      >
+        {isAuthenticated ? (
+          <>
+            <Pressable
+              style={styles.editProfileRow}
+              onPress={openEditProfile}
+              accessibilityRole="button"
+              accessibilityLabel="Edit profile"
+            >
+              <View style={styles.editProfileIcon}>
+                <Ionicons name="create-outline" size={18} color={THEME.colors.primary} />
+              </View>
+              <View style={styles.editProfileTextBlock}>
+                <Text style={styles.editProfileTitle}>Edit profile</Text>
+                <Text style={styles.editProfileSubtitle}>
+                  Photo, fees, summary & professional details
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+            </Pressable>
 
-      <ScreenWrapper style={styles.screen}>
-        <Animated.ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-          onScroll={onBizAiScroll}
-          scrollEventThrottle={16}
-        >
-          <ProfileAccountCard accountRole="consultant" style={styles.subscriptionCard} />
+            <UserProfileMembershipSection membershipLine="experts" />
 
-          <View style={styles.section}>
-            <SectionHeading title="Business overview" />
-            <View style={styles.statsGrid}>
-              {CONSULTANT_STATS.map((stat) => (
-                <StatCard key={stat.id} item={stat} width={statCardWidth} />
-              ))}
+            <View style={styles.section}>
+              <SectionHeading title="Business overview" />
+              <View style={styles.statsGrid}>
+                {CONSULTANT_STATS.map((stat) => (
+                  <StatCard key={stat.id} item={stat} width={statCardWidth} />
+                ))}
+              </View>
             </View>
-          </View>
-        </Animated.ScrollView>
-      </ScreenWrapper>
-    </SafeAreaWrapper>
+          </>
+        ) : (
+          <ProfileAccountCard accountRole="consultant" style={styles.accountCard} />
+        )}
+      </Animated.ScrollView>
+    </ProfileScreenHeaderChrome>
   );
 }

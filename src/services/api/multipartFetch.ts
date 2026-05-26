@@ -191,6 +191,28 @@ function sendMultipartFormWithXhr(
   });
 }
 
+/** PATCH multipart with a JSON blob field (e.g. consultant profile `payload`). */
+export async function patchMultipartJsonPayload(
+  path: string,
+  payloadFieldName: string,
+  payload: unknown,
+  fileFieldName: string | null,
+  file: MultipartFilePayload | null,
+  token: string | null,
+): Promise<MultipartUploadResult> {
+  const formData = new FormData();
+  formData.append(payloadFieldName, JSON.stringify(payload));
+  if (file != null && fileFieldName != null) {
+    formData.append(fileFieldName, {
+      uri: file.uri,
+      name: file.name,
+      type: file.type,
+    } as unknown as Blob);
+  }
+  const url = joinApiUrl(path);
+  return sendMultipartFormWithXhr('PATCH', url, formData, token);
+}
+
 /** PATCH multipart (e.g. `users/me` profile + optional image file). */
 export async function patchMultipartForm(
   path: string,

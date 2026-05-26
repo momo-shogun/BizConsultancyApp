@@ -4,7 +4,10 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { THEME } from '@/constants/theme';
 
-import { useUserProfileMembershipSection } from '../hooks/useUserProfileMembershipSection';
+import {
+  useUserProfileMembershipSection,
+  type ProfileMembershipLine,
+} from '../hooks/useUserProfileMembershipSection';
 
 import { styles } from './UserProfileMembershipSection.styles';
 
@@ -19,8 +22,15 @@ function BenefitStatusIcon(props: { statusLabel: string | null }): React.ReactEl
   return <Ionicons name="time-outline" size={18} color="#D97706" />;
 }
 
-export function UserProfileMembershipSection(): React.ReactElement {
-  const model = useUserProfileMembershipSection(true);
+export interface UserProfileMembershipSectionProps {
+  membershipLine?: ProfileMembershipLine;
+}
+
+export function UserProfileMembershipSection(
+  props: UserProfileMembershipSectionProps = {},
+): React.ReactElement {
+  const membershipLine = props.membershipLine ?? 'users';
+  const model = useUserProfileMembershipSection({ enabled: true, membershipLine });
 
   if (model.isLoading) {
     return (

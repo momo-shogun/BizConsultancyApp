@@ -65,7 +65,17 @@ function benefitsFromCatalog(
   }));
 }
 
-export function useUserProfileMembershipSection(enabled: boolean): UserProfileMembershipSectionModel {
+export type ProfileMembershipLine = 'users' | 'experts';
+
+export interface UseUserProfileMembershipSectionOptions {
+  enabled: boolean;
+  membershipLine: ProfileMembershipLine;
+}
+
+export function useUserProfileMembershipSection(
+  options: UseUserProfileMembershipSectionOptions,
+): UserProfileMembershipSectionModel {
+  const { enabled, membershipLine } = options;
   const navigation = useNavigation<AccountNav>();
 
   const {
@@ -76,7 +86,7 @@ export function useUserProfileMembershipSection(enabled: boolean): UserProfileMe
   } = useGetMyMembershipDashboardQuery(undefined, { skip: !enabled });
 
   const { data: publicPlans } = useGetPublicMembershipsQuery(
-    { type: 'users' },
+    { type: membershipLine },
     { skip: !enabled },
   );
 
@@ -89,7 +99,9 @@ export function useUserProfileMembershipSection(enabled: boolean): UserProfileMe
       void refetchDashboard();
     };
 
-    const current = dashboard?.current ?? null;
+    const purchaseLine = (dashboard?.membershipType ?? '').trim().toLowerCase();
+    const current =
+      dashboard?.current != null && purchaseLine === membershipLine ? dashboard.current : null;
     const hasPlan = current != null;
     const isActive = current?.status === 'active';
 
@@ -178,6 +190,7 @@ export function useUserProfileMembershipSection(enabled: boolean): UserProfileMe
     dashboardLoading,
     publicPlans,
     refetchDashboard,
+    membershipLine,
     onMembershipPress,
   ]);
 }

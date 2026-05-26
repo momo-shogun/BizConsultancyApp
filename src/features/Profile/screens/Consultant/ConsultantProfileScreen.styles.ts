@@ -2,9 +2,11 @@ import { Platform, StyleSheet } from 'react-native';
 
 import { THEME } from '@/constants/theme';
 
+import { PROFILE_CANVAS } from '../../constants/profileScreenTheme';
+
 /** Brand green — use sparingly (primary CTA only). */
 export const CONSULTANT_ACCENT = THEME.colors.primary;
-export const CONSULTANT_CANVAS = '#F8FAFC';
+export const CONSULTANT_CANVAS = PROFILE_CANVAS;
 const SLATE_LINE = '#E2E8F0';
 const SLATE_MUTED = '#64748B';
 
@@ -25,7 +27,49 @@ export const styles = StyleSheet.create({
     backgroundColor: CONSULTANT_CANVAS,
   },
   scrollContent: {
+    paddingTop: THEME.spacing[16],
     paddingBottom: THEME.spacing[24],
+    paddingHorizontal: THEME.spacing[16],
+  },
+  editProfileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: THEME.spacing[12],
+    marginBottom: THEME.spacing[12],
+    padding: THEME.spacing[14],
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: SLATE_LINE,
+    backgroundColor: THEME.colors.white,
+  },
+  editProfileIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(5,150,105,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  editProfileTextBlock: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  editProfileTitle: {
+    fontSize: THEME.typography.size[14],
+    fontWeight: '700',
+    color: THEME.colors.textPrimary,
+  },
+  editProfileSubtitle: {
+    fontSize: THEME.typography.size[12],
+    color: SLATE_MUTED,
+  },
+  accountCard: {
+    marginHorizontal: 0,
+    marginTop: 0,
+    marginBottom: 0,
+    borderRadius: THEME.radius[16],
+    ...CARD_SHADOW_RESET,
   },
   topBar: {
     flexDirection: 'row',
@@ -130,7 +174,6 @@ export const styles = StyleSheet.create({
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: THEME.spacing[12],
     marginBottom: THEME.spacing[8],
   },
   sectionTitle: {
@@ -149,7 +192,6 @@ export const styles = StyleSheet.create({
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: THEME.spacing[12],
     gap: THEME.spacing[10],
   },
   statCard: {

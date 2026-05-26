@@ -12,6 +12,7 @@ export interface DatePickerFieldProps {
   placeholder?: string;
   /** Defaults to start of today. */
   minimumDate?: Date;
+  maximumDate?: Date;
   accessibilityLabel: string;
 }
 
@@ -35,8 +36,13 @@ export function DatePickerField(props: DatePickerFieldProps): React.ReactElement
   const [draftDate, setDraftDate] = useState<Date>(() => new Date());
 
   const minimumDate = useMemo(
-    () => startOfDay(props.minimumDate ?? new Date()),
+    () => (props.minimumDate != null ? startOfDay(props.minimumDate) : undefined),
     [props.minimumDate],
+  );
+
+  const maximumDate = useMemo(
+    () => (props.maximumDate != null ? startOfDay(props.maximumDate) : undefined),
+    [props.maximumDate],
   );
 
   const placeholder = props.placeholder ?? 'Select date';
@@ -45,7 +51,8 @@ export function DatePickerField(props: DatePickerFieldProps): React.ReactElement
     props.value != null ? formatDateLabel(props.value) : placeholder;
 
   const openPicker = (): void => {
-    setDraftDate(props.value != null ? props.value : minimumDate);
+    const fallback = maximumDate ?? new Date();
+    setDraftDate(props.value != null ? props.value : fallback);
     setOpen(true);
   };
 
@@ -79,6 +86,7 @@ export function DatePickerField(props: DatePickerFieldProps): React.ReactElement
         date={draftDate}
         mode="date"
         minimumDate={minimumDate}
+        maximumDate={maximumDate}
         locale="en-IN"
         theme={Platform.OS === 'ios' ? 'light' : 'auto'}
         onConfirm={(date) => {

@@ -1,153 +1,232 @@
 import { StyleSheet } from 'react-native';
+
 import { THEME } from '@/constants/theme';
 
-export const styles = StyleSheet.create({
-  scroll: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 100,
-    gap: 20,
-  },
+const SLATE_LINE = '#E2E8F0';
+const SLATE_MUTED = '#64748B';
 
-  banner: {
-    borderRadius: 14,
-    padding: 14,
+export const styles = StyleSheet.create({
+  flex: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingTop: THEME.spacing[4],
+    paddingBottom: THEME.spacing[16],
+  },
+  photoHintBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginBottom: 4,
+    gap: THEME.spacing[8],
+    marginHorizontal: THEME.spacing[16],
+    marginBottom: THEME.spacing[14],
+    paddingHorizontal: THEME.spacing[12],
+    paddingVertical: THEME.spacing[10],
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(5,150,105,0.18)',
+    backgroundColor: 'rgba(5,150,105,0.06)',
   },
-  bannerText: {
+  photoHintText: {
     flex: 1,
     fontSize: THEME.typography.size[12],
-    color: '#374151',
-    lineHeight: 18,
+    lineHeight: 17,
+    color: SLATE_MUTED,
   },
-
   sectionLabel: {
-    fontSize: THEME.typography.size[12],
-    fontWeight: THEME.typography.weight.bold,
-    color: THEME.colors.textSecondary,
+    marginHorizontal: THEME.spacing[16],
+    marginBottom: THEME.spacing[8],
+    fontSize: 11,
+    fontWeight: '700',
     letterSpacing: 0.8,
     textTransform: 'uppercase',
-    marginBottom: 10,
-    marginTop: 4,
+    color: SLATE_MUTED,
   },
-
   card: {
-    backgroundColor: THEME.colors.white,
+    marginHorizontal: THEME.spacing[16],
+    marginBottom: THEME.spacing[12],
+    padding: THEME.spacing[14],
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: THEME.colors.border,
-    padding: 16,
-    gap: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    borderColor: SLATE_LINE,
+    backgroundColor: THEME.colors.white,
+    gap: THEME.spacing[12],
   },
-
-  row: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  rowItem: {
-    flex: 1,
-  },
-
   readOnlyWrap: {
     gap: 6,
   },
   readOnlyLabel: {
     fontSize: THEME.typography.size[12],
-    fontWeight: THEME.typography.weight.medium,
-    color: THEME.colors.textSecondary,
+    fontWeight: '600',
+    color: SLATE_MUTED,
   },
   readOnlyBox: {
     minHeight: 48,
-    borderRadius: THEME.radius[12],
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: THEME.colors.border,
-    backgroundColor: THEME.colors.surface,
-    paddingHorizontal: 16,
-    justifyContent: 'center',
+    borderColor: SLATE_LINE,
+    backgroundColor: '#F8FAFC',
+    paddingHorizontal: THEME.spacing[12],
+    paddingVertical: THEME.spacing[12],
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: THEME.spacing[8],
   },
-  readOnlyText: {
+  readOnlyValue: {
+    flex: 1,
     fontSize: THEME.typography.size[14],
-    color: THEME.colors.textSecondary,
+    fontWeight: '600',
+    color: THEME.colors.textPrimary,
   },
   readOnlyBadge: {
-    position: 'absolute',
-    right: 10,
-    top: 10,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: 'rgba(100,116,139,0.12)',
   },
   readOnlyBadgeText: {
     fontSize: 10,
-    color: THEME.colors.textSecondary,
-    fontWeight: THEME.typography.weight.medium,
+    fontWeight: '700',
+    color: SLATE_MUTED,
+    textTransform: 'uppercase',
   },
-
-  dropdownWrap: {
-    gap: 6,
+  rowTwo: {
+    flexDirection: 'row',
+    gap: THEME.spacing[10],
   },
-  dropdownLabel: {
-    fontSize: THEME.typography.size[12],
-    fontWeight: THEME.typography.weight.medium,
-    color: THEME.colors.textPrimary,
+  rowField: {
+    flex: 1,
   },
-  dropdown: {
-    minHeight: 48,
-    borderRadius: THEME.radius[12],
+  genderWrap: {
+    gap: 8,
+  },
+  genderCardError: {
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: THEME.colors.border,
-    backgroundColor: THEME.colors.white,
-    paddingHorizontal: 16,
+    borderColor: THEME.colors.danger,
+    backgroundColor: '#FEF2F2',
+    padding: THEME.spacing[10],
   },
-
+  genderLabel: {
+    fontSize: THEME.typography.size[12],
+    fontWeight: '600',
+    color: SLATE_MUTED,
+  },
+  genderRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  genderChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    borderColor: SLATE_LINE,
+    backgroundColor: THEME.colors.white,
+  },
+  genderChipActive: {
+    borderColor: THEME.colors.primary,
+    backgroundColor: 'rgba(5,150,105,0.08)',
+  },
+  genderChipError: {
+    borderColor: THEME.colors.danger,
+  },
+  genderChipText: {
+    fontSize: THEME.typography.size[12],
+    fontWeight: '600',
+    color: SLATE_MUTED,
+  },
+  genderChipTextActive: {
+    color: THEME.colors.primary,
+  },
+  genderChipTextError: {
+    color: THEME.colors.danger,
+  },
+  fieldErrorText: {
+    fontSize: THEME.typography.size[12],
+    lineHeight: 16,
+    color: THEME.colors.danger,
+    fontWeight: '500',
+    marginTop: 4,
+  },
   textareaWrap: {
     gap: 6,
   },
   textareaLabel: {
     fontSize: THEME.typography.size[12],
-    fontWeight: THEME.typography.weight.medium,
-    color: THEME.colors.textPrimary,
+    fontWeight: '600',
+    color: SLATE_MUTED,
   },
   textarea: {
-    borderRadius: THEME.radius[12],
+    minHeight: 96,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: THEME.colors.border,
+    borderColor: SLATE_LINE,
     backgroundColor: THEME.colors.white,
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 12,
+    paddingHorizontal: THEME.spacing[12],
+    paddingTop: THEME.spacing[12],
+    paddingBottom: THEME.spacing[12],
     fontSize: THEME.typography.size[14],
+    lineHeight: 20,
     color: THEME.colors.textPrimary,
-    minHeight: 90,
     textAlignVertical: 'top',
   },
-
+  textareaError: {
+    borderColor: THEME.colors.danger,
+    backgroundColor: '#FEF2F2',
+  },
   helperText: {
     fontSize: THEME.typography.size[12],
-    color: THEME.colors.textSecondary,
-    marginTop: -8,
-    lineHeight: 16,
+    lineHeight: 17,
+    color: SLATE_MUTED,
+    marginTop: -4,
   },
-
-  stickyFooter: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 16,
+  saveFooter: {
+    paddingHorizontal: THEME.spacing[16],
+    paddingTop: THEME.spacing[12],
+    paddingBottom: THEME.spacing[12],
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: SLATE_LINE,
     backgroundColor: THEME.colors.white,
-    borderTopWidth: 1,
-    borderTopColor: THEME.colors.border,
   },
-  saveBtn: {
+  saveButton: {
+    minHeight: 50,
     borderRadius: 14,
-    minHeight: 52,
+    backgroundColor: THEME.colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveButtonDisabled: {
+    opacity: 0.55,
+  },
+  saveButtonText: {
+    fontSize: THEME.typography.size[14],
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  centered: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: THEME.spacing[24],
+    gap: THEME.spacing[12],
+  },
+  centeredText: {
+    fontSize: THEME.typography.size[14],
+    lineHeight: 20,
+    color: SLATE_MUTED,
+    textAlign: 'center',
+  },
+  retryButton: {
+    paddingHorizontal: THEME.spacing[16],
+    paddingVertical: THEME.spacing[10],
+    borderRadius: 12,
+    backgroundColor: THEME.colors.primary,
+  },
+  retryButtonText: {
+    fontSize: THEME.typography.size[13],
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });
