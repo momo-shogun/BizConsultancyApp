@@ -34,6 +34,7 @@ export const TAB_BAR_HIDDEN_ROUTES: Readonly<Record<string, readonly string[]>> 
     ROUTES.Account.ConsultantBookings,
     ROUTES.Account.ConsultantSlotTime,
     ROUTES.Account.ConsultantMyServices,
+    ROUTES.Account.ApplyService,
     ROUTES.Account.ConsultantLockers,
     ROUTES.Account.ConsultantExpertise,
     ROUTES.Account.ConsultantReviews,

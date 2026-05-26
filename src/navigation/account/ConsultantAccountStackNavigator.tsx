@@ -17,9 +17,10 @@ import { ConsultantWalletScreen } from '@/features/Wallet/screens/ConsultantWall
 import { ConsultantWithdrawalsScreen } from '@/features/Wallet/screens/ConsultantWithdrawalsScreen';
 import { ConsultantWalletTransactionsScreen } from '@/features/Wallet/screens/ConsultantWalletTransactionsScreen';
 import { MyDiagnosticPackScreen } from '@/features/Diagnostics/screens/MyDiagnosticPackScreen';
-import { ConsultantBookingsScreen } from '@/features/Profile/screens/Consultant/ConsultantBookingsScreen';
-import { ConsultantSlotTimeScreen } from '@/features/Profile/screens/Consultant/ConsultantSlotTimeScreen';
-import { ConsultantMyServicesScreen } from '@/features/Profile/screens/Consultant/ConsultantMyServicesScreen';
+import { ConsultantBookingsScreen } from '@/features/Bookings/screens/ConsultantBookingsScreen';
+import { ConsultantSlotTimeScreen } from '@/features/ConsultantSlotTime/screens/ConsultantSlotTimeScreen';
+import { ApplyServiceScreen } from '@/features/MyServices/screens/ApplyServiceScreen';
+import { ConsultantMyServicesScreen } from '@/features/MyServices/screens/ConsultantMyServicesScreen';
 import { ConsultantLockersScreen } from '@/features/Profile/screens/Consultant/ConsultantLockersScreen';
 import { ConsultantExpertiseScreen } from '@/features/Profile/screens/Consultant/ConsultantExpertiseScreen';
 import { ConsultantReviewsScreen } from '@/features/Profile/screens/Consultant/ConsultantReviewsScreen';
@@ -100,6 +101,11 @@ export function ConsultantAccountStackNavigator(): React.ReactElement {
       <Stack.Screen
         name={ROUTES.Account.ConsultantMyServices}
         component={ConsultantMyServicesScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name={ROUTES.Account.ApplyService}
+        component={ApplyServiceScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen
