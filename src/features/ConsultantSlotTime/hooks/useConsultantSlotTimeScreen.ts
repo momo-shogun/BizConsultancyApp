@@ -12,7 +12,10 @@ import {
   useUpdateConsultantOverrideMutation,
   useUpsertConsultantScheduleMutation,
 } from '@/features/ConsultantSlotTime/api/consultantScheduleApi';
-import { getDefaultScheduleDays } from '@/features/ConsultantSlotTime/constants/scheduleConstants';
+import {
+  DEFAULT_SCHEDULE_NAME,
+  getDefaultScheduleDays,
+} from '@/features/ConsultantSlotTime/constants/scheduleConstants';
 import type {
   ConsultantAvailabilityOverride,
   OverrideFormState,
@@ -27,15 +30,12 @@ import { useAppSelector } from '@/store/typedHooks';
 import { showGlobalToast } from '@/shared/components/toast';
 
 export interface UseConsultantSlotTimeScreenResult {
-  scheduleName: string;
-  setScheduleName: (name: string) => void;
   scheduleDays: ScheduleDayConfig[];
   scheduleExists: boolean;
   isScheduleLoading: boolean;
   isScheduleSaving: boolean;
   createSchedule: () => void;
   saveSchedule: () => Promise<void>;
-  cancelScheduleEdits: () => void;
   setDayActive: (dayOfWeek: number, isActive: boolean) => void;
   addRangeToDay: (dayOfWeek: number) => void;
   removeRangeFromDay: (dayOfWeek: number, rangeIndex: number) => void;
@@ -108,7 +108,6 @@ export function useConsultantSlotTimeScreen(): UseConsultantSlotTimeScreenResult
     return match?.slug?.trim() ?? '';
   }, [consultantId, consultantsPage?.items]);
 
-  const [scheduleName, setScheduleName] = useState('Default');
   const [scheduleDays, setScheduleDays] = useState<ScheduleDayConfig[]>([]);
   const [scheduleExists, setScheduleExists] = useState(false);
 
@@ -127,12 +126,10 @@ export function useConsultantSlotTimeScreen(): UseConsultantSlotTimeScreenResult
   const applyScheduleFromApi = useCallback((schedule: typeof scheduleData): void => {
     if (schedule != null && schedule.days.length > 0) {
       setScheduleExists(true);
-      setScheduleName(schedule.name);
       setScheduleDays(schedule.days);
       return;
     }
     setScheduleExists(false);
-    setScheduleName('Default');
     setScheduleDays([]);
   }, []);
 
@@ -155,13 +152,8 @@ export function useConsultantSlotTimeScreen(): UseConsultantSlotTimeScreenResult
 
   const createSchedule = useCallback((): void => {
     setScheduleExists(true);
-    setScheduleName('Default');
     setScheduleDays(getDefaultScheduleDays());
   }, []);
-
-  const cancelScheduleEdits = useCallback((): void => {
-    applyScheduleFromApi(scheduleData);
-  }, [applyScheduleFromApi, scheduleData]);
 
   const setDayActive = useCallback((dayOfWeek: number, isActive: boolean): void => {
     setScheduleDays((prev) =>
@@ -239,8 +231,8 @@ export function useConsultantSlotTimeScreen(): UseConsultantSlotTimeScreenResult
       return;
     }
     try {
-      await upsertSchedule({ name: scheduleName, days: scheduleDays }).unwrap();
-      showGlobalToast({ message: 'Saved!', variant: 'success' });
+      await upsertSchedule({ name: DEFAULT_SCHEDULE_NAME, days: scheduleDays }).unwrap();
+      showGlobalToast({ message: 'Weekly hours saved', variant: 'success' });
       await refetchSchedule();
     } catch (error: unknown) {
       showGlobalToast({
@@ -248,7 +240,7 @@ export function useConsultantSlotTimeScreen(): UseConsultantSlotTimeScreenResult
         variant: 'error',
       });
     }
-  }, [refetchSchedule, scheduleDays, scheduleName, upsertSchedule]);
+  }, [refetchSchedule, scheduleDays, upsertSchedule]);
 
   const openCreateOverride = useCallback((): void => {
     setOverrideEditId(null);
@@ -322,15 +314,12 @@ export function useConsultantSlotTimeScreen(): UseConsultantSlotTimeScreenResult
   }, [refetchOverrides, refetchSchedule]);
 
   return {
-    scheduleName,
-    setScheduleName,
     scheduleDays,
     scheduleExists,
     isScheduleLoading: isScheduleQueryLoading && scheduleData === undefined,
     isScheduleSaving,
     createSchedule,
     saveSchedule,
-    cancelScheduleEdits,
     setDayActive,
     addRangeToDay,
     removeRangeFromDay,

@@ -1,5 +1,8 @@
 import type { ScheduleDayConfig } from '../types/consultantSchedule.types';
 
+/** Always sent on schedule save; not shown in the app UI. */
+export const DEFAULT_SCHEDULE_NAME = 'Default';
+
 export const SCHEDULE_DAY_ORDER = [1, 2, 3, 4, 5, 6, 0, 7] as const;
 
 export const SCHEDULE_DAY_LABELS: Record<number, string> = {

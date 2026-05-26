@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   ActivityIndicator,
+  Animated,
+  Easing,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -9,6 +11,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import type { OverrideFormState } from '@/features/ConsultantSlotTime/types/consultantSchedule.types';
@@ -44,88 +47,184 @@ export function OverrideEditorModal({
   onChange,
   onSave,
 }: OverrideEditorModalProps): React.ReactElement {
+  const insets = useSafeAreaInsets();
   const selectedDate = parseOverrideDate(form.overrideDate);
 
+  const [isMounted, setIsMounted] = React.useState(visible);
+  const backdropOpacity = useRef(new Animated.Value(0)).current;
+  const sheetTranslateY = useRef(new Animated.Value(480)).current;
+
+  useEffect(() => {
+    if (visible) {
+      setIsMounted(true);
+      backdropOpacity.setValue(0);
+      sheetTranslateY.setValue(480);
+      Animated.parallel([
+        Animated.timing(backdropOpacity, {
+          toValue: 1,
+          duration: 260,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.spring(sheetTranslateY, {
+          toValue: 0,
+          damping: 22,
+          stiffness: 260,
+          mass: 0.9,
+          useNativeDriver: true,
+        }),
+      ]).start();
+      return;
+    }
+
+    Animated.parallel([
+      Animated.timing(backdropOpacity, {
+        toValue: 0,
+        duration: 200,
+        easing: Easing.in(Easing.quad),
+        useNativeDriver: true,
+      }),
+      Animated.timing(sheetTranslateY, {
+        toValue: 480,
+        duration: 220,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start(({ finished }) => {
+      if (finished) {
+        setIsMounted(false);
+      }
+    });
+  }, [backdropOpacity, sheetTranslateY, visible]);
+
+  const handleBackdropPress = (): void => {
+    if (!isSaving) {
+      onClose();
+    }
+  };
+
+  if (!isMounted) {
+    return <></>;
+  }
+
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.overlay}
-      >
-        <Pressable style={styles.backdrop} onPress={onClose} />
-        <View style={styles.sheet}>
-          <View style={styles.handle} />
-          <Text style={styles.title}>{isEdit ? 'Change day off' : 'Add day off'}</Text>
-
-          <DatePickerField
-            label="Which day?"
-            value={selectedDate}
-            onChange={(date) => {
-              const year = date.getFullYear();
-              const month = String(date.getMonth() + 1).padStart(2, '0');
-              const day = String(date.getDate()).padStart(2, '0');
-              onChange({ overrideDate: `${year}-${month}-${day}` });
-            }}
-            minimumDate={new Date()}
-            accessibilityLabel="Day off date"
-            placeholder="Choose date"
+    <Modal
+      visible={isMounted}
+      transparent
+      animationType="none"
+      statusBarTranslucent
+      presentationStyle="overFullScreen"
+      onRequestClose={handleBackdropPress}
+    >
+      <View style={styles.root}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Close day off form"
+          onPress={handleBackdropPress}
+          disabled={isSaving}
+          style={StyleSheet.absoluteFill}
+        >
+          <Animated.View
+            pointerEvents="none"
+            style={[styles.backdrop, { opacity: backdropOpacity }]}
           />
+        </Pressable>
 
-          <View style={styles.timeRow}>
-            <View style={styles.timeCol}>
-              <Text style={styles.fieldLabel}>From</Text>
-              <TimeSelectField
-                label="From time"
-                value={form.startTime}
-                onChange={(startTime) => onChange({ startTime })}
-              />
-            </View>
-            <View style={styles.timeCol}>
-              <Text style={styles.fieldLabel}>To</Text>
-              <TimeSelectField
-                label="To time"
-                value={form.endTime}
-                onChange={(endTime) => onChange({ endTime })}
-              />
-            </View>
-          </View>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.sheetWrap}
+          pointerEvents="box-none"
+        >
+          <Animated.View
+            style={[
+              styles.sheet,
+              {
+                paddingBottom: THEME.spacing[20] + insets.bottom,
+                transform: [{ translateY: sheetTranslateY }],
+              },
+            ]}
+          >
+            <View style={styles.handle} />
+            <Text style={styles.title}>{isEdit ? 'Change day off' : 'Add day off'}</Text>
+            <Text style={styles.subtitle}>
+              Clients will not be able to book you for this date and time.
+            </Text>
 
-          <View style={styles.actions}>
-            <Pressable
-              accessibilityRole="button"
-              onPress={onClose}
-              disabled={isSaving}
-              style={styles.cancelBtn}
-            >
-              <Text style={styles.cancelText}>Cancel</Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              onPress={onSave}
-              disabled={isSaving}
-              style={[styles.saveBtn, isSaving ? { opacity: 0.7 } : null]}
-            >
-              {isSaving ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text style={styles.saveText}>{isEdit ? 'Update' : 'Add'}</Text>
-              )}
-            </Pressable>
-          </View>
-        </View>
-      </KeyboardAvoidingView>
+            <DatePickerField
+              label="Which day?"
+              value={selectedDate}
+              onChange={(date) => {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                onChange({ overrideDate: `${year}-${month}-${day}` });
+              }}
+              minimumDate={new Date()}
+              accessibilityLabel="Day off date"
+              placeholder="Choose date"
+            />
+
+            <View style={styles.timeRow}>
+              <View style={styles.timeCol}>
+                <Text style={styles.fieldLabel}>From</Text>
+                <TimeSelectField
+                  label="From time"
+                  value={form.startTime}
+                  onChange={(startTime) => onChange({ startTime })}
+                  flexible
+                />
+              </View>
+              <View style={styles.timeCol}>
+                <Text style={styles.fieldLabel}>To</Text>
+                <TimeSelectField
+                  label="To time"
+                  value={form.endTime}
+                  onChange={(endTime) => onChange({ endTime })}
+                  flexible
+                />
+              </View>
+            </View>
+
+            <View style={styles.actions}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={onClose}
+                disabled={isSaving}
+                style={styles.cancelBtn}
+              >
+                <Text style={styles.cancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                onPress={onSave}
+                disabled={isSaving}
+                style={[styles.saveBtn, isSaving ? { opacity: 0.7 } : null]}
+              >
+                {isSaving ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.saveText}>{isEdit ? 'Update' : 'Add'}</Text>
+                )}
+              </Pressable>
+            </View>
+          </Animated.View>
+        </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
+  root: {
     flex: 1,
     justifyContent: 'flex-end',
   },
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(15,23,42,0.45)',
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(15, 23, 42, 0.58)',
+  },
+  sheetWrap: {
+    width: '100%',
   },
   sheet: {
     backgroundColor: '#FFFFFF',
@@ -133,8 +232,12 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     paddingHorizontal: THEME.spacing[20],
     paddingTop: THEME.spacing[12],
-    paddingBottom: THEME.spacing[28],
     gap: THEME.spacing[14],
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 24,
   },
   handle: {
     width: 40,
@@ -160,6 +263,7 @@ const styles = StyleSheet.create({
   },
   timeCol: {
     flex: 1,
+    minWidth: 0,
     gap: 6,
   },
   fieldLabel: {

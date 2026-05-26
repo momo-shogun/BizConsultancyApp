@@ -17,6 +17,8 @@ export interface TimeSelectFieldProps {
   onChange: (value: string) => void;
   label: string;
   disabled?: boolean;
+  /** Fill parent width in row layouts (weekly hours). */
+  flexible?: boolean;
 }
 
 export function TimeSelectField({
@@ -24,6 +26,7 @@ export function TimeSelectField({
   onChange,
   label,
   disabled = false,
+  flexible = false,
 }: TimeSelectFieldProps): React.ReactElement {
   const [open, setOpen] = useState(false);
 
@@ -42,6 +45,7 @@ export function TimeSelectField({
         onPress={() => setOpen(true)}
         style={({ pressed }) => [
           styles.trigger,
+          flexible ? styles.triggerFlexible : null,
           disabled ? styles.triggerDisabled : null,
           pressed && !disabled ? { opacity: 0.9 } : null,
         ]}
@@ -99,10 +103,15 @@ const styles = StyleSheet.create({
     minWidth: 108,
     paddingHorizontal: THEME.spacing[10],
     paddingVertical: 10,
-    borderRadius: 12,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F8FAFC',
+  },
+  triggerFlexible: {
+    flex: 1,
+    minWidth: 0,
+    width: '100%',
   },
   triggerDisabled: {
     opacity: 0.5,

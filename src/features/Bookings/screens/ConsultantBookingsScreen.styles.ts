@@ -7,7 +7,13 @@ const SLATE_LINE = '#E2E8F0';
 const SLATE_MUTED = '#64748B';
 
 export const styles = StyleSheet.create({
-  screen: {
+  screenRoot: {
+    flex: 1,
+  },
+  topChrome: {
+    width: '100%',
+  },
+  scrollView: {
     flex: 1,
     backgroundColor: CONSULTANT_BOOKINGS_CANVAS,
   },
@@ -23,83 +29,6 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: THEME.spacing[24],
     backgroundColor: CONSULTANT_BOOKINGS_CANVAS,
-  },
-  heroGradient: {
-    borderRadius: 20,
-    padding: THEME.spacing[16],
-    gap: THEME.spacing[12],
-  },
-  heroTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: THEME.spacing[12],
-  },
-  heroIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heroTextBlock: {
-    flex: 1,
-    gap: 4,
-  },
-  heroTitle: {
-    fontSize: THEME.typography.size[18],
-    fontWeight: '800',
-    color: THEME.colors.white,
-    letterSpacing: -0.3,
-  },
-  heroMeta: {
-    fontSize: THEME.typography.size[12],
-    color: 'rgba(255,255,255,0.9)',
-    lineHeight: 18,
-  },
-  tabRow: {
-    flexDirection: 'row',
-    gap: THEME.spacing[8],
-  },
-  tab: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    paddingHorizontal: THEME.spacing[10],
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.14)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.22)',
-  },
-  tabActive: {
-    backgroundColor: 'rgba(255,255,255,0.95)',
-    borderColor: 'rgba(255,255,255,0.95)',
-  },
-  tabText: {
-    fontSize: THEME.typography.size[12],
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.92)',
-  },
-  tabTextActive: {
-    color: '#047857',
-    fontWeight: '700',
-  },
-  tabCount: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: 'rgba(255,255,255,0.8)',
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 999,
-    overflow: 'hidden',
-  },
-  tabCountActive: {
-    color: '#047857',
-    backgroundColor: 'rgba(5,150,105,0.12)',
   },
   searchWrap: {
     flexDirection: 'row',

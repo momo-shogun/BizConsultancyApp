@@ -8,17 +8,23 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import LinearGradient from 'react-native-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { ConsultantBookingCard } from '@/features/Bookings/components/ConsultantBookingCard';
+import { ConsultantBookingsFilterTabs } from '@/features/Bookings/components/ConsultantBookingsFilterTabs';
 import { CustomerProfileSheet } from '@/features/Bookings/components/CustomerProfileSheet';
 import { useConsultantBookingsScreen } from '@/features/Bookings/hooks/useConsultantBookingsScreen';
 import type { ConsultantSelfBooking } from '@/features/Bookings/types/consultantSelfBooking.types';
 import { CallController } from '@/features/Calls/controllers/CallController';
-import { PROFILE_HEADER_GRADIENT } from '@/features/Profile/constants/profileScreenTheme';
+import {
+  PROFILE_HEADER_GRADIENT,
+  PROFILE_HEADER_STATUS_BAR,
+} from '@/features/Profile/constants/profileScreenTheme';
 import { THEME } from '@/constants/theme';
 import { ROUTES } from '@/navigation/routeNames';
 import type { AccountStackParamList } from '@/navigation/types';
@@ -44,7 +50,23 @@ function BookingSkeleton(): React.ReactElement {
 
 export function ConsultantBookingsScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const screen = useConsultantBookingsScreen();
+
+  const topChrome = (
+    <LinearGradient
+      colors={[...PROFILE_HEADER_GRADIENT]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={[styles.topChrome, { paddingTop: insets.top }]}
+    >
+      <ScreenHeader
+        title="Bookings"
+        onBackPress={() => navigation.goBack()}
+        headerColor="transparent"
+      />
+    </LinearGradient>
+  );
 
   const handleStartCall = useCallback(
     async (booking: ConsultantSelfBooking): Promise<void> => {
@@ -63,10 +85,16 @@ export function ConsultantBookingsScreen(): React.ReactElement {
 
   if (screen.isLoading) {
     return (
-      <SafeAreaWrapper edges={['top', 'bottom']} bgColor={CONSULTANT_BOOKINGS_CANVAS}>
-        <ScreenHeader title="Bookings" onBackPress={() => navigation.goBack()} />
+      <SafeAreaWrapper
+        edges={['bottom']}
+        bgColor={PROFILE_HEADER_STATUS_BAR}
+        contentBgColor={CONSULTANT_BOOKINGS_CANVAS}
+        statusBarStyle="light-content"
+        style={styles.screenRoot}
+      >
+        {topChrome}
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color={THEME.colors.primary} />
+          <ActivityIndicator size="large" color="#059669" />
         </View>
       </SafeAreaWrapper>
     );
@@ -75,11 +103,17 @@ export function ConsultantBookingsScreen(): React.ReactElement {
   const isUpcoming = screen.filter === 'upcoming';
 
   return (
-    <SafeAreaWrapper edges={['top', 'bottom']} bgColor={CONSULTANT_BOOKINGS_CANVAS}>
-      <ScreenHeader title="Bookings" onBackPress={() => navigation.goBack()} />
+    <SafeAreaWrapper
+      edges={['bottom']}
+      bgColor={PROFILE_HEADER_STATUS_BAR}
+      contentBgColor={CONSULTANT_BOOKINGS_CANVAS}
+      statusBarStyle="light-content"
+      style={styles.screenRoot}
+    >
+      {topChrome}
 
       <ScrollView
-        style={styles.screen}
+        style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -87,52 +121,16 @@ export function ConsultantBookingsScreen(): React.ReactElement {
           <RefreshControl
             refreshing={screen.isRefreshing}
             onRefresh={screen.refresh}
-            tintColor={THEME.colors.primary}
+            tintColor="#059669"
           />
         }
       >
-        <LinearGradient
-          colors={[...PROFILE_HEADER_GRADIENT]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.heroGradient}
-        >
-          <View style={styles.heroTop}>
-            <View style={styles.heroIconWrap}>
-              <Ionicons name="calendar-outline" size={24} color="#FFFFFF" />
-            </View>
-            <View style={styles.heroTextBlock}>
-              <Text style={styles.heroTitle}>Your bookings</Text>
-              <Text style={styles.heroMeta}>
-                Manage client sessions, view details, and start confirmed calls.
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.tabRow}>
-            {(['upcoming', 'past'] as const).map((tab) => {
-              const active = screen.filter === tab;
-              const label = tab === 'upcoming' ? 'Upcoming' : 'Past';
-              const count = tab === 'upcoming' ? screen.upcomingCount : screen.pastCount;
-              return (
-                <Pressable
-                  key={tab}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: active }}
-                  onPress={() => screen.setFilter(tab)}
-                  style={[styles.tab, active ? styles.tabActive : null]}
-                >
-                  <Text style={[styles.tabText, active ? styles.tabTextActive : null]}>
-                    {label}
-                  </Text>
-                  <Text style={[styles.tabCount, active ? styles.tabCountActive : null]}>
-                    {count}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </LinearGradient>
+        <ConsultantBookingsFilterTabs
+          filter={screen.filter}
+          upcomingCount={screen.upcomingCount}
+          pastCount={screen.pastCount}
+          onFilterChange={screen.setFilter}
+        />
 
         <View style={styles.searchWrap}>
           <Ionicons name="search-outline" size={18} color="#64748B" />
@@ -169,7 +167,12 @@ export function ConsultantBookingsScreen(): React.ReactElement {
           </View>
         ) : null}
 
-        <View style={styles.listBlock}>
+        <Animated.View
+          key={screen.filter}
+          entering={FadeIn.duration(220)}
+          exiting={FadeOut.duration(160)}
+          style={styles.listBlock}
+        >
           {screen.isRefreshing && screen.visibleBookings.length === 0 ? (
             <>
               <BookingSkeleton />
@@ -202,7 +205,7 @@ export function ConsultantBookingsScreen(): React.ReactElement {
               />
             ))
           )}
-        </View>
+        </Animated.View>
 
         {screen.totalPages > 1 ? (
           <View style={styles.pagination}>
