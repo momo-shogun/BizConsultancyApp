@@ -14,6 +14,7 @@ import {
   useGetMasterCategoriesQuery,
   useGetMasterSegmentsQuery,
 } from '@/features/consultant/api/consultantApi';
+import type { MasterDataItem } from '@/features/consultant/types/masterData.types';
 import {
   buildExpertConsultationSections,
   toMasterCategoryRefs,
@@ -28,7 +29,6 @@ import { ExpertConsultationSegmentCard } from './components/ExpertConsultationSe
 type Props = {
   backgroundColor: string;
   accentColor: string;
-  onBookConsultationPress?: () => void;
 };
 
 const LOADING_SECTION_COUNT = 2;
@@ -36,7 +36,6 @@ const LOADING_SECTION_COUNT = 2;
 export function ExpertConsultation({
   backgroundColor,
   accentColor,
-  onBookConsultationPress,
 }: Props): React.ReactElement {
   const contentOpacity = useRef(new Animated.Value(0)).current;
   const contentTranslate = useRef(new Animated.Value(12)).current;
@@ -62,10 +61,22 @@ export function ExpertConsultation({
     return buildExpertConsultationSections(categories, segments);
   }, [categoriesRaw, segments]);
 
-  const onSegmentPress = useCallback((): void => {
-    if (navigationRef.isReady()) {
-      navigationRef.navigate(ROUTES.Root.ConsultantsList);
+  const onBookConsultationPress = useCallback((): void => {
+    if (!navigationRef.isReady()) {
+      return;
     }
+    navigationRef.navigate(ROUTES.Root.ConsultantsList);
+  }, []);
+
+  const onSegmentPress = useCallback((segment: MasterDataItem, categoryId: number): void => {
+    if (!navigationRef.isReady()) {
+      return;
+    }
+    const resolvedCategoryId = segment.categoryId ?? segment.category?.id ?? categoryId;
+    navigationRef.navigate(ROUTES.Root.ConsultantsList, {
+      categoryId: resolvedCategoryId,
+      segmentId: segment.id,
+    });
   }, []);
 
   useEffect(() => {
@@ -209,6 +220,7 @@ export function ExpertConsultation({
                     item={item}
                     accentColor={accentColor}
                     categorySlug={categorySlug}
+                    categoryId={section.category.id}
                     onPress={onSegmentPress}
                   />
                 )}

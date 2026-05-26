@@ -20,7 +20,8 @@ export interface ExpertConsultationSegmentCardProps {
   item: MasterDataItem;
   accentColor: string;
   categorySlug: string;
-  onPress?: () => void;
+  categoryId: number;
+  onPress?: (segment: MasterDataItem, categoryId: number) => void;
 }
 
 function hexToRgba(hex: string, alpha: number): string {
@@ -40,7 +41,7 @@ function hexToRgba(hex: string, alpha: number): string {
 export function ExpertConsultationSegmentCard(
   props: ExpertConsultationSegmentCardProps,
 ): React.ReactElement {
-  const { item, accentColor, categorySlug, onPress } = props;
+  const { item, accentColor, categorySlug, categoryId, onPress } = props;
   const slug = item.slug?.trim() ?? String(item.id);
   const imageUri = useMemo(
     () => resolveAwsImageUrl(item.thumbnail ?? null),
@@ -54,7 +55,7 @@ export function ExpertConsultationSegmentCard(
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`${item.name}. Consult now.`}
-      onPress={onPress}
+      onPress={onPress != null ? () => onPress(item, categoryId) : undefined}
       disabled={onPress == null}
       style={({ pressed }) => [styles.card, pressed ? styles.cardPressed : null]}
     >

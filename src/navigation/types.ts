@@ -65,7 +65,10 @@ export type AppTabParamList = {
 export type RootStackParamList = {
   [ROUTES.Root.Auth]: NavigatorScreenParams<AuthStackParamList>;
   [ROUTES.Root.App]: NavigatorScreenParams<AppTabParamList>;
-  [ROUTES.Root.ConsultantsList]: undefined;
+  [ROUTES.Root.ConsultantsList]: {
+    categoryId?: number;
+    segmentId?: number;
+  } | undefined;
   [ROUTES.Root.ConsultantDetail]: { slug: string };
   [ROUTES.Root.Wallet]: undefined;
   [ROUTES.Root.WalletTransactions]: undefined;
