@@ -32,6 +32,7 @@ interface AuthContextValue {
     userType: 'user' | 'consultant';
     authIntent: 'login' | 'signup';
   }) => void;
+  clearAccountContext: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -80,14 +81,19 @@ export function AuthProvider(props: React.PropsWithChildren): React.ReactElement
     [dispatch],
   );
 
+  const clearAccountContext = useCallback((): void => {
+    dispatchFlow({ type: 'AUTH/CLEAR_FLOW' });
+  }, []);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       flow,
       completeOnboarding,
       logout,
       selectAccountContext,
+      clearAccountContext,
     }),
-    [flow, completeOnboarding, logout, selectAccountContext],
+    [flow, completeOnboarding, logout, selectAccountContext, clearAccountContext],
   );
 
   return <AuthContext.Provider value={value}>{props.children}</AuthContext.Provider>;
@@ -105,6 +111,7 @@ export function useAuth(): {
     userType: 'user' | 'consultant';
     authIntent: 'login' | 'signup';
   }) => void;
+  clearAccountContext: () => void;
 } {
   const context = useContext(AuthContext);
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
@@ -123,5 +130,6 @@ export function useAuth(): {
     completeOnboarding: context.completeOnboarding,
     logout: context.logout,
     selectAccountContext: context.selectAccountContext,
+    clearAccountContext: context.clearAccountContext,
   };
 }

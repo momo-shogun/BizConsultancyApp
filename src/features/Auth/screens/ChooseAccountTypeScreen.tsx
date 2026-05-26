@@ -145,8 +145,11 @@ export function ChooseAccountTypeScreen(): React.ReactElement {
   const { selectAccountContext } = useAuth();
 
   const next = route.params.next ?? 'login';
+  const skipAutoSelect = route.params.skipAutoSelect === true;
   const preferredRole = useAppSelector(selectPreferredAccountRole);
-  const [role, setRole] = useState<Role | null>(null);
+  const [role, setRole] = useState<Role | null>(
+    skipAutoSelect ? preferredRole : null,
+  );
   const didAutoNavigate = useRef(false);
 
   const subtitleMaxWidth = Math.min(400, windowWidth - 40);
@@ -167,12 +170,12 @@ export function ChooseAccountTypeScreen(): React.ReactElement {
   );
 
   useEffect(() => {
-    if (preferredRole == null || didAutoNavigate.current) {
+    if (skipAutoSelect || preferredRole == null || didAutoNavigate.current) {
       return;
     }
     didAutoNavigate.current = true;
     choose(preferredRole);
-  }, [choose, preferredRole]);
+  }, [choose, preferredRole, skipAutoSelect]);
 
   const onContinue = useCallback((): void => {
     if (role != null) {

@@ -1,5 +1,5 @@
-import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import React, { useEffect } from 'react';
+import { BackHandler, StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
@@ -10,6 +10,7 @@ import { establishGuestSession } from '@/features/Auth/store/authSlice';
 import { useAppDispatch } from '@/store/typedHooks';
 import { Button, EmptyState, ScreenWrapper, SafeAreaWrapper } from '@/shared/components';
 import { useLoginFlow } from '@/features/Auth/hooks/useLoginFlow';
+import { useNavigateToChooseRole } from '@/features/Auth/hooks/useNavigateToChooseRole';
 import { LoginScreenContent as UserLoginScreenContent } from '@/features/Auth/User/screens/LoginScreenContent';
 import { LoginScreenContent as ConsultantLoginScreenContent } from '@/features/Auth/Consultant/screens/LoginScreenContent';
 
@@ -20,6 +21,18 @@ export function LoginScreen(): React.ReactElement {
   const dispatch = useAppDispatch();
   const { state } = useAuth();
   const { submitMobile, isLoading, error } = useLoginFlow();
+  const onBackToChooseRole = useNavigateToChooseRole('login');
+
+  useEffect(() => {
+    if (!state.userType) {
+      return undefined;
+    }
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      onBackToChooseRole();
+      return true;
+    });
+    return () => subscription.remove();
+  }, [onBackToChooseRole, state.userType]);
 
   const onSkip = (): void => {
     dispatch(
@@ -57,7 +70,7 @@ export function LoginScreen(): React.ReactElement {
     <UserLoginScreenContent
       onContinue={onContinue}
       onSkip={onSkip}
-      onBackPress={() => navigation.goBack()}
+      onBackPress={onBackToChooseRole}
       isSubmitting={isLoading}
       errorMessage={error}
     />
@@ -65,7 +78,7 @@ export function LoginScreen(): React.ReactElement {
     <ConsultantLoginScreenContent
       onContinue={onContinue}
       onSkip={onSkip}
-      onBackPress={() => navigation.goBack()}
+      onBackPress={onBackToChooseRole}
       isSubmitting={isLoading}
       errorMessage={error}
     />
