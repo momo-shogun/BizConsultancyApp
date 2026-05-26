@@ -24,6 +24,10 @@ export type EdpStackParamList = {
   [ROUTES.Edp.Main]: undefined;
   [ROUTES.Edp.Modules]: undefined;
   [ROUTES.Edp.ModuleDetail]: undefined;
+  [ROUTES.Edp.OverviewVideo]: {
+    title: string;
+    videoUrl: string;
+  };
 };
 
 export type AccountStackParamList = {

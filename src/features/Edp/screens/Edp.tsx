@@ -1,67 +1,42 @@
-import React, { useMemo } from 'react';
-import { useNavigation } from '@react-navigation/native';
-import type { NavigationProp } from '@react-navigation/native';
-import { Pressable, Text, View } from 'react-native';
+import React from 'react';
+import { View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-import { ROUTES } from '@/navigation/routeNames';
-import type { EdpStackParamList } from '@/navigation/types';
-import FAQSection from '@/features/Services/screens/components/faq/faq';
 import {
   EdpLearningJourneyCard,
-  EdpMetricCard,
-  EdpModuleCard,
   EdpProgressCard,
   EdpSectionHeader,
-  EdpStatsStrip,
   SafeAreaWrapper,
   ScreenHeader,
 } from '@/shared/components';
 
-import { useBizAIScrollReporter } from '@/features/BizAI/hooks/useBizAIScrollReporter';
-
+import { EdpCurriculumSection } from '../components/landing/EdpCurriculumSection';
+import { EdpFaqSection } from '../components/landing/EdpFaqSection';
+import { EdpLandingCtaSection } from '../components/landing/EdpLandingCtaSection';
+import { EdpProgrammeOverviewSection } from '../components/landing/EdpProgrammeOverviewSection';
+import { EdpStatsStripBlock } from '../components/landing/EdpStatsStripBlock';
+import { landingStyles } from '../components/landing/EdpLandingSection.styles';
 import { EdpHeroSection } from '../components/EdpHeroSection';
 import {
   EDP_ACCENT_GREEN,
-  EDP_FAQ_ITEMS,
   EDP_HERO_BG,
   EDP_JOURNEY_STEPS,
-  EDP_METRIC_ITEMS,
-  EDP_MODULE_ITEMS,
   EDP_PROGRESS_META,
-  EDP_STRIP_STATS,
 } from '../data/edpLandingData';
+import { useEdpLandingScreen } from '../hooks/useEdpLandingScreen';
 import { styles } from './EDPScreen.styles';
 
 export interface EDPScreenProps {
   onContinueLearning?: () => void;
   onTalkToExpert?: () => void;
-  onModulePress?: (moduleId: string) => void;
+  onModulePress?: (moduleSlug: string) => void;
   onViewAllModules?: () => void;
 }
 
-export default function EDPScreen({
-  onContinueLearning,
-  onTalkToExpert,
-  onModulePress,
-  onViewAllModules,
-}: EDPScreenProps): React.ReactElement {
-  const navigation = useNavigation<NavigationProp<EdpStackParamList>>();
-  const onBizAiScroll = useBizAIScrollReporter();
-
-  const onGetStarted = (): void => {
-    navigation.navigate(ROUTES.Edp.Modules);
-  };
-
-  const edpFaqs = useMemo(
-    () => ({
-      faqs: EDP_FAQ_ITEMS.map((item) => ({
-        question: item.question,
-        answer: item.answer,
-      })),
-    }),
-    [],
-  );
+export default function EDPScreen(props: EDPScreenProps): React.ReactElement {
+  const { onBizAiScroll, courses, faqs, onGetStarted, openModules } = useEdpLandingScreen({
+    onViewAllModules: props.onViewAllModules,
+  });
 
   return (
     <SafeAreaWrapper edges={['top']} bgColor={EDP_HERO_BG} statusBarStyle="light-content">
@@ -76,7 +51,7 @@ export default function EDPScreen({
         >
           <EdpHeroSection onGetStarted={onGetStarted} />
 
-          <EdpStatsStrip items={EDP_STRIP_STATS} />
+          <EdpStatsStripBlock isLoading={courses.isLoading} items={courses.stripStats} />
 
           <EdpProgressCard
             title="Your learning progress"
@@ -88,64 +63,34 @@ export default function EDPScreen({
             meta={EDP_PROGRESS_META}
           />
 
-          <View style={styles.section}>
-            <EdpSectionHeader title="Programme overview" count={EDP_METRIC_ITEMS.length} />
-            <View style={styles.statGrid}>
-              {EDP_METRIC_ITEMS.map((item) => (
-                <EdpMetricCard key={item.label} item={item} />
-              ))}
-            </View>
-          </View>
+          <EdpProgrammeOverviewSection
+            isLoading={courses.isLoading}
+            items={courses.metricItems}
+          />
 
-          <View style={styles.section}>
-            <EdpSectionHeader
-              title="Curriculum"
-              count={EDP_MODULE_ITEMS.length}
-              onAction={onViewAllModules}
-              actionLabel="View all"
-            />
-            {EDP_MODULE_ITEMS.map((item) => (
-              <EdpModuleCard
-                key={item.id}
-                item={item}
-                onPress={() => onModulePress?.(item.id)}
-              />
-            ))}
-          </View>
+          <EdpCurriculumSection
+            isLoading={courses.isLoading}
+            isEmpty={courses.isCurriculumEmpty}
+            modules={courses.curriculumModules}
+            onViewAll={openModules}
+          />
 
-          <View style={styles.section}>
+          <View style={landingStyles.section}>
             <EdpSectionHeader title="Learning journey" />
             <EdpLearningJourneyCard steps={EDP_JOURNEY_STEPS} />
           </View>
 
-          <View style={styles.section}>
-            <EdpSectionHeader title="Quick answers" count={EDP_FAQ_ITEMS.length} />
-            <FAQSection
-              faqs={edpFaqs}
-              variant="embedded"
-              showHeader={false}
-              initialActiveIndex={null}
-            />
-          </View>
+          <EdpFaqSection
+            isLoading={faqs.isLoading}
+            isEmpty={faqs.isEmpty}
+            faqs={faqs.faqs}
+            count={faqs.count}
+          />
 
-          <View style={styles.ctaSection}>
-            <Pressable
-              onPress={onContinueLearning}
-              style={styles.ctaPrimary}
-              accessibilityRole="button"
-              accessibilityLabel="Continue learning"
-            >
-              <Text style={styles.ctaPrimaryText}>Continue learning</Text>
-            </Pressable>
-            <Pressable
-              onPress={onTalkToExpert}
-              style={styles.ctaSecondary}
-              accessibilityRole="button"
-              accessibilityLabel="Talk to an expert"
-            >
-              <Text style={styles.ctaSecondaryText}>Talk to an expert</Text>
-            </Pressable>
-          </View>
+          <EdpLandingCtaSection
+            onContinueLearning={props.onContinueLearning}
+            onTalkToExpert={props.onTalkToExpert}
+          />
         </Animated.ScrollView>
       </View>
     </SafeAreaWrapper>

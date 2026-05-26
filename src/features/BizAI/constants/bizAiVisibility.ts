@@ -14,7 +14,7 @@ export const BIZ_AI_VISIBLE_TAB_ROUTES: readonly string[] = [
  */
 export const BIZ_AI_HIDDEN_NESTED_ROUTES: Readonly<Record<string, readonly string[]>> = {
   [ROUTES.App.Services]: [ROUTES.Services.Detail, ROUTES.Services.Onboarding],
-  [ROUTES.App.Edp]: [ROUTES.Edp.Modules, ROUTES.Edp.ModuleDetail],
+  [ROUTES.App.Edp]: [ROUTES.Edp.Modules, ROUTES.Edp.ModuleDetail, ROUTES.Edp.OverviewVideo],
   [ROUTES.App.Account]: [
     ROUTES.Account.HelpSettings,
     ROUTES.Account.Membership,
