@@ -22,6 +22,8 @@ export const BIZ_AI_HIDDEN_NESTED_ROUTES: Readonly<Record<string, readonly strin
     ROUTES.Account.ConsultantBankDetailsScreen,
     ROUTES.Account.ExpertVideosScreen,
     ROUTES.Account.TransactionHis,
+    ROUTES.Account.ConsultantWallet,
+    ROUTES.Account.ConsultantWithdrawals,
     ROUTES.Account.CreditsScreen,
     ROUTES.Account.addReview,
     ROUTES.Account.userGuide,

@@ -27,7 +27,7 @@ export const CONSULTANT_HELP_SETTINGS_SECTIONS: SettingsSectionConfig[] = [
         iconColor: '#059669',
         iconBgColor: 'rgba(5,150,105,0.10)',
         title: 'My Wallet',
-        subtitle: 'Check wallet balance & history',
+        subtitle: 'Balance, withdrawals & earnings',
       },
       {
         id: 'bizCredits',

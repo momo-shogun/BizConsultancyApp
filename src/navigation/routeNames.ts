@@ -50,6 +50,8 @@ export const ROUTES = {
     ConsultantBankDetailsScreen: 'App/Account/ConsultantBankDetailsScreen',
     ExpertVideosScreen: 'App/Account/ExpertVideosScreen',
     TransactionHis: 'App/Account/TransactionHistory',
+    ConsultantWallet: 'App/Account/ConsultantWallet',
+    ConsultantWithdrawals: 'App/Account/ConsultantWithdrawals',
     CreditsScreen: 'App/Account/CreditsScreen',
     addReview: 'App/Account/AddReviewScreen',
     userGuide: 'App/Account/UserGuideScreen',

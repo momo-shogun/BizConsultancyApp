@@ -12,8 +12,10 @@ import { accountStackScreenOptions } from './accountStackScreenOptions';
 import { ConsultantBankDetailsScreen } from '@/features/Profile/screens/Consultant/Consultantbankdetailsscreen ';
 import { ExpertVideosScreen } from '@/features/Profile/screens/Consultant/Expertvideosscreen';
 import { ConsultantEditProfileScreen } from '@/features/Profile/screens/Consultant/ConsultantEditProfileScreen';
-import TransactionHistory from '@/features/Profile/screens/Consultant/TransactionHistory';
 import CreditsScreen from '@/features/Profile/screens/Consultant/CreditsScreen';
+import { ConsultantWalletScreen } from '@/features/Wallet/screens/ConsultantWalletScreen';
+import { ConsultantWithdrawalsScreen } from '@/features/Wallet/screens/ConsultantWithdrawalsScreen';
+import { ConsultantWalletTransactionsScreen } from '@/features/Wallet/screens/ConsultantWalletTransactionsScreen';
 import { MyDiagnosticPackScreen } from '@/features/Diagnostics/screens/MyDiagnosticPackScreen';
 import UserGuideScreen from '@/features/Profile/screens/User/UserGuideScreen';
 
@@ -55,9 +57,19 @@ export function ConsultantAccountStackNavigator(): React.ReactElement {
         component={ConsultantEditProfileScreen}
         options={{ headerShown: false }}
       />
-       <Stack.Screen
+      <Stack.Screen
+        name={ROUTES.Account.ConsultantWallet}
+        component={ConsultantWalletScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name={ROUTES.Account.ConsultantWithdrawals}
+        component={ConsultantWithdrawalsScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
         name={ROUTES.Account.TransactionHis}
-        component={TransactionHistory}
+        component={ConsultantWalletTransactionsScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen

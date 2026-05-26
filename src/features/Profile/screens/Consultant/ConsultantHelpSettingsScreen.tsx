@@ -11,7 +11,6 @@ import {
   HELP_SETTINGS_CANVAS,
   helpSettingsStyles,
 } from '@/features/Profile/components/helpSettings/helpSettings.styles';
-import { navigationRef } from '@/navigation/RootNavigator';
 import { ROUTES } from '@/navigation/routeNames';
 import type { AccountStackParamList } from '@/navigation/types';
 import { SafeAreaWrapper, ScreenHeader } from '@/shared/components';
@@ -43,7 +42,15 @@ export function ConsultantHelpSettingsScreen(
       return;
     }
     if (rowId === 'wallet') {
-      navigationRef.navigate(ROUTES.Root.Wallet);
+      navigation.navigate(ROUTES.Account.ConsultantWallet);
+      return;
+    }
+    if (rowId === 'withdrawals') {
+      navigation.navigate(ROUTES.Account.ConsultantWithdrawals);
+      return;
+    }
+    if (rowId === 'transactionHistory') {
+      navigation.navigate(ROUTES.Account.TransactionHis);
       return;
     }
     if (rowId === 'bankDetails') {

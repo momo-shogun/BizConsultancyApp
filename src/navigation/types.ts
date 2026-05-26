@@ -34,6 +34,8 @@ export type AccountStackParamList = {
   [ROUTES.Account.ConsultantBankDetailsScreen]: undefined;
   [ROUTES.Account.ExpertVideosScreen]: undefined;
   [ROUTES.Account.TransactionHis]: undefined;
+  [ROUTES.Account.ConsultantWallet]: undefined;
+  [ROUTES.Account.ConsultantWithdrawals]: undefined;
   [ROUTES.Account.CreditsScreen]: undefined;
   [ROUTES.Account.addReview]: undefined;
   [ROUTES.Account.userGuide]: undefined;

@@ -198,10 +198,16 @@ export function HomeDashboardScreen(): React.ReactElement {
   }, [navigation]);
 
   const onWalletPress = useCallback((): void => {
+    if (isConsultant) {
+      navigation.navigate(ROUTES.App.Account, {
+        screen: ROUTES.Account.ConsultantWallet,
+      });
+      return;
+    }
     if (navigationRef.isReady()) {
       navigationRef.navigate(ROUTES.Root.Wallet);
     }
-  }, []);
+  }, [isConsultant, navigation]);
 
   const onProfilePress = useCallback((): void => {
     navigation.navigate(ROUTES.App.Account, { screen: ROUTES.Account.Home });

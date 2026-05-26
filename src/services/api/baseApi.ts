@@ -148,6 +148,8 @@ export const baseApi = createApi({
     'UserProfile',
     'UserMembership',
     'ConsultantProfile',
+    'ConsultantWithdrawals',
+    'ConsultantWalletTransactions',
   ],
   endpoints: () => ({}),
 });

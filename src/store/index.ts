@@ -20,6 +20,8 @@ import '@/features/Home/api/workshopsApi';
 import '@/features/Home/api/workshopBookingsApi';
 import '@/features/Home/api/userWalletsApi';
 import '@/features/Wallet/api/walletApi';
+import '@/features/Wallet/api/consultantWithdrawalsApi';
+import '@/features/Wallet/api/consultantWalletTransactionsApi';
 import '@/features/Home/api/homePublicApi';
 import '@/features/Diagnostics/api/diagnosticsApi';
 import '@/features/Profile/api/userFeedbackApi';
