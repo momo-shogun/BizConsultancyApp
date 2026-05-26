@@ -21,7 +21,7 @@ import { ConsultantBookingsScreen } from '@/features/Bookings/screens/Consultant
 import { ConsultantSlotTimeScreen } from '@/features/ConsultantSlotTime/screens/ConsultantSlotTimeScreen';
 import { ApplyServiceScreen } from '@/features/MyServices/screens/ApplyServiceScreen';
 import { ConsultantMyServicesScreen } from '@/features/MyServices/screens/ConsultantMyServicesScreen';
-import { ConsultantLockersScreen } from '@/features/Profile/screens/Consultant/ConsultantLockersScreen';
+import { ConsultantDocumentVaultScreen } from '@/features/DocumentVault/screens/ConsultantDocumentVaultScreen';
 import { ConsultantExpertiseScreen } from '@/features/Profile/screens/Consultant/ConsultantExpertiseScreen';
 import { ConsultantReviewsScreen } from '@/features/Profile/screens/Consultant/ConsultantReviewsScreen';
 
@@ -110,7 +110,7 @@ export function ConsultantAccountStackNavigator(): React.ReactElement {
       />
       <Stack.Screen
         name={ROUTES.Account.ConsultantLockers}
-        component={ConsultantLockersScreen}
+        component={ConsultantDocumentVaultScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen

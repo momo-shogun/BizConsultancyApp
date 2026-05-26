@@ -151,6 +151,7 @@ export const baseApi = createApi({
     'ConsultantWithdrawals',
     'ConsultantWalletTransactions',
     'ConsultantSchedule',
+    'DocumentVault',
   ],
   endpoints: () => ({}),
 });
