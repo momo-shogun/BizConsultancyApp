@@ -15,6 +15,7 @@ import '@/features/Search/api/searchApi';
 import '@/features/Calls/api/callsApi';
 import '@/features/Consultation/api/consultantBookingsApi';
 import '@/features/Bookings/api/myConsultantBookingsApi';
+import '@/features/Bookings/api/consultantSelfBookingsApi';
 import '@/features/Edp/api/edpPurchasesApi';
 import '@/features/Home/api/workshopsApi';
 import '@/features/Home/api/workshopBookingsApi';
