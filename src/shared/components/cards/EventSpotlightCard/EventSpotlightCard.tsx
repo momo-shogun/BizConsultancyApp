@@ -405,7 +405,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 4,
-    backgroundColor: 'rgba(255, 214, 10, 0.95)',
+    backgroundColor: THEME.colors.primary,
   },
   tagPillCompact: {
     maxWidth: '47%',
@@ -414,7 +414,7 @@ const styles = StyleSheet.create({
   tagText: {
     fontSize: 11,
     fontWeight: '700',
-    color: TAG_TEXT,
+    color: 'white',
     flexShrink: 1,
   },
   body: {
