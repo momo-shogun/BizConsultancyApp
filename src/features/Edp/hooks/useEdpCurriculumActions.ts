@@ -20,6 +20,12 @@ export function useEdpCurriculumActions(): UseEdpCurriculumActionsResult {
 
   const onKnowMore = useCallback(
     (module: EdpCurriculumModule): void => {
+      const slug = module.slug.trim();
+      if (slug.length > 0 && !slug.startsWith('id-')) {
+        navigation.navigate(ROUTES.Edp.ModuleDetail, { slug, lang: 'en' });
+        return;
+      }
+
       const url = module.videoUrl?.trim();
       if (url == null || url.length === 0) {
         showGlobalToast({

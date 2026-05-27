@@ -7,16 +7,24 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { THEME } from '@/constants/theme';
 import { useGetEdpCoursesWithDocumentsQuery } from '@/features/Edp/api/edpLandingApi';
+import { useEdpModulesListProgress } from '@/features/Edp/hooks/useEdpModulesListProgress';
 import type { EdpFreeEdpModule } from '@/features/Edp/types/edpCourses.types';
+import { normalizeEdpModuleSlug } from '@/features/Edp/utils/edpCourseDetailsParsing';
 import { resolveIidAssetUrl } from '@/features/Edp/utils/edpMedia';
 import { ROUTES } from '@/navigation/routeNames';
 import type { EdpStackParamList } from '@/navigation/types';
 import { SafeAreaWrapper, ScreenHeader } from '@/shared/components';
 
+import {
+  EdpModulesListSkeleton,
+  EdpModulesSearchSkeleton,
+} from '@/features/Edp/components/EdpModuleCardSkeleton';
+
 import { styles } from './EDPModulesScreen.styles';
 
 interface ModuleCardItem {
   id: string;
+  slug: string;
   titleEn: string;
   titleHi: string;
   videos: number;
@@ -48,6 +56,7 @@ function toModuleCardItems(modules: EdpFreeEdpModule[] | undefined): ModuleCardI
       : 0;
     return {
       id: String(module.id),
+      slug: module.slug?.trim() ?? '',
       titleEn: nameEn.length > 0 ? nameEn : 'Module',
       titleHi: nameHi.length > 0 ? nameHi : nameEn,
       videos: module.e_videos_count ?? 0,
@@ -131,8 +140,19 @@ const EDPModulesScreen = ({ onBack, onOpenModule }: EDPModulesScreenProps): Reac
   const [query, setQuery] = useState<string>('');
   const navigation = useNavigation<NavigationProp<EdpStackParamList>>();
   const { data, isLoading, isError } = useGetEdpCoursesWithDocumentsQuery();
+  const { progressBySlug } = useEdpModulesListProgress(data?.freeEdps);
 
-  const modules = useMemo(() => toModuleCardItems(data?.freeEdps), [data?.freeEdps]);
+  const modules = useMemo(() => {
+    const items = toModuleCardItems(data?.freeEdps);
+    return items.map((item) => {
+      const slug = normalizeEdpModuleSlug(item.slug);
+      const tracked = progressBySlug[slug];
+      if (tracked == null) {
+        return item;
+      }
+      return { ...item, progressPercent: tracked.progressPercent };
+    });
+  }, [data?.freeEdps, progressBySlug]);
   const filteredModules = useMemo(() => {
     const search = query.trim().toLowerCase();
     if (search.length === 0) {
@@ -149,7 +169,13 @@ const EDPModulesScreen = ({ onBack, onOpenModule }: EDPModulesScreenProps): Reac
       onOpenModule(module.id);
       return;
     }
-    navigation.navigate(ROUTES.Edp.ModuleDetail);
+    if (module.slug.length === 0) {
+      return;
+    }
+    navigation.navigate(ROUTES.Edp.ModuleDetail, {
+      slug: normalizeEdpModuleSlug(module.slug),
+      lang: lang === 'HI' ? 'hi' : 'en',
+    });
   };
 
   return (
@@ -173,33 +199,37 @@ const EDPModulesScreen = ({ onBack, onOpenModule }: EDPModulesScreenProps): Reac
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.searchWrap}>
-            <Ionicons name="search" size={18} color={THEME.colors.textSecondary} />
-            <TextInput
-              value={query}
-              onChangeText={setQuery}
-              placeholder={lang === 'HI' ? 'मॉड्यूल खोजें...' : 'Search modules...'}
-              placeholderTextColor={THEME.colors.textSecondary}
-              style={styles.searchInput}
-            />
-            <Text style={styles.countText}>{filteredModules.length}</Text>
-          </View>
+          {isLoading ? (
+            <EdpModulesSearchSkeleton />
+          ) : (
+            <View style={styles.searchWrap}>
+              <Ionicons name="search" size={18} color={THEME.colors.textSecondary} />
+              <TextInput
+                value={query}
+                onChangeText={setQuery}
+                placeholder={lang === 'HI' ? 'मॉड्यूल खोजें...' : 'Search modules...'}
+                placeholderTextColor={THEME.colors.textSecondary}
+                style={styles.searchInput}
+              />
+              <Text style={styles.countText}>{filteredModules.length}</Text>
+            </View>
+          )}
 
-          <View style={styles.grid}>
-            {isLoading
-              ? Array.from({ length: 6 }).map((_, index) => (
-                  <View key={`edp-module-skeleton-${index}`} style={styles.skeletonCard} />
-                ))
-              : filteredModules.map((item, index) => (
-                  <ModuleCard
-                    key={item.id}
-                    item={item}
-                    index={index}
-                    lang={lang}
-                    onPress={() => handleOpenModule(item)}
-                  />
-                ))}
-          </View>
+          {isLoading ? (
+            <EdpModulesListSkeleton />
+          ) : (
+            <View style={styles.grid}>
+              {filteredModules.map((item, index) => (
+                <ModuleCard
+                  key={item.id}
+                  item={item}
+                  index={index}
+                  lang={lang}
+                  onPress={() => handleOpenModule(item)}
+                />
+              ))}
+            </View>
+          )}
 
           {!isLoading && isError ? (
             <View style={styles.messageCard}>

@@ -148,6 +148,8 @@ export const baseApi = createApi({
     'Diagnostics',
     'ConsultantBooking',
     'EdpPurchase',
+    'EdpModuleDetail',
+    'EdpModuleProgress',
     'UserProfile',
     'UserMembership',
     'ConsultantProfile',

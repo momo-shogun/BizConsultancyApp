@@ -23,7 +23,10 @@ export type ServicesStackParamList = {
 export type EdpStackParamList = {
   [ROUTES.Edp.Main]: undefined;
   [ROUTES.Edp.Modules]: undefined;
-  [ROUTES.Edp.ModuleDetail]: undefined;
+  [ROUTES.Edp.ModuleDetail]: {
+    slug: string;
+    lang?: 'en' | 'hi';
+  };
   [ROUTES.Edp.OverviewVideo]: {
     title: string;
     videoUrl: string;

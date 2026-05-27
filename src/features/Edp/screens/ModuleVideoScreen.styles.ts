@@ -1,523 +1,351 @@
-import { COLORS } from '@/constants/colors';
 import { StyleSheet, Dimensions } from 'react-native';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+export const SCREEN_WIDTH = Dimensions.get('window').width;
 
-export const THEME = {
-  colors: {
-    textPrimary: '#0B0F19',
-    textSecondary: '#5B6475',
-    textMuted: '#A0A8B8',
-    white: '#FFFFFF',
-    black: '#000000',
-    border: '#E5E7EF',
-    accentAmber: '#F59E0B',
-    accentGreen: '#34D399',
-    surface: '#F6F7FB',
-    brandDark: '#0B3D2C',
-    brandGreen: '#0F5132',
-    brandGreenLight: '#F1FAF5',
-    brandGreenBorder: '#d0ead8',
-  },
-  spacing: {
-    0: 0, 4: 4, 8: 8, 10: 10, 12: 12,
-    14: 14, 16: 16, 20: 20, 24: 24,
-  },
-  typography: {
-    size: { 10: 10, 11: 11, 12: 12, 13: 13, 14: 14, 16: 16, 18: 18, 20: 20 },
-    weight: {
-      regular: '400' as const,
-      medium: '500' as const,
-      semiBold: '600' as const,
-      bold: '700' as const,
-    },
-  },
-  radius: { sm: 8, md: 11, lg: 13, xl: 20, full: 999 },
-};
+/** YouTube-inspired neutrals + EDP brand accent for progress. */
+export const YT = {
+  black: '#000000',
+  white: '#FFFFFF',
+  bg: '#FFFFFF',
+  bgMuted: '#F9F9F9',
+  rowActive: '#F2F2F2',
+  text: '#0F0F0F',
+  textSecondary: '#606060',
+  textMuted: '#909090',
+  border: '#E5E5E5',
+  divider: '#ECECEC',
+  brand: '#0F5132',
+  brandSoft: '#E8F5EE',
+  progress: '#0D9488',
+  pdf: '#CC0000',
+  thumbBg: '#212121',
+  overlay: 'rgba(0,0,0,0.55)',
+} as const;
+
+export const PLAYER_HEIGHT = Math.round((SCREEN_WIDTH * 9) / 16);
 
 export const styles = StyleSheet.create({
-
-  // ─── Root ──────────────────────────────────────────────────────────────────
-  safeArea: {
+  root: {
     flex: 1,
-    backgroundColor: THEME.colors.brandDark,
-  },
-  scrollContent: {
-    paddingBottom: THEME.spacing[24],
-    backgroundColor: THEME.colors.white,
-  },
-
-  // ─── Status Bar ────────────────────────────────────────────────────────────
-  statusBar: {
-    backgroundColor: THEME.colors.brandDark,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: THEME.spacing[16],
-    paddingTop: THEME.spacing[12],
-    paddingBottom: THEME.spacing[8],
-  },
-  statusTime: {
-    fontSize: THEME.typography.size[12],
-    color: 'rgba(255,255,255,0.85)',
-    fontWeight: THEME.typography.weight.semiBold,
-  },
-  statusIcons: {
-    flexDirection: 'row',
-    gap: THEME.spacing[8],
-    alignItems: 'center',
-  },
-
-  // ─── Video Player ──────────────────────────────────────────────────────────
-  videoWrap: {
-    width: SCREEN_WIDTH,
-    height: SCREEN_WIDTH * 9 / 16,
-    backgroundColor: '#000',
+    backgroundColor: YT.bg,
     position: 'relative',
   },
-// styles mein ye update karo
+  scrollContent: {
+    paddingBottom: 32,
+    backgroundColor: YT.bg,
+  },
 
-controlBtn: {
-  width: 52,        // 36 → 52
-  height: 52,
-  borderRadius: 26,
-  borderWidth: 1.5,
-  borderColor: 'rgba(255,255,255,0.55)',
-  alignItems: 'center',
-  justifyContent: 'center',
-},
-controlBtnLg: {
-  width: 64,        // 44 → 64
-  height: 64,
-  borderRadius: 32,
-  borderWidth: 1.5,
-  borderColor: 'rgba(255,255,255,0.55)',
-  alignItems: 'center',
-  justifyContent: 'center',
-},
-backBtn: {
-  position: 'absolute',
-  top: 10,
-  left: 12,
-  zIndex: 10,
-  width: 30,
-  height: 30,
-  borderRadius: 15,
-  backgroundColor: 'rgba(0,0,0,0.5)',
-  alignItems: 'center',
-  justifyContent: 'center',
-},
-  videoPlaceholder: {
+  playerSection: {
+    width: SCREEN_WIDTH,
+    backgroundColor: YT.black,
+    position: 'relative',
+  },
+  statusBarSpacer: {
     width: '100%',
-    height: '100%',
-    backgroundColor: '#1c1c1c',
+    backgroundColor: YT.black,
+  },
+  videoWrap: {
+    width: SCREEN_WIDTH,
+    height: PLAYER_HEIGHT,
+    backgroundColor: YT.black,
+  },
+  videoLoader: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: YT.black,
+  },
+  videoEmptyText: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 14,
+    textAlign: 'center',
+    paddingHorizontal: 24,
+  },
+  playerBackBtn: {
+    position: 'absolute',
+    left: 12,
+    zIndex: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: YT.overlay,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  videoOverlay: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(0,0,0,0.32)',
+
+  content: {
+    paddingHorizontal: 16,
+    paddingTop: 14,
   },
-  videoTopBar: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0,
+  videoTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: YT.text,
+    lineHeight: 24,
+    letterSpacing: -0.2,
+  },
+  metaRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: THEME.spacing[14],
-    paddingTop: THEME.spacing[10],
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 10,
   },
-  videoTimestamp: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.75)',
-    fontWeight: THEME.typography.weight.medium,
-  },
-  videoControls: {
-    position: 'absolute',
-    top: '50%', left: '50%',
-    transform: [{ translateX: -65 }, { translateY: -22 }],
+  metaChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: THEME.spacing[20],
-  },
-  seekContainer: {
-    position: 'absolute',
-    bottom: 0, left: 0, right: 0,
-    paddingHorizontal: THEME.spacing[14],
-    paddingBottom: THEME.spacing[10],
-  },
-  seekTrack: {
-    height: 2.5,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 2,
-    marginBottom: THEME.spacing[4],
-  },
-
-  seekFill: {
-    height: '100%',
-    backgroundColor: THEME.colors.white,
-    borderRadius: 2,
-    position: 'relative',
-  },
-  seekDot: {
-    position: 'absolute',
-    right: -4, top: -3,
-    width: 9, height: 9, borderRadius: 5,
-    backgroundColor: THEME.colors.white,
-  },
-  seekLabels: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  seekLabelText: {
-    fontSize: THEME.typography.size[10],
-    color: 'rgba(255,255,255,0.5)',
-  },
-
-  // ─── Body ──────────────────────────────────────────────────────────────────
-  body: {
-    backgroundColor: THEME.colors.white,
-    paddingHorizontal: THEME.spacing[16],
-    paddingTop: THEME.spacing[16],
-  },
-  moduleTitle: {
-    fontSize: THEME.typography.size[16],
-    fontWeight: THEME.typography.weight.bold,
-    color: THEME.colors.textPrimary,
-    marginBottom: THEME.spacing[4],
-  },
-  moduleSub: {
-    fontSize: THEME.typography.size[12],
-    color: THEME.colors.textSecondary,
-    lineHeight: 18,
-    marginBottom: THEME.spacing[14],
-  },
-
-  // stat cards
-  statRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 10,
-    marginBottom: 4,
-  },
-  box: {
-    flex: 1,
-    borderRadius: 16,
-    padding: 14,
-  },
-  boxRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-    marginBottom: 4,
-  },
-  boxLabel: {
-    fontSize: 11,
-    color: '#888',
-    fontWeight: '500',
-    marginBottom: 3,
-  },
-  boxValue: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#1a1a1a',
-  },
-
-  divider: {
-    height: 0.5,
-    backgroundColor: THEME.colors.border,
-    marginVertical: THEME.spacing[14],
-  },
-
-  // ─── Supporting Materials ──────────────────────────────────────────────────
-  supportCard: {
-    backgroundColor: THEME.colors.white,
-    borderWidth: 0.5,
-    borderColor: THEME.colors.border,
-    borderRadius: THEME.radius.lg,
-    padding: THEME.spacing[12],
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: THEME.spacing[12],
-    marginBottom: THEME.spacing[16],
-    shadowColor: THEME.colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  supportIconWrap: {
-    width: 40, height: 40,
-    borderRadius: THEME.radius.sm,
-    backgroundColor: '#e76f51',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  supportInfo: { flex: 1 },
-  supportTitle: {
-    fontSize: THEME.typography.size[13],
-    fontWeight: THEME.typography.weight.semiBold,
-    color: THEME.colors.textPrimary,
-    marginBottom: 1,
-  },
-  supportSub: {
-    fontSize: THEME.typography.size[11],
-    color: THEME.colors.textSecondary,
-  },
-  downloadBtn: {
-    width: 30, height: 30,
-    borderRadius: THEME.radius.sm,
-    borderWidth: 0.5,
-    borderColor: THEME.colors.border,
-    alignItems: 'center', justifyContent: 'center',
-  },
-
-  // ─── Module Progress Bar ───────────────────────────────────────────────────
-  moduleProgressWrap: {
-    marginBottom: THEME.spacing[16],
-    paddingVertical: THEME.spacing[12],
-    paddingHorizontal: THEME.spacing[14],
-    backgroundColor: THEME.colors.surface,
-    borderRadius: THEME.radius.md,
-    borderWidth: 0.5,
-    borderColor: THEME.colors.border,
-  },
-  moduleProgressMeta: {
-    fontSize: THEME.typography.size[12],
-    color: THEME.colors.textSecondary,
-    marginBottom: THEME.spacing[8],
-  },
-  moduleProgressRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: THEME.spacing[8],
-  },
-  moduleProgressLabel: {
-    fontSize: THEME.typography.size[12],
-    color: THEME.colors.textSecondary,
-  },
-  moduleProgressTrack: {
-    flex: 1, height: 4,
-    backgroundColor: THEME.colors.border,
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: 999,
+    backgroundColor: YT.bgMuted,
+  },
+  metaChipText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: YT.textSecondary,
+  },
+  metaChipTextStrong: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: YT.text,
+  },
+
+  progressBlock: {
+    marginTop: 14,
+    paddingTop: 14,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: YT.divider,
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  progressLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: YT.text,
+  },
+  progressValue: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: YT.progress,
+  },
+  progressTrack: {
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: YT.border,
     overflow: 'hidden',
   },
-  moduleProgressFill: {
+  progressFill: {
     height: '100%',
-    backgroundColor: THEME.colors.brandGreen,
-    borderRadius: 999,
+    backgroundColor: YT.progress,
+    borderRadius: 2,
   },
-  moduleProgressPct: {
-    fontSize: THEME.typography.size[12],
-    fontWeight: THEME.typography.weight.semiBold,
-    color: THEME.colors.brandGreen,
-    minWidth: 28,
-    textAlign: 'right',
+  progressMeta: {
+    marginTop: 6,
+    fontSize: 12,
+    color: YT.textMuted,
   },
 
-  // ─── Section Header ────────────────────────────────────────────────────────
+  sectionDivider: {
+    height: 8,
+    backgroundColor: YT.bgMuted,
+    marginTop: 18,
+    marginHorizontal: -16,
+  },
   sectionHeader: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: THEME.spacing[12],
-  },
-  sectionLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: THEME.spacing[8],
-  },
-  sectionAccentBar: {
-    width: 4, height: 22, borderRadius: 2,
-    backgroundColor: THEME.colors.accentAmber,
+    paddingTop: 16,
+    paddingBottom: 8,
   },
   sectionTitle: {
-    fontSize: THEME.typography.size[20],
-    fontWeight: THEME.typography.weight.bold,
-    color: THEME.colors.textPrimary,
-    letterSpacing: -0.4,
+    fontSize: 16,
+    fontWeight: '600',
+    color: YT.text,
   },
-  sectionRight: {
+  sectionCount: {
+    fontSize: 13,
+    color: YT.textSecondary,
+  },
+
+  playlist: {
+    gap: 0,
+  },
+  playlistRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: THEME.spacing[8],
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    borderRadius: 8,
+    gap: 10,
   },
-  countBadge: {
-    paddingHorizontal: THEME.spacing[10],
-    paddingVertical: THEME.spacing[4],
-    borderRadius: THEME.radius.full,
-    backgroundColor: 'rgba(245,158,11,0.18)',
+  playlistRowActive: {
+    backgroundColor: YT.rowActive,
   },
-  countBadgeText: {
-    fontSize: THEME.typography.size[12],
-    color: THEME.colors.accentAmber,
-    fontWeight: THEME.typography.weight.semiBold,
+  playlistRowPressed: {
+    opacity: 0.85,
   },
-  progressRingWrap: { width: 20, height: 20 },
-
-  // ─── Lesson List container ─────────────────────────────────────────────────
-  lessonList: {
-    // no padding; cards handle their own spacing
+  activeIndicator: {
+    width: 3,
+    alignSelf: 'stretch',
+    borderRadius: 2,
+    backgroundColor: YT.brand,
+    marginRight: 2,
   },
-
-  // ─── OTT Lesson Card ───────────────────────────────────────────────────────
-  lessonCard: {
-    paddingTop: THEME.spacing[14],
-  },
-  lessonCardLast: {
-    paddingBottom: THEME.spacing[8],
-  },
-  lessonCardActive: {
-    // subtle left green bar effect via borderLeft not supported in RN;
-    // we use background tint below the nowPlayingPill instead
-  },
-
-  // "Now playing" green pill at top of active card
-  nowPlayingPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    marginBottom: THEME.spacing[8],
-  },
-  nowPlayingDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: THEME.colors.brandGreen,
-  },
-  nowPlayingText: {
-    fontSize: THEME.typography.size[11],
-    fontWeight: THEME.typography.weight.semiBold,
-    color: THEME.colors.brandGreen,
-    letterSpacing: 0.2,
-    textTransform: 'uppercase',
-  },
-
-  // Top row inside a card
-  lessonCardRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-  },
-
-  // Thumbnail
   thumbWrap: {
-    width: 100,
+    width: 120,
     height: 68,
-    borderRadius: 10,
+    borderRadius: 8,
     overflow: 'hidden',
+    backgroundColor: YT.thumbBg,
     flexShrink: 0,
-    position: 'relative',
   },
   thumbImage: {
     width: '100%',
     height: '100%',
   },
-  thumbPlaceholder: {
+  thumbFallback: {
     width: '100%',
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: YT.thumbBg,
   },
-  thumbPlayOverlay: {
-    ...StyleSheet.absoluteFill,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  thumbPlayBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.25)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.7)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  thumbPlayBtnActive: {
-    backgroundColor: THEME.colors.brandGreen,
-    borderColor: THEME.colors.brandGreen,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-  },
-  thumbLockOverlay: {
-    ...StyleSheet.absoluteFill,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.45)',
-  },
-  thumbDoneBadge: {
+  thumbDuration: {
     position: 'absolute',
-    top: 6,
-    right: 6,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: THEME.colors.brandGreen,
-    alignItems: 'center',
+    right: 4,
+    bottom: 4,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 4,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+  },
+  thumbDurationText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: YT.white,
+  },
+  rowBody: {
+    flex: 1,
+    minWidth: 0,
     justifyContent: 'center',
   },
-
-  // Info column
-  lessonCardInfo: {
-    flex: 1,
-    paddingTop: 2,
+  rowIndex: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: YT.textMuted,
+    marginBottom: 2,
   },
-  lessonCardTitle: {
-    fontSize: THEME.typography.size[13],
-    fontWeight: THEME.typography.weight.semiBold,
-    color: THEME.colors.textPrimary,
-    lineHeight: 18,
-    marginBottom: 5,
+  rowTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: YT.text,
+    lineHeight: 19,
   },
-  lessonCardTitleActive: {
-    color: THEME.colors.brandGreen,
+  rowTitleActive: {
+    color: YT.brand,
+    fontWeight: '600',
   },
-  lessonCardTitleLocked: {
-    color: THEME.colors.textMuted,
-    fontWeight: THEME.typography.weight.regular,
+  rowSub: {
+    marginTop: 3,
+    fontSize: 12,
+    color: YT.textSecondary,
   },
-  lessonCardMeta: {
-    fontSize: THEME.typography.size[11],
-    color: THEME.colors.textSecondary,
+  nowPlayingLabel: {
+    marginTop: 4,
+    fontSize: 11,
+    fontWeight: '600',
+    color: YT.brand,
   },
-
-  // Action button (download / lock)
-  lessonCardActionBtn: {
-    paddingTop: 4,
+  pdfBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
     flexShrink: 0,
   },
-  downloadCircle: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: THEME.colors.border,
+  pdfBtnDisabled: {
+    opacity: 0.35,
+  },
+
+  relatedSection: {
+    paddingTop: 8,
+    paddingBottom: 8,
+  },
+  relatedRow: {
+    paddingTop: 4,
+    paddingBottom: 12,
+    gap: 12,
+    paddingRight: 16,
+  },
+  relatedCard: {
+    width: 168,
+  },
+  relatedThumb: {
+    width: 168,
+    height: 94,
+    borderRadius: 8,
+    backgroundColor: YT.thumbBg,
+  },
+  relatedThumbFallback: {
+    width: 168,
+    height: 94,
+    borderRadius: 8,
+    backgroundColor: YT.bgMuted,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  downloadArrow: {
-    fontSize: 14,
-    color: THEME.colors.textSecondary,
-    fontWeight: THEME.typography.weight.semiBold,
+  relatedInfo: {
+    flex: 1,
+    minWidth: 0,
+    paddingTop: 2,
   },
-
-  // Description
-  lessonCardDesc: {
-    fontSize: THEME.typography.size[12],
-    color: THEME.colors.textSecondary,
+  relatedTitle: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: YT.text,
     lineHeight: 18,
-    marginTop: THEME.spacing[8],
   },
-  lessonCardDescLocked: {
-    color: THEME.colors.textMuted,
-    opacity: 0.7,
+  relatedMeta: {
+    marginTop: 4,
+    fontSize: 12,
+    color: YT.textSecondary,
   },
 
-  // Divider between cards
-  lessonCardDivider: {
-    height: 0.5,
-    backgroundColor: THEME.colors.border,
-    marginTop: THEME.spacing[14],
+  centerState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    backgroundColor: YT.bg,
+    gap: 12,
+  },
+  centerStateTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: YT.text,
+    textAlign: 'center',
+  },
+  centerStateSub: {
+    fontSize: 14,
+    color: YT.textSecondary,
+    textAlign: 'center',
+  },
+  retryBtn: {
+    marginTop: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: YT.brand,
+  },
+  retryBtnText: {
+    color: YT.white,
+    fontWeight: '600',
+    fontSize: 14,
   },
 });
