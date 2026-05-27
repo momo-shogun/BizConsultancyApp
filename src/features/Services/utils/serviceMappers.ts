@@ -426,7 +426,6 @@ export function mapPublicServiceToCardItem(item: PublicServiceListItem): Recomme
     summary: extractSummary(item),
     priceLabel: formatServicePrice(item.price, item.isGstIncluded),
     badgeLabel: featureCount > 0 ? `${featureCount} inclusions` : undefined,
-    headerStyleIndex: (item.position ?? item.id) % 5 as 0 | 1 | 2 | 3 | 4,
   };
 }
 

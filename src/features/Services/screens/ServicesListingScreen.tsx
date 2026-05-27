@@ -246,10 +246,11 @@ export function ServicesListingScreen(): React.ReactElement {
   );
 
   const renderItem = useCallback<ListRenderItem<RecommendedServiceItem>>(
-    ({ item }) => {
+    ({ item, index }) => {
       return (
         <RecommendedServiceCard
           item={item}
+          listIndex={index}
           cardWidth="100%"
           fullWidth
           onPress={() => {

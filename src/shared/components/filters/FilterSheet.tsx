@@ -14,6 +14,17 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { THEME } from '@/constants/theme';
 
+const PRIMARY = THEME.colors.primary;
+const PRIMARY_TINT = 'rgba(15, 81, 50, 0.09)';
+const PRIMARY_TINT_STRONG = 'rgba(15, 81, 50, 0.14)';
+const OVERLAY = 'rgba(15, 23, 42, 0.52)';
+
+const OPEN_SPRING = {
+  damping: 26,
+  stiffness: 300,
+  mass: 0.85,
+} as const;
+
 export interface FilterOption {
   id: string;
   label: string;
@@ -54,12 +65,15 @@ export function FilterSheet(props: FilterSheetProps): React.ReactElement {
 
   const [isMounted, setIsMounted] = useState<boolean>(visible);
   const [activeSectionId, setActiveSectionId] = useState<string>(sections[0]?.id ?? '');
-  const [sheetHeight, setSheetHeight] = useState<number>(540);
+
+  const sheetHeightRef = useRef<number>(540);
+  const isFirstPaneRender = useRef<boolean>(true);
 
   const translateY = useRef(new Animated.Value(600)).current;
   const backdrop = useRef(new Animated.Value(0)).current;
   const contentOpacity = useRef(new Animated.Value(0)).current;
   const activeHighlightOpacity = useRef(new Animated.Value(1)).current;
+  const paneOpacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     if (!visible) return;
@@ -67,64 +81,68 @@ export function FilterSheet(props: FilterSheetProps): React.ReactElement {
   }, [sections, visible]);
 
   useEffect(() => {
+    const slideOffset = sheetHeightRef.current + 80;
+
     if (visible) {
       setIsMounted(true);
-      translateY.setValue(sheetHeight + 80);
+      translateY.setValue(slideOffset);
       backdrop.setValue(0);
       contentOpacity.setValue(0);
 
       Animated.parallel([
         Animated.timing(backdrop, {
           toValue: 1,
-          duration: 280,
-          easing: Easing.out(Easing.quad),
+          duration: 300,
+          easing: Easing.bezier(0.22, 1, 0.36, 1),
           useNativeDriver: true,
         }),
         Animated.spring(translateY, {
           toValue: 0,
-          damping: 22,
-          stiffness: 260,
-          mass: 0.9,
+          ...OPEN_SPRING,
           useNativeDriver: true,
         }),
         Animated.timing(contentOpacity, {
           toValue: 1,
-          duration: 320,
-          delay: 80,
-          easing: Easing.out(Easing.quad),
+          duration: 280,
+          delay: 60,
+          easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
         }),
       ]).start();
       return;
     }
 
+    if (!isMounted) {
+      return;
+    }
+
     Animated.parallel([
       Animated.timing(contentOpacity, {
         toValue: 0,
-        duration: 140,
-        easing: Easing.in(Easing.quad),
+        duration: 160,
+        easing: Easing.in(Easing.cubic),
         useNativeDriver: true,
       }),
       Animated.timing(backdrop, {
         toValue: 0,
-        duration: 200,
-        easing: Easing.in(Easing.quad),
+        duration: 220,
+        easing: Easing.in(Easing.cubic),
         useNativeDriver: true,
       }),
       Animated.timing(translateY, {
-        toValue: sheetHeight + 80,
-        duration: 240,
-        easing: Easing.in(Easing.cubic),
+        toValue: slideOffset,
+        duration: 260,
+        easing: Easing.bezier(0.4, 0, 0.6, 1),
         useNativeDriver: true,
       }),
     ]).start(({ finished }) => {
       if (finished) setIsMounted(false);
     });
-  }, [backdrop, contentOpacity, sheetHeight, translateY, visible]);
+  }, [backdrop, contentOpacity, isMounted, translateY, visible]);
 
   const onSheetLayout = (e: LayoutChangeEvent): void => {
     const h = e.nativeEvent.layout.height;
-    if (h > 0 && h !== sheetHeight) setSheetHeight(h);
+    if (h > 0) sheetHeightRef.current = h;
   };
 
   const activeSection = useMemo(
@@ -133,14 +151,29 @@ export function FilterSheet(props: FilterSheetProps): React.ReactElement {
   );
 
   useEffect(() => {
-    // Subtle fade-in highlight when active section changes
     activeHighlightOpacity.setValue(0);
     Animated.timing(activeHighlightOpacity, {
       toValue: 1,
-      duration: 220,
+      duration: 200,
+      easing: Easing.out(Easing.quad),
       useNativeDriver: true,
     }).start();
   }, [activeHighlightOpacity, activeSectionId]);
+
+  useEffect(() => {
+    if (isFirstPaneRender.current) {
+      isFirstPaneRender.current = false;
+      return;
+    }
+
+    paneOpacity.setValue(0);
+    Animated.timing(paneOpacity, {
+      toValue: 1,
+      duration: 240,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [activeSectionId, paneOpacity]);
 
   const selectedOptionId = activeSection?.id ? value.selected[activeSection.id] : null;
 
@@ -169,6 +202,11 @@ export function FilterSheet(props: FilterSheetProps): React.ReactElement {
     onClose();
   };
 
+  const handleSectionPress = (sectionId: string): void => {
+    if (sectionId === activeSectionId) return;
+    setActiveSectionId(sectionId);
+  };
+
   return (
     <Modal
       visible={isMounted}
@@ -192,53 +230,49 @@ export function FilterSheet(props: FilterSheetProps): React.ReactElement {
           onLayout={onSheetLayout}
           style={[styles.sheet, { transform: [{ translateY }] }]}
         >
-          {/* Drag handle */}
           <View style={styles.handleRow}>
             <View style={styles.handle} />
           </View>
 
-          {/* Header */}
           <Animated.View style={[styles.header, { opacity: contentOpacity }]}>
             <View style={styles.headerLeft}>
               <Text style={styles.headerTitle}>{title}</Text>
-              {activeCount > 0 && (
+              {activeCount > 0 ? (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>{activeCount}</Text>
                 </View>
-              )}
+              ) : null}
             </View>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Close"
               hitSlop={10}
               onPress={onClose}
-              style={({ pressed }) => [styles.closeBtn, pressed && styles.closeBtnPressed]}
+              style={({ pressed }) => [styles.closeBtn, pressed ? styles.closeBtnPressed : null]}
             >
               <Ionicons name="close" size={18} color={THEME.colors.textSecondary} />
             </Pressable>
           </Animated.View>
 
-          {/* Body */}
           <Animated.View style={[styles.body, { opacity: contentOpacity }]}>
-            {/* Left rail */}
             <ScrollView
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.leftRailContent}
               style={styles.leftRail}
+              bounces={false}
             >
               {sections.map((section) => {
                 const isActive = section.id === activeSectionId;
-                const hasSelection = !!value.selected[section.id];
+                const hasSelection = Boolean(value.selected[section.id]);
                 return (
                   <Pressable
                     key={section.id}
                     accessibilityRole="button"
                     accessibilityLabel={section.title}
-                    onPress={() => setActiveSectionId(section.id)}
+                    onPress={() => handleSectionPress(section.id)}
                     style={({ pressed }) => [
                       styles.railItem,
-                      isActive && styles.railItemActive,
-                      pressed && styles.pressedScale,
+                      pressed ? styles.pressedSoft : null,
                     ]}
                   >
                     {isActive ? (
@@ -254,73 +288,79 @@ export function FilterSheet(props: FilterSheetProps): React.ReactElement {
                       <Text
                         style={[
                           styles.railText,
-                          isActive && styles.railTextActive,
+                          isActive ? styles.railTextActive : null,
                         ]}
                         numberOfLines={1}
                       >
                         {section.title}
                       </Text>
-                      {hasSelection && !isActive && (
+                      {hasSelection && !isActive ? (
                         <View style={styles.dotIndicator} />
-                      )}
+                      ) : null}
                     </View>
-                    {isActive && <View style={styles.railAccent} />}
+                    {isActive ? <View style={styles.railAccent} /> : null}
                   </Pressable>
                 );
               })}
             </ScrollView>
 
-            {/* Divider */}
             <View style={styles.divider} />
 
-            {/* Right pane */}
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.rightPaneContent}
-              style={styles.rightPane}
-            >
-              {activeSection?.options.map((opt) => {
-                const isSelected = selectedOptionId === opt.id;
-                return (
-                  <Pressable
-                    key={opt.id}
-                    accessibilityRole="radio"
-                    accessibilityLabel={opt.label}
-                    accessibilityState={{ selected: isSelected }}
-                    onPress={() => handleSelectOption(opt.id)}
-                    style={({ pressed }) => [
-                      styles.optionRow,
-                      isSelected && styles.optionRowSelected,
-                      pressed && styles.optionPressed,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.optionText,
-                        isSelected && styles.optionTextSelected,
+            <Animated.View style={[styles.rightPaneWrap, { opacity: paneOpacity }]}>
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.rightPaneContent}
+                style={styles.rightPane}
+                bounces={false}
+                keyboardShouldPersistTaps="handled"
+              >
+                {activeSection?.options.map((opt) => {
+                  const isSelected = selectedOptionId === opt.id;
+                  return (
+                    <Pressable
+                      key={opt.id}
+                      accessibilityRole="radio"
+                      accessibilityLabel={opt.label}
+                      accessibilityState={{ selected: isSelected }}
+                      onPress={() => handleSelectOption(opt.id)}
+                      style={({ pressed }) => [
+                        styles.optionRow,
+                        isSelected ? styles.optionRowSelected : null,
+                        pressed && !isSelected ? styles.optionPressed : null,
                       ]}
                     >
-                      {opt.label}
-                    </Text>
-                    <View style={[styles.radio, isSelected && styles.radioSelected]}>
-                      {isSelected && <View style={styles.radioDot} />}
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
+                      <Text
+                        style={[
+                          styles.optionText,
+                          isSelected ? styles.optionTextSelected : null,
+                        ]}
+                      >
+                        {opt.label}
+                      </Text>
+                      <View style={[styles.radio, isSelected ? styles.radioSelected : null]}>
+                        {isSelected ? <View style={styles.radioDot} /> : null}
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            </Animated.View>
           </Animated.View>
 
-          {/* Footer */}
           <Animated.View style={[styles.footer, { opacity: contentOpacity }]}>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Clear all filters"
               onPress={handleClear}
               hitSlop={8}
-              style={({ pressed }) => [styles.clearBtn, pressed && styles.clearBtnPressed]}
+              style={({ pressed }) => [styles.clearBtn, pressed ? styles.clearBtnPressed : null]}
             >
-              <Ionicons name="refresh-outline" size={15} color={THEME.colors.textSecondary} style={styles.clearIcon} />
+              <Ionicons
+                name="refresh-outline"
+                size={15}
+                color={THEME.colors.textSecondary}
+                style={styles.clearIcon}
+              />
               <Text style={styles.clearText}>Clear</Text>
             </Pressable>
 
@@ -329,12 +369,12 @@ export function FilterSheet(props: FilterSheetProps): React.ReactElement {
               accessibilityLabel="Apply filters"
               onPress={handleApply}
               hitSlop={8}
-              style={({ pressed }) => [styles.applyBtn, pressed && styles.applyBtnPressed]}
+              style={({ pressed }) => [styles.applyBtn, pressed ? styles.applyBtnPressed : null]}
             >
               <Text style={styles.applyText}>
                 {activeCount > 0 ? `Show results (${activeCount})` : 'Show results'}
               </Text>
-              <Ionicons name="arrow-forward" size={16} color="#fff" style={styles.applyIcon} />
+              <Ionicons name="arrow-forward" size={16} color={THEME.colors.white} style={styles.applyIcon} />
             </Pressable>
           </Animated.View>
         </Animated.View>
@@ -352,10 +392,9 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(10,10,20,0.55)',
+    backgroundColor: OVERLAY,
   },
 
-  // Sheet
   sheet: {
     backgroundColor: THEME.colors.white,
     borderTopLeftRadius: 28,
@@ -363,28 +402,26 @@ const styles = StyleSheet.create({
     minHeight: 520,
     maxHeight: 640,
     flexDirection: 'column',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -6 },
-    shadowOpacity: 0.12,
-    shadowRadius: 24,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: -8 },
+    shadowOpacity: 0.14,
+    shadowRadius: 28,
     elevation: 20,
     overflow: 'hidden',
   },
 
-  // Handle
   handleRow: {
-    paddingTop: 8,
-    paddingBottom: 4,
+    paddingTop: 10,
+    paddingBottom: 6,
     alignItems: 'center',
   },
   handle: {
-    width: 36,
+    width: 40,
     height: 4,
     borderRadius: 2,
     backgroundColor: THEME.colors.border,
   },
 
-  // Header
   header: {
     paddingHorizontal: THEME.spacing[16],
     paddingTop: THEME.spacing[4],
@@ -397,7 +434,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-  },  
+  },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
@@ -405,7 +442,7 @@ const styles = StyleSheet.create({
     color: THEME.colors.textPrimary,
   },
   badge: {
-    backgroundColor: THEME.colors.accentAmber,
+    backgroundColor: PRIMARY,
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -416,7 +453,7 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#fff',
+    color: THEME.colors.white,
     letterSpacing: 0.2,
   },
   closeBtn: {
@@ -431,7 +468,6 @@ const styles = StyleSheet.create({
     backgroundColor: THEME.colors.border,
   },
 
-  // Body
   body: {
     flex: 1,
     flexDirection: 'row',
@@ -439,12 +475,11 @@ const styles = StyleSheet.create({
     borderTopColor: THEME.colors.border,
   },
 
-  // Left rail
   leftRail: {
     alignSelf: 'stretch',
     minWidth: 112,
     maxWidth: 144,
-    // backgroundColor: THEME.colors.surface,
+    backgroundColor: THEME.colors.surface,
   },
   leftRailContent: {
     paddingVertical: THEME.spacing[8],
@@ -456,13 +491,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'relative',
   },
-  railItemActive: {
-    // keep layout stable; active bg is rendered via railItemActiveBg
-  },
   railItemActiveBg: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: THEME.colors.surface,
-    opacity: 1,
+    backgroundColor: THEME.colors.white,
   },
   railItemInner: {
     flex: 1,
@@ -473,11 +504,11 @@ const styles = StyleSheet.create({
   railAccent: {
     position: 'absolute',
     left: 0,
-    top: 6,
-    bottom: 6,
+    top: 8,
+    bottom: 8,
     width: 3,
     borderRadius: 2,
-    backgroundColor: THEME.colors.accentAmber,
+    backgroundColor: PRIMARY,
   },
   railText: {
     fontSize: 13,
@@ -493,11 +524,11 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: THEME.colors.accentAmber,
+    backgroundColor: PRIMARY,
     marginLeft: 4,
   },
-  pressedScale: {
-    opacity: 0.7,
+  pressedSoft: {
+    opacity: 0.88,
   },
 
   divider: {
@@ -505,7 +536,9 @@ const styles = StyleSheet.create({
     backgroundColor: THEME.colors.border,
   },
 
-  // Right pane
+  rightPaneWrap: {
+    flex: 1,
+  },
   rightPane: {
     flex: 1,
   },
@@ -514,7 +547,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
 
-  // Options
   optionRow: {
     marginHorizontal: THEME.spacing[8],
     marginVertical: 2,
@@ -527,7 +559,7 @@ const styles = StyleSheet.create({
     gap: THEME.spacing[12],
   },
   optionRowSelected: {
-    backgroundColor: `${THEME.colors.accentAmber}12`,
+    backgroundColor: PRIMARY_TINT,
   },
   optionPressed: {
     backgroundColor: THEME.colors.surface,
@@ -541,7 +573,7 @@ const styles = StyleSheet.create({
   },
   optionTextSelected: {
     fontWeight: '600',
-    color: THEME.colors.accentAmber,
+    color: PRIMARY,
   },
   radio: {
     width: 20,
@@ -553,17 +585,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   radioSelected: {
-    borderColor: THEME.colors.accentAmber,
-    backgroundColor: `${THEME.colors.accentAmber}14`,
+    borderColor: PRIMARY,
+    backgroundColor: PRIMARY_TINT_STRONG,
   },
   radioDot: {
     width: 9,
     height: 9,
     borderRadius: 4.5,
-    backgroundColor: THEME.colors.accentAmber,
+    backgroundColor: PRIMARY,
   },
 
-  // Footer
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -573,6 +604,7 @@ const styles = StyleSheet.create({
     paddingBottom: THEME.spacing[28],
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: THEME.colors.border,
+    backgroundColor: THEME.colors.white,
   },
   clearBtn: {
     flexDirection: 'row',
@@ -600,20 +632,20 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 50,
     borderRadius: 14,
-    backgroundColor: THEME.colors.accentAmber,
+    backgroundColor: PRIMARY,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    shadowColor: THEME.colors.accentAmber,
+    shadowColor: PRIMARY,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.28,
+    shadowOpacity: 0.22,
     shadowRadius: 10,
-    elevation: 6,
+    elevation: 4,
   },
   applyBtnPressed: {
-    opacity: 0.88,
-    shadowOpacity: 0.14,
+    opacity: 0.9,
+    transform: [{ scale: 0.985 }],
   },
   applyIcon: {
     marginTop: 0.5,
@@ -621,7 +653,7 @@ const styles = StyleSheet.create({
   applyText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#fff',
+    color: THEME.colors.white,
     letterSpacing: -0.2,
   },
 });

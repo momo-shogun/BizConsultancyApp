@@ -393,4 +393,110 @@ const styles = StyleSheet.create({
     paddingLeft: THEME.spacing[12],
     paddingRight: THEME.spacing[4],
   },
+
+  card: {
+    width: 220,
+    marginRight: THEME.spacing[10],
+    borderRadius: THEME.radius[16],
+    backgroundColor: THEME.colors.white,
+    marginBottom : 10,
+    overflow: 'hidden',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: THEME.colors.border,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    elevation: 3,
+  },
+
+  imageWrap: {
+    height: 118,
+    position: 'relative',
+  },
+
+  image: {
+    width: '100%',
+    height: '100%',
+  },
+
+  imageOverlay: {
+    ...StyleSheet.absoluteFill,
+  },
+
+  floatingBadge: {
+    position: 'absolute',
+    top: THEME.spacing[8],
+    left: THEME.spacing[8],
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    paddingHorizontal: THEME.spacing[8],
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+
+  floatingBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: THEME.colors.textPrimary,
+    letterSpacing: 0.2,
+  },
+
+  cardBody: {
+    paddingHorizontal: THEME.spacing[10],
+    paddingTop: THEME.spacing[10],
+    paddingBottom: THEME.spacing[10],
+  },
+
+  cardTitle: {
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: '800',
+    color: THEME.colors.textPrimary,
+    letterSpacing: -0.15,
+  },
+
+  cardDescription: {
+    marginTop: THEME.spacing[8],
+    fontSize: 12,
+    lineHeight: 16,
+    color: THEME.colors.textSecondary,
+  },
+
+  cardFooter: {
+    marginTop: THEME.spacing[10],
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+
+  tag: {
+    backgroundColor: 'rgba(37,99,235,0.08)',
+    paddingHorizontal: THEME.spacing[8],
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+
+  tagText: {
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'capitalize',
+  },
+
+  arrowWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: THEME.colors.textPrimary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  arrow: {
+    color: THEME.colors.white,
+    fontSize: 14,
+    fontWeight: '700',
+  },
 });
