@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
+import type { NavigationProp } from '@react-navigation/native';
 
 import {
   View,
@@ -12,6 +13,7 @@ import {
 import { styles, THEME } from './EDPModulesScreen.styles';
 import { SafeAreaWrapper, ScreenHeader } from '@/shared/components';
 import { ROUTES } from '@/navigation/routeNames';
+import type { EdpStackParamList } from '@/navigation/types';
 
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -290,7 +292,7 @@ const EDPModulesScreen = ({ onBack, onOpenModule }: EDPModulesScreenProps) => {
   const [lang, setLang] = useState<'ENG' | 'HI'>('ENG');
 
   const totalModules = MODULES.length;
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp<EdpStackParamList>>();
 
   return (
     <SafeAreaWrapper edges={['top', 'bottom']} bgColor='black' isLight={true}>
