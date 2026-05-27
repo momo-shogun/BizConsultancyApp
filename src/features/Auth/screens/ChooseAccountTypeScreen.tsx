@@ -34,7 +34,7 @@ type Rt = RouteProp<
 
 type Role = 'user' | 'consultant';
 
-const ACCENT = THEME.colors.accentAmber;
+const PRIMARY = THEME.colors.primary;
 const PAGE_BG = THEME.colors.white;
 const CARD_BORDER = THEME.colors.border;
 const TITLE_COLOR = THEME.colors.textPrimary;
@@ -322,8 +322,8 @@ const styles = StyleSheet.create({
     borderColor: CARD_BORDER,
   },
   roleCardSelected: {
-    borderColor: ACCENT,
-    backgroundColor: 'rgba(245, 158, 11, 0.04)',
+    borderColor: PRIMARY,
+    backgroundColor: 'rgba(15, 81, 50, 0.04)',
   },
   roleCardPressed: {
     opacity: 0.92,
@@ -343,13 +343,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   radioOuterSelected: {
-    borderColor: ACCENT,
+    borderColor: PRIMARY,
   },
   radioInner: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: ACCENT,
+    backgroundColor: PRIMARY,
   },
   roleTextCol: {
     flex: 1,
@@ -418,7 +418,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 52,
     borderRadius: 14,
-    backgroundColor: ACCENT,
+    backgroundColor: PRIMARY,
     justifyContent: 'center',
     alignItems: 'center',
   },

@@ -28,6 +28,7 @@ export type EdpStackParamList = {
     title: string;
     videoUrl: string;
   };
+  [ROUTES.Edp.AskQuestions]: undefined;
 };
 
 export type AccountStackParamList = {

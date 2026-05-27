@@ -34,7 +34,7 @@ export interface EDPScreenProps {
 }
 
 export default function EDPScreen(props: EDPScreenProps): React.ReactElement {
-  const { onBizAiScroll, courses, faqs, onGetStarted, openModules } = useEdpLandingScreen({
+  const { onBizAiScroll, courses, faqs, onGetStarted, onAskQuestion, openModules } = useEdpLandingScreen({
     onViewAllModules: props.onViewAllModules,
   });
 
@@ -49,7 +49,7 @@ export default function EDPScreen(props: EDPScreenProps): React.ReactElement {
           onScroll={onBizAiScroll}
           scrollEventThrottle={16}
         >
-          <EdpHeroSection onGetStarted={onGetStarted} />
+          <EdpHeroSection onGetStarted={onGetStarted} onAskQuestion={onAskQuestion} />
 
           <EdpStatsStripBlock isLoading={courses.isLoading} items={courses.stripStats} />
 

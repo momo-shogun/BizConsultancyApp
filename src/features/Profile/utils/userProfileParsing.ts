@@ -16,12 +16,22 @@ export function normalizeUserGender(value: unknown): UserGenderValue {
   return '';
 }
 
-export function parseUserMeDto(data: unknown): UserMeDto {
+function unwrapUserMePayload(data: unknown): Record<string, unknown> {
   if (data == null || typeof data !== 'object') {
     throw new Error('Invalid profile response');
   }
 
   const row = data as Record<string, unknown>;
+  const nested = row.data;
+  if (nested != null && typeof nested === 'object' && !Array.isArray(nested)) {
+    return nested as Record<string, unknown>;
+  }
+
+  return row;
+}
+
+export function parseUserMeDto(data: unknown): UserMeDto {
+  const row = unwrapUserMePayload(data);
   const id = Number(row.id);
 
   if (!Number.isFinite(id)) {
