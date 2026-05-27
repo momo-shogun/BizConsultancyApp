@@ -12,6 +12,8 @@ import {
   getBookingConsultationKind,
   getBookingStatusTone,
   getPaymentLabel,
+  isBookingConfirmed,
+  isCallableConsultation,
 } from '@/features/Bookings/utils/bookingDisplay';
 import {
   formatConsultationTypeLabel,
@@ -63,12 +65,16 @@ export function MyBookingCard({
   isCalling,
   onCallPress,
 }: MyBookingCardProps): React.ReactElement {
+  const isUpcoming = filter === 'upcoming';
+  const isCallable = isCallableConsultation(booking.consultationType);
   const showCall = canShowCallAction(booking, filter);
+  const showCallSection = isUpcoming && isCallable;
   const consultationKind = getBookingConsultationKind(booking.consultationType);
   const isVideo = consultationKind === 'video';
   const isPhone = consultationKind === 'phone';
   const showConsultationIcon = isVideo || isPhone;
   const slotReady = hasBookingStarted(booking.bookingDate, booking.slotTime);
+  const isConfirmed = isBookingConfirmed(booking.status);
   const canCall = showCall && slotReady && !isCalling;
   const consultantName = booking.consultantName ?? 'Consultant';
   const amountLabel =
@@ -132,7 +138,7 @@ export function MyBookingCard({
           </View>
         </View>
 
-        {showCall ? (
+        {showCallSection ? (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={isVideo ? 'Start video call' : 'Start voice call'}
@@ -157,7 +163,7 @@ export function MyBookingCard({
         ) : null}
       </View>
 
-      {showCall ? (
+      {showCallSection ? (
         <>
           <Pressable
             accessibilityRole="button"
@@ -185,7 +191,9 @@ export function MyBookingCard({
               </>
             )}
           </Pressable>
-          {!slotReady ? (
+          {!isConfirmed ? (
+            <Text style={styles.callHint}>Call is available after booking is confirmed</Text>
+          ) : !slotReady ? (
             <Text style={styles.callHint}>
               Call unlocks at {booking.slotTime} on {formatBookingDate(booking.bookingDate)}
             </Text>

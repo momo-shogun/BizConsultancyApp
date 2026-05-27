@@ -143,6 +143,10 @@ export const callSlice = createSlice({
     },
     updateCredentials: (state, action: PayloadAction<PersistedCallCredentials>) => {
       state.credentials = action.payload;
+      state.callType = action.payload.callType;
+      if (action.payload.callType === 'video') {
+        state.localVideoEnabled = true;
+      }
     },
     setCallMinimized: (state, action: PayloadAction<boolean>) => {
       state.isMinimized = action.payload;

@@ -56,11 +56,20 @@ export function isCallableConsultation(consultationType: string): boolean {
   return getBookingConsultationKind(consultationType) !== 'other';
 }
 
+/** API may return mixed casing (`Confirmed`, `CONFIRMED`). */
+export function normalizeBookingStatus(status: string): string {
+  return status.trim().toLowerCase();
+}
+
+export function isBookingConfirmed(status: string): boolean {
+  return normalizeBookingStatus(status) === 'confirmed';
+}
+
 export function canShowCallAction(
   booking: MyConsultantBooking,
   filter: 'upcoming' | 'past',
 ): boolean {
-  if (filter !== 'upcoming' || booking.status !== 'confirmed') {
+  if (filter !== 'upcoming' || !isBookingConfirmed(booking.status)) {
     return false;
   }
   return isCallableConsultation(booking.consultationType);

@@ -110,6 +110,16 @@ function applyVideoSettings(rtc: IRtcEngine): void {
   rtc.updateChannelMediaOptions(buildChannelMediaOptions(activeCallType));
 }
 
+function startVideoCapture(rtc: IRtcEngine): void {
+  applyVideoSettings(rtc);
+  if (!inChannel) {
+    rtc.startPreview();
+    previewActive = true;
+    return;
+  }
+  rtc.muteLocalVideoStream(!localVideoEnabled);
+}
+
 function applyMediaSettings(rtc: IRtcEngine): void {
   applyVoiceAudioSettings(rtc);
   if (activeCallType === 'video') {
@@ -156,6 +166,10 @@ function getOrCreateEngine(): IRtcEngine {
       onJoinChannelSuccess: (_connection) => {
         if (engine != null) {
           applyMediaSettings(engine);
+          if (activeCallType === 'video') {
+            engine.muteLocalVideoStream(!localVideoEnabled);
+            engine.muteAllRemoteVideoStreams(false);
+          }
         }
         settleJoinSuccess();
       },
@@ -305,20 +319,21 @@ export const agoraMediaService = {
 
     applyVoiceAudioSettings(rtc);
     if (params.callType === 'video') {
-      applyVideoSettings(rtc);
-      if (previewActive) {
-        rtc.stopPreview();
-        previewActive = false;
-      }
+      startVideoCapture(rtc);
     } else {
-      rtc.disableVideo();
       if (previewActive) {
         rtc.stopPreview();
         previewActive = false;
       }
+      rtc.disableVideo();
     }
 
     await leaveChannelIfNeeded(rtc);
+
+    if (params.callType === 'video' && previewActive) {
+      rtc.stopPreview();
+      previewActive = false;
+    }
 
     listeners.onConnectionState?.('connecting');
     const joinPromise = waitForJoinChannel();
@@ -331,6 +346,12 @@ export const agoraMediaService = {
     }
 
     await joinPromise;
+
+    if (params.callType === 'video') {
+      rtc.muteLocalVideoStream(!localVideoEnabled);
+      rtc.muteAllRemoteVideoStreams(false);
+      rtc.updateChannelMediaOptions(buildChannelMediaOptions('video'));
+    }
   },
 
   refreshVoiceAudio(): void {
