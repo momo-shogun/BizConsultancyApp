@@ -1,13 +1,11 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { RenderModeType, RtcSurfaceView, VideoSourceType } from 'react-native-agora';
+import { RenderModeType, RtcSurfaceView } from 'react-native-agora';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { CallAvatar } from './CallAvatar';
 
 export interface CallVideoLayoutProps {
-  localUid: number;
-  channelName: string;
   remoteUid: number | null;
   remoteVideoEnabled: boolean;
   localVideoEnabled: boolean;
@@ -17,8 +15,6 @@ export interface CallVideoLayoutProps {
 
 export function CallVideoLayout(props: CallVideoLayoutProps): React.ReactElement {
   const {
-    localUid,
-    channelName,
     remoteUid,
     remoteVideoEnabled,
     localVideoEnabled,
@@ -26,17 +22,17 @@ export function CallVideoLayout(props: CallVideoLayoutProps): React.ReactElement
     remoteAvatarUrl,
   } = props;
 
-  const showRemoteVideo = remoteUid != null && remoteVideoEnabled;
+  const hasRemoteUid = remoteUid != null && remoteUid > 0;
+  const showRemoteSurface = hasRemoteUid && remoteVideoEnabled;
 
   return (
     <View style={styles.root}>
-      {showRemoteVideo ? (
+      {showRemoteSurface ? (
         <RtcSurfaceView
+          key={`remote-${remoteUid}`}
           style={styles.remoteVideo}
           canvas={{
             uid: remoteUid,
-            channelId: channelName,
-            sourceType: VideoSourceType.VideoSourceRemote,
             renderMode: RenderModeType.RenderModeHidden,
           }}
         />
@@ -45,7 +41,11 @@ export function CallVideoLayout(props: CallVideoLayoutProps): React.ReactElement
           <CallAvatar uri={remoteAvatarUrl} name={remoteName} size={120} />
           <Text style={styles.remoteName}>{remoteName}</Text>
           <Text style={styles.waitingText}>
-            {remoteUid == null ? 'Waiting for video…' : 'Camera is off'}
+            {!hasRemoteUid
+              ? 'Waiting for video…'
+              : remoteVideoEnabled
+                ? 'Connecting video…'
+                : 'Camera is off'}
           </Text>
         </View>
       )}
@@ -53,11 +53,10 @@ export function CallVideoLayout(props: CallVideoLayoutProps): React.ReactElement
       <View style={styles.localPip}>
         {localVideoEnabled ? (
           <RtcSurfaceView
+            key="local-preview"
             style={styles.localVideo}
             canvas={{
-              uid: localUid,
-              channelId: channelName,
-              sourceType: VideoSourceType.VideoSourceCamera,
+              uid: 0,
               renderMode: RenderModeType.RenderModeHidden,
             }}
             zOrderOnTop
@@ -70,7 +69,6 @@ export function CallVideoLayout(props: CallVideoLayoutProps): React.ReactElement
           </View>
         )}
       </View>
-
     </View>
   );
 }

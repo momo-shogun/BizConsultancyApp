@@ -466,6 +466,7 @@ class CallEngineImpl {
       mode: 'incoming',
     };
     store.dispatch(updateCredentials(credentials));
+    store.dispatch(setLocalVideoEnabled(credentials.callType === 'video'));
     this.clearRingTimeout();
 
     const joined = await this.joinAgoraFromCredentials(credentials);
