@@ -53,7 +53,7 @@ export default function EDPScreen(props: EDPScreenProps): React.ReactElement {
 
           <EdpStatsStripBlock isLoading={courses.isLoading} items={courses.stripStats} />
 
-          <EdpProgressCard
+          {/* <EdpProgressCard
             title="Your learning progress"
             subtitle="Module II — 1 lecture remaining"
             badgeLabel="25%"
@@ -61,12 +61,12 @@ export default function EDPScreen(props: EDPScreenProps): React.ReactElement {
             progressPercent={25}
             progressAccent={EDP_ACCENT_GREEN}
             meta={EDP_PROGRESS_META}
-          />
+          /> */}
 
-          <EdpProgrammeOverviewSection
+          {/* <EdpProgrammeOverviewSection
             isLoading={courses.isLoading}
             items={courses.metricItems}
-          />
+          /> */}
 
           <EdpCurriculumSection
             isLoading={courses.isLoading}
@@ -87,10 +87,10 @@ export default function EDPScreen(props: EDPScreenProps): React.ReactElement {
             count={faqs.count}
           />
 
-          <EdpLandingCtaSection
+          {/* <EdpLandingCtaSection
             onContinueLearning={props.onContinueLearning}
             onTalkToExpert={props.onTalkToExpert}
-          />
+          /> */}
         </Animated.ScrollView>
       </View>
     </SafeAreaWrapper>

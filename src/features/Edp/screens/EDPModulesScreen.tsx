@@ -293,13 +293,11 @@ const EDPModulesScreen = ({ onBack, onOpenModule }: EDPModulesScreenProps) => {
   const navigation = useNavigation();
 
   return (
-    
-    <SafeAreaWrapper edges={['top', 'bottom']} bgColor='black' isLight = {true}>
-      
+    <SafeAreaWrapper edges={['top', 'bottom']} bgColor='black' isLight={true}>
       <ScreenHeader
         title="EDP Modules"
         headerColor="black"
-        onBackPress={()=> {
+        onBackPress={() => {
           navigation.goBack();
         }}
         showLanguageSwitch={true}
@@ -315,7 +313,7 @@ const EDPModulesScreen = ({ onBack, onOpenModule }: EDPModulesScreenProps) => {
         <View style={styles.searchWrapper}>
           <Text style={{ fontSize: 25, color: 'black' }}>⌕</Text>
           <Text style={styles.searchPlaceholder}>Search modules...</Text>
-          
+
         </View>
 
         {/* Section Header */}
@@ -330,14 +328,14 @@ const EDPModulesScreen = ({ onBack, onOpenModule }: EDPModulesScreenProps) => {
             <ModuleCard
               key={item.id}
               item={item}
-             // onPress={() => onOpenModule?.(item.id)}
-               onPress={() => navigation.navigate(ROUTES.Edp.ModuleDetail)}
+              // onPress={() => onOpenModule?.(item.id)}
+              onPress={() => navigation.navigate(ROUTES.Edp.ModuleDetail)}
             />
           ))}
         </View>
       </ScrollView>
     </SafeAreaWrapper>
-  
+
   );
 };
 
