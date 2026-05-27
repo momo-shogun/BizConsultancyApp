@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   previewText: {
-    fontSize: THEME.typography.size[15],
+    fontSize: THEME.typography.size[14],
     color: THEME.colors.white,
     lineHeight: 22,
     marginBottom: THEME.spacing[8],

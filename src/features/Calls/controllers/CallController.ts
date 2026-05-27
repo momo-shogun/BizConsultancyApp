@@ -7,10 +7,22 @@ import { callEngine } from '../engine/CallEngine';
 import type { CallType } from '../types/callApi.types';
 import { consultationTypeToCallType } from '../utils/callTypeMapping';
 
+function normalizeAccountRole(role: string | null | undefined): string {
+  return (role ?? 'user').trim().toLowerCase();
+}
+
+function isConsultantRole(role: string): boolean {
+  return role === 'consultant';
+}
+
+function isUserRole(role: string): boolean {
+  return role === 'user' || role === 'admin' || role === '';
+}
+
 function requireAuthUser(): { userId: number; role: string } | null {
   const state = store.getState();
   const token = state.auth.token;
-  const role = state.auth.accountRole ?? 'user';
+  const role = normalizeAccountRole(state.auth.accountRole);
   const userIdRaw = state.auth.user?.id ?? '';
   const userId = Number(userIdRaw);
   if (token == null || token.length === 0 || !Number.isFinite(userId) || userId <= 0) {
@@ -25,7 +37,7 @@ export const CallController = {
     if (auth == null) {
       return 'Please login to start a call';
     }
-    if (auth.role === 'consultant') {
+    if (isConsultantRole(auth.role)) {
       return 'Only users can initiate call from this page';
     }
 
@@ -44,7 +56,7 @@ export const CallController = {
     if (auth == null) {
       return 'Please login to start a call';
     }
-    if (auth.role === 'consultant') {
+    if (isConsultantRole(auth.role) || !isUserRole(auth.role)) {
       return 'Only users can start calls from My Bookings';
     }
 
@@ -75,7 +87,7 @@ export const CallController = {
     if (auth == null) {
       return 'Please login to start a call';
     }
-    if (auth.role !== 'consultant') {
+    if (!isConsultantRole(auth.role)) {
       return 'Only consultants can start calls from bookings';
     }
 
