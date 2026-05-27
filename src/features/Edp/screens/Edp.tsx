@@ -4,7 +4,6 @@ import Animated from 'react-native-reanimated';
 
 import {
   EdpLearningJourneyCard,
-  EdpProgressCard,
   EdpSectionHeader,
   SafeAreaWrapper,
   ScreenHeader,
@@ -12,17 +11,10 @@ import {
 
 import { EdpCurriculumSection } from '../components/landing/EdpCurriculumSection';
 import { EdpFaqSection } from '../components/landing/EdpFaqSection';
-import { EdpLandingCtaSection } from '../components/landing/EdpLandingCtaSection';
-import { EdpProgrammeOverviewSection } from '../components/landing/EdpProgrammeOverviewSection';
 import { EdpStatsStripBlock } from '../components/landing/EdpStatsStripBlock';
 import { landingStyles } from '../components/landing/EdpLandingSection.styles';
 import { EdpHeroSection } from '../components/EdpHeroSection';
-import {
-  EDP_ACCENT_GREEN,
-  EDP_HERO_BG,
-  EDP_JOURNEY_STEPS,
-  EDP_PROGRESS_META,
-} from '../data/edpLandingData';
+import { EDP_HERO_BG, EDP_JOURNEY_STEPS } from '../data/edpLandingData';
 import { useEdpLandingScreen } from '../hooks/useEdpLandingScreen';
 import { styles } from './EDPScreen.styles';
 

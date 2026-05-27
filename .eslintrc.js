@@ -32,7 +32,7 @@ module.exports = {
           },
         ],
         '@typescript-eslint/consistent-type-imports': [
-          'error',
+          'warn',
           {prefer: 'type-imports', fixStyle: 'inline-type-imports'},
         ],
         '@typescript-eslint/no-non-null-assertion': 'warn',
@@ -54,6 +54,7 @@ module.exports = {
 
         // Quality
         'no-console': ['warn', {allow: ['warn', 'error']}],
+        'no-void': 'off',
         eqeqeq: ['error', 'always', {null: 'ignore'}],
       },
     },

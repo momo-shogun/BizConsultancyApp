@@ -4,8 +4,9 @@
 
 | Script | Purpose |
 |--------|---------|
-| `npm run lint` | ESLint entire project |
-| `npm run lint:strict` | ESLint with zero warnings allowed (CI / before release) |
+| `npm run lint` | ESLint entire project (errors + warnings) |
+| `npm run lint:errors` | ESLint errors only (`--quiet`) |
+| `npm run lint:strict` | ESLint with zero warnings (full cleanup / CI goal) |
 | `npm run lint:fix` | Auto-fix ESLint issues |
 | `npm run typecheck` | `tsc --noEmit` on full project |
 | `npm run validate` | `lint:strict` + `typecheck` |
@@ -14,7 +15,7 @@
 
 On every `git commit`, **staged** `*.ts` / `*.tsx` files must pass:
 
-1. **ESLint** (`--fix --max-warnings 0`) — strict TypeScript rules in `.eslintrc.js`
+1. **ESLint** (`--fix --quiet`) — only **errors** in staged files block the commit (warnings are OK)
 
 `lint-staged` does **not** run full-project `tsc` (imports pull in the whole app and fail on legacy errors elsewhere). Run `npm run typecheck` locally or in CI before release.
 

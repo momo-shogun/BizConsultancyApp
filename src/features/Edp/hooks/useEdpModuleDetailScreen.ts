@@ -79,7 +79,10 @@ export function useEdpModuleDetailScreen(
   );
 
   const course = detail?.edpCourseDetail;
-  const subs = detail?.edpSubSubCategories ?? [];
+  const subs = useMemo(
+    () => detail?.edpSubSubCategories ?? [],
+    [detail?.edpSubSubCategories],
+  );
 
   const {
     progressPercent,
