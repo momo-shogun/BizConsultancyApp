@@ -32,13 +32,13 @@ export const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   heroTitle: {
-    fontSize: THEME.typography.size[20],
+    fontSize: 18,
     color: THEME.colors.textPrimary,
     fontWeight: THEME.typography.weight.bold as '700',
   },
   heroSubtitle: {
-    fontSize: THEME.typography.size[12],
-    lineHeight: 19,
+    fontSize: 11,
+    lineHeight: 16,
     color: THEME.colors.textSecondary,
   },
   searchWrap: {
@@ -56,14 +56,14 @@ export const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: THEME.typography.size[14],
+    fontSize: 13,
     color: THEME.colors.textPrimary,
     paddingVertical: 0,
   },
   countText: {
     minWidth: 24,
     textAlign: 'right',
-    fontSize: THEME.typography.size[12],
+    fontSize: 11,
     color: THEME.colors.textSecondary,
     fontWeight: THEME.typography.weight.semibold as '600',
   },
@@ -122,15 +122,15 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cardBody: {
-    padding: THEME.spacing[12],
+    padding: THEME.spacing[10],
     minHeight: 132,
   },
   cardTitle: {
-    fontSize: THEME.typography.size[14],
-    lineHeight: 19,
+    fontSize: 13,
+    lineHeight: 16,
     color: THEME.colors.textPrimary,
     fontWeight: THEME.typography.weight.bold as '700',
-    minHeight: 38,
+    minHeight: 34,
   },
   metaRow: {
     marginTop: THEME.spacing[10],
@@ -142,7 +142,7 @@ export const styles = StyleSheet.create({
     borderColor: 'rgba(15,23,42,0.10)',
   },
   metaText: {
-    fontSize: THEME.typography.size[12],
+    fontSize: 11,
     color: THEME.colors.textPrimary,
     fontWeight: THEME.typography.weight.semibold as '600',
   },
@@ -156,7 +156,7 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   progressLabel: {
-    fontSize: THEME.typography.size[12],
+    fontSize: 11,
     color: THEME.colors.textSecondary,
     fontWeight: THEME.typography.weight.semibold as '600',
   },
@@ -169,12 +169,12 @@ export const styles = StyleSheet.create({
     borderColor: 'rgba(15,81,50,0.18)',
   },
   progressBadgeText: {
-    fontSize: THEME.typography.size[12],
+    fontSize: 11,
     color: THEME.colors.primary,
     fontWeight: THEME.typography.weight.bold as '700',
   },
   progressTrack: {
-    height: 8,
+    height: 6,
     borderRadius: 999,
     overflow: 'hidden',
     backgroundColor: 'rgba(15,23,42,0.08)',
@@ -192,19 +192,13 @@ export const styles = StyleSheet.create({
     paddingTop: THEME.spacing[12],
   },
   cardMeta: {
-    fontSize: THEME.typography.size[12],
+    fontSize: 11,
     color: THEME.colors.textSecondary,
   },
   openLabel: {
-    fontSize: THEME.typography.size[12],
+    fontSize: 11,
     color: '#0F766E',
     fontWeight: THEME.typography.weight.bold as '700',
-  },
-  skeletonCard: {
-    width: cardWidth,
-    minHeight: 176,
-    borderRadius: 18,
-    backgroundColor: '#E2E8F0',
   },
   messageCard: {
     marginTop: THEME.spacing[16],
@@ -217,12 +211,12 @@ export const styles = StyleSheet.create({
     gap: THEME.spacing[6],
   },
   messageTitle: {
-    fontSize: THEME.typography.size[14],
+    fontSize: 13,
     color: THEME.colors.textPrimary,
     fontWeight: THEME.typography.weight.bold as '700',
   },
   messageBody: {
-    fontSize: THEME.typography.size[12],
+    fontSize: 11,
     color: THEME.colors.textSecondary,
   },
 });

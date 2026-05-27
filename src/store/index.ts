@@ -21,6 +21,8 @@ import '@/features/DocumentVault/api/documentVaultApi';
 import '@/features/ConsultantSelf/api/consultantSelfApi';
 import '@/features/Edp/api/edpPurchasesApi';
 import '@/features/Edp/api/edpLandingApi';
+import '@/features/Edp/api/edpModuleApi';
+import '@/features/Edp/api/edpProgressApi';
 import '@/features/Home/api/workshopsApi';
 import '@/features/Home/api/workshopBookingsApi';
 import '@/features/Home/api/userWalletsApi';

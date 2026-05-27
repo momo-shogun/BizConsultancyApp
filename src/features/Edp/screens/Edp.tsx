@@ -41,7 +41,7 @@ export default function EDPScreen(props: EDPScreenProps): React.ReactElement {
   return (
     <SafeAreaWrapper edges={['top']} bgColor={EDP_HERO_BG} statusBarStyle="light-content">
       <View style={styles.root}>
-        <ScreenHeader title="EDP Programme" headerColor={EDP_HERO_BG} onSearchPress={() => {}} />
+        <ScreenHeader title="EDP Programme" headerColor={EDP_HERO_BG} />
 
         <Animated.ScrollView
           showsVerticalScrollIndicator={false}
@@ -52,21 +52,6 @@ export default function EDPScreen(props: EDPScreenProps): React.ReactElement {
           <EdpHeroSection onGetStarted={onGetStarted} />
 
           <EdpStatsStripBlock isLoading={courses.isLoading} items={courses.stripStats} />
-
-          {/* <EdpProgressCard
-            title="Your learning progress"
-            subtitle="Module II — 1 lecture remaining"
-            badgeLabel="25%"
-            badgeAccent={EDP_ACCENT_GREEN}
-            progressPercent={25}
-            progressAccent={EDP_ACCENT_GREEN}
-            meta={EDP_PROGRESS_META}
-          /> */}
-
-          {/* <EdpProgrammeOverviewSection
-            isLoading={courses.isLoading}
-            items={courses.metricItems}
-          /> */}
 
           <EdpCurriculumSection
             isLoading={courses.isLoading}

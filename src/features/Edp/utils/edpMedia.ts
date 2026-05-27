@@ -46,6 +46,18 @@ export function extractYoutubeVideoId(url: string): string | null {
   return null;
 }
 
+/** YouTube CDN thumbnail for lesson rows (mq = 320×180). */
+export function resolveYoutubeThumbnailUrl(url: string | null | undefined): string | null {
+  if (url == null || url.trim().length === 0) {
+    return null;
+  }
+  const videoId = extractYoutubeVideoId(url);
+  if (videoId == null) {
+    return null;
+  }
+  return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+}
+
 export function isYoutubeUrl(url: string): boolean {
   const trimmed = url.trim().toLowerCase();
   return trimmed.includes('youtube.com') || trimmed.includes('youtu.be');

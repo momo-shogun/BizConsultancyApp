@@ -25,8 +25,10 @@ export function mapFreeEdpsToCurriculumModules(
 
   return freeEdps.map((module, moduleIndex) => {
     const videoUrl = module.url?.trim();
+    const slug = resolveModuleSlug(module);
     return {
-      id: resolveModuleSlug(module),
+      id: String(module.id),
+      slug,
       name: module.name.trim() || `Module ${moduleIndex + 1}`,
       videoCount: module.e_videos_count ?? 0,
       pdfCount: module.e_documents_count ?? 0,
