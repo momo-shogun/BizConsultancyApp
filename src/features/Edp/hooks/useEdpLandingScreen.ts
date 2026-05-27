@@ -16,6 +16,7 @@ export interface UseEdpLandingScreenOptions {
 }
 
 export function useEdpLandingScreen(options: UseEdpLandingScreenOptions = {}) {
+  const { onModulePress, onViewAllModules } = options;
   const navigation = useNavigation<NavigationProp<EdpStackParamList>>();
   const onBizAiScroll = useBizAIScrollReporter();
   const courses = useEdpLandingCourses();
@@ -30,22 +31,22 @@ export function useEdpLandingScreen(options: UseEdpLandingScreenOptions = {}) {
   }, [navigateToModules]);
 
   const openModules = useCallback((): void => {
-    if (options.onViewAllModules != null) {
-      options.onViewAllModules();
+    if (onViewAllModules != null) {
+      onViewAllModules();
       return;
     }
     navigateToModules();
-  }, [navigateToModules, options.onViewAllModules]);
+  }, [navigateToModules, onViewAllModules]);
 
   const handleModulePress = useCallback(
     (moduleSlug: string): void => {
-      if (options.onModulePress != null) {
-        options.onModulePress(moduleSlug);
+      if (onModulePress != null) {
+        onModulePress(moduleSlug);
         return;
       }
       navigateToModules();
     },
-    [navigateToModules, options.onModulePress],
+    [navigateToModules, onModulePress],
   );
 
   return {

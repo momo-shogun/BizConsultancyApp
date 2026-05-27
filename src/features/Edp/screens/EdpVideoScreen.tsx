@@ -14,7 +14,7 @@ import { useEdpWatchTimeHeartbeat } from '@/features/Edp/hooks/useEdpWatchTimeHe
 import { normalizeEdpModuleSlug } from '@/features/Edp/utils/edpCourseDetailsParsing';
 import type { EdpModuleLessonRow } from '@/features/Edp/types/edpCourseDetails.types';
 import { buildDirectVideoHtml } from '@/features/Edp/utils/edpOverviewVideoHtml';
-import { resolveYoutubeThumbnailUrl } from '@/features/Edp/utils/edpMedia';
+import { resolveEdpVideoEmbed, resolveYoutubeThumbnailUrl } from '@/features/Edp/utils/edpMedia';
 import { ROUTES } from '@/navigation/routeNames';
 import type { EdpStackParamList } from '@/navigation/types';
 import { SafeAreaWrapper, ScreenHeader } from '@/shared/components';
@@ -23,6 +23,8 @@ import { EdpModuleDetailSkeleton } from '@/features/Edp/components/EdpModuleDeta
 
 import { EDP_HERO_BG } from '../data/edpLandingData';
 import { PLAYER_HEIGHT, SCREEN_WIDTH, styles, YT } from './ModuleVideoScreen.styles';
+
+type EdpVideoEmbed = ReturnType<typeof resolveEdpVideoEmbed>;
 
 const LOCKED_WEB_VIEW_PROPS: Partial<WebViewProps> = {
   scrollEnabled: false,
@@ -34,7 +36,7 @@ const LOCKED_WEB_VIEW_PROPS: Partial<WebViewProps> = {
 };
 
 function ModuleVideoPlayer(props: {
-  videoEmbed: ReturnType<typeof import('@/features/Edp/utils/edpMedia').resolveEdpVideoEmbed>;
+  videoEmbed: EdpVideoEmbed;
   playing: boolean;
   onPlayingChange: (playing: boolean) => void;
   topInset: number;
