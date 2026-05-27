@@ -108,7 +108,7 @@ export const styles = StyleSheet.create({
     height: '100%',
   },
   imageOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   cornerCta: {
     position: 'absolute',
@@ -208,7 +208,7 @@ export const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
     backgroundColor: THEME.colors.white,
     padding: THEME.spacing[14],
-    gap: THEME.spacing[6],
+    gap: THEME.spacing[4],
   },
   messageTitle: {
     fontSize: 13,

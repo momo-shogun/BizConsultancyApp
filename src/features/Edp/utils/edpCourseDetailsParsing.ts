@@ -1,5 +1,6 @@
 import type {
   EdpCourseDetailContentItem,
+  EdpCourseDetailHeader,
   EdpCourseDetailRelated,
   EdpCourseDetailSubSubCategory,
   EdpCourseDetailsResponse,
