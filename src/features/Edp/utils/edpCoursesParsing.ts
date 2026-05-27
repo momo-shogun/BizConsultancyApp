@@ -81,6 +81,10 @@ function parseFreeEdpModule(raw: unknown): EdpFreeEdpModule | null {
     slug: typeof raw.slug === 'string' ? raw.slug : undefined,
     url: typeof raw.url === 'string' ? raw.url : undefined,
     thumbnail: typeof raw.thumbnail === 'string' ? raw.thumbnail : undefined,
+    total_duration: typeof raw.total_duration === 'string' ? raw.total_duration : undefined,
+    mandatory_percentage:
+      typeof raw.mandatory_percentage === 'number' ? raw.mandatory_percentage : undefined,
+    progress: typeof raw.progress === 'string' ? raw.progress : undefined,
     e_documents_count:
       typeof raw.e_documents_count === 'number' ? raw.e_documents_count : undefined,
     e_videos_count: typeof raw.e_videos_count === 'number' ? raw.e_videos_count : undefined,
