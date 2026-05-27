@@ -197,10 +197,18 @@ class CallEngineImpl {
     this.scheduleTeardown(delayMs);
   }
 
-  private async ensureMicPermissionOrAbort(restorePhase?: CallPhase): Promise<boolean> {
-    const permissions = await ensureCallPermissions('voice');
+  private async ensureCallPermissionsOrAbort(
+    callType: CallType,
+    restorePhase?: CallPhase,
+  ): Promise<boolean> {
+    const permissions = await ensureCallPermissions(callType);
     if (!permissions.microphone) {
       store.dispatch(setCallError('Microphone permission is required for calls'));
+      store.dispatch(setCallPhase(restorePhase ?? 'idle'));
+      return false;
+    }
+    if (callType === 'video' && !permissions.camera) {
+      store.dispatch(setCallError('Camera permission is required for video calls'));
       store.dispatch(setCallPhase(restorePhase ?? 'idle'));
       return false;
     }
@@ -219,6 +227,10 @@ class CallEngineImpl {
       },
       onRemoteVideoMuted: (_uid, muted) => {
         store.dispatch(setRemoteVideoEnabled(!muted));
+      },
+      onRemoteVideoState: (uid, active) => {
+        store.dispatch(setRemoteVideoUid(uid));
+        store.dispatch(setRemoteVideoEnabled(active));
       },
     });
   }
@@ -252,7 +264,7 @@ class CallEngineImpl {
     store.dispatch(setCallPhase('outgoing_initiating'));
     store.dispatch(setCallError(null));
 
-    if (!(await this.ensureMicPermissionOrAbort())) {
+    if (!(await this.ensureCallPermissionsOrAbort(callType))) {
       return;
     }
 
@@ -295,13 +307,17 @@ class CallEngineImpl {
     this.navigateToCallScreen('OutgoingCall', data.sessionId);
   }
 
-  async startOutgoingFromBooking(bookingId: number, remoteName: string): Promise<void> {
+  async startOutgoingFromBooking(
+    bookingId: number,
+    remoteName: string,
+    callType: CallType,
+  ): Promise<void> {
     store.dispatch(resetCallState());
     this.reliability.reset();
     this.clearTeardownTimer();
     store.dispatch(setCallPhase('outgoing_initiating'));
 
-    if (!(await this.ensureMicPermissionOrAbort())) {
+    if (!(await this.ensureCallPermissionsOrAbort(callType))) {
       return;
     }
 
@@ -427,7 +443,8 @@ class CallEngineImpl {
     void cancelIncomingCallNotification(sessionId);
     store.dispatch(setCallPhase('connecting_media'));
 
-    if (!(await this.ensureMicPermissionOrAbort('incoming_ringing'))) {
+    const incomingCallType = this.getCallState().callType ?? 'voice';
+    if (!(await this.ensureCallPermissionsOrAbort(incomingCallType, 'incoming_ringing'))) {
       return;
     }
 

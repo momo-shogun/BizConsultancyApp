@@ -9,6 +9,7 @@ import {
 } from '@/features/Bookings/utils/bookingDateTime';
 import {
   canShowCallAction,
+  getBookingConsultationKind,
   getBookingStatusTone,
   getPaymentLabel,
 } from '@/features/Bookings/utils/bookingDisplay';
@@ -63,7 +64,10 @@ export function MyBookingCard({
   onCallPress,
 }: MyBookingCardProps): React.ReactElement {
   const showCall = canShowCallAction(booking, filter);
-  const isVideo = booking.consultationType.toLowerCase() === 'video';
+  const consultationKind = getBookingConsultationKind(booking.consultationType);
+  const isVideo = consultationKind === 'video';
+  const isPhone = consultationKind === 'phone';
+  const showConsultationIcon = isVideo || isPhone;
   const slotReady = hasBookingStarted(booking.bookingDate, booking.slotTime);
   const canCall = showCall && slotReady && !isCalling;
   const consultantName = booking.consultantName ?? 'Consultant';
@@ -81,8 +85,25 @@ export function MyBookingCard({
   return (
     <View style={styles.card}>
       <View style={styles.topRow}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{getCustomerInitial(consultantName)}</Text>
+        <View style={styles.avatarWrap}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{getCustomerInitial(consultantName)}</Text>
+          </View>
+          {showConsultationIcon ? (
+            <View
+              style={[
+                styles.consultationBadge,
+                isVideo ? styles.consultationBadgeVideo : styles.consultationBadgePhone,
+              ]}
+              accessibilityLabel={isVideo ? 'Video consultation' : 'Phone consultation'}
+            >
+              <Ionicons
+                name={isVideo ? 'videocam' : 'call'}
+                size={13}
+                color="#FFFFFF"
+              />
+            </View>
+          ) : null}
         </View>
 
         <View style={styles.main}>

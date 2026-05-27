@@ -66,7 +66,11 @@ export const CallController = {
     return CallController.startOutgoingWithType(calleeUserId, callType, remoteName);
   },
 
-  async startOutgoingFromBooking(bookingId: number, remoteName: string): Promise<string | null> {
+  async startOutgoingFromBooking(
+    bookingId: number,
+    remoteName: string,
+    consultationType: string,
+  ): Promise<string | null> {
     const auth = requireAuthUser();
     if (auth == null) {
       return 'Please login to start a call';
@@ -75,8 +79,13 @@ export const CallController = {
       return 'Only consultants can start calls from bookings';
     }
 
+    const callType = consultationTypeToCallType(consultationType);
+    if (callType == null) {
+      return 'Call is not available for this booking type';
+    }
+
     callEngine.bindSocketHandlers();
-    await callEngine.startOutgoingFromBooking(bookingId, remoteName);
+    await callEngine.startOutgoingFromBooking(bookingId, remoteName, callType);
     return null;
   },
 

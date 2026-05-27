@@ -248,7 +248,11 @@ export function HomeDashboardScreen(): React.ReactElement {
                   if (!Number.isFinite(bookingId) || bookingId <= 0) {
                     return;
                   }
-                  void CallController.startOutgoingFromBooking(bookingId, item.consultantName).then(
+                  void CallController.startOutgoingFromBooking(
+                    bookingId,
+                    item.consultantName,
+                    item.callType === 'video' ? 'video' : 'phone',
+                  ).then(
                     (err) => {
                       if (err != null) {
                         console.warn('Join call:', err);

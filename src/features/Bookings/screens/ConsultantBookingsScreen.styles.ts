@@ -69,6 +69,15 @@ export const styles = StyleSheet.create({
     borderRadius: 6,
     backgroundColor: '#E2E8F0',
   },
+  skeletonLineWide: {
+    width: '55%',
+  },
+  skeletonLineFull: {
+    width: '80%',
+  },
+  skeletonLineShort: {
+    width: '40%',
+  },
   emptyBlock: {
     padding: THEME.spacing[32],
     alignItems: 'center',

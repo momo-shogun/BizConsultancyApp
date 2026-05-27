@@ -30,12 +30,15 @@ export function InCallScreen({ navigation }: Props): React.ReactElement {
   const localVideoEnabled = useAppSelector((s) => s.call.localVideoEnabled);
   const remoteVideoUid = useAppSelector((s) => s.call.remoteVideoUid);
   const remoteVideoEnabled = useAppSelector((s) => s.call.remoteVideoEnabled);
+  const credentials = useAppSelector((s) => s.call.credentials);
   const reconnecting = useAppSelector((s) => s.call.reconnecting);
   const phase = useAppSelector((s) => s.call.phase);
   const isMinimized = useAppSelector((s) => s.call.isMinimized);
   const elapsedSeconds = useCallTimer();
 
   const isVideoCall = callType === 'video';
+  const localUid = credentials?.uid ?? 0;
+  const channelName = credentials?.channelName ?? '';
 
   useEffect(() => {
     audioSessionService.configureForCall();
@@ -131,6 +134,8 @@ export function InCallScreen({ navigation }: Props): React.ReactElement {
     return (
       <View style={styles.videoRoot}>
         <CallVideoLayout
+          localUid={localUid}
+          channelName={channelName}
           remoteUid={remoteVideoUid}
           remoteVideoEnabled={remoteVideoEnabled}
           localVideoEnabled={localVideoEnabled}

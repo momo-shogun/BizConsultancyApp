@@ -5,6 +5,8 @@ import {
   ClientRoleType,
   createAgoraRtcEngine,
   RemoteAudioState,
+  RemoteVideoState,
+  VideoCodecType,
   type ChannelMediaOptions,
   type IRtcEngine,
   type IRtcEngineEventHandler,
@@ -22,6 +24,7 @@ type AgoraListeners = {
   onRemoteUserJoined?: (uid: number) => void;
   onRemoteUserLeft?: (uid: number) => void;
   onRemoteVideoMuted?: (uid: number, muted: boolean) => void;
+  onRemoteVideoState?: (uid: number, active: boolean) => void;
   onError?: (message: string) => void;
 };
 
@@ -37,6 +40,8 @@ let speakerOn = true;
 let inChannel = false;
 let previewActive = false;
 let activeCallType: CallType = 'voice';
+let joinedLocalUid = 0;
+let joinedChannelName = '';
 
 function buildChannelMediaOptions(callType: CallType): ChannelMediaOptions {
   const isVideo = callType === 'video';
@@ -92,6 +97,45 @@ function applyVoiceAudioSettings(rtc: IRtcEngine): void {
   rtc.updateChannelMediaOptions(buildChannelMediaOptions(activeCallType));
 }
 
+function applyVideoSettings(rtc: IRtcEngine): void {
+  rtc.enableVideo();
+  rtc.setVideoEncoderConfiguration({
+    codecType: VideoCodecType.VideoCodecVp8,
+    dimensions: { width: 640, height: 480 },
+    frameRate: 15,
+    bitrate: 0,
+  });
+  rtc.muteLocalVideoStream(!localVideoEnabled);
+  rtc.muteAllRemoteVideoStreams(false);
+  rtc.updateChannelMediaOptions(buildChannelMediaOptions(activeCallType));
+}
+
+function applyMediaSettings(rtc: IRtcEngine): void {
+  applyVoiceAudioSettings(rtc);
+  if (activeCallType === 'video') {
+    applyVideoSettings(rtc);
+  }
+}
+
+function notifyRemoteVideoState(uid: number, state: RemoteVideoState): void {
+  const active =
+    state === RemoteVideoState.RemoteVideoStateStarting ||
+    state === RemoteVideoState.RemoteVideoStateDecoding;
+  const inactive =
+    state === RemoteVideoState.RemoteVideoStateStopped ||
+    state === RemoteVideoState.RemoteVideoStateFailed;
+
+  if (active) {
+    listeners.onRemoteUserJoined?.(uid);
+    listeners.onRemoteVideoState?.(uid, true);
+    return;
+  }
+  if (inactive) {
+    listeners.onRemoteVideoMuted?.(uid, true);
+    listeners.onRemoteVideoState?.(uid, false);
+  }
+}
+
 function subscribeRemoteAudio(rtc: IRtcEngine, uid: number): void {
   rtc.muteRemoteAudioStream(uid, false);
   rtc.adjustUserPlaybackSignalVolume(uid, 100);
@@ -109,9 +153,9 @@ function getOrCreateEngine(): IRtcEngine {
     engine = createAgoraRtcEngine();
     engine.initialize({ appId: '' });
     eventHandler = {
-      onJoinChannelSuccess: () => {
+      onJoinChannelSuccess: (_connection) => {
         if (engine != null) {
-          applyVoiceAudioSettings(engine);
+          applyMediaSettings(engine);
         }
         settleJoinSuccess();
       },
@@ -125,7 +169,15 @@ function getOrCreateEngine(): IRtcEngine {
           subscribeRemoteAudio(engine, uid);
           subscribeRemoteVideo(engine, uid);
         }
-        listeners.onRemoteUserJoined?.(uid);
+        if (uid !== joinedLocalUid) {
+          listeners.onRemoteUserJoined?.(uid);
+        }
+      },
+      onRemoteVideoStateChanged: (_connection, uid, state) => {
+        if (engine != null && uid !== joinedLocalUid) {
+          subscribeRemoteVideo(engine, uid);
+          notifyRemoteVideoState(uid, state);
+        }
       },
       onUserOffline: (_connection, uid) => {
         listeners.onRemoteUserLeft?.(uid);
@@ -244,15 +296,16 @@ export const agoraMediaService = {
 
     activeCallType = params.callType;
     localVideoEnabled = params.callType === 'video';
+    joinedLocalUid = params.uid;
+    joinedChannelName = params.channelName;
     const rtc = getOrCreateEngine();
     rtc.initialize({ appId: params.appId });
     rtc.setChannelProfile(ChannelProfileType.ChannelProfileCommunication);
     rtc.setClientRole(ClientRoleType.ClientRoleBroadcaster);
 
     applyVoiceAudioSettings(rtc);
-
     if (params.callType === 'video') {
-      rtc.enableVideo();
+      applyVideoSettings(rtc);
       if (previewActive) {
         rtc.stopPreview();
         previewActive = false;
@@ -330,6 +383,14 @@ export const agoraMediaService = {
     return activeCallType === 'video';
   },
 
+  getJoinedLocalUid(): number {
+    return joinedLocalUid;
+  },
+
+  getJoinedChannelName(): string {
+    return joinedChannelName;
+  },
+
   release(): void {
     if (engine != null) {
       if (previewActive) {
@@ -350,5 +411,7 @@ export const agoraMediaService = {
     speakerOn = true;
     inChannel = false;
     activeCallType = 'voice';
+    joinedLocalUid = 0;
+    joinedChannelName = '';
   },
 };

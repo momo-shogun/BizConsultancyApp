@@ -26,7 +26,6 @@ import {
   PROFILE_HEADER_STATUS_BAR,
 } from '@/features/Profile/constants/profileScreenTheme';
 import { THEME } from '@/constants/theme';
-import { ROUTES } from '@/navigation/routeNames';
 import type { AccountStackParamList } from '@/navigation/types';
 import { SafeAreaWrapper, ScreenHeader } from '@/shared/components';
 import { showGlobalToast } from '@/shared/components/toast';
@@ -35,15 +34,15 @@ import { CONSULTANT_BOOKINGS_CANVAS, styles } from './ConsultantBookingsScreen.s
 
 type Nav = NativeStackNavigationProp<
   AccountStackParamList,
-  typeof ROUTES.Account.ConsultantBookings
+  'App/Account/ConsultantBookings'
 >;
 
 function BookingSkeleton(): React.ReactElement {
   return (
     <View style={styles.skeletonCard}>
-      <View style={[styles.skeletonLine, { width: '55%' }]} />
-      <View style={[styles.skeletonLine, { width: '80%' }]} />
-      <View style={[styles.skeletonLine, { width: '40%' }]} />
+      <View style={[styles.skeletonLine, styles.skeletonLineWide]} />
+      <View style={[styles.skeletonLine, styles.skeletonLineFull]} />
+      <View style={[styles.skeletonLine, styles.skeletonLineShort]} />
     </View>
   );
 }
@@ -74,7 +73,11 @@ export function ConsultantBookingsScreen(): React.ReactElement {
         return;
       }
       screen.setCallingBookingId(booking.id);
-      const error = await CallController.startOutgoingFromBooking(booking.id, booking.name);
+      const error = await CallController.startOutgoingFromBooking(
+        booking.id,
+        booking.name,
+        booking.consultationType,
+      );
       screen.setCallingBookingId(null);
       if (error != null) {
         showGlobalToast({ message: error, variant: 'error' });
