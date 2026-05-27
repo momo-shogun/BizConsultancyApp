@@ -24,6 +24,10 @@ export type EdpStackParamList = {
   [ROUTES.Edp.Main]: undefined;
   [ROUTES.Edp.Modules]: undefined;
   [ROUTES.Edp.ModuleDetail]: undefined;
+  [ROUTES.Edp.OverviewVideo]: {
+    title: string;
+    videoUrl: string;
+  };
 };
 
 export type AccountStackParamList = {
@@ -65,7 +69,12 @@ export type AppTabParamList = {
 export type RootStackParamList = {
   [ROUTES.Root.Auth]: NavigatorScreenParams<AuthStackParamList>;
   [ROUTES.Root.App]: NavigatorScreenParams<AppTabParamList>;
-  [ROUTES.Root.ConsultantsList]: undefined;
+  [ROUTES.Root.ConsultantsList]: {
+    categoryId?: number;
+    segmentId?: number;
+    /** When set, header back opens Services tab list instead of `goBack()`. */
+    returnTo?: 'services-list';
+  } | undefined;
   [ROUTES.Root.ConsultantDetail]: { slug: string };
   [ROUTES.Root.Wallet]: undefined;
   [ROUTES.Root.WalletTransactions]: undefined;

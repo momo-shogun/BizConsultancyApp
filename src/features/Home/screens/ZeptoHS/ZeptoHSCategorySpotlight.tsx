@@ -64,7 +64,7 @@ export function ZeptoHSCategorySpotlight({
   else if (categoryId === 'consultation') {
     return (
       <ExpertConsultation backgroundColor={backgroundColor} accentColor={accentColor} />
-    )
+    );
   }
 
   else if (categoryId === 'mentorship') {

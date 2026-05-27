@@ -10,7 +10,6 @@ export type EdpModuleStatus = 'done' | 'active' | 'locked';
 export interface EdpModuleCardItem {
   id: string;
   name: string;
-  icon: string;
   lessons: number;
   duration: string;
   progress: number;
@@ -21,6 +20,8 @@ export interface EdpModuleCardItem {
 export interface EdpModuleCardProps {
   item: EdpModuleCardItem;
   onPress?: () => void;
+  /** Hide progress bar and status pill (e.g. landing catalogue from API). */
+  catalogueMode?: boolean;
 }
 
 const STATUS_LABEL: Record<EdpModuleStatus, string> = {
@@ -30,7 +31,7 @@ const STATUS_LABEL: Record<EdpModuleStatus, string> = {
 };
 
 export function EdpModuleCard(props: EdpModuleCardProps): React.ReactElement {
-  const { item } = props;
+  const { item, catalogueMode = false } = props;
   const accent = item.accent;
   const isLocked = item.status === 'locked';
 
@@ -41,11 +42,6 @@ export function EdpModuleCard(props: EdpModuleCardProps): React.ReactElement {
       disabled={isLocked || props.onPress == null}
     >
       <View style={styles.inner}>
-        <View style={[styles.iconWrap, { borderColor: accentAlpha(accent, 0.33) }]}>
-          <View style={[styles.iconInner, { backgroundColor: accentAlpha(accent, 0.13) }]}>
-            <Text style={styles.iconText}>{item.icon}</Text>
-          </View>
-        </View>
         <View style={styles.info}>
           <Text style={[styles.name, isLocked ? styles.nameLocked : null]} numberOfLines={2}>
             {item.name}
@@ -55,29 +51,45 @@ export function EdpModuleCard(props: EdpModuleCardProps): React.ReactElement {
             <Text style={styles.metaDot}>·</Text>
             <Text style={styles.metaText}>{item.duration}</Text>
           </View>
-          <View style={styles.progressBg}>
-            <View
-              style={[
-                styles.progressFill,
-                {
-                  width: `${item.progress}%`,
-                  backgroundColor: isLocked ? 'rgba(15,23,42,0.15)' : accent,
-                },
-              ]}
-            />
+          {catalogueMode ? null : (
+            <View style={styles.progressBg}>
+              <View
+                style={[
+                  styles.progressFill,
+                  {
+                    width: `${item.progress}%`,
+                    backgroundColor: isLocked ? 'rgba(15,23,42,0.15)' : accent,
+                  },
+                ]}
+              />
+            </View>
+          )}
+        </View>
+        {catalogueMode ? (
+          <View
+            style={[
+              styles.statusPill,
+              {
+                borderColor: accentAlpha(accent, 0.33),
+                backgroundColor: accentAlpha(accent, 0.1),
+              },
+            ]}
+          >
+            <Text style={[styles.statusText, { color: accent }]}>View</Text>
           </View>
-        </View>
-        <View
-          style={[
-            styles.statusPill,
-            {
-              borderColor: accentAlpha(accent, 0.33),
-              backgroundColor: accentAlpha(accent, 0.1),
-            },
-          ]}
-        >
-          <Text style={[styles.statusText, { color: accent }]}>{STATUS_LABEL[item.status]}</Text>
-        </View>
+        ) : (
+          <View
+            style={[
+              styles.statusPill,
+              {
+                borderColor: accentAlpha(accent, 0.33),
+                backgroundColor: accentAlpha(accent, 0.1),
+              },
+            ]}
+          >
+            <Text style={[styles.statusText, { color: accent }]}>{STATUS_LABEL[item.status]}</Text>
+          </View>
+        )}
       </View>
     </Pressable>
   );
@@ -92,25 +104,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: THEME.spacing[14],
     gap: THEME.spacing[12],
-  },
-  iconWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  iconInner: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconText: {
-    fontSize: THEME.typography.size[18],
   },
   info: {
     flex: 1,

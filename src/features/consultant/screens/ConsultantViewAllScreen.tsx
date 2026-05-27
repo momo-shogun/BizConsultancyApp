@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { skipToken } from '@reduxjs/toolkit/query';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { THEME } from '@/constants/theme';
@@ -29,6 +29,7 @@ import {
 } from '@/features/consultant/utils/consultantMappers';
 import {
   buildConsultantFilterSections,
+  buildConsultantListFiltersFromMasterIds,
   buildPublicConsultantsListQuery,
   CONSULTANT_LIST_FILTER_KEYS,
   CONSULTANT_SEARCH_DEBOUNCE_MS,
@@ -41,6 +42,7 @@ import {
 } from '@/features/consultant/utils/consultantListFilters';
 import { getApiErrorMessage } from '@/utils/apiError';
 import { ROUTES } from '@/navigation/routeNames';
+import { navigationRef } from '@/navigation/navigationContainerRef';
 import type { RootStackParamList } from '@/navigation/types';
 import {
   ContentPlaceholder,
@@ -64,7 +66,21 @@ const H_PADDING = THEME.spacing[12];
 const PLACEHOLDER_CARD_COUNT = 6;
 const PLACEHOLDER_KEYS = Array.from({ length: PLACEHOLDER_CARD_COUNT }, (_, i) => `placeholder-${i}`);
 
+type ConsultantsListRouteProp = RouteProp<
+  RootStackParamList,
+  typeof ROUTES.Root.ConsultantsList
+>;
+
 type SortMode = 'recommended' | 'name' | 'rate_low' | 'rate_high';
+
+function resolveConsultantListRouteFilters(
+  params: ConsultantsListRouteProp['params'],
+): FilterSheetValue {
+  if (params?.categoryId == null && params?.segmentId == null) {
+    return EMPTY_CONSULTANT_LIST_FILTERS;
+  }
+  return buildConsultantListFiltersFromMasterIds(params?.categoryId, params?.segmentId);
+}
 
 function parseRateRupee(label: string): number {
   const normalized = label.replace(/[₹,\s]/g, '');
@@ -86,13 +102,16 @@ function sortConsultants(items: TopConsultantItem[], mode: SortMode): TopConsult
 
 export function ConsultantViewAllScreen(): React.ReactElement {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const route = useRoute<ConsultantsListRouteProp>();
   const { width } = useWindowDimensions();
 
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isFilterOpen, setIsFilterOpen] = useState<boolean>(false);
   const [sortMode, setSortMode] = useState<SortMode>('recommended');
-  const [filters, setFilters] = useState<FilterSheetValue>(EMPTY_CONSULTANT_LIST_FILTERS);
+  const [filters, setFilters] = useState<FilterSheetValue>(() =>
+    resolveConsultantListRouteFilters(route.params),
+  );
   const [debouncedSearch, setDebouncedSearch] = useState<string>('');
   const [page, setPage] = useState<number>(1);
 
@@ -100,6 +119,17 @@ export function ConsultantViewAllScreen(): React.ReactElement {
     const handle = setTimeout(() => setDebouncedSearch(searchQuery.trim()), CONSULTANT_SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(handle);
   }, [searchQuery]);
+
+  useEffect(() => {
+    const nextFilters = resolveConsultantListRouteFilters(route.params);
+    const hasRouteFilters =
+      route.params?.categoryId != null || route.params?.segmentId != null;
+    if (!hasRouteFilters) {
+      return;
+    }
+    setFilters(nextFilters);
+    setPage(1);
+  }, [route.params?.categoryId, route.params?.segmentId]);
 
   useEffect(() => {
     setPage(1);
@@ -339,6 +369,19 @@ export function ConsultantViewAllScreen(): React.ReactElement {
     segmentOptions,
   ]);
 
+  const handleBackPress = useCallback((): void => {
+    if (route.params?.returnTo === 'services-list' && navigationRef.isReady()) {
+      navigationRef.navigate(ROUTES.Root.App, {
+        screen: ROUTES.App.Services,
+        params: { screen: ROUTES.Services.List },
+      });
+      return;
+    }
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    }
+  }, [navigation, route.params?.returnTo]);
+
   const keyExtractor = useCallback((item: TopConsultantItem): string => item.id, []);
 
   const renderConsultantItem = useCallback<ListRenderItem<TopConsultantItem>>(
@@ -420,7 +463,7 @@ export function ConsultantViewAllScreen(): React.ReactElement {
     <SafeAreaWrapper edges={['top', 'bottom']}>
       <ScreenHeader
         title="Consultants"
-        onBackPress={() => navigation.goBack()}
+        onBackPress={handleBackPress}
         onSearchPress={() => setIsSearchOpen((v) => !v)}
       />
 

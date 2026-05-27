@@ -156,12 +156,14 @@ export function ServiceDetailScreen(): React.ReactElement {
   );
 
   const handleBack = useCallback((): void => {
-    navigation.goBack();
+    navigation.navigate(ROUTES.Services.List);
   }, [navigation]);
 
   const openConsultantsList = useCallback((): void => {
     if (navigationRef.isReady()) {
-      navigationRef.navigate(ROUTES.Root.ConsultantsList);
+      navigationRef.navigate(ROUTES.Root.ConsultantsList, {
+        returnTo: 'services-list',
+      });
     }
   }, []);
 

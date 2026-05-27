@@ -21,6 +21,22 @@ export const EMPTY_CONSULTANT_LIST_FILTERS: FilterSheetValue = {
   },
 };
 
+export function buildConsultantListFiltersFromMasterIds(
+  categoryId?: number | null,
+  segmentId?: number | null,
+): FilterSheetValue {
+  const hasCategory = categoryId != null && Number.isFinite(categoryId) && categoryId > 0;
+  const hasSegment = segmentId != null && Number.isFinite(segmentId) && segmentId > 0;
+
+  return {
+    selected: {
+      [CONSULTANT_LIST_FILTER_KEYS.category]: hasCategory ? String(categoryId) : null,
+      [CONSULTANT_LIST_FILTER_KEYS.segment]: hasSegment ? String(segmentId) : null,
+      [CONSULTANT_LIST_FILTER_KEYS.industry]: null,
+    },
+  };
+}
+
 function parsePositiveInt(value: string | null): number | undefined {
   if (value == null || value.length === 0) {
     return undefined;

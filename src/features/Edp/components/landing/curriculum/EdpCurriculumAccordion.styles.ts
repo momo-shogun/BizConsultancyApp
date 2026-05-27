@@ -1,0 +1,183 @@
+import { Platform, StyleSheet } from 'react-native';
+
+import { THEME } from '@/constants/theme';
+
+import { EDP_CURRICULUM_THEME as T } from './edpCurriculumTheme';
+
+export const accordionStyles = StyleSheet.create({
+  list: {
+    gap: THEME.spacing[12],
+  },
+  moduleCard: {
+    borderRadius: 16,
+    backgroundColor: T.card,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: T.cardBorder,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowColor: T.shadow,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 1,
+        shadowRadius: 14,
+      },
+      android: {
+        elevation: 2,
+      },
+      default: {},
+    }),
+  },
+  headerPressable: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: THEME.spacing[14],
+    paddingVertical: THEME.spacing[14],
+    gap: THEME.spacing[12],
+  },
+  headerExpanded: {
+    backgroundColor: T.headerExpanded,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: T.divider,
+  },
+  headerTextWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
+  moduleTitle: {
+    fontSize: THEME.typography.size[14],
+    lineHeight: 20,
+    fontWeight: THEME.typography.weight.bold as '700',
+    color: T.text,
+    letterSpacing: -0.15,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: THEME.spacing[6],
+    marginTop: THEME.spacing[8],
+  },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: T.chipBg,
+  },
+  chipText: {
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: THEME.typography.weight.medium as '500',
+    color: T.chipText,
+  },
+  chevronWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: T.chipBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  body: {
+    backgroundColor: T.canvas,
+    paddingTop: THEME.spacing[4],
+    paddingBottom: THEME.spacing[12],
+  },
+  sectionLabel: {
+    paddingHorizontal: THEME.spacing[14],
+    paddingTop: THEME.spacing[10],
+    paddingBottom: THEME.spacing[8],
+    fontSize: 11,
+    fontWeight: THEME.typography.weight.bold as '700',
+    color: T.chipText,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+  },
+  lectureList: {
+    backgroundColor: T.card,
+    marginHorizontal: THEME.spacing[10],
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: T.divider,
+    overflow: 'hidden',
+  },
+  lectureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: THEME.spacing[12],
+    paddingVertical: THEME.spacing[11],
+    gap: THEME.spacing[10],
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: T.divider,
+  },
+  lectureRowLast: {
+    borderBottomWidth: 0,
+  },
+  lectureIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: T.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  lectureIndex: {
+    fontSize: 11,
+    fontWeight: THEME.typography.weight.bold as '700',
+    color: T.primary,
+  },
+  lectureTitle: {
+    flex: 1,
+    fontSize: THEME.typography.size[13],
+    lineHeight: 18,
+    color: T.text,
+    fontWeight: THEME.typography.weight.medium as '500',
+  },
+  emptyLectures: {
+    paddingHorizontal: THEME.spacing[14],
+    paddingVertical: THEME.spacing[16],
+    fontSize: THEME.typography.size[13],
+    color: T.textMuted,
+    textAlign: 'center',
+  },
+  actions: {
+    paddingHorizontal: THEME.spacing[12],
+    paddingTop: THEME.spacing[12],
+    gap: THEME.spacing[8],
+  },
+  primaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: THEME.spacing[8],
+    backgroundColor: T.primary,
+    borderRadius: 12,
+    paddingVertical: THEME.spacing[12],
+    minHeight: 46,
+  },
+  primaryBtnText: {
+    fontSize: THEME.typography.size[14],
+    fontWeight: THEME.typography.weight.bold as '700',
+    color: THEME.colors.white,
+  },
+  secondaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: THEME.spacing[8],
+    backgroundColor: T.card,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: T.divider,
+    paddingVertical: THEME.spacing[11],
+    minHeight: 44,
+  },
+  secondaryBtnText: {
+    fontSize: THEME.typography.size[13],
+    fontWeight: THEME.typography.weight.bold as '700',
+    color: T.primary,
+  },
+});

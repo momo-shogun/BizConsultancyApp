@@ -10,15 +10,6 @@ export const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: THEME.spacing[24],
   },
-  section: {
-    paddingHorizontal: THEME.spacing[16],
-    paddingTop: THEME.spacing[20],
-  },
-  statGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: THEME.spacing[10],
-  },
   ctaSection: {
     paddingHorizontal: THEME.spacing[16],
     paddingTop: THEME.spacing[20],

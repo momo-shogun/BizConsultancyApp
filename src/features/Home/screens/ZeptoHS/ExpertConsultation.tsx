@@ -1,8 +1,7 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   Animated,
   FlatList,
-  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -11,141 +10,74 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 
+import {
+  useGetMasterCategoriesQuery,
+  useGetMasterSegmentsQuery,
+} from '@/features/consultant/api/consultantApi';
+import type { MasterDataItem } from '@/features/consultant/types/masterData.types';
+import {
+  buildExpertConsultationSections,
+  toMasterCategoryRefs,
+} from '@/features/Home/utils/expertConsultationMappers';
+import { ROUTES } from '@/navigation/routeNames';
+import { navigationRef } from '@/navigation/navigationContainerRef';
 import { THEME } from '@/constants/theme';
 
-// import consultationAnimation from '@/assets/animations/expertConsultation.json';
-
-// const CONSULTATION_SOURCE =
-//   consultationAnimation as unknown as React.ComponentProps<
-//     typeof LottieView
-//   >['source'];
-
-type ExpertConsultationItem = {
-  id: number;
-  name: string;
-  slug: string;
-  thumbnail: string;
-  description: string;
-  category: {
-    id: number;
-    name: string;
-    slug: string;
-  };
-};
+import { ExpertConsultationSectionSkeleton } from './components/ExpertConsultationSectionSkeleton';
+import { ExpertConsultationSegmentCard } from './components/ExpertConsultationSegmentCard';
 
 type Props = {
   backgroundColor: string;
   accentColor: string;
-  data?: ExpertConsultationItem[];
 };
 
-const DUMMY_DATA: ExpertConsultationItem[] = [
-  {
-    id: 1,
-    name: 'Energy and Fuel',
-    slug: 'energy-and-fuel',
-    thumbnail:
-      'https://images.unsplash.com/photo-1513828583688-c52646db42da?q=80&w=1200&auto=format&fit=crop',
-    description:
-      'Mentorship for petroleum, gas, energy operations and industrial growth strategies.',
-    category: {
-      id: 1,
-      name: 'Industrial',
-      slug: 'industrial',
-    },
-  },
-  {
-    id: 2,
-    name: 'Manufacturing Excellence',
-    slug: 'manufacturing',
-    thumbnail:
-      'https://images.unsplash.com/photo-1504307651254-35680f356dfd?q=80&w=1200&auto=format&fit=crop',
-    description:
-      'Learn scaling, automation and operational efficiency from manufacturing leaders.',
-    category: {
-      id: 1,
-      name: 'Industrial',
-      slug: 'industrial',
-    },
-  },
-  {
-    id: 3,
-    name: 'Social Enterprises & CSR Funding',
-    slug: 'social-enterprises-csr-funding',
-    thumbnail:
-      'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?q=80&w=1200&auto=format&fit=crop',
-    description:
-      'Guidance for NGOs, CSR initiatives and social impact funding opportunities.',
-    category: {
-      id: 2,
-      name: 'Professional',
-      slug: 'professional',
-    },
-  },
-  {
-    id: 4,
-    name: 'Business Consulting',
-    slug: 'business-consulting',
-    thumbnail:
-      'https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=1200&auto=format&fit=crop',
-    description:
-      'Connect with experienced consultants for strategy, finance and growth planning.',
-    category: {
-      id: 2,
-      name: 'Professional',
-      slug: 'professional',
-    },
-  },
-  {
-    id: 5,
-    name: 'Startup Fundraising',
-    slug: 'startup-fundraising',
-    thumbnail:
-      'https://images.unsplash.com/photo-1556761175-b413da4baf72?q=80&w=1200&auto=format&fit=crop',
-    description:
-      'Learn investor pitching, fundraising and startup scaling from founders and VCs.',
-    category: {
-      id: 3,
-      name: 'Startup',
-      slug: 'startup',
-    },
-  },
-  {
-    id: 6,
-    name: 'Product & UX Mentorship',
-    slug: 'product-ux',
-    thumbnail:
-      'https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=1200&auto=format&fit=crop',
-    description:
-      'Get mentorship in product strategy, user experience and digital innovation.',
-    category: {
-      id: 3,
-      name: 'Startup',
-      slug: 'startup',
-    },
-  },
-];
+const LOADING_SECTION_COUNT = 2;
 
 export function ExpertConsultation({
   backgroundColor,
   accentColor,
-  data = DUMMY_DATA,
 }: Props): React.ReactElement {
   const contentOpacity = useRef(new Animated.Value(0)).current;
   const contentTranslate = useRef(new Animated.Value(12)).current;
   const glowPulse = useRef(new Animated.Value(0)).current;
 
-  const groupedData = useMemo(() => {
-    const map: Record<string, ExpertConsultationItem[]> = {};
-    data.forEach((item) => {
-      const key = item.category?.name ?? 'Other';
-      if (!map[key]) {
-        map[key] = [];
-      }
-      map[key].push(item);
+  const {
+    data: categoriesRaw = [],
+    isLoading: categoriesLoading,
+    isFetching: categoriesFetching,
+  } = useGetMasterCategoriesQuery();
+
+  const {
+    data: segments = [],
+    isLoading: segmentsLoading,
+    isFetching: segmentsFetching,
+  } = useGetMasterSegmentsQuery();
+
+  const isLoading =
+    categoriesLoading || segmentsLoading || categoriesFetching || segmentsFetching;
+
+  const categorySections = useMemo(() => {
+    const categories = toMasterCategoryRefs(categoriesRaw);
+    return buildExpertConsultationSections(categories, segments);
+  }, [categoriesRaw, segments]);
+
+  const onBookConsultationPress = useCallback((): void => {
+    if (!navigationRef.isReady()) {
+      return;
+    }
+    navigationRef.navigate(ROUTES.Root.ConsultantsList);
+  }, []);
+
+  const onSegmentPress = useCallback((segment: MasterDataItem, categoryId: number): void => {
+    if (!navigationRef.isReady()) {
+      return;
+    }
+    const resolvedCategoryId = segment.categoryId ?? segment.category?.id ?? categoryId;
+    navigationRef.navigate(ROUTES.Root.ConsultantsList, {
+      categoryId: resolvedCategoryId,
+      segmentId: segment.id,
     });
-    return Object.entries(map);
-  }, [data]);
+  }, []);
 
   useEffect(() => {
     Animated.parallel([
@@ -240,10 +172,11 @@ export function ExpertConsultation({
             <Pressable
               style={({ pressed }) => [
                 styles.button,
-                pressed && { transform: [{ scale: 0.97 }] },
+                pressed ? { transform: [{ scale: 0.97 }] } : null,
               ]}
               accessibilityRole="button"
               accessibilityLabel="Book consultation"
+              onPress={onBookConsultationPress}
             >
               <LinearGradient
                 colors={[accentColor, '#0EA5E9']}
@@ -258,60 +191,44 @@ export function ExpertConsultation({
         </LinearGradient>
       </View>
 
-      {groupedData.map(([category, items]) => (
-        <View key={category} style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>{category}</Text>
-            <View style={styles.sectionLine} />
-          </View>
+      {isLoading ? (
+        Array.from({ length: LOADING_SECTION_COUNT }, (_, index) => (
+          <ExpertConsultationSectionSkeleton key={`expert-consultation-loading-${index}`} />
+        ))
+      ) : (
+        categorySections.map((section) => {
+          const categorySlug =
+            section.category.slug?.trim() ||
+            section.category.name.trim().toLowerCase().replace(/\s+/g, '-');
 
-          <FlatList
-            horizontal
-            nestedScrollEnabled
-            data={items}
-            keyExtractor={(item) => item.id.toString()}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.horizontalList}
-            renderItem={({ item }) => (
-              <View style={styles.card}>
-                <View style={styles.imageWrap}>
-                  <Image
-                    source={{ uri: item.thumbnail }}
-                    style={styles.image}
-                    resizeMode="cover"
-                  />
-                  <LinearGradient
-                    colors={['transparent', 'rgba(15,23,42,0.65)']}
-                    style={styles.imageOverlay}
-                  />
-                  <View style={styles.floatingBadge}>
-                    <Text style={styles.floatingBadgeText}>Expert Mentors</Text>
-                  </View>
-                </View>
-
-                <View style={styles.cardBody}>
-                  <Text numberOfLines={2} style={styles.cardTitle}>
-                    {item.name}
-                  </Text>
-                  <Text numberOfLines={3} style={styles.cardDescription}>
-                    {item.description}
-                  </Text>
-                  <View style={styles.cardFooter}>
-                    <View style={styles.tag}>
-                      <Text style={[styles.tagText, { color: accentColor }]}>
-                        {item.category.slug}
-                      </Text>
-                    </View>
-                    <View style={styles.arrowWrap}>
-                      <Text style={styles.arrow}>→</Text>
-                    </View>
-                  </View>
-                </View>
+          return (
+            <View key={String(section.category.id)} style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>{section.category.name}</Text>
+                <View style={styles.sectionLine} />
               </View>
-            )}
-          />
-        </View>
-      ))}
+
+              <FlatList
+                horizontal
+                nestedScrollEnabled
+                data={section.segments}
+                keyExtractor={(item) => String(item.id)}
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.horizontalList}
+                renderItem={({ item }) => (
+                  <ExpertConsultationSegmentCard
+                    item={item}
+                    accentColor={accentColor}
+                    categorySlug={categorySlug}
+                    categoryId={section.category.id}
+                    onPress={onSegmentPress}
+                  />
+                )}
+              />
+            </View>
+          );
+        })
+      )}
     </ScrollView>
   );
 }
@@ -351,44 +268,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
 
-  lottieWrap: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
-  },
-
-  ringOuter: {
-    width: 124,
-    height: 124,
-    borderRadius: 62,
-    backgroundColor: 'rgba(37,99,235,0.08)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  ringInner: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: 'rgba(255,255,255,0.72)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  lottie: {
-    width: 88,
-    height: 88,
-  },
-
   content: {
     alignItems: 'center',
-  },
-
-  label: {
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 2,
-    marginBottom: 10,
   },
 
   heading: {
@@ -482,7 +363,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
 
-  /* —— Category rows (matches MentorshipProgram) —— */
   section: {
     marginTop: THEME.spacing[12],
   },
