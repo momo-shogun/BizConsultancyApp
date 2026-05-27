@@ -15,6 +15,7 @@ import { THEME } from '@/constants/theme';
 import type { AccountStackParamList } from '@/navigation/types';
 import { DatePickerField, Input, KeyboardWrapper, Loader } from '@/shared/components';
 
+import { ProfilePhotoSourceDialog } from '../../components/ProfilePhotoSourceDialog';
 import { ProfileScreenHeaderChrome } from '../../components/ProfileScreenHeaderChrome';
 import { CONSULTANT_EXPERIENCE_HELPER } from '../../utils/consultantExperience';
 import type { ConsultantGenderValue } from '../../types/consultantProfile.types';
@@ -69,7 +70,10 @@ export function ConsultantEditProfileScreen(): React.ReactElement {
     fieldErrors,
     setFormField,
     setDobDate,
-    pickProfileImage,
+    photoSourceDialogVisible,
+    openPhotoSourceDialog,
+    closePhotoSourceDialog,
+    selectProfileImageSource,
     handleSave,
     refetch,
   } = useConsultantEditProfileScreen();
@@ -98,7 +102,7 @@ export function ConsultantEditProfileScreen(): React.ReactElement {
     avatarInitial,
     displayName: readOnlyName !== '—' ? readOnlyName : undefined,
     displaySubtitle: readOnlyMobile !== '—' ? readOnlyMobile : undefined,
-    onAvatarPress: () => void pickProfileImage(),
+    onAvatarPress: openPhotoSourceDialog,
   };
 
   if (!isAuthenticated) {
@@ -143,6 +147,13 @@ export function ConsultantEditProfileScreen(): React.ReactElement {
 
   return (
     <ProfileScreenHeaderChrome {...chromeProps}>
+      <ProfilePhotoSourceDialog
+        visible={photoSourceDialogVisible}
+        onClose={closePhotoSourceDialog}
+        onSelectSource={(source) => {
+          void selectProfileImageSource(source);
+        }}
+      />
       <KeyboardWrapper style={styles.flex}>
         <ScrollView
           style={styles.flex}

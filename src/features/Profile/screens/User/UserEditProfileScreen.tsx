@@ -11,10 +11,11 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { THEME } from '@/constants/theme';
-import { ROUTES } from '@/navigation/routeNames';
+import { type ROUTES } from '@/navigation/routeNames';
 import type { AccountStackParamList } from '@/navigation/types';
 import { Input, KeyboardWrapper, Loader } from '@/shared/components';
 
+import { ProfilePhotoSourceDialog } from '../../components/ProfilePhotoSourceDialog';
 import { ProfileScreenHeaderChrome } from '../../components/ProfileScreenHeaderChrome';
 import { useUserEditProfileScreen } from '../../hooks/useUserEditProfileScreen';
 import type { UserGenderValue } from '../../types/userProfile.types';
@@ -64,7 +65,10 @@ export function UserEditProfileScreen(): React.ReactElement {
     form,
     fieldErrors,
     setFormField,
-    pickProfileImage,
+    photoSourceDialogVisible,
+    openPhotoSourceDialog,
+    closePhotoSourceDialog,
+    selectProfileImageSource,
     handleSave,
     refetch,
   } = useUserEditProfileScreen();
@@ -85,7 +89,7 @@ export function UserEditProfileScreen(): React.ReactElement {
     avatarInitial,
     displayName: readOnlyName !== '—' ? readOnlyName : undefined,
     displaySubtitle: readOnlyMobile !== '—' ? readOnlyMobile : undefined,
-    onAvatarPress: () => void pickProfileImage(),
+    onAvatarPress: openPhotoSourceDialog,
   };
 
   if (!isAuthenticated) {
@@ -130,6 +134,13 @@ export function UserEditProfileScreen(): React.ReactElement {
 
   return (
     <ProfileScreenHeaderChrome {...chromeProps}>
+      <ProfilePhotoSourceDialog
+        visible={photoSourceDialogVisible}
+        onClose={closePhotoSourceDialog}
+        onSelectSource={(source) => {
+          void selectProfileImageSource(source);
+        }}
+      />
       <KeyboardWrapper style={styles.flex}>
         <ScrollView
           style={styles.flex}
