@@ -35,6 +35,9 @@ export interface EdpFreeEdpModule {
   slug?: string;
   url?: string;
   thumbnail?: string;
+  total_duration?: string;
+  mandatory_percentage?: number;
+  progress?: string;
   e_documents_count?: number;
   e_videos_count?: number;
   sub_sub_category?: EdpFreeSubSubCategory[];

@@ -1,34 +1,124 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import type { NavigationProp } from '@react-navigation/native';
+import { Image, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  SafeAreaView,
-  StatusBar,
-} from 'react-native';
-import { styles, THEME } from './EDPModulesScreen.styles';
-import { SafeAreaWrapper, ScreenHeader } from '@/shared/components';
+import { THEME } from '@/constants/theme';
+import { useGetEdpCoursesWithDocumentsQuery } from '@/features/Edp/api/edpLandingApi';
+import type { EdpFreeEdpModule } from '@/features/Edp/types/edpCourses.types';
+import { resolveIidAssetUrl } from '@/features/Edp/utils/edpMedia';
 import { ROUTES } from '@/navigation/routeNames';
 import type { EdpStackParamList } from '@/navigation/types';
+import { SafeAreaWrapper, ScreenHeader } from '@/shared/components';
 
+import { styles } from './EDPModulesScreen.styles';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface ModuleItem {
+interface ModuleCardItem {
   id: string;
-  number: string;
-  label: string;
-  title: string;
-  icon: string;
-  accentColor: string;
+  titleEn: string;
+  titleHi: string;
   videos: number;
   pdfs: number;
-  tests: number;
-  cardBg: string;
+  imageUrl: string | null;
+  progressPercent: number;
+}
+
+const CARD_GRADIENTS: readonly [string, string][] = [
+  ['#DBEAFE', '#E0F2FE'],
+  ['#DCFCE7', '#ECFEFF'],
+  ['#FCE7F3', '#F5F3FF'],
+  ['#FEF3C7', '#FCE7F3'],
+  ['#E0E7FF', '#F0FDFA'],
+  ['#FEE2E2', '#FFEDD5'],
+];
+
+function toModuleCardItems(modules: EdpFreeEdpModule[] | undefined): ModuleCardItem[] {
+  if (modules == null) {
+    return [];
+  }
+  return modules.map((module) => {
+    const nameEn = module.name?.trim() ?? '';
+    const nameHi = module.hindi_name?.trim() ?? '';
+    const progressRaw = module.progress?.trim();
+    const progressParsed = progressRaw != null && progressRaw.length > 0 ? Number(progressRaw) : NaN;
+    const progressPercent = Number.isFinite(progressParsed)
+      ? Math.max(0, Math.min(100, Math.round(progressParsed)))
+      : 0;
+    return {
+      id: String(module.id),
+      titleEn: nameEn.length > 0 ? nameEn : 'Module',
+      titleHi: nameHi.length > 0 ? nameHi : nameEn,
+      videos: module.e_videos_count ?? 0,
+      pdfs: module.e_documents_count ?? 0,
+      imageUrl: resolveIidAssetUrl(module.thumbnail),
+      progressPercent,
+    };
+  });
+}
+
+function ModuleCard(props: {
+  item: ModuleCardItem;
+  index: number;
+  lang: 'ENG' | 'HI';
+  onPress: () => void;
+}): React.ReactElement {
+  const { item, index, onPress, lang } = props;
+  const [from, to] = CARD_GRADIENTS[index % CARD_GRADIENTS.length];
+  const moduleTitle = lang === 'HI' && item.titleHi.length > 0 ? item.titleHi : item.titleEn;
+  return (
+    <Pressable
+      style={({ pressed }) => [styles.cardPressable, pressed ? styles.cardPressed : null]}
+      onPress={onPress}
+    >
+      <View style={styles.card}>
+        <View style={styles.imageWrap}>
+          {item.imageUrl != null ? (
+            <Image source={{ uri: item.imageUrl }} style={styles.image} resizeMode="cover" />
+          ) : (
+            <LinearGradient colors={[from, to]} style={styles.imageFallback} />
+          )}
+          <LinearGradient
+            colors={['transparent', 'rgba(15,23,42,0.35)']}
+            style={styles.imageOverlay}
+          />
+          <View style={styles.cornerCta}>
+            <Ionicons name="arrow-forward" size={14} color={THEME.colors.white} />
+          </View>
+        </View>
+
+        <View style={styles.cardBody}>
+          <Text style={styles.cardTitle} numberOfLines={2}>
+            {moduleTitle}
+          </Text>
+
+          <View style={styles.progressBlock}>
+            <View style={styles.progressTopRow}>
+              <Text style={styles.progressLabel}>Completed</Text>
+              <View style={styles.progressBadge}>
+                <Text style={styles.progressBadgeText}>{item.progressPercent}%</Text>
+              </View>
+            </View>
+            <View style={styles.progressTrack}>
+              <View style={[styles.progressFill, { width: `${item.progressPercent}%` }]} />
+            </View>
+          </View>
+
+          <View style={styles.metaRow}>
+            <Text style={styles.metaText} numberOfLines={1}>
+              {`${item.videos} videos · ${item.pdfs} PDFs`}
+            </Text>
+          </View>
+
+          {/* <View style={styles.cardFooter}>
+            <Text style={styles.cardMeta}>IID catalogue module</Text>
+            <Text style={styles.openLabel}>Open</Text>
+          </View> */}
+        </View>
+      </View>
+    </Pressable>
+  );
 }
 
 export interface EDPModulesScreenProps {
@@ -36,308 +126,97 @@ export interface EDPModulesScreenProps {
   onOpenModule?: (moduleId: string) => void;
 }
 
-// ─── Config Maps ─────────────────────────────────────────────────────────────
-
-const MODULES: ModuleItem[] = [
-  {
-    id: 'm1',
-    number: 'M1',
-    label: 'MODULE I',
-    title: 'EDP Programme Orientations',
-    icon: '📋',
-    accentColor: THEME.colors.accentGreen,
-    videos: 6,
-    pdfs: 6,
-    tests: 0,
-    cardBg: '#0F2A1A',
-  },
-  {
-    id: 'm2',
-    number: 'M2',
-    label: 'MODULE II',
-    title: 'Business Idea Generation & Validation',
-    icon: '💡',
-    accentColor: THEME.colors.accentAmber,
-    videos: 14,
-    pdfs: 15,
-    tests: 0,
-    cardBg: '#1C1400',
-  },
-  {
-    id: 'm3',
-    number: 'M3',
-    label: 'MODULE III',
-    title: 'Entrepreneur Skill Sets',
-    icon: '🌟',
-    accentColor: THEME.colors.accentBlue,
-    videos: 12,
-    pdfs: 12,
-    tests: 0,
-    cardBg: '#0A1929',
-  },
-  {
-    id: 'm4',
-    number: 'M4',
-    label: 'MODULE IV',
-    title: 'Business Venture Types & Registration',
-    icon: '🏪',
-    accentColor: THEME.colors.accentPurple,
-    videos: 8,
-    pdfs: 8,
-    tests: 0,
-    cardBg: '#1A0F2E',
-  },
-  {
-    id: 'm5',
-    number: 'M5',
-    label: 'MODULE V',
-    title: 'Financial Planning & Management',
-    icon: '💰',
-    accentColor: THEME.colors.accentRose,
-    videos: 10,
-    pdfs: 10,
-    tests: 0,
-    cardBg: '#200818',
-  },
-  {
-    id: 'm6',
-    number: 'M6',
-    label: 'MODULE VI',
-    title: 'Marketing & Digital Strategy',
-    icon: '📣',
-    accentColor: THEME.colors.accentTeal,
-    videos: 11,
-    pdfs: 11,
-    tests: 0,
-    cardBg: '#061A18',
-  },
-  {
-    id: 'm7',
-    number: 'M7',
-    label: 'MODULE VII',
-    title: 'Legal Compliance & Taxation',
-    icon: '⚖️',
-    accentColor: THEME.colors.accentOrange,
-    videos: 9,
-    pdfs: 9,
-    tests: 0,
-    cardBg: '#1C0E00',
-  },
-  {
-    id: 'm8',
-    number: 'M8',
-    label: 'MODULE VIII',
-    title: 'Scaling & Growth Operations',
-    icon: '🚀',
-    accentColor: THEME.colors.accentBlue,
-    videos: 13,
-    pdfs: 13,
-    tests: 0,
-    cardBg: '#071428',
-  },
-];
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-const ModuleCard = ({
-  item,
-  onPress,
-}: {
-  item: ModuleItem;
-  onPress: () => void;
-}) => {
-  const accentBg22 = `${item.accentColor}38`;
-  const accentBg13 = `${item.accentColor}21`;
-  const accentBorder33 = `${item.accentColor}54`;
-
-  return (
-    <TouchableOpacity
-      style={[styles.card, { backgroundColor: "white" }]}
-      onPress={onPress}
-      activeOpacity={0.82}
-    >
-      {/* shimmer top edge */}
-      <View style={[styles.cardShimmerEdge,]} />
-
-      <View style={styles.cardTopSection}>
-        {/* Badge */}
-        <View
-          style={[
-            styles.cardBadge,
-            { backgroundColor: accentBg22, borderWidth: 1, borderColor: accentBorder33 },
-          ]}
-        >
-          <Text style={[styles.cardBadgeText,]}>
-            {item.number}
-          </Text>
-        </View>
-
-        {/* Icon container */}
-        <View
-          style={[
-            styles.cardIconContainer,
-            { borderColor: accentBorder33 },
-          ]}
-        >
-          <View style={[styles.cardIconInner]}>
-            <Text style={{ fontSize: 22 }}>{item.icon}</Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Body */}
-      <View style={styles.cardBody}>
-        <Text style={styles.cardModLabel}>{item.label}</Text>
-        <Text style={styles.cardTitle} numberOfLines={3}>
-          {item.title}
-        </Text>
-
-        {/* Pills */}
-        <View style={styles.cardPills}>
-          <View style={styles.pill}>
-            <Text style={{ fontSize: 9, color: item.accentColor }}>▶</Text>
-            <Text style={styles.pillText}>{item.videos} Videos</Text>
-          </View>
-          <View style={styles.pill}>
-            <Text style={{ fontSize: 9, color: item.accentColor }}>📄</Text>
-            <Text style={styles.pillText}>{item.pdfs} PDFs</Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Footer */}
-      <View style={styles.cardFooter}>
-        <Text style={styles.cardAssessText}>
-          {item.tests === 0 ? 'No tests' : `${item.tests} tests`}
-        </Text>
-        <TouchableOpacity
-          style={[styles.cardOpenBtn, { backgroundColor: accentBg22 }]}
-          onPress={onPress}
-          activeOpacity={0.75}
-        >
-          <Text style={[styles.cardOpenBtnText, { color: item.accentColor }]}>Open →</Text>
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
-  );
-};
-
-const TopBar = ({
-  lang,
-  onLangSwitch,
-  onBack,
-}: {
-  lang: 'EN' | 'HI';
-  onLangSwitch: (l: 'EN' | 'HI') => void;
-  onBack?: () => void;
-}) => (
-  <View style={styles.topBar}>
-    <TouchableOpacity style={styles.backBtn} onPress={onBack} activeOpacity={0.7}>
-      <Text style={{ fontSize: 16, color: THEME.colors.textSecondary }}>←</Text>
-    </TouchableOpacity>
-    <View style={styles.topBarMid}>
-      <Text style={styles.topBarTitle}>EDP Modules</Text>
-      <Text style={styles.topBarSubtitle}>Learn the programme step-by-step</Text>
-    </View>
-    <View style={styles.langToggle}>
-      <TouchableOpacity
-        style={[styles.langBtn, lang === 'EN' && styles.langBtnActive]}
-        onPress={() => onLangSwitch('EN')}
-        activeOpacity={0.8}
-      >
-        <Text style={lang === 'EN' ? styles.langBtnActiveText : styles.langBtnText}>EN</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.langBtn, lang === 'HI' && styles.langBtnActive]}
-        onPress={() => onLangSwitch('HI')}
-        activeOpacity={0.8}
-      >
-        <Text style={lang === 'HI' ? styles.langBtnActiveText : styles.langBtnText}>हिंदी</Text>
-      </TouchableOpacity>
-    </View>
-  </View>
-);
-
-const BottomNav = ({ active }: { active: 'home' | 'profile' | 'signout' }) => {
-  const NAV_ITEMS: { key: 'home' | 'profile' | 'signout'; icon: string; label: string }[] = [
-    { key: 'home', icon: '⌂', label: 'Home' },
-    { key: 'profile', icon: '◉', label: 'Profile' },
-    { key: 'signout', icon: '⏻', label: 'Sign out' },
-  ];
-
-  return (
-    <View style={styles.bottomNav}>
-      {NAV_ITEMS.map((item) => (
-        <TouchableOpacity key={item.key} style={styles.navItem} activeOpacity={0.7}>
-          <Text
-            style={{
-              fontSize: 22,
-              color: active === item.key ? THEME.colors.accentGreen : 'rgba(148,163,184,0.35)',
-            }}
-          >
-            {item.icon}
-          </Text>
-          <Text style={active === item.key ? styles.navLabelActive : styles.navLabel}>
-            {item.label}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </View>
-  );
-};
-
-// ─── Main Component ───────────────────────────────────────────────────────────
-
-const EDPModulesScreen = ({ onBack, onOpenModule }: EDPModulesScreenProps) => {
+const EDPModulesScreen = ({ onBack, onOpenModule }: EDPModulesScreenProps): React.ReactElement => {
   const [lang, setLang] = useState<'ENG' | 'HI'>('ENG');
-
-  const totalModules = MODULES.length;
+  const [query, setQuery] = useState<string>('');
   const navigation = useNavigation<NavigationProp<EdpStackParamList>>();
+  const { data, isLoading, isError } = useGetEdpCoursesWithDocumentsQuery();
+
+  const modules = useMemo(() => toModuleCardItems(data?.freeEdps), [data?.freeEdps]);
+  const filteredModules = useMemo(() => {
+    const search = query.trim().toLowerCase();
+    if (search.length === 0) {
+      return modules;
+    }
+    return modules.filter((item) => {
+      const title = lang === 'HI' && item.titleHi.length > 0 ? item.titleHi : item.titleEn;
+      return title.toLowerCase().includes(search);
+    });
+  }, [lang, modules, query]);
+
+  const handleOpenModule = (module: ModuleCardItem): void => {
+    if (onOpenModule != null) {
+      onOpenModule(module.id);
+      return;
+    }
+    navigation.navigate(ROUTES.Edp.ModuleDetail);
+  };
 
   return (
-    <SafeAreaWrapper edges={['top', 'bottom']} bgColor='black' isLight={true}>
-      <ScreenHeader
-        title="EDP Modules"
-        headerColor="black"
-        onBackPress={() => {
-          navigation.goBack();
-        }}
-        showLanguageSwitch={true}
-        lang={lang}
-        onLangSwitch={setLang}
-      />
+    <SafeAreaWrapper
+      edges={['top', 'bottom']}
+      bgColor={THEME.colors.primary}
+      statusBarStyle="light-content"
+    >
+      <View style={styles.root}>
+        <ScreenHeader
+          title="EDP Modules"
+          headerColor={THEME.colors.primary}
+          onBackPress={onBack ?? (() => navigation.goBack())}
+          showLanguageSwitch
+          lang={lang}
+          onLangSwitch={setLang}
+        />
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Search */}
-        <View style={styles.searchWrapper}>
-          <Text style={{ fontSize: 25, color: 'black' }}>⌕</Text>
-          <Text style={styles.searchPlaceholder}>Search modules...</Text>
-
-        </View>
-
-        {/* Section Header */}
-        <View style={styles.sectionHeader}>
-          <View style={styles.sectionAccentBar} />
-          <Text style={styles.sectionTitle}>Catalogue</Text>
-        </View>
-
-        {/* Grid */}
-        <View style={styles.grid}>
-          {MODULES.map((item) => (
-            <ModuleCard
-              key={item.id}
-              item={item}
-              // onPress={() => onOpenModule?.(item.id)}
-              onPress={() => navigation.navigate(ROUTES.Edp.ModuleDetail)}
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.searchWrap}>
+            <Ionicons name="search" size={18} color={THEME.colors.textSecondary} />
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              placeholder={lang === 'HI' ? 'मॉड्यूल खोजें...' : 'Search modules...'}
+              placeholderTextColor={THEME.colors.textSecondary}
+              style={styles.searchInput}
             />
-          ))}
-        </View>
-      </ScrollView>
-    </SafeAreaWrapper>
+            <Text style={styles.countText}>{filteredModules.length}</Text>
+          </View>
 
+          <View style={styles.grid}>
+            {isLoading
+              ? Array.from({ length: 6 }).map((_, index) => (
+                  <View key={`edp-module-skeleton-${index}`} style={styles.skeletonCard} />
+                ))
+              : filteredModules.map((item, index) => (
+                  <ModuleCard
+                    key={item.id}
+                    item={item}
+                    index={index}
+                    lang={lang}
+                    onPress={() => handleOpenModule(item)}
+                  />
+                ))}
+          </View>
+
+          {!isLoading && isError ? (
+            <View style={styles.messageCard}>
+              <Text style={styles.messageTitle}>Could not load modules</Text>
+              <Text style={styles.messageBody}>Check your connection and try again.</Text>
+            </View>
+          ) : null}
+
+          {!isLoading && !isError && filteredModules.length === 0 ? (
+            <View style={styles.messageCard}>
+              <Text style={styles.messageTitle}>No modules found</Text>
+              <Text style={styles.messageBody}>Try a different search keyword.</Text>
+            </View>
+          ) : null}
+        </ScrollView>
+      </View>
+    </SafeAreaWrapper>
   );
 };
 
