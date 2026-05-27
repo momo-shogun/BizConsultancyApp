@@ -26,6 +26,9 @@ export interface CallUiState {
   connectedAtMs: number | null;
   /** Full-screen call UI hidden; floating bar visible (WhatsApp-style). */
   isMinimized: boolean;
+  localVideoEnabled: boolean;
+  remoteVideoUid: number | null;
+  remoteVideoEnabled: boolean;
 }
 
 const initialState: CallUiState = {
@@ -46,6 +49,9 @@ const initialState: CallUiState = {
   callOutcome: 'none',
   connectedAtMs: null,
   isMinimized: false,
+  localVideoEnabled: true,
+  remoteVideoUid: null,
+  remoteVideoEnabled: true,
 };
 
 export const callSlice = createSlice({
@@ -75,6 +81,9 @@ export const callSlice = createSlice({
       if (action.payload.remoteAvatarUrl !== undefined) {
         state.remoteAvatarUrl = action.payload.remoteAvatarUrl;
       }
+      state.localVideoEnabled = action.payload.callType === 'video';
+      state.remoteVideoUid = null;
+      state.remoteVideoEnabled = true;
     },
     setIncomingCall: (
       state,
@@ -99,6 +108,9 @@ export const callSlice = createSlice({
       if (action.payload.remoteAvatarUrl !== undefined) {
         state.remoteAvatarUrl = action.payload.remoteAvatarUrl;
       }
+      state.localVideoEnabled = action.payload.callType === 'video';
+      state.remoteVideoUid = null;
+      state.remoteVideoEnabled = true;
     },
     setCallOutcome: (state, action: PayloadAction<CallOutcome>) => {
       state.callOutcome = action.payload;
@@ -135,6 +147,15 @@ export const callSlice = createSlice({
     setCallMinimized: (state, action: PayloadAction<boolean>) => {
       state.isMinimized = action.payload;
     },
+    setLocalVideoEnabled: (state, action: PayloadAction<boolean>) => {
+      state.localVideoEnabled = action.payload;
+    },
+    setRemoteVideoUid: (state, action: PayloadAction<number | null>) => {
+      state.remoteVideoUid = action.payload;
+    },
+    setRemoteVideoEnabled: (state, action: PayloadAction<boolean>) => {
+      state.remoteVideoEnabled = action.payload;
+    },
   },
 });
 
@@ -154,4 +175,7 @@ export const {
   setCallOutcome,
   startConnectedTimer,
   setCallMinimized,
+  setLocalVideoEnabled,
+  setRemoteVideoUid,
+  setRemoteVideoEnabled,
 } = callSlice.actions;

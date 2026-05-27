@@ -16,6 +16,7 @@ export function CallMinimizedBar(): React.ReactElement | null {
   const isMinimized = useAppSelector((s) => s.call.isMinimized);
   const remoteName = useAppSelector((s) => s.call.remoteDisplayName);
   const remoteAvatarUrl = useAppSelector((s) => s.call.remoteAvatarUrl);
+  const callType = useAppSelector((s) => s.call.callType);
   const reconnecting = useAppSelector((s) => s.call.reconnecting);
   const elapsedSeconds = useCallTimer();
 
@@ -40,7 +41,11 @@ export function CallMinimizedBar(): React.ReactElement | null {
               {remoteName}
             </Text>
             <View style={styles.statusRow}>
-              <View style={styles.liveDot} />
+              {callType === 'video' ? (
+                <Ionicons name="videocam" size={12} color="#4ADE80" style={styles.videoIcon} />
+              ) : (
+                <View style={styles.liveDot} />
+              )}
               <Text style={styles.status}>{statusText}</Text>
             </View>
           </View>
@@ -111,6 +116,9 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: '#4ADE80',
+  },
+  videoIcon: {
+    marginRight: 0,
   },
   status: {
     fontSize: 13,

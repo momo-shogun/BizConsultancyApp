@@ -9,6 +9,7 @@ import type { RootStackParamList } from '@/navigation/types';
 import { useAppSelector } from '@/store/typedHooks';
 
 import { CallAvatar } from '../components/CallAvatar';
+import { CallVideoLayout } from '../components/CallVideoLayout';
 import { InCallControlButton } from '../components/InCallControlButton';
 import { CallController } from '../controllers/CallController';
 import { callEngine } from '../engine/CallEngine';
@@ -26,10 +27,15 @@ export function InCallScreen({ navigation }: Props): React.ReactElement {
   const callType = useAppSelector((s) => s.call.callType);
   const localMuted = useAppSelector((s) => s.call.localMuted);
   const speakerOn = useAppSelector((s) => s.call.speakerOn);
+  const localVideoEnabled = useAppSelector((s) => s.call.localVideoEnabled);
+  const remoteVideoUid = useAppSelector((s) => s.call.remoteVideoUid);
+  const remoteVideoEnabled = useAppSelector((s) => s.call.remoteVideoEnabled);
   const reconnecting = useAppSelector((s) => s.call.reconnecting);
   const phase = useAppSelector((s) => s.call.phase);
   const isMinimized = useAppSelector((s) => s.call.isMinimized);
   const elapsedSeconds = useCallTimer();
+
+  const isVideoCall = callType === 'video';
 
   useEffect(() => {
     audioSessionService.configureForCall();
@@ -56,58 +62,102 @@ export function InCallScreen({ navigation }: Props): React.ReactElement {
   const statusText = reconnecting
     ? 'Reconnecting…'
     : `Connected · ${formatCallDuration(elapsedSeconds)}`;
-  const callLabel = callType === 'video' ? 'Video call' : 'Voice call';
+
+  const topBar = (
+    <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
+      <Pressable
+        style={[styles.minimizeBtn, isVideoCall ? styles.minimizeBtnVideo : null]}
+        onPress={() => CallController.minimizeCall()}
+        accessibilityRole="button"
+        accessibilityLabel="Minimize call"
+      >
+        <Ionicons name="chevron-down" size={28} color="#fff" />
+      </Pressable>
+      {!isVideoCall ? (
+        <Text style={styles.topHint}>Swipe down to browse app</Text>
+      ) : (
+        <View style={styles.videoTopMeta}>
+          <Text style={styles.videoTopName} numberOfLines={1}>
+            {remoteName}
+          </Text>
+          <Text style={styles.videoTopStatus}>{statusText}</Text>
+        </View>
+      )}
+      <View style={styles.topSpacer} />
+    </View>
+  );
+
+  const controls = (
+    <View style={[styles.controls, { paddingBottom: insets.bottom + 28 }]}>
+      <InCallControlButton
+        icon={localMuted ? 'mic-off' : 'mic'}
+        label={localMuted ? 'Unmute' : 'Mute'}
+        active={localMuted}
+        onPress={() => CallController.setMuted(!localMuted)}
+      />
+      <InCallControlButton
+        icon={speakerOn ? 'volume-high' : 'ear'}
+        label="Speaker"
+        active={speakerOn}
+        onPress={() => CallController.setSpeaker(!speakerOn)}
+      />
+      {isVideoCall ? (
+        <>
+          <InCallControlButton
+            icon={localVideoEnabled ? 'videocam' : 'videocam-off'}
+            label={localVideoEnabled ? 'Video' : 'No video'}
+            active={!localVideoEnabled}
+            onPress={() => CallController.setVideoEnabled(!localVideoEnabled)}
+          />
+          <InCallControlButton
+            icon="camera-reverse-outline"
+            label="Flip"
+            onPress={() => CallController.switchCamera()}
+          />
+        </>
+      ) : null}
+      <InCallControlButton
+        icon="call"
+        label="End"
+        variant="danger"
+        onPress={() => {
+          void CallController.endCall();
+        }}
+      />
+    </View>
+  );
+
+  if (isVideoCall) {
+    return (
+      <View style={styles.videoRoot}>
+        <CallVideoLayout
+          remoteUid={remoteVideoUid}
+          remoteVideoEnabled={remoteVideoEnabled}
+          localVideoEnabled={localVideoEnabled}
+          remoteName={remoteName}
+          remoteAvatarUrl={remoteAvatarUrl}
+        />
+        <View style={styles.videoOverlay} pointerEvents="box-none">
+          {topBar}
+          {controls}
+        </View>
+      </View>
+    );
+  }
 
   return (
-    <LinearGradient
-      colors={['#0B3D2C', '#062A1E', '#041912']}
-      style={styles.root}
-    >
-      <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
-        <Pressable
-          style={styles.minimizeBtn}
-          onPress={() => CallController.minimizeCall()}
-          accessibilityRole="button"
-          accessibilityLabel="Minimize call"
-        >
-          <Ionicons name="chevron-down" size={28} color="#fff" />
-        </Pressable>
-        <Text style={styles.topHint}>Swipe down to browse app</Text>
-        <View style={styles.topSpacer} />
-      </View>
-
+    <LinearGradient colors={['#0B3D2C', '#062A1E', '#041912']} style={styles.root}>
+      {topBar}
       <View style={styles.center}>
         <CallAvatar uri={remoteAvatarUrl} name={remoteName} size={140} />
         <Text style={styles.name}>{remoteName}</Text>
-        <Text style={styles.callType}>{callLabel}</Text>
+        <Text style={styles.callTypeLabel}>Voice call</Text>
         <View style={styles.statusPill}>
           <View style={[styles.liveDot, reconnecting ? styles.liveDotWarn : null]} />
           <Text style={styles.status}>{statusText}</Text>
         </View>
       </View>
-
-      <View style={[styles.controls, { paddingBottom: insets.bottom + 28 }]}>
-        <InCallControlButton
-          icon={localMuted ? 'mic-off' : 'mic'}
-          label={localMuted ? 'Unmute' : 'Mute'}
-          active={localMuted}
-          onPress={() => CallController.setMuted(!localMuted)}
-        />
-        <InCallControlButton
-          icon={speakerOn ? 'volume-high' : 'ear'}
-          label="Speaker"
-          active={speakerOn}
-          onPress={() => CallController.setSpeaker(!speakerOn)}
-        />
-        <InCallControlButton
-          icon="call"
-          label="End"
-          variant="danger"
-          onPress={() => {
-            void CallController.endCall();
-          }}
-        />
-      </View>
+      {controls}
     </LinearGradient>
   );
 }
@@ -115,6 +165,14 @@ export function InCallScreen({ navigation }: Props): React.ReactElement {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+  },
+  videoRoot: {
+    flex: 1,
+    backgroundColor: '#0A0F14',
+  },
+  videoOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'space-between',
   },
   topBar: {
     flexDirection: 'row',
@@ -130,12 +188,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  minimizeBtnVideo: {
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
   topHint: {
     flex: 1,
     textAlign: 'center',
     fontSize: 13,
     fontWeight: '500',
     color: 'rgba(255,255,255,0.55)',
+  },
+  videoTopMeta: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: 8,
+  },
+  videoTopName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  videoTopStatus: {
+    marginTop: 2,
+    fontSize: 12,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.75)',
+    fontVariant: ['tabular-nums'],
   },
   topSpacer: {
     width: 44,
@@ -153,7 +231,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     textAlign: 'center',
   },
-  callType: {
+  callTypeLabel: {
     marginTop: 6,
     fontSize: 14,
     fontWeight: '600',
@@ -190,6 +268,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-evenly',
     alignItems: 'flex-end',
-    paddingHorizontal: 16,
+    flexWrap: 'wrap',
+    paddingHorizontal: 8,
+    gap: 4,
   },
 });
