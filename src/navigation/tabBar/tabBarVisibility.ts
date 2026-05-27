@@ -10,7 +10,12 @@ import { plankBarV1TabNavigatorScreenOptions } from '../tabNavigators/plankBarV1
  * Add route names here to hide the bar on more screens.
  */
 export const TAB_BAR_HIDDEN_ROUTES: Readonly<Record<string, readonly string[]>> = {
-  [ROUTES.App.Edp]: [ROUTES.Edp.Modules, ROUTES.Edp.OverviewVideo, ROUTES.Edp.ModuleDetail],
+  [ROUTES.App.Edp]: [
+    ROUTES.Edp.Modules,
+    ROUTES.Edp.OverviewVideo,
+    ROUTES.Edp.ModuleDetail,
+    ROUTES.Edp.AskQuestions,
+  ],
   [ROUTES.App.Services]: [ROUTES.Services.Detail, ROUTES.Services.Onboarding],
   [ROUTES.App.Account]: [
     ROUTES.Account.HelpSettings,

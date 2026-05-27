@@ -37,6 +37,7 @@ export const ROUTES = {
     Modules: 'Edp/Modules',
     ModuleDetail: 'Edp/ModuleDetail',
     OverviewVideo: 'Edp/OverviewVideo',
+    AskQuestions: 'Edp/AskQuestions',
   },
   Services: {
     List: 'App/Services/List',

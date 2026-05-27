@@ -32,11 +32,11 @@ function SettingsHeaderButton(props: { onPress: () => void }): React.ReactElemen
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="Help and settings"
+      accessibilityLabel="Open settings menu"
       onPress={props.onPress}
       style={({ pressed }) => [headerBtnStyles.btn, pressed ? headerBtnStyles.btnPressed : null]}
     >
-      <Ionicons name="options-outline" size={20} color="#FFFFFF" />
+      <Ionicons name="menu-outline" size={22} color="#FFFFFF" />
     </Pressable>
   );
 }
