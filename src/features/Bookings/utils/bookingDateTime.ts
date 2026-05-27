@@ -56,6 +56,14 @@ export function buildBookingDateTime(bookingDate: string, slotTime: string): Dat
   return baseDate;
 }
 
+export function hasBookingStarted(bookingDate: string, slotTime: string, now = new Date()): boolean {
+  const bookingDateTime = buildBookingDateTime(bookingDate, slotTime);
+  if (bookingDateTime == null) {
+    return false;
+  }
+  return now.getTime() >= bookingDateTime.getTime();
+}
+
 export function isBookingUpcoming(bookingDate: string, slotTime: string, now = new Date()): boolean {
   const bookingDateTime = buildBookingDateTime(bookingDate, slotTime);
   if (bookingDateTime != null) {

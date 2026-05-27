@@ -15,16 +15,12 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { useMyBookingsScreen } from '@/features/Bookings/hooks/useMyBookingsScreen';
 import type { MyConsultantBooking } from '@/features/Bookings/types/myConsultantBooking.types';
-import { formatBookingDate } from '@/features/Bookings/utils/bookingDateTime';
-import {
-  canShowCallAction,
-  getBookingStatusTone,
-  getPaymentLabel,
-} from '@/features/Bookings/utils/bookingDisplay';
+import { MyBookingCard } from '@/features/Bookings/components/MyBookingCard';
 import { THEME } from '@/constants/theme';
 import { navigationRef } from '@/navigation/navigationContainerRef';
 import { ROUTES } from '@/navigation/routeNames';
 import type { AccountStackParamList } from '@/navigation/types';
+import { CallController } from '@/features/Calls/controllers/CallController';
 import { SafeAreaWrapper, ScreenHeader } from '@/shared/components';
 import { showGlobalToast } from '@/shared/components/toast';
 
@@ -32,109 +28,22 @@ import { BOOKINGS_CANVAS, styles } from './MyBookingsScreen.styles';
 
 type Nav = NativeStackNavigationProp<AccountStackParamList, typeof ROUTES.Account.MyBookings>;
 
-function StatusBadge(props: { status: string }): React.ReactElement {
-  const tone = getBookingStatusTone(props.status);
-  const toneStyle =
-    tone === 'pending'
-      ? styles.statusPending
-      : tone === 'confirmed'
-        ? styles.statusConfirmed
-        : tone === 'completed'
-          ? styles.statusCompleted
-          : tone === 'cancelled'
-            ? styles.statusCancelled
-            : styles.statusDefault;
-  const textStyle =
-    tone === 'pending'
-      ? styles.statusPendingText
-      : tone === 'confirmed'
-        ? styles.statusConfirmedText
-        : tone === 'completed'
-          ? styles.statusCompletedText
-          : tone === 'cancelled'
-            ? styles.statusCancelledText
-            : styles.statusDefaultText;
-
-  return (
-    <View style={[styles.statusBadge, toneStyle]}>
-      <Text style={[styles.statusText, textStyle]}>{props.status}</Text>
-    </View>
-  );
-}
-
-interface BookingRowProps {
-  booking: MyConsultantBooking;
-  filter: 'upcoming' | 'past';
-  isLast: boolean;
-  onCallPress: () => void;
-}
-
-function BookingRow(props: BookingRowProps): React.ReactElement {
-  const { booking, filter, isLast, onCallPress } = props;
-  const showCall = canShowCallAction(booking, filter);
-  const isVideo = booking.consultationType.toLowerCase() === 'video';
-  const consultationIcon = isVideo ? 'videocam-outline' : 'chatbubbles-outline';
-
-  return (
-    <View style={[styles.bookingRow, isLast ? styles.bookingRowLast : null]}>
-      <View style={styles.bookingMain}>
-        <View style={styles.bookingContent}>
-          <View style={styles.titleRow}>
-            <Text style={styles.consultantName} numberOfLines={1}>
-              {booking.consultantName ?? 'Consultant'}
-            </Text>
-            <StatusBadge status={booking.status} />
-          </View>
-          <View style={styles.infoRow}>
-            <Ionicons name="calendar-outline" size={13} color="#94A3B8" />
-            <Text style={styles.meta} numberOfLines={1}>
-              {formatBookingDate(booking.bookingDate)} · {booking.slotTime}
-            </Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Ionicons name={consultationIcon} size={13} color="#94A3B8" />
-            <Text style={styles.meta} numberOfLines={1}>
-              {booking.consultationType} · {getPaymentLabel(booking)}
-            </Text>
-          </View>
-        </View>
-        {booking.amount != null && booking.amount > 0 ? (
-          <View style={styles.amountChip}>
-            <Text style={styles.amount}>₹{booking.amount.toLocaleString('en-IN')}</Text>
-          </View>
-        ) : null}
-      </View>
-      {showCall ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Call option coming soon"
-          onPress={onCallPress}
-          style={({ pressed }) => [styles.callBtn, pressed ? { opacity: 0.88 } : null]}
-        >
-          <Ionicons
-            name={isVideo ? 'videocam-outline' : 'call-outline'}
-            size={14}
-            color={THEME.colors.primary}
-          />
-          <Text style={styles.callBtnText}>
-            {isVideo ? 'Video session' : 'Phone call'} — coming soon
-          </Text>
-        </Pressable>
-      ) : null}
-    </View>
-  );
-}
-
 export function MyBookingsScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
   const screen = useMyBookingsScreen();
+  const [callingBookingId, setCallingBookingId] = React.useState<number | null>(null);
 
-  const handleCallPress = useCallback((): void => {
-    showGlobalToast({
-      message: 'In-app calls will be available in a future update.',
-      variant: 'info',
-    });
-  }, []);
+  const handleCallPress = useCallback(async (booking: MyConsultantBooking): Promise<void> => {
+    if (callingBookingId != null) {
+      return;
+    }
+    setCallingBookingId(booking.id);
+    const error = await CallController.startOutgoingFromUserBooking(booking);
+    setCallingBookingId(null);
+    if (error != null) {
+      showGlobalToast({ message: error, variant: 'error' });
+    }
+  }, [callingBookingId]);
 
   const browseConsultants = useCallback((): void => {
     navigationRef.navigate(ROUTES.Root.ConsultantsList);
@@ -166,12 +75,12 @@ export function MyBookingsScreen(): React.ReactElement {
           <RefreshControl
             refreshing={screen.isRefreshing}
             onRefresh={screen.refresh}
-            tintColor={THEME.colors.primary}
+            tintColor="#128C7E"
           />
         }
       >
         <LinearGradient
-          colors={[THEME.colors.primary, '#166534']}
+          colors={['#075E54', '#128C7E']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.heroGradient}
@@ -219,7 +128,7 @@ export function MyBookingsScreen(): React.ReactElement {
         </LinearGradient>
 
         <View style={styles.searchWrap}>
-          <Ionicons name="search-outline" size={18} color="#64748B" />
+          <Ionicons name="search-outline" size={18} color="#8696A0" />
           <TextInput
             value={screen.search}
             onChangeText={screen.setSearch}
@@ -254,7 +163,7 @@ export function MyBookingsScreen(): React.ReactElement {
           {screen.visibleBookings.length === 0 && screen.errorMessage == null ? (
             <View style={styles.emptyBlock}>
               <View style={styles.emptyIcon}>
-                <Ionicons name="calendar-outline" size={26} color={THEME.colors.primary} />
+                <Ionicons name="calendar-outline" size={26} color="#128C7E" />
               </View>
               <Text style={styles.emptyTitle}>
                 {isUpcoming ? 'No upcoming bookings' : 'No past bookings'}
@@ -272,13 +181,15 @@ export function MyBookingsScreen(): React.ReactElement {
               ) : null}
             </View>
           ) : (
-            screen.visibleBookings.map((booking, index) => (
-              <BookingRow
+            screen.visibleBookings.map((booking) => (
+              <MyBookingCard
                 key={booking.id}
                 booking={booking}
                 filter={screen.filter}
-                isLast={index === screen.visibleBookings.length - 1}
-                onCallPress={handleCallPress}
+                isCalling={callingBookingId === booking.id}
+                onCallPress={() => {
+                  void handleCallPress(booking);
+                }}
               />
             ))
           )}

@@ -23,11 +23,14 @@ import {
   setReconnecting,
   setRemoteMuted,
   setCallMinimized,
+  setLocalVideoEnabled,
+  setRemoteVideoEnabled,
+  setRemoteVideoUid,
   setSpeakerOn,
   startConnectedTimer,
   updateCredentials,
 } from '../store/callSlice';
-import type { CallOutcome } from '../store/callSlice';
+import type { CallOutcome, CallUiState } from '../store/callSlice';
 import type {
   CallEndedPayload,
   CallIncomingPayload,
@@ -37,7 +40,7 @@ import type {
 import { CallReliabilityManager } from './CallReliabilityManager';
 import { syncCallSession } from './CallStateSyncService';
 import { transitionCallPhase, type CallPhase } from './callStateMachine';
-import { ensureCallMicrophonePermission } from '../utils/callPermissions';
+import { ensureCallPermissions } from '../utils/callPermissions';
 
 type CallScreen = 'IncomingCall' | 'OutgoingCall' | 'InCall';
 
@@ -98,7 +101,12 @@ class CallEngineImpl {
   }
 
   private getCallState() {
-    return store.getState().call!;
+    const callState = store.getState().call as CallUiState | undefined;
+    if (callState == null) {
+      // Store is expected to always include the `call` slice; crash early in dev if misconfigured.
+      throw new Error('Call state is missing from the Redux store.');
+    }
+    return callState;
   }
 
   private applyPhase(event: Parameters<typeof transitionCallPhase>[1]): CallPhase {
@@ -190,8 +198,8 @@ class CallEngineImpl {
   }
 
   private async ensureMicPermissionOrAbort(restorePhase?: CallPhase): Promise<boolean> {
-    const granted = await ensureCallMicrophonePermission();
-    if (!granted) {
+    const permissions = await ensureCallPermissions('voice');
+    if (!permissions.microphone) {
       store.dispatch(setCallError('Microphone permission is required for calls'));
       store.dispatch(setCallPhase(restorePhase ?? 'idle'));
       return false;
@@ -199,8 +207,25 @@ class CallEngineImpl {
     return true;
   }
 
+  private bindAgoraMediaListeners(): void {
+    agoraMediaService.setListeners({
+      onRemoteUserJoined: (uid) => {
+        store.dispatch(setRemoteVideoUid(uid));
+        store.dispatch(setRemoteVideoEnabled(true));
+      },
+      onRemoteUserLeft: () => {
+        store.dispatch(setRemoteVideoUid(null));
+        store.dispatch(setRemoteVideoEnabled(false));
+      },
+      onRemoteVideoMuted: (_uid, muted) => {
+        store.dispatch(setRemoteVideoEnabled(!muted));
+      },
+    });
+  }
+
   private async joinAgoraFromCredentials(credentials: PersistedCallCredentials): Promise<boolean> {
-    agoraMediaService.setListeners({});
+    this.bindAgoraMediaListeners();
+    store.dispatch(setLocalVideoEnabled(credentials.callType === 'video'));
     try {
       await agoraMediaService.join({
         appId: credentials.appId,
@@ -210,8 +235,12 @@ class CallEngineImpl {
         callType: credentials.callType,
       });
       return true;
-    } catch {
-      store.dispatch(setCallError('Could not connect audio'));
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error && error.message.length > 0
+          ? error.message
+          : 'Could not connect call';
+      store.dispatch(setCallError(message));
       return false;
     }
   }
@@ -544,6 +573,7 @@ class CallEngineImpl {
     };
     store.dispatch(updateCredentials(nextCreds));
     await agoraMediaService.leave();
+    this.bindAgoraMediaListeners();
     await agoraMediaService.join({
       appId: data.appId,
       channelName: data.channelName,
@@ -568,6 +598,15 @@ class CallEngineImpl {
   setSpeaker(enabled: boolean): void {
     store.dispatch(setSpeakerOn(enabled));
     agoraMediaService.setSpeakerphone(enabled);
+  }
+
+  setVideoEnabled(enabled: boolean): void {
+    store.dispatch(setLocalVideoEnabled(enabled));
+    agoraMediaService.setLocalVideoEnabled(enabled);
+  }
+
+  switchCamera(): void {
+    agoraMediaService.switchCamera();
   }
 
   minimizeCall(): void {

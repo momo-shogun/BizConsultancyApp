@@ -2,9 +2,10 @@ import { StyleSheet } from 'react-native';
 
 import { THEME } from '@/constants/theme';
 
-export const BOOKINGS_CANVAS = '#F4F7FB';
-const SLATE_LINE = '#E2E8F0';
-const SLATE_MUTED = '#64748B';
+/** WhatsApp-style chat list background */
+export const BOOKINGS_CANVAS = '#F0F2F5';
+const WA_DIVIDER = '#E9EDEF';
+const WA_MUTED = '#667781';
 
 export const styles = StyleSheet.create({
   screen: {
@@ -97,7 +98,7 @@ export const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   tabCountActive: {
-    color: THEME.colors.primary,
+    color: '#075E54',
     backgroundColor: '#FFFFFF',
   },
   searchWrap: {
@@ -105,9 +106,9 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     gap: THEME.spacing[8],
     backgroundColor: THEME.colors.white,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: SLATE_LINE,
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: WA_DIVIDER,
     paddingHorizontal: THEME.spacing[12],
   },
   searchInput: {
@@ -117,117 +118,22 @@ export const styles = StyleSheet.create({
     color: THEME.colors.textPrimary,
   },
   listBlock: {
-    backgroundColor: THEME.colors.white,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: SLATE_LINE,
-    overflow: 'hidden',
-  },
-  bookingRow: {
-    paddingHorizontal: THEME.spacing[12],
-    paddingVertical: THEME.spacing[11],
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: SLATE_LINE,
-    gap: 8,
-  },
-  bookingRowLast: {
-    borderBottomWidth: 0,
-  },
-  bookingMain: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: THEME.spacing[10],
-  },
-  bookingContent: {
-    flex: 1,
-    minWidth: 0,
-    gap: 5,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  consultantName: {
-    fontSize: THEME.typography.size[14],
-    fontWeight: THEME.typography.weight.semibold as '600',
-    color: THEME.colors.textPrimary,
-    flexShrink: 1,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  meta: {
-    fontSize: 11,
-    color: SLATE_MUTED,
-    lineHeight: 15,
-    flex: 1,
-  },
-  amountChip: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    backgroundColor: '#F1F5F9',
-    borderWidth: 1,
-    borderColor: SLATE_LINE,
-  },
-  amount: {
-    fontSize: 12,
-    fontWeight: THEME.typography.weight.bold as '700',
-    color: THEME.colors.textPrimary,
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 999,
-  },
-  statusText: {
-    fontSize: 10,
-    fontWeight: THEME.typography.weight.bold as '700',
-    textTransform: 'capitalize',
-  },
-  statusPending: { backgroundColor: 'rgba(245,158,11,0.15)' },
-  statusPendingText: { color: '#B45309' },
-  statusConfirmed: { backgroundColor: 'rgba(5,150,105,0.12)' },
-  statusConfirmedText: { color: '#047857' },
-  statusCompleted: { backgroundColor: '#F1F5F9' },
-  statusCompletedText: { color: '#475569' },
-  statusCancelled: { backgroundColor: 'rgba(220,38,38,0.10)' },
-  statusCancelledText: { color: '#B91C1C' },
-  statusDefault: { backgroundColor: '#F1F5F9' },
-  statusDefaultText: { color: '#64748B' },
-  callBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: BOOKINGS_CANVAS,
-    borderWidth: 1,
-    borderColor: SLATE_LINE,
-  },
-  callBtnText: {
-    fontSize: 11,
-    fontWeight: THEME.typography.weight.medium as '500',
-    color: SLATE_MUTED,
+    gap: THEME.spacing[8],
   },
   emptyBlock: {
     padding: THEME.spacing[28],
     alignItems: 'center',
     gap: THEME.spacing[10],
+    backgroundColor: THEME.colors.white,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: WA_DIVIDER,
   },
   emptyIcon: {
     width: 52,
     height: 52,
     borderRadius: 26,
-    borderWidth: 1,
-    borderColor: 'rgba(15,81,50,0.2)',
-    backgroundColor: 'rgba(15,81,50,0.06)',
+    backgroundColor: 'rgba(37,211,102,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -239,7 +145,7 @@ export const styles = StyleSheet.create({
   },
   emptyBody: {
     fontSize: THEME.typography.size[12],
-    color: SLATE_MUTED,
+    color: WA_MUTED,
     textAlign: 'center',
     lineHeight: 18,
     paddingHorizontal: THEME.spacing[8],
@@ -252,7 +158,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: THEME.spacing[16],
     paddingVertical: 10,
     borderRadius: 10,
-    backgroundColor: THEME.colors.primary,
+    backgroundColor: '#25D366',
   },
   linkBtnText: {
     fontSize: THEME.typography.size[13],
@@ -269,8 +175,8 @@ export const styles = StyleSheet.create({
     paddingHorizontal: THEME.spacing[12],
     paddingVertical: 8,
     borderRadius: 10,
-    borderWidth: 1,
-    borderColor: SLATE_LINE,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: WA_DIVIDER,
     backgroundColor: THEME.colors.white,
   },
   pageBtnDisabled: { opacity: 0.45 },
@@ -281,7 +187,7 @@ export const styles = StyleSheet.create({
   },
   pageLabel: {
     fontSize: 11,
-    color: SLATE_MUTED,
+    color: WA_MUTED,
   },
   errorBanner: {
     flexDirection: 'row',

@@ -1,8 +1,11 @@
+import type { MyConsultantBooking } from '@/features/Bookings/types/myConsultantBooking.types';
+import { hasBookingStarted } from '@/features/Bookings/utils/bookingDateTime';
 import type { ConsultantDetail } from '@/features/consultant/types/consultantDetail.types';
 import { store } from '@/store';
 
 import { callEngine } from '../engine/CallEngine';
 import type { CallType } from '../types/callApi.types';
+import { consultationTypeToCallType } from '../utils/callTypeMapping';
 
 function requireAuthUser(): { userId: number; role: string } | null {
   const state = store.getState();
@@ -34,6 +37,33 @@ export const CallController = {
     callEngine.bindSocketHandlers();
     await callEngine.startOutgoing(calleeUserId, 'voice', detail.name);
     return null;
+  },
+
+  async startOutgoingFromUserBooking(booking: MyConsultantBooking): Promise<string | null> {
+    const auth = requireAuthUser();
+    if (auth == null) {
+      return 'Please login to start a call';
+    }
+    if (auth.role === 'consultant') {
+      return 'Only users can start calls from My Bookings';
+    }
+
+    const callType = consultationTypeToCallType(booking.consultationType);
+    if (callType == null) {
+      return 'Call is not available for this booking type';
+    }
+
+    if (!hasBookingStarted(booking.bookingDate, booking.slotTime)) {
+      return 'Please wait for the scheduled time';
+    }
+
+    const calleeUserId = booking.consultantId;
+    if (!Number.isFinite(calleeUserId) || calleeUserId <= 0) {
+      return 'Invalid consultant for this booking';
+    }
+
+    const remoteName = booking.consultantName?.trim() || booking.name?.trim() || 'Consultant';
+    return CallController.startOutgoingWithType(calleeUserId, callType, remoteName);
   },
 
   async startOutgoingFromBooking(bookingId: number, remoteName: string): Promise<string | null> {
@@ -68,6 +98,14 @@ export const CallController = {
 
   setSpeaker(on: boolean): void {
     callEngine.setSpeaker(on);
+  },
+
+  setVideoEnabled(enabled: boolean): void {
+    callEngine.setVideoEnabled(enabled);
+  },
+
+  switchCamera(): void {
+    callEngine.switchCamera();
   },
 
   minimizeCall(): void {

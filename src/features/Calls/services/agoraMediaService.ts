@@ -13,7 +13,7 @@ import {
 } from 'react-native-agora';
 
 import type { CallType } from '../types/callApi.types';
-import { ensureCallMicrophonePermission } from '../utils/callPermissions';
+import { ensureCallPermissions } from '../utils/callPermissions';
 
 export type AgoraConnectionState = 'disconnected' | 'connecting' | 'connected' | 'failed';
 
@@ -21,6 +21,7 @@ type AgoraListeners = {
   onConnectionState?: (state: AgoraConnectionState) => void;
   onRemoteUserJoined?: (uid: number) => void;
   onRemoteUserLeft?: (uid: number) => void;
+  onRemoteVideoMuted?: (uid: number, muted: boolean) => void;
   onError?: (message: string) => void;
 };
 
@@ -31,8 +32,10 @@ let joinResolve: (() => void) | null = null;
 let joinReject: ((error: Error) => void) | null = null;
 let joinTimeout: ReturnType<typeof setTimeout> | null = null;
 let localMuted = false;
+let localVideoEnabled = true;
 let speakerOn = true;
 let inChannel = false;
+let previewActive = false;
 let activeCallType: CallType = 'voice';
 
 function buildChannelMediaOptions(callType: CallType): ChannelMediaOptions {
@@ -43,7 +46,7 @@ function buildChannelMediaOptions(callType: CallType): ChannelMediaOptions {
     publishMicrophoneTrack: true,
     autoSubscribeAudio: true,
     enableAudioRecordingOrPlayout: true,
-    publishCameraTrack: isVideo,
+    publishCameraTrack: isVideo && localVideoEnabled,
     autoSubscribeVideo: isVideo,
   };
 }
@@ -61,6 +64,7 @@ function settleJoinSuccess(): void {
   const resolve = joinResolve;
   clearJoinWaiters();
   inChannel = true;
+  previewActive = false;
   listeners.onConnectionState?.('connected');
   resolve?.();
 }
@@ -93,6 +97,13 @@ function subscribeRemoteAudio(rtc: IRtcEngine, uid: number): void {
   rtc.adjustUserPlaybackSignalVolume(uid, 100);
 }
 
+function subscribeRemoteVideo(rtc: IRtcEngine, uid: number): void {
+  if (activeCallType !== 'video') {
+    return;
+  }
+  rtc.muteRemoteVideoStream(uid, false);
+}
+
 function getOrCreateEngine(): IRtcEngine {
   if (engine == null) {
     engine = createAgoraRtcEngine();
@@ -106,11 +117,13 @@ function getOrCreateEngine(): IRtcEngine {
       },
       onLeaveChannel: (_connection, _stats) => {
         inChannel = false;
+        previewActive = false;
         listeners.onConnectionState?.('disconnected');
       },
       onUserJoined: (_connection, uid) => {
         if (engine != null) {
           subscribeRemoteAudio(engine, uid);
+          subscribeRemoteVideo(engine, uid);
         }
         listeners.onRemoteUserJoined?.(uid);
       },
@@ -121,6 +134,9 @@ function getOrCreateEngine(): IRtcEngine {
         if (engine != null && state === RemoteAudioState.RemoteAudioStateDecoding) {
           subscribeRemoteAudio(engine, remoteUid);
         }
+      },
+      onUserMuteVideo: (_connection, uid, muted) => {
+        listeners.onRemoteVideoMuted?.(uid, muted);
       },
       onConnectionLost: () => {
         listeners.onConnectionState?.('failed');
@@ -147,7 +163,7 @@ function waitForJoinChannel(timeoutMs = 20_000): Promise<void> {
     joinResolve = resolve;
     joinReject = reject;
     joinTimeout = setTimeout(() => {
-      settleJoinFailure('Timed out joining voice channel');
+      settleJoinFailure('Timed out joining call channel');
     }, timeoutMs);
   });
 }
@@ -188,6 +204,29 @@ export const agoraMediaService = {
     rtc.initialize({ appId });
   },
 
+  async startLocalPreview(appId: string): Promise<void> {
+    const permissions = await ensureCallPermissions('video');
+    if (!permissions.camera) {
+      throw new Error('Camera permission denied');
+    }
+
+    activeCallType = 'video';
+    localVideoEnabled = true;
+    const rtc = getOrCreateEngine();
+    rtc.initialize({ appId });
+    rtc.enableVideo();
+    rtc.startPreview();
+    previewActive = true;
+  },
+
+  stopLocalPreview(): void {
+    if (engine == null || !previewActive) {
+      return;
+    }
+    engine.stopPreview();
+    previewActive = false;
+  },
+
   async join(params: {
     appId: string;
     channelName: string;
@@ -195,12 +234,16 @@ export const agoraMediaService = {
     uid: number;
     callType: CallType;
   }): Promise<void> {
-    const micGranted = await ensureCallMicrophonePermission();
-    if (!micGranted) {
+    const permissions = await ensureCallPermissions(params.callType);
+    if (!permissions.microphone) {
       throw new Error('Microphone permission denied');
+    }
+    if (params.callType === 'video' && !permissions.camera) {
+      throw new Error('Camera permission denied');
     }
 
     activeCallType = params.callType;
+    localVideoEnabled = params.callType === 'video';
     const rtc = getOrCreateEngine();
     rtc.initialize({ appId: params.appId });
     rtc.setChannelProfile(ChannelProfileType.ChannelProfileCommunication);
@@ -210,8 +253,16 @@ export const agoraMediaService = {
 
     if (params.callType === 'video') {
       rtc.enableVideo();
+      if (previewActive) {
+        rtc.stopPreview();
+        previewActive = false;
+      }
     } else {
       rtc.disableVideo();
+      if (previewActive) {
+        rtc.stopPreview();
+        previewActive = false;
+      }
     }
 
     await leaveChannelIfNeeded(rtc);
@@ -241,6 +292,10 @@ export const agoraMediaService = {
       return;
     }
     clearJoinWaiters();
+    if (previewActive) {
+      engine.stopPreview();
+      previewActive = false;
+    }
     await leaveChannelIfNeeded(engine);
     listeners.onConnectionState?.('disconnected');
   },
@@ -255,9 +310,35 @@ export const agoraMediaService = {
     engine?.setEnableSpeakerphone(enabled);
   },
 
+  setLocalVideoEnabled(enabled: boolean): void {
+    localVideoEnabled = enabled;
+    if (engine == null || activeCallType !== 'video') {
+      return;
+    }
+    engine.muteLocalVideoStream(!enabled);
+    engine.updateChannelMediaOptions(buildChannelMediaOptions(activeCallType));
+  },
+
+  switchCamera(): void {
+    if (engine == null || activeCallType !== 'video') {
+      return;
+    }
+    engine.switchCamera();
+  },
+
+  isVideoCall(): boolean {
+    return activeCallType === 'video';
+  },
+
   release(): void {
-    if (engine != null && eventHandler != null) {
-      engine.unregisterEventHandler(eventHandler);
+    if (engine != null) {
+      if (previewActive) {
+        engine.stopPreview();
+        previewActive = false;
+      }
+      if (eventHandler != null) {
+        engine.unregisterEventHandler(eventHandler);
+      }
       engine.release();
     }
     engine = null;
@@ -265,6 +346,7 @@ export const agoraMediaService = {
     listeners = {};
     clearJoinWaiters();
     localMuted = false;
+    localVideoEnabled = true;
     speakerOn = true;
     inChannel = false;
     activeCallType = 'voice';
