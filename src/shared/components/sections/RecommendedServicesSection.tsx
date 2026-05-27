@@ -73,10 +73,11 @@ export function RecommendedServicesSection(props: RecommendedServicesSectionProp
         snapToAlignment="center"
         contentContainerStyle={styles.carousel}
       >
-        {items.map((item) => (
+        {items.map((item, index) => (
           <RecommendedServiceCard
             key={item.id}
             item={item}
+            listIndex={index}
             cardWidth={cardWidth}
             onPress={() => onItemPress?.(item)}
             onCtaPress={onCtaPress ? () => onCtaPress(item) : undefined}

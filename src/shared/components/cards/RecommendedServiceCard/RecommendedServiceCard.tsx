@@ -30,6 +30,8 @@ export interface RecommendedServiceCardProps {
   cardWidth?: DimensionValue;
   onPress?: () => void;
   onCtaPress?: () => void;
+  /** Carousel/list position — cycles header presets 0–4 when set */
+  listIndex?: number;
   /** Removes carousel trailing gutter when the card spans the full content width */
   fullWidth?: boolean;
   /** Overrides default hint on the top pressable (e.g. on detail where `onPress` is disabled) */
@@ -57,7 +59,13 @@ function DashDivider(): React.ReactElement {
   );
 }
 
-function presetIndexForItem(item: RecommendedServiceItem): HeaderStyleIndex {
+function presetIndexForItem(
+  item: RecommendedServiceItem,
+  listIndex?: number,
+): HeaderStyleIndex {
+  if (listIndex != null) {
+    return (listIndex % HEADER_PRESET_COUNT) as HeaderStyleIndex;
+  }
   if (item.headerStyleIndex != null) {
     return (item.headerStyleIndex % HEADER_PRESET_COUNT) as HeaderStyleIndex;
   }
@@ -71,6 +79,7 @@ export function RecommendedServiceCard({
   cardWidth = 320,
   onPress,
   onCtaPress,
+  listIndex,
   fullWidth = false,
   upperPressableAccessibilityHint,
 }: RecommendedServiceCardProps): React.ReactElement {
@@ -80,7 +89,7 @@ export function RecommendedServiceCard({
     [item.badgeLabel, item.categoryLabel, item.priceLabel, item.summary, item.title],
   );
 
-  const preset = HEADER_PRESETS[presetIndexForItem(item)];
+  const preset = HEADER_PRESETS[presetIndexForItem(item, listIndex)];
 
   const handleCta = (): void => {
     (onCtaPress ?? onPress)?.();
