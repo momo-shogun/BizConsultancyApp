@@ -42,6 +42,9 @@ export const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: THEME.spacing[12],
   },
+  avatarWrap: {
+    position: 'relative',
+  },
   avatar: {
     width: 52,
     height: 52,
@@ -49,6 +52,24 @@ export const styles = StyleSheet.create({
     backgroundColor: WA.avatarBg,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  consultationBadge: {
+    position: 'absolute',
+    right: -2,
+    bottom: -2,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: WA.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  consultationBadgePhone: {
+    backgroundColor: WA.green,
+  },
+  consultationBadgeVideo: {
+    backgroundColor: '#128C7E',
   },
   avatarText: {
     fontSize: THEME.typography.size[20],

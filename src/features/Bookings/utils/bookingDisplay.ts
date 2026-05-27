@@ -38,6 +38,24 @@ export function getBookingStatusTone(status: string): BookingStatusTone {
   return 'default';
 }
 
+export type BookingConsultationKind = 'phone' | 'video' | 'other';
+
+/** Normalizes API `consultationType` (`phone` | `video`). */
+export function getBookingConsultationKind(consultationType: string): BookingConsultationKind {
+  const type = consultationType.trim().toLowerCase();
+  if (type === 'video') {
+    return 'video';
+  }
+  if (type === 'phone') {
+    return 'phone';
+  }
+  return 'other';
+}
+
+export function isCallableConsultation(consultationType: string): boolean {
+  return getBookingConsultationKind(consultationType) !== 'other';
+}
+
 export function canShowCallAction(
   booking: MyConsultantBooking,
   filter: 'upcoming' | 'past',
@@ -45,6 +63,5 @@ export function canShowCallAction(
   if (filter !== 'upcoming' || booking.status !== 'confirmed') {
     return false;
   }
-  const type = booking.consultationType.toLowerCase();
-  return type === 'video' || type === 'phone';
+  return isCallableConsultation(booking.consultationType);
 }

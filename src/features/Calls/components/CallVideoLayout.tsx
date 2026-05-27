@@ -1,11 +1,13 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { RenderModeType, RtcSurfaceView } from 'react-native-agora';
+import { RenderModeType, RtcSurfaceView, VideoSourceType } from 'react-native-agora';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { CallAvatar } from './CallAvatar';
 
 export interface CallVideoLayoutProps {
+  localUid: number;
+  channelName: string;
   remoteUid: number | null;
   remoteVideoEnabled: boolean;
   localVideoEnabled: boolean;
@@ -15,6 +17,8 @@ export interface CallVideoLayoutProps {
 
 export function CallVideoLayout(props: CallVideoLayoutProps): React.ReactElement {
   const {
+    localUid,
+    channelName,
     remoteUid,
     remoteVideoEnabled,
     localVideoEnabled,
@@ -31,6 +35,8 @@ export function CallVideoLayout(props: CallVideoLayoutProps): React.ReactElement
           style={styles.remoteVideo}
           canvas={{
             uid: remoteUid,
+            channelId: channelName,
+            sourceType: VideoSourceType.VideoSourceRemote,
             renderMode: RenderModeType.RenderModeHidden,
           }}
         />
@@ -49,7 +55,9 @@ export function CallVideoLayout(props: CallVideoLayoutProps): React.ReactElement
           <RtcSurfaceView
             style={styles.localVideo}
             canvas={{
-              uid: 0,
+              uid: localUid,
+              channelId: channelName,
+              sourceType: VideoSourceType.VideoSourceCamera,
               renderMode: RenderModeType.RenderModeHidden,
             }}
             zOrderOnTop
