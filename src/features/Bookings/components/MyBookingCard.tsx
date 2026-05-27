@@ -76,6 +76,7 @@ export function MyBookingCard({
   const slotReady = hasBookingStarted(booking.bookingDate, booking.slotTime);
   const isConfirmed = isBookingConfirmed(booking.status);
   const canCall = showCall && slotReady && !isCalling;
+  const callBusy = isCalling;
   const consultantName = booking.consultantName ?? 'Consultant';
   const amountLabel =
     booking.amount != null && booking.amount > 0
@@ -142,12 +143,12 @@ export function MyBookingCard({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={isVideo ? 'Start video call' : 'Start voice call'}
-            disabled={!canCall}
+            disabled={callBusy}
             onPress={onCallPress}
             style={({ pressed }) => [
               styles.quickCallBtn,
-              !canCall ? styles.quickCallBtnDisabled : null,
-              pressed && canCall ? { opacity: 0.9 } : null,
+              !canCall && !callBusy ? styles.quickCallBtnDisabled : null,
+              pressed && !callBusy ? { opacity: 0.9 } : null,
             ]}
           >
             {isCalling ? (
@@ -168,12 +169,12 @@ export function MyBookingCard({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={callLabel}
-            disabled={!canCall}
+            disabled={callBusy}
             onPress={onCallPress}
             style={({ pressed }) => [
               styles.callCta,
-              !canCall ? styles.callCtaDisabled : null,
-              pressed && canCall ? styles.callCtaPressed : null,
+              !canCall && !callBusy ? styles.callCtaDisabled : null,
+              pressed && !callBusy && canCall ? styles.callCtaPressed : null,
             ]}
           >
             {isCalling ? (

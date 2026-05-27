@@ -13,16 +13,14 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
-import { useMyBookingsScreen } from '@/features/Bookings/hooks/useMyBookingsScreen';
-import type { MyConsultantBooking } from '@/features/Bookings/types/myConsultantBooking.types';
 import { MyBookingCard } from '@/features/Bookings/components/MyBookingCard';
+import { useMyBookingsScreen } from '@/features/Bookings/hooks/useMyBookingsScreen';
+import { useUserBookingCall } from '@/features/Bookings/hooks/useUserBookingCall';
 import { THEME } from '@/constants/theme';
 import { navigationRef } from '@/navigation/navigationContainerRef';
 import { ROUTES } from '@/navigation/routeNames';
 import type { AccountStackParamList } from '@/navigation/types';
-import { CallController } from '@/features/Calls/controllers/CallController';
 import { SafeAreaWrapper, ScreenHeader } from '@/shared/components';
-import { showGlobalToast } from '@/shared/components/toast';
 
 import { BOOKINGS_CANVAS, styles } from './MyBookingsScreen.styles';
 
@@ -31,19 +29,7 @@ type Nav = NativeStackNavigationProp<AccountStackParamList, typeof ROUTES.Accoun
 export function MyBookingsScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
   const screen = useMyBookingsScreen();
-  const [callingBookingId, setCallingBookingId] = React.useState<number | null>(null);
-
-  const handleCallPress = useCallback(async (booking: MyConsultantBooking): Promise<void> => {
-    if (callingBookingId != null) {
-      return;
-    }
-    setCallingBookingId(booking.id);
-    const error = await CallController.startOutgoingFromUserBooking(booking);
-    setCallingBookingId(null);
-    if (error != null) {
-      showGlobalToast({ message: error, variant: 'error' });
-    }
-  }, [callingBookingId]);
+  const { callingBookingId, startCallFromBooking } = useUserBookingCall();
 
   const browseConsultants = useCallback((): void => {
     navigationRef.navigate(ROUTES.Root.ConsultantsList);
@@ -188,7 +174,7 @@ export function MyBookingsScreen(): React.ReactElement {
                 filter={screen.filter}
                 isCalling={callingBookingId === booking.id}
                 onCallPress={() => {
-                  void handleCallPress(booking);
+                  void startCallFromBooking(booking, screen.filter);
                 }}
               />
             ))
