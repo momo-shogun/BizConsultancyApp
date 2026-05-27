@@ -15,6 +15,64 @@ function stringArray(value: unknown): string[] {
   return value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
 }
 
+/** Coerces API fee fields (number, numeric string, or null). */
+function readPositiveNumber(...values: unknown[]): number {
+  for (const value of values) {
+    if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+      return Math.round(value);
+    }
+    if (typeof value === 'string' && value.trim().length > 0) {
+      const parsed = Number(value.trim());
+      if (Number.isFinite(parsed) && parsed > 0) {
+        return Math.round(parsed);
+      }
+    }
+  }
+  return 0;
+}
+
+function resolveConsultationRates(sources: {
+  audioRate?: unknown;
+  videoRate?: unknown;
+  audioFee?: unknown;
+  videoFee?: unknown;
+  rate?: unknown;
+  profile?: Record<string, unknown>;
+  industries?: ApiConsultant['industries'];
+}): { audioRate: number; videoRate: number; rate: number } {
+  const profile = sources.profile ?? {};
+  let audioRate = readPositiveNumber(
+    sources.audioRate,
+    sources.audioFee,
+    profile.audioRate,
+    profile.audioFee,
+  );
+  let videoRate = readPositiveNumber(
+    sources.videoRate,
+    sources.videoFee,
+    profile.videoRate,
+    profile.videoFee,
+  );
+
+  for (const row of sources.industries ?? []) {
+    if (audioRate <= 0) {
+      audioRate = readPositiveNumber(row?.consultantAudioFee);
+    }
+    if (videoRate <= 0) {
+      videoRate = readPositiveNumber(row?.consultantVideoFee);
+    }
+    if (audioRate > 0 && videoRate > 0) {
+      break;
+    }
+  }
+
+  const rate =
+    readPositiveNumber(sources.rate) ||
+    (audioRate > 0 ? audioRate : videoRate > 0 ? videoRate : 0);
+
+  return { audioRate, videoRate, rate };
+}
+
 function formatRupee(amount: number): string {
   if (!Number.isFinite(amount) || amount <= 0) {
     return '—';
@@ -74,9 +132,14 @@ function mapFlatPublicConsultant(row: Record<string, unknown>): ConsultantDetail
   const profile = mapProfileFromRecord(profileRow);
   const industries = stringArray(row.industries);
   const skills = stringArray(row.skills);
-  const rate = typeof row.rate === 'number' ? row.rate : 0;
-  const audioRate = typeof row.audioRate === 'number' ? row.audioRate : 0;
-  const videoRate = typeof row.videoRate === 'number' ? row.videoRate : 0;
+  const fees = resolveConsultationRates({
+    audioRate: row.audioRate,
+    videoRate: row.videoRate,
+    audioFee: row.audioFee,
+    videoFee: row.videoFee,
+    rate: row.rate,
+    profile: profileRow,
+  });
   const imagePath =
     typeof row.image === 'string'
       ? row.image
@@ -94,9 +157,9 @@ function mapFlatPublicConsultant(row: Record<string, unknown>): ConsultantDetail
     type: String(row.type ?? 'professional'),
     image: resolveConsultantImageUrl(imagePath),
     experience: String(row.experience ?? profile.experience ?? '—'),
-    rate,
-    audioRate,
-    videoRate,
+    rate: fees.rate,
+    audioRate: fees.audioRate,
+    videoRate: fees.videoRate,
     skills: skills.length > 0 ? skills : industries.slice(0, 3),
     verified: row.verified === true || row.verified === 1,
     industries,
@@ -133,22 +196,6 @@ function segmentNamesFromNested(consultant: ApiConsultant): string[] {
   return names;
 }
 
-function pickNestedFee(consultant: ApiConsultant): number {
-  const profile = consultant.profile;
-  const video = profile?.videoFee ?? 0;
-  const audio = profile?.audioFee ?? 0;
-  if (video > 0) {
-    return video;
-  }
-  if (audio > 0) {
-    return audio;
-  }
-  const industryFee = consultant.industries?.find(
-    (row) => (row.consultantVideoFee ?? 0) > 0 || (row.consultantAudioFee ?? 0) > 0,
-  );
-  return industryFee?.consultantVideoFee ?? industryFee?.consultantAudioFee ?? 0;
-}
-
 /** Legacy nested OpenAPI consultant shape. */
 function mapNestedPublicConsultant(consultant: ApiConsultant): ConsultantDetail {
   const profile = consultant.profile;
@@ -157,6 +204,11 @@ function mapNestedPublicConsultant(consultant: ApiConsultant): ConsultantDetail 
   const skills = profile?.skill?.trim()
     ? profile.skill.split(',').map((s) => s.trim()).filter(Boolean)
     : [];
+  const fees = resolveConsultationRates({
+    audioFee: profile?.audioFee,
+    videoFee: profile?.videoFee,
+    industries: consultant.industries,
+  });
 
   return {
     id: String(consultant.id),
@@ -168,9 +220,9 @@ function mapNestedPublicConsultant(consultant: ApiConsultant): ConsultantDetail 
     type: profile?.type?.trim() || 'professional',
     image: resolveConsultantImageUrl(consultant.thumbnail),
     experience: profile?.experience?.trim() ?? '—',
-    rate: pickNestedFee(consultant),
-    audioRate: profile?.audioFee ?? 0,
-    videoRate: profile?.videoFee ?? 0,
+    rate: fees.rate,
+    audioRate: fees.audioRate,
+    videoRate: fees.videoRate,
     skills: skills.length > 0 ? skills : industries.slice(0, 3),
     verified: consultant.isUserVerified === 1,
     industries,
@@ -199,13 +251,17 @@ function mapNestedPublicConsultant(consultant: ApiConsultant): ConsultantDetail 
 }
 
 function isFlatPublicConsultant(row: Record<string, unknown>): boolean {
+  const hasRateField =
+    readPositiveNumber(row.rate, row.audioRate, row.videoRate, row.audioFee, row.videoFee) > 0;
   return (
     typeof row.slug === 'string' &&
     typeof row.name === 'string' &&
     (typeof row.title === 'string' ||
       typeof row.expertise === 'string' ||
       typeof row.image === 'string' ||
-      typeof row.rate === 'number')
+      typeof row.thumbnail === 'string' ||
+      hasRateField ||
+      isRecord(row.profile))
   );
 }
 

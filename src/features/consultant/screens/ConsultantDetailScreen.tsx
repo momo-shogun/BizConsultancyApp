@@ -80,7 +80,7 @@ function openExternalUrl(url: string): void {
   if (trimmed.length === 0) {
     return;
   }
-  void Linking.openURL(trimmed);
+  Linking.openURL(trimmed).catch(() => undefined);
 }
 
 type ConsultantDetailRoute = RouteProp<RootStackParamList, typeof ROUTES.Root.ConsultantDetail>;
@@ -349,15 +349,30 @@ export function ConsultantDetailScreen(): React.ReactElement {
       return;
     }
     setCallStarting(true);
-    void CallController.startOutgoingToConsultant(detail).then((err) => {
-      setCallStarting(false);
-      if (err != null) {
-        Alert.alert('Call', err);
-      }
-    });
+    CallController.startOutgoingToConsultant(detail)
+      .then((err) => {
+        setCallStarting(false);
+        if (err != null) {
+          Alert.alert('Call', err);
+        }
+      })
+      .catch(() => {
+        setCallStarting(false);
+      });
   }, [callStarting, detail]);
 
-  const showRates = (detail?.audioRate ?? 0) > 0 || (detail?.videoRate ?? 0) > 0;
+  const onlyGenericRate =
+    detail != null && detail.rate > 0 && detail.audioRate <= 0 && detail.videoRate <= 0;
+  const audioRateDisplay =
+    detail != null && detail.audioRate > 0
+      ? detail.audioRate
+      : onlyGenericRate
+        ? detail.rate
+        : 0;
+  const videoRateDisplay = detail != null && detail.videoRate > 0 ? detail.videoRate : 0;
+  const hasExperience =
+    detail != null && isMeaningfulText(detail.experience) && detail.experience !== '—';
+  const showRates = audioRateDisplay > 0 || videoRateDisplay > 0 || hasExperience;
   const isKnownProfile = detail?.slug === 'r-k-saxena';
 
   const profileFactItems = useMemo(
@@ -468,33 +483,32 @@ export function ConsultantDetailScreen(): React.ReactElement {
 
             {showRates ? (
               <View style={styles.metricsRow}>
-                <MetricPill
-                  icon="mic-outline"
-                  label="Audio"
-                  value={formatRupee(detail.audioRate)}
-                  accent="green"
-                />
-                <MetricPill
-                  icon="videocam-outline"
-                  label="Video"
-                  value={formatRupee(detail.videoRate)}
-                  accent="blue"
-                />
-                <MetricPill
-                  icon="briefcase-outline"
-                  label="Experience"
-                  value={detail.experience}
-                  accent="amber"
-                />
+                {audioRateDisplay > 0 ? (
+                  <MetricPill
+                    icon="mic-outline"
+                    label="Audio"
+                    value={formatRupee(audioRateDisplay)}
+                    accent="green"
+                  />
+                ) : null}
+                {videoRateDisplay > 0 ? (
+                  <MetricPill
+                    icon="videocam-outline"
+                    label="Video"
+                    value={formatRupee(videoRateDisplay)}
+                    accent="blue"
+                  />
+                ) : null}
+                {hasExperience ? (
+                  <MetricPill
+                    icon="briefcase-outline"
+                    label="Experience"
+                    value={detail.experience}
+                    accent="amber"
+                  />
+                ) : null}
               </View>
-            ) : (
-              <View style={styles.stubCard}>
-                <Ionicons name="information-circle-outline" size={18} color={THEME.colors.primary} />
-                <Text style={styles.stubCardText}>
-                  Rates and experience appear for featured profiles once API data is connected.
-                </Text>
-              </View>
-            )}
+            ) : null}
           </View>
 
           <View style={styles.contentStack}>
