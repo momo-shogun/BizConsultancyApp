@@ -9,7 +9,10 @@ import { showGlobalError, showGlobalToast } from '@/shared/components/toast';
 
 import { useGetUserMeQuery, useUpdateUserMeMutation } from '../api/userProfileApi';
 import type { UserGenderValue, UserProfileFormState } from '../types/userProfile.types';
-import { pickProfileImageFromLibrary } from '../utils/profileImagePicker';
+import {
+  pickProfileImageFromSource,
+  type ProfileImagePickerSource,
+} from '../utils/profileImagePicker';
 import {
   normalizeUserProfileForm,
   validateUserProfileForm,
@@ -65,7 +68,10 @@ export interface UseUserEditProfileScreenResult {
     key: K,
     value: UserProfileFormState[K],
   ) => void;
-  pickProfileImage: () => Promise<void>;
+  photoSourceDialogVisible: boolean;
+  openPhotoSourceDialog: () => void;
+  closePhotoSourceDialog: () => void;
+  selectProfileImageSource: (source: ProfileImagePickerSource) => Promise<void>;
   handleSave: () => Promise<void>;
   refetch: () => void;
 }
@@ -89,6 +95,7 @@ export function useUserEditProfileScreen(): UseUserEditProfileScreenResult {
   const [previewUri, setPreviewUri] = useState<string | null>(null);
   const [pendingImageName, setPendingImageName] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<UserProfileFieldErrors>({});
+  const [photoSourceDialogVisible, setPhotoSourceDialogVisible] = useState(false);
 
   useEffect(() => {
     if (profile != null) {
@@ -134,19 +141,34 @@ export function useUserEditProfileScreen(): UseUserEditProfileScreenResult {
     [],
   );
 
-  const pickProfileImage = useCallback(async (): Promise<void> => {
-    const result = await pickProfileImageFromLibrary();
-    if (result.errorMessage != null) {
-      showGlobalError(result.errorMessage);
-      return;
-    }
-    if (result.asset == null) {
-      return;
-    }
-    setPreviewAsset(result.asset);
-    setPreviewUri(result.asset.uri ?? null);
-    setPendingImageName(result.asset.fileName?.trim() ?? 'Selected image');
+  const openPhotoSourceDialog = useCallback((): void => {
+    setPhotoSourceDialogVisible(true);
   }, []);
+
+  const closePhotoSourceDialog = useCallback((): void => {
+    setPhotoSourceDialogVisible(false);
+  }, []);
+
+  const selectProfileImageSource = useCallback(
+    async (source: ProfileImagePickerSource): Promise<void> => {
+      const result = await pickProfileImageFromSource(source);
+      if (result.errorMessage != null) {
+        showGlobalError(result.errorMessage);
+        return;
+      }
+      if (result.asset == null) {
+        return;
+      }
+      setPreviewAsset(result.asset);
+      setPreviewUri(result.asset.uri ?? null);
+      const label =
+        source === 'camera'
+          ? 'Camera photo'
+          : result.asset.fileName?.trim() ?? 'Gallery image';
+      setPendingImageName(label);
+    },
+    [],
+  );
 
   const handleSave = useCallback(async (): Promise<void> => {
     if (!isAuthenticated) {
@@ -209,7 +231,10 @@ export function useUserEditProfileScreen(): UseUserEditProfileScreenResult {
     form,
     fieldErrors,
     setFormField,
-    pickProfileImage,
+    photoSourceDialogVisible,
+    openPhotoSourceDialog,
+    closePhotoSourceDialog,
+    selectProfileImageSource,
     handleSave,
     refetch: () => {
       void refetch();

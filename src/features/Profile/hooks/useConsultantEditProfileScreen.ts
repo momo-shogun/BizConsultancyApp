@@ -13,7 +13,10 @@ import {
 } from '../api/consultantProfileApi';
 import type { ConsultantProfileFormState } from '../types/consultantProfile.types';
 import { profileToFormState } from '../utils/consultantProfileParsing';
-import { pickProfileImageFromLibrary } from '../utils/profileImagePicker';
+import {
+  pickProfileImageFromSource,
+  type ProfileImagePickerSource,
+} from '../utils/profileImagePicker';
 import {
   normalizeConsultantProfileForm,
   validateConsultantProfileForm,
@@ -49,7 +52,10 @@ export interface UseConsultantEditProfileScreenResult {
     value: ConsultantProfileFormState[K],
   ) => void;
   setDobDate: (date: Date) => void;
-  pickProfileImage: () => Promise<void>;
+  photoSourceDialogVisible: boolean;
+  openPhotoSourceDialog: () => void;
+  closePhotoSourceDialog: () => void;
+  selectProfileImageSource: (source: ProfileImagePickerSource) => Promise<void>;
   handleSave: () => Promise<void>;
   refetch: () => void;
 }
@@ -81,6 +87,7 @@ export function useConsultantEditProfileScreen(): UseConsultantEditProfileScreen
   const [previewUri, setPreviewUri] = useState<string | null>(null);
   const [pendingImageName, setPendingImageName] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<ConsultantProfileFieldErrors>({});
+  const [photoSourceDialogVisible, setPhotoSourceDialogVisible] = useState(false);
 
   useEffect(() => {
     if (profile != null) {
@@ -136,19 +143,34 @@ export function useConsultantEditProfileScreen(): UseConsultantEditProfileScreen
     setFormField('dob', `${year}-${month}-${day}`);
   }, [setFormField]);
 
-  const pickProfileImage = useCallback(async (): Promise<void> => {
-    const result = await pickProfileImageFromLibrary();
-    if (result.errorMessage != null) {
-      showGlobalError(result.errorMessage);
-      return;
-    }
-    if (result.asset == null) {
-      return;
-    }
-    setPreviewAsset(result.asset);
-    setPreviewUri(result.asset.uri ?? null);
-    setPendingImageName(result.asset.fileName?.trim() ?? 'Selected image');
+  const openPhotoSourceDialog = useCallback((): void => {
+    setPhotoSourceDialogVisible(true);
   }, []);
+
+  const closePhotoSourceDialog = useCallback((): void => {
+    setPhotoSourceDialogVisible(false);
+  }, []);
+
+  const selectProfileImageSource = useCallback(
+    async (source: ProfileImagePickerSource): Promise<void> => {
+      const result = await pickProfileImageFromSource(source);
+      if (result.errorMessage != null) {
+        showGlobalError(result.errorMessage);
+        return;
+      }
+      if (result.asset == null) {
+        return;
+      }
+      setPreviewAsset(result.asset);
+      setPreviewUri(result.asset.uri ?? null);
+      const label =
+        source === 'camera'
+          ? 'Camera photo'
+          : result.asset.fileName?.trim() ?? 'Gallery image';
+      setPendingImageName(label);
+    },
+    [],
+  );
 
   const handleSave = useCallback(async (): Promise<void> => {
     if (!isAuthenticated) {
@@ -217,7 +239,10 @@ export function useConsultantEditProfileScreen(): UseConsultantEditProfileScreen
     fieldErrors,
     setFormField,
     setDobDate,
-    pickProfileImage,
+    photoSourceDialogVisible,
+    openPhotoSourceDialog,
+    closePhotoSourceDialog,
+    selectProfileImageSource,
     handleSave,
     refetch: () => {
       void refetch();
