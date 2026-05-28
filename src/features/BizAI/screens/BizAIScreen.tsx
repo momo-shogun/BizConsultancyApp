@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Keyboard,
   Pressable,
@@ -12,11 +12,20 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import {
+  Easing,
+  cancelAnimation,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { THEME } from '@/constants/theme';
 import { ROUTES } from '@/navigation/routeNames';
 import type { RootStackParamList } from '@/navigation/types';
+import { SafeAreaWrapper } from '@/shared/components';
 import { showGlobalToast } from '@/shared/components/toast';
 
 import { BizAIKeyboardComposer } from '../components/BizAIKeyboardComposer';
@@ -41,6 +50,10 @@ export function BizAIScreen(): React.ReactElement {
   const [inputMode, setInputMode] = useState<BizAIInputMode>('keyboard');
   const [query, setQuery] = useState<string>('');
   const [draft, setDraft] = useState<string>('');
+  const [isAwaitingResponse, setIsAwaitingResponse] = useState<boolean>(false);
+  const [response, setResponse] = useState<string>('');
+  const responseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const spin = useSharedValue(0);
 
   const greeting = useMemo(
     () => BIZ_AI_GREETINGS[Math.floor(Date.now() / 86_400_000) % BIZ_AI_GREETINGS.length],
@@ -98,24 +111,69 @@ export function BizAIScreen(): React.ReactElement {
     if (trimmed.length === 0) {
       return;
     }
+    if (responseTimerRef.current != null) {
+      clearTimeout(responseTimerRef.current);
+      responseTimerRef.current = null;
+    }
     setQuery(trimmed);
+    setResponse('');
+    setIsAwaitingResponse(true);
     Keyboard.dismiss();
+    responseTimerRef.current = setTimeout(() => {
+      setResponse(`Got it. Here is a quick direction for "${trimmed}".
+
+- I can break this into actionable steps.
+- I can suggest the right service flow for your use case.
+- I can also draft a checklist you can follow immediately.`);
+      setIsAwaitingResponse(false);
+      responseTimerRef.current = null;
+    }, 1700);
   }, [draft]);
+
+  useEffect(() => {
+    if (isAwaitingResponse) {
+      spin.value = withRepeat(withTiming(360, { duration: 1800, easing: Easing.linear }), -1, false);
+      return;
+    }
+    cancelAnimation(spin);
+    spin.value = 0;
+  }, [isAwaitingResponse, spin]);
+
+  useEffect(() => {
+    return () => {
+      if (responseTimerRef.current != null) {
+        clearTimeout(responseTimerRef.current);
+      }
+      cancelAnimation(spin);
+    };
+  }, [spin]);
+
+  const loaderIconStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${spin.value}deg` }],
+  }));
 
   const bottomPad =
     inputMode === 'voice'
       ? insets.bottom + VOICE_DOCK_HEIGHT
       : insets.bottom + KEYBOARD_DOCK_HEIGHT + 24;
+  const showLoaderScreen = isAwaitingResponse;
+  const showResultScreen = !isAwaitingResponse && query.length > 0 && response.length > 0;
 
   return (
-    <View style={styles.root}>
+    <SafeAreaWrapper
+      edges={['top', 'bottom']}
+      bgColor="#0B0F19"
+      contentBgColor="#0B0F19"
+      statusBarStyle="light-content"
+      style={styles.root}
+    >
       <LinearGradient
         colors={['#0B0F19', '#111827', '#1E1B4B', '#312E81']}
         locations={[0, 0.45, 0.78, 1]}
         style={StyleSheet.absoluteFill}
       />
 
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+      <View style={[styles.header, { paddingTop: 8 }]}>
         <Pressable onPress={close} hitSlop={12} accessibilityRole="button" accessibilityLabel="Close">
           <Ionicons name="chevron-down" size={28} color={THEME.colors.white} />
         </Pressable>
@@ -126,59 +184,89 @@ export function BizAIScreen(): React.ReactElement {
         <View style={styles.headerSpacer} />
       </View>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={[styles.scroll, { paddingBottom: bottomPad }]}
-      >
-        <Animated.View entering={FadeInDown.duration(240)}>
-          <Text style={styles.greeting}>{greeting}</Text>
-          <Text style={styles.subGreeting}>
-            Tap a suggestion or type your question in the keyboard below.
-          </Text>
-        </Animated.View>
-
-        <Animated.View entering={FadeInDown.delay(80).duration(220)} style={styles.shortcutRow}>
-          {BIZ_AI_SHORTCUTS.map((item) => (
-            <Pressable
-              key={item.id}
-              onPress={() => onShortcutPress(item.id)}
-              style={({ pressed }) => [styles.shortcut, pressed && styles.shortcutPressed]}
-            >
-              <Ionicons name={item.icon} size={16} color="#C7D2FE" />
-              <Text style={styles.shortcutText}>{item.label}</Text>
-            </Pressable>
-          ))}
-        </Animated.View>
-
-        <Text style={styles.sectionLabel}>Suggestions for your business</Text>
+      {showLoaderScreen ? (
+        <View style={styles.fullLoaderScreen}>
+          <LinearGradient
+            colors={['rgba(14,165,233,0.16)', 'rgba(59,130,246,0.06)', 'rgba(168,85,247,0.16)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.fullLoaderPanel}
+          >
+            <Text style={styles.loaderTitle}>Fetching something for you...</Text>
+            <Text style={styles.loaderSubTitle}>Working on it</Text>
+            <Animated.View style={[styles.loaderOrb, loaderIconStyle]}>
+              <Ionicons name="sparkles" size={24} color="#C4B5FD" />
+            </Animated.View>
+          </LinearGradient>
+        </View>
+      ) : (
         <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.suggestionRow}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={[styles.scroll, { paddingBottom: bottomPad }]}
         >
-          {BIZ_AI_SUGGESTIONS.map((item, index) => (
-            <BizAISuggestionChip
-              key={item.id}
-              item={item}
-              index={index}
-              onPress={() => onSuggestionPress(item.prompt)}
-            />
-          ))}
+          {showResultScreen ? (
+            <Animated.View entering={FadeIn.duration(220)} style={styles.previewCard}>
+              <Text style={styles.previewLabel}>Your question</Text>
+              <Text style={styles.previewText}>{query}</Text>
+              <View style={styles.responseBlock}>
+                <Text style={styles.previewLabel}>Biz AI response</Text>
+                <Text style={styles.responseText}>{response}</Text>
+              </View>
+            </Animated.View>
+          ) : (
+            <>
+              <Animated.View entering={FadeInDown.duration(240)}>
+                <Text style={styles.greeting}>{greeting}</Text>
+                <Text style={styles.subGreeting}>
+                  Tap a suggestion or type your question in the keyboard below.
+                </Text>
+              </Animated.View>
+
+              <Animated.View entering={FadeInDown.delay(80).duration(220)} style={styles.shortcutRow}>
+                {BIZ_AI_SHORTCUTS.map((item) => (
+                  <Pressable
+                    key={item.id}
+                    onPress={() => onShortcutPress(item.id)}
+                    style={({ pressed }) => [styles.shortcut, pressed && styles.shortcutPressed]}
+                  >
+                    <Ionicons name={item.icon} size={16} color="#C7D2FE" />
+                    <Text style={styles.shortcutText}>{item.label}</Text>
+                  </Pressable>
+                ))}
+              </Animated.View>
+
+              <Text style={styles.sectionLabel}>Suggestions for your business</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.suggestionRow}
+              >
+                {BIZ_AI_SUGGESTIONS.map((item, index) => (
+                  <BizAISuggestionChip
+                    key={item.id}
+                    item={item}
+                    index={index}
+                    onPress={() => onSuggestionPress(item.prompt)}
+                  />
+                ))}
+              </ScrollView>
+
+              {query.length > 0 ? (
+                <Animated.View entering={FadeIn.duration(200)} style={styles.previewCard}>
+                  <Text style={styles.previewLabel}>Your question</Text>
+                  <Text style={styles.previewText}>{query}</Text>
+                  <Text style={styles.previewHint}>
+                    Full AI chat will connect to Biz Assistant API in the next release.
+                  </Text>
+                </Animated.View>
+              ) : null}
+            </>
+          )}
         </ScrollView>
+      )}
 
-        {query.length > 0 ? (
-          <Animated.View entering={FadeIn.duration(200)} style={styles.previewCard}>
-            <Text style={styles.previewLabel}>Your question</Text>
-            <Text style={styles.previewText}>{query}</Text>
-            <Text style={styles.previewHint}>
-              Full AI chat will connect to Biz Assistant API in the next release.
-            </Text>
-          </Animated.View>
-        ) : null}
-      </ScrollView>
-
-      {inputMode === 'voice' ? (
+      {!showLoaderScreen && (inputMode === 'voice' ? (
         <View style={[styles.dockHost, { paddingBottom: insets.bottom }]}>
           <BizAIVoiceDock
             onKeyboardPress={openKeyboardMode}
@@ -194,8 +282,8 @@ export function BizAIScreen(): React.ReactElement {
           onVoiceModePress={openVoiceMode}
           keyboardHeight={keyboardHeight}
         />
-      )}
-    </View>
+      ))}
+    </SafeAreaWrapper>
   );
 }
 
@@ -304,6 +392,66 @@ const styles = StyleSheet.create({
     fontSize: THEME.typography.size[12],
     color: 'rgba(255,255,255,0.45)',
     lineHeight: 18,
+  },
+  fullLoaderScreen: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: THEME.spacing[16],
+    paddingBottom: 48,
+  },
+  fullLoaderPanel: {
+    width: '100%',
+    borderRadius: 22,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(148, 163, 184, 0.35)',
+    paddingVertical: THEME.spacing[24],
+    paddingHorizontal: THEME.spacing[16],
+    alignItems: 'center',
+    gap: THEME.spacing[8],
+  },
+  loaderWrap: {
+    marginTop: THEME.spacing[8],
+  },
+  loaderPanel: {
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(148, 163, 184, 0.35)',
+    paddingVertical: THEME.spacing[16],
+    paddingHorizontal: THEME.spacing[14],
+    alignItems: 'center',
+    gap: THEME.spacing[8],
+  },
+  loaderTitle: {
+    color: '#E2E8F0',
+    fontSize: THEME.typography.size[18],
+    fontWeight: THEME.typography.weight.semibold as '600',
+    textAlign: 'center',
+  },
+  loaderSubTitle: {
+    color: 'rgba(226,232,240,0.8)',
+    fontSize: THEME.typography.size[14],
+    textAlign: 'center',
+  },
+  loaderOrb: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    borderWidth: 1,
+    borderColor: 'rgba(196, 181, 253, 0.65)',
+    backgroundColor: 'rgba(15, 23, 42, 0.38)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: THEME.spacing[4],
+  },
+  responseBlock: {
+    marginTop: THEME.spacing[10],
+    gap: THEME.spacing[8],
+  },
+  responseText: {
+    fontSize: THEME.typography.size[14],
+    color: 'rgba(248,250,252,0.92)',
+    lineHeight: 22,
   },
   dockHost: {
     position: 'absolute',
