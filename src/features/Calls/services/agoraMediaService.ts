@@ -4,10 +4,12 @@ import {
   ChannelProfileType,
   ClientRoleType,
   createAgoraRtcEngine,
+  RenderModeType,
   RemoteAudioState,
   RemoteVideoState,
   RemoteVideoStateReason,
   VideoCodecType,
+  VideoSourceType,
   type ChannelMediaOptions,
   type IRtcEngine,
   type IRtcEngineEventHandler,
@@ -172,6 +174,7 @@ function registerRemotePeer(uid: number): void {
   if (engine != null) {
     subscribeRemoteAudio(engine, uid);
     subscribeRemoteVideo(engine, uid);
+    bindRemoteVideoCanvas(engine, uid);
   }
   listeners.onRemoteUserJoined?.(uid);
   debugVideoLog('remote-peer-registered', {
@@ -225,6 +228,13 @@ function notifyRemoteVideoState(
     return;
   }
   if (inactive) {
+    if (reason === RemoteVideoStateReason.RemoteVideoStateReasonLocalMuted) {
+      if (engine != null) {
+        subscribeRemoteVideo(engine, uid);
+      }
+      debugVideoLog('remote-video-local-muted-recovered', { uid });
+      return;
+    }
     if (
       reason === RemoteVideoStateReason.RemoteVideoStateReasonRemoteMuted &&
       remoteVideoEverActiveUids.has(uid)
@@ -251,6 +261,17 @@ function subscribeRemoteVideo(rtc: IRtcEngine, uid: number): void {
   rtc.muteRemoteVideoStream(uid, false);
 }
 
+function bindRemoteVideoCanvas(rtc: IRtcEngine, uid: number): void {
+  if (activeCallType !== 'video' || isLocalUid(uid)) {
+    return;
+  }
+  rtc.setupRemoteVideo({
+    uid,
+    sourceType: VideoSourceType.VideoSourceRemote,
+    renderMode: RenderModeType.RenderModeFit,
+  });
+}
+
 function getOrCreateEngine(): IRtcEngine {
   if (engine == null) {
     engine = createAgoraRtcEngine();
@@ -270,6 +291,7 @@ function getOrCreateEngine(): IRtcEngine {
             startLocalVideoPublish(engine);
             for (const remoteUid of remotePeerUids) {
               subscribeRemoteVideo(engine, remoteUid);
+              bindRemoteVideoCanvas(engine, remoteUid);
             }
             // Android can race publish flags around join; re-apply shortly after join.
             setTimeout(() => {
@@ -308,6 +330,9 @@ function getOrCreateEngine(): IRtcEngine {
       onRemoteVideoStateChanged: (_connection, uid, state, reason) => {
         if (isLocalUid(uid)) {
           return;
+        }
+        if (engine != null) {
+          subscribeRemoteVideo(engine, uid);
         }
         if (
           state === RemoteVideoState.RemoteVideoStateStarting ||
