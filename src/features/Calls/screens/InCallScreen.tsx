@@ -10,7 +10,6 @@ import { useAppSelector } from '@/store/typedHooks';
 
 import { CallAvatar } from '../components/CallAvatar';
 import { CallVideoLayout } from '../components/CallVideoLayout';
-import { InCallControlButton } from '../components/InCallControlButton';
 import { CallController } from '../controllers/CallController';
 import { callEngine } from '../engine/CallEngine';
 import { startNetworkTransitionHandler, stopNetworkTransitionHandler } from '../engine/NetworkTransitionHandler';
@@ -88,43 +87,47 @@ export function InCallScreen({ navigation }: Props): React.ReactElement {
     </View>
   );
 
-  const controls = (
-    <View style={[styles.controls, { paddingBottom: insets.bottom + 28 }]}>
-      <InCallControlButton
-        icon={localMuted ? 'mic-off' : 'mic'}
-        label={localMuted ? 'Unmute' : 'Mute'}
-        active={localMuted}
-        onPress={() => CallController.setMuted(!localMuted)}
-      />
-      <InCallControlButton
-        icon={speakerOn ? 'volume-high' : 'ear'}
-        label="Speaker"
-        active={speakerOn}
-        onPress={() => CallController.setSpeaker(!speakerOn)}
-      />
-      {isVideoCall ? (
-        <>
-          <InCallControlButton
-            icon={localVideoEnabled ? 'videocam' : 'videocam-off'}
-            label={localVideoEnabled ? 'Video' : 'No video'}
-            active={!localVideoEnabled}
-            onPress={() => CallController.setVideoEnabled(!localVideoEnabled)}
-          />
-          <InCallControlButton
-            icon="camera-reverse-outline"
-            label="Flip"
-            onPress={() => CallController.switchCamera()}
-          />
-        </>
-      ) : null}
-      <InCallControlButton
-        icon="call"
-        label="End"
-        variant="danger"
+  const voiceControls = (
+    <View style={[styles.videoControlsDock, { paddingBottom: insets.bottom + 20 }]}>
+      <View style={styles.videoControlsPill}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={localMuted ? 'Unmute microphone' : 'Mute microphone'}
+          onPress={() => CallController.setMuted(!localMuted)}
+          style={({ pressed }) => [
+            styles.videoIconBtn,
+            localMuted ? styles.videoIconBtnActive : null,
+            pressed ? styles.videoIconBtnPressed : null,
+          ]}
+        >
+          <Ionicons name={localMuted ? 'mic-off-outline' : 'mic-outline'} size={22} color="#FFFFFF" />
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={speakerOn ? 'Turn off speaker' : 'Turn on speaker'}
+          onPress={() => CallController.setSpeaker(!speakerOn)}
+          style={({ pressed }) => [
+            styles.videoIconBtn,
+            speakerOn ? styles.videoIconBtnActive : null,
+            pressed ? styles.videoIconBtnPressed : null,
+          ]}
+        >
+          <Ionicons name={speakerOn ? 'volume-high-outline' : 'volume-mute-outline'} size={22} color="#FFFFFF" />
+        </Pressable>
+      </View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="End call"
         onPress={() => {
           void CallController.endCall();
         }}
-      />
+        style={({ pressed }) => [
+          styles.videoEndCallBtn,
+          pressed ? styles.videoEndCallBtnPressed : null,
+        ]}
+      >
+        <Ionicons name="call" size={22} color="#FFFFFF" />
+      </Pressable>
     </View>
   );
 
@@ -223,7 +226,7 @@ export function InCallScreen({ navigation }: Props): React.ReactElement {
           <Text style={styles.status}>{statusText}</Text>
         </View>
       </View>
-      {controls}
+      {voiceControls}
     </LinearGradient>
   );
 }
@@ -310,10 +313,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     marginTop: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.22)',
   },
   liveDot: {
     width: 8,
@@ -329,14 +334,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: 'rgba(255,255,255,0.9)',
     fontVariant: ['tabular-nums'],
-  },
-  controls: {
-    flexDirection: 'row',
-    justifyContent: 'space-evenly',
-    alignItems: 'flex-end',
-    flexWrap: 'wrap',
-    paddingHorizontal: 8,
-    gap: 4,
   },
   videoControlsDock: {
     alignSelf: 'center',

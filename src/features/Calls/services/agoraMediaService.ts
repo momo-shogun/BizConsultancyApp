@@ -309,6 +309,9 @@ export const agoraMediaService = {
     }
 
     activeCallType = params.callType;
+    // Each fresh call should start with microphone unmuted.
+    // This prevents stale mute state from a previous call session.
+    localMuted = false;
     localVideoEnabled = params.callType === 'video';
     joinedLocalUid = params.uid;
     joinedChannelName = params.channelName;
