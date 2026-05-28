@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View, type DimensionValue } from 'react-native';
+import { Image, Platform, Pressable, StyleSheet, Text, View, type DimensionValue } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { THEME } from '@/constants/theme';
@@ -9,6 +9,7 @@ export interface UpcomingBookingItem {
   dateLabel: string;
   timeLabel: string;
   consultantName: string;
+  consultantImageUrl?: string;
   consultantTitle?: string;
   callType: 'video' | 'audio';
   statusLabel?: string;
@@ -55,9 +56,12 @@ export function UpcomingBookingCard({
       ]}
     >
       <View style={styles.topBar}>
-        {/* <Text style={styles.topLeft} numberOfLines={1}>
-          {item.id}
-        </Text> */}
+        <View style={styles.topTypePill}>
+          <Ionicons name={callIcon} size={12} color={THEME.colors.white} />
+          <Text style={styles.topTypePillText} numberOfLines={1}>
+            {callTypeLabel}
+          </Text>
+        </View>
         <Text style={styles.topRight} numberOfLines={1}>
           {item.dateLabel}
         </Text>
@@ -85,9 +89,17 @@ export function UpcomingBookingCard({
 
         <View style={styles.bottomRow}>
           <View style={styles.metaLeft}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{initials(item.consultantName)}</Text>
-            </View>
+            {item.consultantImageUrl != null && item.consultantImageUrl.trim().length > 0 ? (
+              <Image
+                source={{ uri: item.consultantImageUrl }}
+                style={styles.avatarImage}
+                accessibilityIgnoresInvertColors
+              />
+            ) : (
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>{initials(item.consultantName)}</Text>
+              </View>
+            )}
             <View style={styles.metaText}>
               <View style={styles.metaLine}>
                 <Ionicons name="time-outline" size={14} color={THEME.colors.textSecondary} />
@@ -133,19 +145,19 @@ const styles = StyleSheet.create({
   root: {
     marginRight: THEME.spacing[12],
     borderRadius: RADIUS,
-    backgroundColor: THEME.colors.white,
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
-    borderColor: THEME.colors.border,
+    borderColor: '#DDE6F3',
     overflow: 'hidden',
     ...Platform.select({
       ios: {
-        shadowColor: '#0f172a',
+        shadowColor: '#0F172A',
         shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.08,
-        shadowRadius: 14,
+        shadowOpacity: 0.1,
+        shadowRadius: 16,
       },
       default: {
-        elevation: 3,
+        elevation: 4,
       },
     }),
   },
@@ -155,18 +167,25 @@ const styles = StyleSheet.create({
   },
   topBar: {
     height: TOP_BAR_HEIGHT,
-    backgroundColor: THEME.colors.primary,
+    backgroundColor: '#111827',
     paddingHorizontal: THEME.spacing[16],
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  topLeft: {
+  topTypePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.16)',
+  },
+  topTypePillText: {
     color: THEME.colors.white,
     fontSize: THEME.typography.size[12],
     fontWeight: THEME.typography.weight.semibold as '600',
-    letterSpacing: 0.6,
-    opacity: 0.95,
   },
   topRight: {
     color: THEME.colors.white,
@@ -177,6 +196,7 @@ const styles = StyleSheet.create({
   body: {
     padding: THEME.spacing[16],
     gap: THEME.spacing[12],
+    backgroundColor: '#FFFFFF',
   },
   rowBetween: {
     flexDirection: 'row',
@@ -191,7 +211,7 @@ const styles = StyleSheet.create({
   },
   consultantTitleSmall: {
     fontSize: THEME.typography.size[12],
-    color: THEME.colors.textSecondary,
+    color: '#64748B',
   },
   headline: {
     fontSize: THEME.typography.size[20],
@@ -204,15 +224,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: 'rgba(37, 99, 235, 0.10)',
+    backgroundColor: 'rgba(15, 23, 42, 0.06)',
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(37, 99, 235, 0.18)',
+    borderColor: 'rgba(15, 23, 42, 0.14)',
   },
   statusText: {
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.4,
-    color: '#2563EB',
+    color: '#0F172A',
   },
   divider: {
     height: 1,
@@ -236,11 +256,19 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 14,
-    backgroundColor: THEME.colors.surface,
+    backgroundColor: '#E2E8F0',
     borderWidth: 1,
-    borderColor: THEME.colors.border,
+    borderColor: '#CBD5E1',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  avatarImage: {
+    width: 38,
+    height: 38,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    backgroundColor: '#E2E8F0',
   },
   avatarText: {
     color: THEME.colors.textPrimary,
@@ -276,7 +304,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     height: 40,
     borderRadius: 999,
-    backgroundColor: '#0B1220',
+    backgroundColor: THEME.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },

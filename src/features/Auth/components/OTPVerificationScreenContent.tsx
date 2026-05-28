@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react';
 import {
   Image,
+  Platform,
   Pressable,
   StatusBar,
   StyleSheet,
@@ -125,9 +126,17 @@ export function OTPVerificationScreenContent(
             <TextInput
               accessibilityLabel="Hidden OTP input"
               value={otp}
-              onChangeText={(t) => setOtp(t.replace(/\D/g, '').slice(0, 6))}
+              onChangeText={(t) => {
+                const cleaned = t.replace(/\D/g, '');
+                // Supports SMS strings like "Your code is 123456" as well as plain OTP.
+                const firstOtp = cleaned.slice(0, 6);
+                setOtp(firstOtp);
+              }}
               keyboardType="number-pad"
               textContentType="oneTimeCode"
+              autoComplete={Platform.OS === 'android' ? 'sms-otp' : 'one-time-code'}
+              importantForAutofill="yes"
+              autoCorrect={false}
               style={styles.hiddenInput}
               autoFocus
               ref={hiddenInputRef}

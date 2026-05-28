@@ -77,6 +77,22 @@ const HOME_UPCOMING_BOOKINGS_LIMIT = 5;
 const BOOKING_VISIBLE_AFTER_START_MINUTES = 30;
 const HOME_DEFAULT_SHELL_BG = '#E6C8A4';
 
+function HomeSectionSkeleton(props: { compact?: boolean }): React.ReactElement {
+  const compact = props.compact ?? false;
+  return (
+    <View style={styles.skeletonSection}>
+      <View style={styles.skeletonHeaderRow}>
+        <View style={[styles.skeletonHeaderTitle, compact ? styles.skeletonHeaderTitleCompact : null]} />
+        <View style={styles.skeletonHeaderAction} />
+      </View>
+      <View style={styles.skeletonCardsRow}>
+        <View style={[styles.skeletonCard, compact ? styles.skeletonCardCompact : null]} />
+        <View style={[styles.skeletonCard, compact ? styles.skeletonCardCompact : null]} />
+      </View>
+    </View>
+  );
+}
+
 function isStatusVisibleOnHome(status: string): boolean {
   const normalized = status.trim().toLowerCase();
   return normalized !== 'completed' && normalized !== 'cancelled' && normalized !== 'canceled';
@@ -100,6 +116,25 @@ function compareByStartTime(
   return aStart - bStart;
 }
 
+function readImageField(record: Record<string, unknown>, key: string): string | undefined {
+  const value = record[key];
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+function extractBookingAvatarUrl(booking: MyConsultantBooking | ConsultantSelfBooking): string | undefined {
+  const record = booking as unknown as Record<string, unknown>;
+  return (
+    readImageField(record, 'consultantImageUrl') ??
+    readImageField(record, 'consultantImage') ??
+    readImageField(record, 'consultantProfileImage') ??
+    readImageField(record, 'profileImage')
+  );
+}
+
 function mapUserBookingToHomeItem(booking: MyConsultantBooking): UpcomingBookingItem {
   const consultationKind = getBookingConsultationKind(booking.consultationType);
   return {
@@ -107,6 +142,7 @@ function mapUserBookingToHomeItem(booking: MyConsultantBooking): UpcomingBooking
     dateLabel: formatBookingDate(booking.bookingDate),
     timeLabel: booking.slotTime,
     consultantName: booking.consultantName?.trim() || booking.name.trim() || 'Consultant',
+    consultantImageUrl: extractBookingAvatarUrl(booking),
     consultantTitle: 'Consultation',
     callType: consultationKind === 'video' ? 'video' : 'audio',
     statusLabel: booking.status.trim() || 'Upcoming',
@@ -120,6 +156,7 @@ function mapConsultantBookingToHomeItem(booking: ConsultantSelfBooking): Upcomin
     dateLabel: formatBookingDate(booking.bookingDate),
     timeLabel: booking.slotTime,
     consultantName: booking.name.trim() || 'Client',
+    consultantImageUrl: extractBookingAvatarUrl(booking),
     consultantTitle: 'Client session',
     callType: consultationKind === 'video' ? 'video' : 'audio',
     statusLabel: booking.status.trim() || 'Upcoming',
@@ -163,25 +200,71 @@ export function HomeDashboardScreen(): React.ReactElement {
     [isAuthenticated, isWalletLoading, walletBalance],
   );
 
-  const { data: consultantsPage } = useGetPublicConsultantsQuery({
+  const {
+    data: consultantsPage,
+    isLoading: isConsultantsLoading,
+    isFetching: isConsultantsFetching,
+  } = useGetPublicConsultantsQuery({
     page: '1',
     limit: '2',
   });
 
-  const { data: publicServices } = useGetPublicServicesQuery({ limit: 6 });
+  const {
+    data: publicServices,
+    isLoading: isServicesLoading,
+    isFetching: isServicesFetching,
+  } = useGetPublicServicesQuery({ limit: 6 });
 
-  const { data: publicWorkshops } = useGetPublicWorkshopsQuery(DEFAULT_HOME_WORKSHOPS_QUERY);
+  const {
+    data: publicWorkshops,
+    isLoading: isWorkshopsLoading,
+    isFetching: isWorkshopsFetching,
+  } = useGetPublicWorkshopsQuery(DEFAULT_HOME_WORKSHOPS_QUERY);
 
-  const { data: publicTestimonials } = useGetPublicTestimonialsQuery({ showOnHomescreen: true });
+  const {
+    data: publicTestimonials,
+    isLoading: isTestimonialsLoading,
+    isFetching: isTestimonialsFetching,
+  } = useGetPublicTestimonialsQuery({ showOnHomescreen: true });
 
-  const { data: publicMemberships } = useGetPublicMembershipsQuery();
-  const { data: myBookingsPage } = useGetMyConsultantBookingsPageQuery(
+  const {
+    data: publicMemberships,
+    isLoading: isMembershipsLoading,
+    isFetching: isMembershipsFetching,
+  } = useGetPublicMembershipsQuery();
+  const {
+    data: myBookingsPage,
+    isLoading: isUserBookingsLoading,
+    isFetching: isUserBookingsFetching,
+  } = useGetMyConsultantBookingsPageQuery(
     { page: 1, limit: 100 },
     { skip: !isAuthenticated || isConsultant },
   );
-  const { data: consultantBookings } = useGetConsultantSelfBookingsQuery(undefined, {
+  const {
+    data: consultantBookings,
+    isLoading: isConsultantBookingsLoading,
+    isFetching: isConsultantBookingsFetching,
+  } = useGetConsultantSelfBookingsQuery(undefined, {
     skip: !isAuthenticated || !isConsultant,
   });
+
+  const isUpcomingBookingsLoading = isAuthenticated
+    ? isConsultant
+      ? isConsultantBookingsLoading || isConsultantBookingsFetching
+      : isUserBookingsLoading || isUserBookingsFetching
+    : false;
+
+  const isHomeSectionsLoading =
+    isConsultantsLoading ||
+    isConsultantsFetching ||
+    isServicesLoading ||
+    isServicesFetching ||
+    isWorkshopsLoading ||
+    isWorkshopsFetching ||
+    isTestimonialsLoading ||
+    isTestimonialsFetching ||
+    isMembershipsLoading ||
+    isMembershipsFetching;
 
   const topConsultantItems = useMemo((): TopConsultantItem[] => {
     const rows = consultantsPage?.items ?? [];
@@ -334,7 +417,9 @@ export function HomeDashboardScreen(): React.ReactElement {
       <ZeptoHS header={zeptoHeader} onShellColorsChange={setActiveShell}>
         {(_categoryId: HomeCategoryId) => (
           <View style={styles.sheet}>
-
+            {isUpcomingBookingsLoading && upcomingBookingItems.length === 0 ? (
+              <HomeSectionSkeleton compact />
+            ) : null}
             {isAuthenticated && upcomingBookingItems.length > 0 ? (
               <UpcomingBookingsSection
                 title={isConsultant ? 'Upcoming sessions' : 'Upcoming bookings'}
@@ -342,6 +427,19 @@ export function HomeDashboardScreen(): React.ReactElement {
                 onViewAllPress={onUpcomingBookingsViewAll}
                 onItemPress={onUpcomingBookingsViewAll}
               />
+            ) : null}
+
+            {isHomeSectionsLoading &&
+            homeInterestItems.length === 0 &&
+            topConsultantItems.length === 0 &&
+            recommendedServiceItems.length === 0 &&
+            testimonialItems.length === 0 &&
+            membershipPlanItems.length === 0 ? (
+              <>
+                <HomeSectionSkeleton />
+                <HomeSectionSkeleton compact />
+                <HomeSectionSkeleton />
+              </>
             ) : null}
             {homeInterestItems.length > 0 ? (
               <InterestEventsSection
@@ -403,5 +501,42 @@ const styles = StyleSheet.create({
     paddingTop: THEME.spacing[8],
     flexGrow: 1,
     gap: THEME.spacing[20],
+  },
+  skeletonSection: {
+    paddingHorizontal: THEME.spacing[16],
+    gap: THEME.spacing[12],
+  },
+  skeletonHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  skeletonHeaderTitle: {
+    height: 18,
+    width: '52%',
+    borderRadius: 10,
+    backgroundColor: '#E5E7EB',
+  },
+  skeletonHeaderTitleCompact: {
+    width: '38%',
+  },
+  skeletonHeaderAction: {
+    height: 14,
+    width: 58,
+    borderRadius: 8,
+    backgroundColor: '#E5E7EB',
+  },
+  skeletonCardsRow: {
+    flexDirection: 'row',
+    gap: THEME.spacing[12],
+  },
+  skeletonCard: {
+    height: 156,
+    flex: 1,
+    borderRadius: 20,
+    backgroundColor: '#EEF2F7',
+  },
+  skeletonCardCompact: {
+    height: 132,
   },
 });

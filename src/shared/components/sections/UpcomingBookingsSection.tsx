@@ -39,9 +39,14 @@ export function UpcomingBookingsSection(props: UpcomingBookingsSectionProps): Re
   return (
     <View style={[styles.section, { marginBottom: contentBottomInset }]}>
       <View style={styles.header}>
-        <Text style={styles.title} accessibilityRole="header">
-          {title}
-        </Text>
+        <View style={styles.titleWrap}>
+          <Text style={styles.title} accessibilityRole="header">
+            {title}
+          </Text>
+          <View style={styles.countPill}>
+            <Text style={styles.countText}>{items.length}</Text>
+          </View>
+        </View>
         {onViewAllPress != null ? (
           <Pressable
             onPress={onViewAllPress}
@@ -98,17 +103,43 @@ const styles = StyleSheet.create({
     paddingHorizontal: THEME.spacing[16],
     gap: THEME.spacing[12],
   },
-  title: {
+  titleWrap: {
     flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: THEME.spacing[8],
+  },
+  title: {
     fontSize: THEME.typography.size[18],
     fontWeight: THEME.typography.weight.bold as '700',
     color: THEME.colors.textPrimary,
     letterSpacing: -0.35,
   },
+  countPill: {
+    minWidth: 24,
+    height: 24,
+    borderRadius: 999,
+    paddingHorizontal: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(37, 99, 235, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(37, 99, 235, 0.22)',
+  },
+  countText: {
+    fontSize: THEME.typography.size[12],
+    fontWeight: THEME.typography.weight.bold as '700',
+    color: THEME.colors.primary,
+  },
   viewAll: {
     flexShrink: 0,
-    paddingVertical: 4,
-    paddingHorizontal: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(37, 99, 235, 0.2)',
+    backgroundColor: 'rgba(37, 99, 235, 0.08)',
   },
   viewAllPressed: {
     opacity: 0.75,
@@ -125,8 +156,8 @@ const styles = StyleSheet.create({
   },
   carousel: {
     paddingLeft: THEME.spacing[16],
-    paddingRight: THEME.spacing[8],
-    paddingBottom: THEME.spacing[4],
+    paddingRight: THEME.spacing[10],
+    paddingBottom: THEME.spacing[8],
   },
 });
 

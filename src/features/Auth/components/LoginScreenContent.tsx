@@ -2,9 +2,13 @@
 import React, { useMemo, useState } from 'react';
 import {
   ImageBackground,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
+  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
@@ -45,13 +49,20 @@ export function LoginScreenContent(
 
   return (
     <SafeAreaWrapper edges={['top', 'bottom']}>
-      <KeyboardWrapper>
-        <ScreenWrapper>
-          <ScrollWrapper
-            contentContainerStyle={styles.content}
-            keyboardShouldPersistTaps="handled"
-          >
-            <View style={styles.heroSection}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
+        style={styles.flex}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <View style={styles.flex}>
+            <KeyboardWrapper>
+              <ScreenWrapper>
+                <ScrollWrapper
+                  contentContainerStyle={styles.content}
+                  keyboardShouldPersistTaps="handled"
+                >
+                  <View style={styles.heroSection}>
               <ImageBackground
                 source={heroIllustration}
                 style={styles.heroImage}
@@ -78,97 +89,101 @@ export function LoginScreenContent(
               </ImageBackground>
             </View>
 
-            <View style={styles.headerCopy}>
-              <Text style={styles.title}>Start Your Business
-              </Text>
+                  <View style={styles.headerCopy}>
+                    <Text style={styles.title}>Start Your Business</Text>
 
-              <Text style={styles.subtitle}>
-                Log in to continue as {props.roleLabel}.
-              </Text>
-            </View>
+                    <Text style={styles.subtitle}>
+                      Log in to continue as {props.roleLabel}.
+                    </Text>
+                  </View>
 
-            <View style={styles.card}>
-              {/* <Text style={styles.inputLabel}>Mobile Number</Text> */}
+                  <View style={styles.card}>
+                    {/* <Text style={styles.inputLabel}>Mobile Number</Text> */}
+
+                    <Input
+                      label="Mobile Number"
+                      value={cleanedPhone}
+                      onChangeText={setPhoneNumber}
+                      placeholder="Enter 10-digit mobile number"
+                      keyboardType="number-pad"
+                      accessibilityLabel="Phone number input"
+                      containerStyle={styles.inputContainer}
+                      inputStyle={styles.input}
+                      maxLength={10}
+                      rightAdornment={
+                        cleanedPhone.length > 0 ? (
+                          <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel="Clear phone number"
+                            onPress={() => setPhoneNumber('')}
+                            hitSlop={10}
+                            style={styles.clearButton}
+                          >
+                            <Ionicons
+                              name="close-circle"
+                              size={18}
+                              color={THEME.colors.textSecondary}
+                            />
+                          </Pressable>
+                        ) : null
+                      }
+                    />
 
 
-              <Input
-                label="Mobile Number"
-                value={cleanedPhone}
-                onChangeText={setPhoneNumber}
-                placeholder="Enter 10-digit mobile number"
-                keyboardType="number-pad"
-                accessibilityLabel="Phone number input"
-                containerStyle={styles.inputContainer}
-                inputStyle={styles.input}
-                maxLength={10}
-                rightAdornment={
-                  cleanedPhone.length > 0 ? (
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel="Clear phone number"
-                      onPress={() => setPhoneNumber('')}
-                      hitSlop={10}
-                      style={styles.clearButton}
-                    >
+                    <View style={styles.infoRow}>
                       <Ionicons
-                        name="close-circle"
-                        size={18}
-                        color={THEME.colors.textSecondary}
+                        name="shield-checkmark-outline"
+                        size={16}
+                        color={THEME.colors.success || '#16A34A'}
                       />
-                    </Pressable>
-                  ) : null
-                }
-              />
+                      <Text style={styles.infoText}>
+                        OTP will be sent for secure verification
+                      </Text>
+                    </View>
 
+                    {props.errorMessage != null && props.errorMessage.length > 0 ? (
+                      <Text style={styles.errorText} accessibilityRole="alert">
+                        {props.errorMessage}
+                      </Text>
+                    ) : null}
 
-              <View style={styles.infoRow}>
-                <Ionicons
-                  name="shield-checkmark-outline"
-                  size={16}
-                  color={THEME.colors.success || '#16A34A'}
-                />
-                <Text style={styles.infoText}>
-                  OTP will be sent for secure verification
-                </Text>
-              </View>
+                    <Button
+                      label="Continue"
+                      accessibilityLabel="Continue to OTP verification"
+                      disabled={!canContinue}
+                      loading={props.isSubmitting ?? false}
+                      onPress={() => {
+                        void props.onContinue(cleanedPhone);
+                      }}
+                      style={styles.button}
+                    />
 
-              {props.errorMessage != null && props.errorMessage.length > 0 ? (
-                <Text style={styles.errorText} accessibilityRole="alert">
-                  {props.errorMessage}
-                </Text>
-              ) : null}
-
-              <Button
-                label="Continue"
-                accessibilityLabel="Continue to OTP verification"
-                disabled={!canContinue}
-                loading={props.isSubmitting ?? false}
-                onPress={() => {
-                  void props.onContinue(cleanedPhone);
-                }}
-                style={styles.button}
-              />
-
-              {props.onSkip ? (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Skip login"
-                  onPress={props.onSkip}
-                  hitSlop={10}
-                  style={({ pressed }) => [styles.skipBtn, pressed ? styles.skipPressed : null]}
-                >
-                  <Text style={styles.skipText}>Skip for now</Text>
-                </Pressable>
-              ) : null}
-            </View>
-          </ScrollWrapper>
-        </ScreenWrapper>
-      </KeyboardWrapper>
+                    {props.onSkip ? (
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel="Skip login"
+                        onPress={props.onSkip}
+                        hitSlop={10}
+                        style={({ pressed }) => [styles.skipBtn, pressed ? styles.skipPressed : null]}
+                      >
+                        <Text style={styles.skipText}>Skip for now</Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
+                </ScrollWrapper>
+              </ScreenWrapper>
+            </KeyboardWrapper>
+          </View>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </SafeAreaWrapper>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: {
+    flex: 1,
+  },
   content: {
     flexGrow: 1,
     paddingBottom: THEME.spacing[24],
@@ -242,14 +257,14 @@ const styles = StyleSheet.create({
     marginHorizontal: THEME.spacing[16],
     backgroundColor: THEME.colors.white,
     borderRadius: 24,
-    padding: THEME.spacing[16],
+    padding: THEME.spacing[20],
     borderWidth: 1,
-    borderColor: 'rgba(15,81,50,0.10)',
+    borderColor: 'rgba(15,81,50,0.08)',
     shadowColor: '#0B3D2C',
-    shadowOffset: { width: 0, height: 14 },
-    shadowOpacity: 0.10,
-    shadowRadius: 26,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    elevation: 8,
   },
 
   inputLabel: {
@@ -298,7 +313,7 @@ const styles = StyleSheet.create({
 
   button: {
     borderRadius: 18,
-    minHeight: 56,
+    minHeight: 54,
   },
   skipBtn: {
     marginTop: THEME.spacing[12],
