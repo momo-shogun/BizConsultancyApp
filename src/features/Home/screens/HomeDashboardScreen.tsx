@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { CompositeNavigationProp } from '@react-navigation/native';
@@ -37,6 +37,7 @@ import {
 } from '@/features/Home/utils/membershipMappers';
 import { mapPublicTestimonialsToCardItems } from '@/features/Home/utils/testimonialMappers';
 import { mapPublicWorkshopsToEventSpotlightItems } from '@/features/Home/utils/workshopMappers';
+import { darkenHex, ZEPTO_TABS_TRACK_DARKEN } from '@/utils/darkenHex';
 import { useGetPublicServicesQuery } from '@/features/Services/api/servicesApi';
 import { mapPublicServiceToCardItem } from '@/features/Services/utils/serviceMappers';
 import { ROUTES } from '@/navigation/routeNames';
@@ -58,7 +59,7 @@ import {
   type MembershipPlanItem,
   MembershipPlansSection,
 } from '@/shared/components';
-import type { HomeCategoryId } from './ZeptoHS/ZeptoHS.types';
+import type { HomeCategoryId, ZeptoHSShellColors } from './ZeptoHS/ZeptoHS.types';
 import { ZeptoHS } from './ZeptoHS/ZeptoHS';
 
 type HomeDashboardNavigationProp = CompositeNavigationProp<
@@ -74,6 +75,7 @@ const HOME_TESTIMONIALS_CARD_WIDTH = 260;
 const HOME_MEMBERSHIP_PLANS_CARD_WIDTH = 360;
 const HOME_UPCOMING_BOOKINGS_LIMIT = 5;
 const BOOKING_VISIBLE_AFTER_START_MINUTES = 30;
+const HOME_DEFAULT_SHELL_BG = '#E6C8A4';
 
 function isStatusVisibleOnHome(status: string): boolean {
   const normalized = status.trim().toLowerCase();
@@ -129,6 +131,7 @@ export function HomeDashboardScreen(): React.ReactElement {
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const accountRole = useAppSelector(selectAccountRole);
   const isConsultant = accountRole === 'consultant';
+  const [activeShell, setActiveShell] = useState<ZeptoHSShellColors | null>(null);
 
   const {
     data: userWalletBalance,
@@ -304,7 +307,7 @@ export function HomeDashboardScreen(): React.ReactElement {
 
   const zeptoHeader = useMemo(
     () => ({
-      backgroundColor: '#E6C8A4',
+      backgroundColor: HOME_DEFAULT_SHELL_BG,
       addressLabel: '',
       walletLabel,
       onAddressPress: (): void => undefined,
@@ -314,9 +317,21 @@ export function HomeDashboardScreen(): React.ReactElement {
     [onProfilePress, onWalletPress, walletLabel],
   );
 
+  const safeAreaBgColor = useMemo(
+    () =>
+      darkenHex(
+        activeShell?.topTabsBackground ?? HOME_DEFAULT_SHELL_BG,
+        ZEPTO_TABS_TRACK_DARKEN,
+      ),
+    [activeShell?.topTabsBackground],
+  );
+
   return (
-    <SafeAreaWrapper edges={['top', 'bottom']} bgColor="transparent">
-      <ZeptoHS header={zeptoHeader}>
+    <SafeAreaWrapper
+      edges={['top', 'bottom']}
+      bgColor={safeAreaBgColor}
+    >
+      <ZeptoHS header={zeptoHeader} onShellColorsChange={setActiveShell}>
         {(_categoryId: HomeCategoryId) => (
           <View style={styles.sheet}>
 

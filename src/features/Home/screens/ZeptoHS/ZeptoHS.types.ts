@@ -16,6 +16,8 @@ export interface ZeptoHSShellColors {
 
 export interface ZeptoHSProps {
   header: ZeptoHeaderV1Props;
+  /** Emits active shell colors when top category tab changes. */
+  onShellColorsChange?: (colors: ZeptoHSShellColors) => void;
   /**
    * Render prop — receives the active top category ID so the parent can swap
    * section content. Also accepts plain ReactNode.

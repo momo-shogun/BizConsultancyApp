@@ -85,7 +85,7 @@ export function resolveZeptoHSShellColors(
 }
 
 export function ZeptoHS(props: ZeptoHSProps): React.ReactElement {
-  const { header, children, testID, style } = props;
+  const { header, children, testID, style, onShellColorsChange } = props;
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [activeTopCategoryIndex, setActiveTopCategoryIndex] = React.useState(0);
 
@@ -111,6 +111,10 @@ export function ZeptoHS(props: ZeptoHSProps): React.ReactElement {
   }, [header.backgroundColor]);
 
   const activeShell = resolveZeptoHSShellColors(activeTopCategoryId, header.backgroundColor);
+
+  React.useEffect(() => {
+    onShellColorsChange?.(activeShell);
+  }, [activeShell, onShellColorsChange]);
 
   const headerBackgroundColor = useMemo(
     () => darkenHex(activeShell.topTabsBackground, ZEPTO_TABS_TRACK_DARKEN),
@@ -146,7 +150,6 @@ export function ZeptoHS(props: ZeptoHSProps): React.ReactElement {
     const pinnedTop = 0;
     const travel = Math.max(startTop - pinnedTop, 1);
     const top = interpolate(scrollY.value, [0, travel], [startTop, pinnedTop], Extrapolation.CLAMP);
-    const stuck = interpolate(scrollY.value, [travel * 0.5, travel], [0, 1], Extrapolation.CLAMP);
 
     return {
       position: 'absolute' as const,

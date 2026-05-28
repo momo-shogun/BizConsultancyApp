@@ -8,6 +8,8 @@ import {
   type RecommendedServiceItem,
 } from '../cards/RecommendedServiceCard/RecommendedServiceCard';
 
+const STAGGER_OFFSET = THEME.spacing[24];
+
 export interface RecommendedServicesSectionProps {
   title?: string;
   onViewAllPress?: () => void;
@@ -74,14 +76,15 @@ export function RecommendedServicesSection(props: RecommendedServicesSectionProp
         contentContainerStyle={styles.carousel}
       >
         {items.map((item, index) => (
-          <RecommendedServiceCard
-            key={item.id}
-            item={item}
-            listIndex={index}
-            cardWidth={cardWidth}
-            onPress={() => onItemPress?.(item)}
-            onCtaPress={onCtaPress ? () => onCtaPress(item) : undefined}
-          />
+          <View key={item.id} style={index % 2 === 1 ? styles.staggered : undefined}>
+            <RecommendedServiceCard
+              item={item}
+              listIndex={index}
+              cardWidth={cardWidth}
+              onPress={() => onItemPress?.(item)}
+              onCtaPress={onCtaPress ? () => onCtaPress(item) : undefined}
+            />
+          </View>
         ))}
       </ScrollView>
     </View>
@@ -146,8 +149,12 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.82)',
   },
   carousel: {
+    alignItems: 'flex-start',
     paddingLeft: THEME.spacing[16],
     paddingRight: THEME.spacing[8],
-    paddingBottom: THEME.spacing[4],
+    paddingBottom: STAGGER_OFFSET,
+  },
+  staggered: {
+    marginTop: STAGGER_OFFSET,
   },
 });
