@@ -121,20 +121,21 @@ export function ProfileScreenHeaderChrome(
                   pressed && props.onMembershipPress != null ? chromeStyles.membershipPillPressed : null,
                 ]}
               >
-                <View style={chromeStyles.membershipLeadingIcon}>
-                  <Ionicons name="ribbon-outline" size={13} color="#FFFFFF" />
-                </View>
-                <View style={chromeStyles.membershipTextWrap}>
-                  <Text style={chromeStyles.membershipEyebrow} numberOfLines={1}>
-                    Current plan
-                  </Text>
-                  <Text style={chromeStyles.membershipText} numberOfLines={1}>
-                    {props.membershipLabel}
-                  </Text>
+                <View style={chromeStyles.membershipLeft}>
+                  <View style={chromeStyles.membershipIconWrap}>
+                    <Ionicons name="ribbon-outline" size={13} color="#FFFFFF" />
+                  </View>
+                  <View style={chromeStyles.membershipCopy}>
+                    <Text style={chromeStyles.membershipCaption}>Current plan</Text>
+                    <Text style={chromeStyles.membershipText} numberOfLines={1}>
+                      {props.membershipLabel}
+                    </Text>
+                  </View>
                 </View>
                 {props.onMembershipPress != null ? (
-                  <View style={chromeStyles.membershipCtaIcon}>
-                    <Ionicons name="arrow-up-outline" size={13} color="#FFFFFF" />
+                  <View style={chromeStyles.upgradeChip}>
+                    <Text style={chromeStyles.upgradeChipText}>Upgrade</Text>
+                    <Ionicons name="arrow-up-outline" size={13} color="#14532D" />
                   </View>
                 ) : null}
               </Pressable>
@@ -231,57 +232,66 @@ const chromeStyles = StyleSheet.create({
   membershipPill: {
     marginTop: THEME.spacing[8],
     maxWidth: '92%',
-    borderRadius: 14,
-    minHeight: 44,
-    paddingVertical: 7,
-    paddingHorizontal: 9,
+    borderRadius: 999,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(255,255,255,0.20)',
+    justifyContent: 'space-between',
+    gap: 10,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.32)',
+    borderColor: 'rgba(255,255,255,0.3)',
   },
   membershipPillStatic: {
     paddingRight: 12,
   },
   membershipPillPressed: {
-    opacity: 0.92,
-    transform: [{ scale: 0.99 }],
+    opacity: 0.9,
+    transform: [{ scale: 0.995 }],
   },
-  membershipLeadingIcon: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+  membershipLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    minWidth: 0,
+    gap: 8,
+  },
+  membershipIconWrap: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(15, 23, 42, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
   },
-  membershipTextWrap: {
+  membershipCopy: {
     flex: 1,
     minWidth: 0,
   },
-  membershipEyebrow: {
-    color: 'rgba(255,255,255,0.75)',
+  membershipCaption: {
+    color: 'rgba(255,255,255,0.82)',
     fontSize: 10,
     fontWeight: '600',
-    letterSpacing: 0.35,
   },
   membershipText: {
     color: '#FFFFFF',
     fontSize: THEME.typography.size[12],
     fontWeight: '700',
-    marginTop: 1,
   },
-  membershipCtaIcon: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+  upgradeChip: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.16)',
+    gap: 4,
+    borderRadius: 999,
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  upgradeChipText: {
+    color: '#14532D',
+    fontSize: 11,
+    fontWeight: '700',
   },
   body: {
     flex: 1,
