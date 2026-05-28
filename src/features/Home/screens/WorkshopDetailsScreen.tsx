@@ -177,14 +177,6 @@ export default function WorkshopDetailsScreen(): React.ReactElement {
   const joinUrl = workshop != null ? resolveWorkshopJoinUrl(workshop) : null;
   const mapsUrl = workshop != null ? resolveWorkshopMapsUrl(workshop) : null;
 
-  const bottomMeta = useMemo((): string => {
-    if (fee == null) return '';
-    const parts = [fee.label, dateLabel, timeLabel].filter(
-      (p) => p.length > 0 && p !== '—',
-    );
-    return parts.join(' · ');
-  }, [fee, dateLabel, timeLabel]);
-
   const bookCtaLabel = isBooked
     ? 'Booked'
     : !isBookable
@@ -351,9 +343,16 @@ export default function WorkshopDetailsScreen(): React.ReactElement {
                 ) : null}
               </View>
 
-              <Text style={styles.heroTitle} numberOfLines={3}>
-                {workshop.name}
-              </Text>
+              <LinearGradient
+                colors={['rgba(15,23,42,0.16)', 'rgba(15,23,42,0.48)']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.heroTitleBackdrop}
+              >
+                <Text style={styles.heroTitle} numberOfLines={3}>
+                  {workshop.name}
+                </Text>
+              </LinearGradient>
             </View>
           </View>
 
@@ -500,7 +499,7 @@ export default function WorkshopDetailsScreen(): React.ReactElement {
                   <View style={styles.contactIconWrap}>
                     <Ionicons name="call-outline" size={20} color={COLORS.white} />
                   </View>
-                  <View style={{ flex: 1, minWidth: 0 }}>
+                  <View style={styles.contactTextWrap}>
                     <Text style={styles.contactTitle}>Need help?</Text>
                     <Text style={styles.contactNumber} numberOfLines={1}>
                       {contactNumber}
@@ -513,7 +512,7 @@ export default function WorkshopDetailsScreen(): React.ReactElement {
                   onPress={onContactPress}
                   style={({ pressed }) => [styles.callButton, pressed && styles.pressed]}
                 >
-                  <Ionicons name="call" size={15} color={COLORS.black} style={{ marginRight: 5 }} />
+                  <Ionicons name="call" size={15} color={COLORS.black} style={styles.callIcon} />
                   <Text style={styles.callButtonText}>Call</Text>
                 </Pressable>
               </View>
@@ -558,7 +557,7 @@ export default function WorkshopDetailsScreen(): React.ReactElement {
                   name={isBooked ? 'checkmark-circle' : 'calendar'}
                   size={17}
                   color={COLORS.white}
-                  style={{ marginRight: 7 }}
+                  style={styles.bookButtonIcon}
                 />
                 <Text style={styles.bookButtonText}>{bookCtaLabel}</Text>
               </>
@@ -817,12 +816,22 @@ const styles = StyleSheet.create({
     textTransform: 'capitalize',
   },
   heroTitle: {
-    fontSize: 26,
-    lineHeight: 32,
-    fontWeight: '700',
+    fontSize: 22,
+    lineHeight: 28,
+    fontWeight: '600',
     color: COLORS.white,
-    marginBottom: 8,
     letterSpacing: -0.3,
+    textShadowColor: 'rgba(0,0,0,0.45)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 5,
+  },
+  heroTitleBackdrop: {
+    alignSelf: 'stretch',
+    paddingHorizontal: H_PADDING,
+    paddingTop: 10,
+    paddingBottom: 22,
+    marginHorizontal: -H_PADDING,
+    marginBottom: -22,
   },
   // ── Body ────────────────────────────────────────
   body: {
@@ -1126,6 +1135,13 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
   },
+  contactTextWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
+  callIcon: {
+    marginRight: 5,
+  },
   contactIconWrap: {
     width: 46,
     height: 46,
@@ -1216,6 +1232,9 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: THEME.colors.primary,
     justifyContent: 'center',
+  },
+  bookButtonIcon: {
+    marginRight: 7,
   },
   bookButtonDisabled: {
     backgroundColor: '#94A3B8',

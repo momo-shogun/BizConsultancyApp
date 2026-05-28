@@ -8,10 +8,14 @@ export const styles = StyleSheet.create({
   screen: {
     flex: 1,
   },
+
+
   topChrome: {
     width: '100%',
     backgroundColor: THEME.colors.primary,
   },
+
+  
   flex: {
     flex: 1,
   },

@@ -9,8 +9,12 @@ export function sanitizeRemark(value: string): string {
 export function validateFdpAskQuestionsForm(
   form: FdpAskQuestionsFormState,
 ): string | null {
-  if (form.category.trim().length === 0) {
+  if (form.categoryId.trim().length === 0) {
     return 'Please select a category.';
+  }
+
+  if (form.segmentId.trim().length === 0) {
+    return 'Please select a segment.';
   }
 
   if (form.remark.trim().length > REMARK_MAX_LENGTH) {

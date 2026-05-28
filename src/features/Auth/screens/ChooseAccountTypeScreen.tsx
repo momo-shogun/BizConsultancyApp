@@ -58,26 +58,26 @@ function ConcentricArt(props: { variant: Role }): React.ReactElement {
     props.variant === 'user'
       ? (
           <>
-            <View style={[styles.floatDot, styles.floatBlue, { top: 6, right: 8 }]}>
+            <View style={[styles.floatDot, styles.floatBlue, styles.userFloatBlue]}>
               <Ionicons name="calendar-outline" size={11} color={THEME.colors.white} />
             </View>
-            <View style={[styles.floatDot, styles.floatGreen, { bottom: 18, right: 2 }]}>
+            <View style={[styles.floatDot, styles.floatGreen, styles.userFloatGreen]}>
               <Ionicons name="checkmark" size={12} color={THEME.colors.white} />
             </View>
-            <View style={[styles.floatDot, styles.floatPurple, { top: 36, left: 0 }]}>
+            <View style={[styles.floatDot, styles.floatPurple, styles.userFloatPurple]}>
               <Ionicons name="person-outline" size={11} color={THEME.colors.white} />
             </View>
           </>
         )
       : (
           <>
-            <View style={[styles.floatDot, styles.floatBlue, { top: 10, right: 6 }]}>
+            <View style={[styles.floatDot, styles.floatBlue, styles.consultantFloatBlue]}>
               <Ionicons name="logo-youtube" size={10} color={THEME.colors.white} />
             </View>
-            <View style={[styles.floatDot, styles.floatPurple, { bottom: 20, right: 4 }]}>
+            <View style={[styles.floatDot, styles.floatPurple, styles.consultantFloatPurple]}>
               <Ionicons name="chatbubble-ellipses-outline" size={10} color={THEME.colors.white} />
             </View>
-            <View style={[styles.floatDot, styles.floatGreen, { top: 32, left: 2 }]}>
+            <View style={[styles.floatDot, styles.floatGreen, styles.consultantFloatGreen]}>
               <Ionicons name="briefcase-outline" size={11} color={THEME.colors.white} />
             </View>
           </>
@@ -183,10 +183,6 @@ export function ChooseAccountTypeScreen(): React.ReactElement {
     }
   }, [choose, role]);
 
-  const onBack = useCallback((): void => {
-    navigation.goBack();
-  }, [navigation]);
-
   return (
     <SafeAreaWrapper edges={['top', 'bottom']}>
       <View style={styles.page}>
@@ -231,14 +227,6 @@ export function ChooseAccountTypeScreen(): React.ReactElement {
         </ScrollView>
 
         <View style={styles.footer}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-            onPress={onBack}
-            style={({ pressed }) => [styles.btnBack, pressed && styles.btnPressed]}
-          >
-            <Text style={styles.btnBackText}>Back</Text>
-          </Pressable>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Continue to next step"
@@ -389,6 +377,12 @@ const styles = StyleSheet.create({
   floatBlue: { backgroundColor: '#3B82F6' },
   floatGreen: { backgroundColor: '#22C55E' },
   floatPurple: { backgroundColor: '#A855F7' },
+  userFloatBlue: { top: 6, right: 8 },
+  userFloatGreen: { bottom: 18, right: 2 },
+  userFloatPurple: { top: 36, left: 0 },
+  consultantFloatBlue: { top: 10, right: 6 },
+  consultantFloatPurple: { bottom: 20, right: 4 },
+  consultantFloatGreen: { top: 32, left: 2 },
   footer: {
     flexDirection: 'row',
     gap: 12,
@@ -399,23 +393,8 @@ const styles = StyleSheet.create({
     borderTopColor: '#E5E7EB',
     backgroundColor: PAGE_BG,
   },
-  btnBack: {
-    flex: 1,
-    height: 52,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    backgroundColor: PAGE_BG,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  btnBackText: {
-    fontSize: 16,
-    fontWeight: THEME.typography.weight.semibold as '600',
-    color: TITLE_COLOR,
-  },
   btnNext: {
-    flex: 1,
+    width: '100%',
     height: 52,
     borderRadius: 14,
     backgroundColor: PRIMARY,

@@ -1,9 +1,10 @@
 export interface FdpAskQuestionsFormState {
-  category: string;
+  categoryId: string;
+  segmentId: string;
   remark: string;
 }
 
-export interface FdpCategoryOption {
+export interface FdpMasterDropdownOption {
   label: string;
   value: string;
 }
