@@ -9,6 +9,7 @@ import {
   RemoteVideoState,
   RemoteVideoStateReason,
   VideoCodecType,
+  VideoStreamType,
   VideoSourceType,
   type ChannelMediaOptions,
   type IRtcEngine,
@@ -259,6 +260,7 @@ function subscribeRemoteVideo(rtc: IRtcEngine, uid: number): void {
     return;
   }
   rtc.muteRemoteVideoStream(uid, false);
+  rtc.setRemoteVideoStreamType(uid, VideoStreamType.VideoStreamHigh);
 }
 
 function bindRemoteVideoCanvas(rtc: IRtcEngine, uid: number): void {
