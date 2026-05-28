@@ -40,6 +40,30 @@ export function InCallScreen({ navigation }: Props): React.ReactElement {
   const isVideoCall = (callType ?? credentials?.callType) === 'video';
 
   useEffect(() => {
+    if (!isVideoCall) {
+      return;
+    }
+    console.log('[video-debug][incall-state]', {
+      remoteVideoUid,
+      remoteVideoEnabled,
+      localVideoEnabled,
+      callType,
+      credentialsCallType: credentials?.callType ?? null,
+      reconnecting,
+      phase,
+    });
+  }, [
+    callType,
+    credentials?.callType,
+    isVideoCall,
+    localVideoEnabled,
+    phase,
+    reconnecting,
+    remoteVideoEnabled,
+    remoteVideoUid,
+  ]);
+
+  useEffect(() => {
     audioSessionService.configureForCall();
     CallController.setSpeaker(true);
   }, []);

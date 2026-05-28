@@ -3,11 +3,12 @@ import {
   Animated,
   type LayoutChangeEvent,
   PanResponder,
+  Platform,
   Pressable,
   Text,
   View,
 } from 'react-native';
-import { RenderModeType, RtcSurfaceView } from 'react-native-agora';
+import { RenderModeType, RtcSurfaceView, RtcTextureView, VideoSourceType } from 'react-native-agora';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { CallAvatar } from './CallAvatar';
@@ -64,6 +65,15 @@ export function CallVideoLayout(props: CallVideoLayoutProps): React.ReactElement
 
   const hasRemoteUid = remoteUid != null && remoteUid > 0;
   const showRemoteCameraOff = hasRemoteUid && !remoteVideoEnabled;
+  const useTextureViewForLocal = Platform.OS === 'android';
+
+  console.log('[video-debug][layout]', {
+    hasRemoteUid,
+    remoteUid,
+    remoteVideoEnabled,
+    localVideoEnabled,
+    useTextureViewForLocal,
+  });
 
   const [containerSize, setContainerSize] = useState<Size>({ width: 0, height: 0 });
   const position = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
@@ -175,7 +185,8 @@ export function CallVideoLayout(props: CallVideoLayoutProps): React.ReactElement
             style={styles.remoteVideo}
             canvas={{
               uid: remoteUid,
-              renderMode: RenderModeType.RenderModeHidden,
+              sourceType: VideoSourceType.VideoSourceRemote,
+              renderMode: RenderModeType.RenderModeFit,
             }}
           />
           {showRemoteCameraOff ? (
@@ -206,16 +217,27 @@ export function CallVideoLayout(props: CallVideoLayoutProps): React.ReactElement
       >
         <View style={styles.pipDragArea} {...panResponder.panHandlers}>
           {localVideoEnabled ? (
-            <RtcSurfaceView
-              key="local-preview"
-              style={styles.localVideo}
-              canvas={{
-                uid: 0,
-                renderMode: RenderModeType.RenderModeHidden,
-              }}
-              zOrderOnTop
-              zOrderMediaOverlay
-            />
+            useTextureViewForLocal ? (
+              <RtcTextureView
+                key="local-preview-texture"
+                style={styles.localVideo}
+                canvas={{
+                  uid: 0,
+                  renderMode: RenderModeType.RenderModeHidden,
+                }}
+              />
+            ) : (
+              <RtcSurfaceView
+                key="local-preview-surface"
+                style={styles.localVideo}
+                canvas={{
+                  uid: 0,
+                  renderMode: RenderModeType.RenderModeHidden,
+                }}
+                zOrderOnTop
+                zOrderMediaOverlay
+              />
+            )
           ) : (
             <View style={styles.localFallback}>
               <Ionicons name="videocam-off-outline" size={28} color="rgba(255,255,255,0.75)" />

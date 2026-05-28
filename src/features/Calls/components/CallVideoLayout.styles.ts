@@ -11,6 +11,8 @@ export const styles = StyleSheet.create({
   },
   remoteVideo: {
     ...StyleSheet.absoluteFillObject,
+    borderWidth: 2,
+    borderColor: '#22D3EE',
   },
   remoteCameraOffOverlay: {
     ...StyleSheet.absoluteFillObject,

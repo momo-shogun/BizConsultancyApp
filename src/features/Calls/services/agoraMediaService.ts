@@ -46,6 +46,19 @@ let joinedChannelName = '';
 const remotePeerUids = new Set<number>();
 const remoteVideoEverActiveUids = new Set<number>();
 
+function debugVideoLog(label: string, extra?: Record<string, unknown>): void {
+  const payload = {
+    label,
+    activeCallType,
+    inChannel,
+    localVideoEnabled,
+    joinedLocalUid,
+    joinedChannelName,
+    ...extra,
+  };
+  console.log('[video-debug][agora-media]', payload);
+}
+
 function buildChannelMediaOptions(callType: CallType): ChannelMediaOptions {
   const isVideo = callType === 'video';
   return {
@@ -161,6 +174,10 @@ function registerRemotePeer(uid: number): void {
     subscribeRemoteVideo(engine, uid);
   }
   listeners.onRemoteUserJoined?.(uid);
+  debugVideoLog('remote-peer-registered', {
+    uid,
+    remotePeerUids: Array.from(remotePeerUids),
+  });
 }
 
 function markRemoteVideoActive(uid: number): void {
@@ -170,6 +187,10 @@ function markRemoteVideoActive(uid: number): void {
   remoteVideoEverActiveUids.add(uid);
   listeners.onRemoteVideoMuted?.(uid, false);
   listeners.onRemoteVideoState?.(uid, true);
+  debugVideoLog('remote-video-active', {
+    uid,
+    remoteVideoEverActiveUids: Array.from(remoteVideoEverActiveUids),
+  });
 }
 
 function notifyRemoteVideoState(
@@ -189,6 +210,15 @@ function notifyRemoteVideoState(
   const inactive =
     state === RemoteVideoState.RemoteVideoStateStopped ||
     state === RemoteVideoState.RemoteVideoStateFailed;
+
+  debugVideoLog('remote-video-state-changed', {
+    uid,
+    state,
+    reason,
+    active,
+    inactive,
+    remoteVideoEverActive: remoteVideoEverActiveUids.has(uid),
+  });
 
   if (active) {
     markRemoteVideoActive(uid);
@@ -231,6 +261,9 @@ function getOrCreateEngine(): IRtcEngine {
         if (localUid > 0) {
           joinedLocalUid = localUid;
         }
+        debugVideoLog('join-channel-success', {
+          connectionLocalUid: connection.localUid ?? 0,
+        });
         if (engine != null) {
           applyMediaSettings(engine);
           if (activeCallType === 'video') {
@@ -243,6 +276,7 @@ function getOrCreateEngine(): IRtcEngine {
               if (engine == null || !inChannel || activeCallType !== 'video') {
                 return;
               }
+              debugVideoLog('join-post-delay-video-reapply');
               engine.enableLocalVideo(localVideoEnabled);
               engine.muteLocalVideoStream(!localVideoEnabled);
               engine.muteAllRemoteVideoStreams(false);
@@ -258,13 +292,16 @@ function getOrCreateEngine(): IRtcEngine {
         listeners.onConnectionState?.('disconnected');
       },
       onUserJoined: (_connection, uid) => {
+        debugVideoLog('on-user-joined', { uid });
         registerRemotePeer(uid);
       },
       onFirstRemoteVideoDecoded: (_connection, remoteUid) => {
+        debugVideoLog('on-first-remote-video-decoded', { remoteUid });
         registerRemotePeer(remoteUid);
         markRemoteVideoActive(remoteUid);
       },
       onFirstRemoteVideoFrame: (_connection, remoteUid) => {
+        debugVideoLog('on-first-remote-video-frame', { remoteUid });
         registerRemotePeer(remoteUid);
         markRemoteVideoActive(remoteUid);
       },
@@ -289,6 +326,10 @@ function getOrCreateEngine(): IRtcEngine {
         if (!isLocalUid(uid)) {
           remotePeerUids.delete(uid);
           remoteVideoEverActiveUids.delete(uid);
+          debugVideoLog('on-user-offline', {
+            uid,
+            remotePeerUids: Array.from(remotePeerUids),
+          });
           listeners.onRemoteUserLeft?.(uid);
         }
       },
@@ -306,6 +347,7 @@ function getOrCreateEngine(): IRtcEngine {
       },
       onError: (err) => {
         const message = `Agora error ${err}`;
+        debugVideoLog('on-error', { err, message });
         listeners.onError?.(message);
         if (joinReject != null) {
           settleJoinFailure(message);
@@ -394,6 +436,11 @@ export const agoraMediaService = {
     uid: number;
     callType: CallType;
   }): Promise<void> {
+    debugVideoLog('join-start', {
+      paramsUid: params.uid,
+      paramsCallType: params.callType,
+      paramsChannelName: params.channelName,
+    });
     const permissions = await ensureCallPermissions(params.callType);
     if (!permissions.microphone) {
       throw new Error('Microphone permission denied');
@@ -432,6 +479,7 @@ export const agoraMediaService = {
 
     const code = rtc.joinChannel(params.token, params.channelName, params.uid, mediaOptions);
     if (code !== 0) {
+      debugVideoLog('join-failed-sync', { code });
       settleJoinFailure(`joinChannel failed (${code})`);
       throw new Error(`joinChannel failed (${code})`);
     }
