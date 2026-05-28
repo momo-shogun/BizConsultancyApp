@@ -1,5 +1,13 @@
-import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useRef } from 'react';
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  type NativeSyntheticEvent,
+  type NativeScrollEvent,
+} from 'react-native';
 
 import { THEME } from '@/constants/theme';
 
@@ -17,6 +25,7 @@ export interface TopConsultantsSectionProps {
   contentBottomInset?: number;
   onItemPress?: (item: TopConsultantItem) => void;
   onBookPress?: (item: TopConsultantItem) => void;
+  onEndReached?: () => void;
 }
 
 export function TopConsultantsSection(props: TopConsultantsSectionProps): React.ReactElement {
@@ -29,7 +38,20 @@ export function TopConsultantsSection(props: TopConsultantsSectionProps): React.
     contentBottomInset = THEME.spacing[16],
     onItemPress,
     onBookPress,
+    onEndReached,
   } = props;
+  const endReachedLockRef = useRef(false);
+  const tryReachEnd = (nativeEvent: NativeScrollEvent): void => {
+    if (onEndReached == null || endReachedLockRef.current) {
+      return;
+    }
+    const viewportEndX = nativeEvent.contentOffset.x + nativeEvent.layoutMeasurement.width;
+    const threshold = nativeEvent.contentSize.width - 120;
+    if (viewportEndX >= threshold) {
+      endReachedLockRef.current = true;
+      onEndReached();
+    }
+  };
 
   return (
     <View style={[styles.section, { marginBottom: contentBottomInset }]}>
@@ -58,6 +80,15 @@ export function TopConsultantsSection(props: TopConsultantsSectionProps): React.
         decelerationRate="fast"
         snapToAlignment="center"
         contentContainerStyle={styles.carousel}
+        onMomentumScrollBegin={() => {
+          endReachedLockRef.current = false;
+        }}
+        onScrollEndDrag={(event: NativeSyntheticEvent<NativeScrollEvent>) => {
+          tryReachEnd(event.nativeEvent);
+        }}
+        onMomentumScrollEnd={(event: NativeSyntheticEvent<NativeScrollEvent>) => {
+          tryReachEnd(event.nativeEvent);
+        }}
       >
         {items.map((item) => (
           <TopConsultantCard

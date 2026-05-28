@@ -75,6 +75,7 @@ type HomeDashboardNavigationProp = CompositeNavigationProp<
 >;
 
 const HOME_TOP_CONSULTANTS_CARD_WIDTH = 184;
+const HOME_TOP_CONSULTANTS_PAGE_SIZE = 6;
 const HOME_WORKSHOP_CARD_WIDTH = 260;
 const HOME_WORKSHOPS_PREVIEW_COUNT = 2;
 const HOME_RECOMMENDED_SERVICES_CARD_WIDTH = 320;
@@ -190,6 +191,7 @@ export function HomeDashboardScreen(): React.ReactElement {
   const accountRole = useAppSelector(selectAccountRole);
   const isConsultant = accountRole === 'consultant';
   const [activeShell, setActiveShell] = useState<ZeptoHSShellColors | null>(null);
+  const [consultantsPageNumber, setConsultantsPageNumber] = useState(1);
 
   const {
     data: userWalletBalance,
@@ -222,12 +224,12 @@ export function HomeDashboardScreen(): React.ReactElement {
   );
 
   const {
-    data: consultantsPage,
+    data: consultantsResult,
     isLoading: isConsultantsLoading,
     isFetching: isConsultantsFetching,
   } = useGetPublicConsultantsQuery({
-    page: '1',
-    limit: '2',
+    page: String(consultantsPageNumber),
+    limit: String(HOME_TOP_CONSULTANTS_PAGE_SIZE),
   });
 
   const {
@@ -288,9 +290,9 @@ export function HomeDashboardScreen(): React.ReactElement {
     isMembershipsFetching;
 
   const topConsultantItems = useMemo((): TopConsultantItem[] => {
-    const rows = consultantsPage?.items ?? [];
+    const rows = consultantsResult?.items ?? [];
     return rows.map(mapConsultantDetailToCardItem);
-  }, [consultantsPage?.items]);
+  }, [consultantsResult?.items]);
 
   const recommendedServiceItems = useMemo((): RecommendedServiceItem[] => {
     const rows = publicServices?.items ?? [];
@@ -357,6 +359,16 @@ export function HomeDashboardScreen(): React.ReactElement {
   const onTopConsultantsViewAll = useCallback((): void => {
     navigation.navigate(ROUTES.Root.ConsultantsList);
   }, [navigation]);
+
+  const onTopConsultantsEndReached = useCallback((): void => {
+    if (isConsultantsLoading || isConsultantsFetching) {
+      return;
+    }
+    if (consultantsResult?.hasMore !== true) {
+      return;
+    }
+    setConsultantsPageNumber((prev) => prev + 1);
+  }, [consultantsResult?.hasMore, isConsultantsFetching, isConsultantsLoading]);
 
   const onConsultantPress = useCallback(
     (item: TopConsultantItem): void => {
@@ -542,6 +554,7 @@ export function HomeDashboardScreen(): React.ReactElement {
                 onViewAllPress={onTopConsultantsViewAll}
                 onItemPress={onConsultantPress}
                 onBookPress={onConsultantPress}
+                onEndReached={onTopConsultantsEndReached}
               />
             ) : null}
             {recommendedServiceItems.length > 0 ? (
