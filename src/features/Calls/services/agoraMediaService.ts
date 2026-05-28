@@ -7,7 +7,9 @@ import {
   RemoteAudioState,
   RemoteVideoState,
   RemoteVideoStateReason,
+  RenderModeType,
   VideoCodecType,
+  VideoSourceType,
   type ChannelMediaOptions,
   type IRtcEngine,
   type IRtcEngineEventHandler,
@@ -43,6 +45,7 @@ let previewActive = false;
 let activeCallType: CallType = 'voice';
 let joinedLocalUid = 0;
 let joinedChannelName = '';
+const remotePeerUids = new Set<number>();
 
 function buildChannelMediaOptions(callType: CallType): ChannelMediaOptions {
   const isVideo = callType === 'video';
@@ -106,9 +109,38 @@ function applyVideoSettings(rtc: IRtcEngine): void {
     frameRate: 15,
     bitrate: 0,
   });
+  rtc.enableLocalVideo(localVideoEnabled);
   rtc.muteLocalVideoStream(!localVideoEnabled);
   rtc.muteAllRemoteVideoStreams(false);
   rtc.updateChannelMediaOptions(buildChannelMediaOptions(activeCallType));
+}
+
+/** Starts camera capture and publishes video after joining a channel. */
+function startLocalVideoPublish(rtc: IRtcEngine): void {
+  if (activeCallType !== 'video') {
+    return;
+  }
+  if (previewActive) {
+    rtc.stopPreview();
+    previewActive = false;
+  }
+  rtc.enableVideo();
+  rtc.enableLocalVideo(localVideoEnabled);
+  rtc.muteLocalVideoStream(!localVideoEnabled);
+  rtc.muteAllRemoteVideoStreams(false);
+  rtc.updateChannelMediaOptions(buildChannelMediaOptions('video'));
+}
+
+function bindRemoteVideoView(uid: number): void {
+  if (engine == null || activeCallType !== 'video' || isLocalUid(uid)) {
+    return;
+  }
+  engine.setupRemoteVideo({
+    uid,
+    sourceType: VideoSourceType.VideoSourceRemote,
+    renderMode: RenderModeType.RenderModeHidden,
+  });
+  subscribeRemoteVideo(engine, uid);
 }
 
 function startVideoCapture(rtc: IRtcEngine): void {
@@ -136,11 +168,14 @@ function registerRemotePeer(uid: number): void {
   if (isLocalUid(uid)) {
     return;
   }
+  remotePeerUids.add(uid);
   if (engine != null) {
     subscribeRemoteAudio(engine, uid);
     subscribeRemoteVideo(engine, uid);
+    bindRemoteVideoView(uid);
   }
   listeners.onRemoteUserJoined?.(uid);
+  listeners.onRemoteVideoState?.(uid, true);
 }
 
 function notifyRemoteVideoState(
@@ -166,12 +201,14 @@ function notifyRemoteVideoState(
     return;
   }
   if (inactive) {
-    const remoteCameraOff =
-      reason === RemoteVideoStateReason.RemoteVideoStateReasonRemoteMuted;
-    if (remoteCameraOff) {
+    if (reason === RemoteVideoStateReason.RemoteVideoStateReasonRemoteMuted) {
       listeners.onRemoteVideoMuted?.(uid, true);
+      return;
     }
-    listeners.onRemoteVideoState?.(uid, false);
+    if (reason === RemoteVideoStateReason.RemoteVideoStateReasonRemoteOffline) {
+      listeners.onRemoteUserLeft?.(uid);
+      remotePeerUids.delete(uid);
+    }
   }
 }
 
@@ -200,8 +237,11 @@ function getOrCreateEngine(): IRtcEngine {
         if (engine != null) {
           applyMediaSettings(engine);
           if (activeCallType === 'video') {
-            engine.muteLocalVideoStream(!localVideoEnabled);
-            engine.muteAllRemoteVideoStreams(false);
+            startLocalVideoPublish(engine);
+            for (const remoteUid of remotePeerUids) {
+              subscribeRemoteVideo(engine, remoteUid);
+              bindRemoteVideoView(remoteUid);
+            }
           }
         }
         settleJoinSuccess();
@@ -226,11 +266,22 @@ function getOrCreateEngine(): IRtcEngine {
         if (isLocalUid(uid)) {
           return;
         }
-        registerRemotePeer(uid);
+        if (
+          state === RemoteVideoState.RemoteVideoStateStarting ||
+          state === RemoteVideoState.RemoteVideoStateDecoding ||
+          state === RemoteVideoState.RemoteVideoStateFrozen
+        ) {
+          registerRemotePeer(uid);
+        }
+        if (reason === RemoteVideoStateReason.RemoteVideoStateReasonRemoteUnmuted) {
+          listeners.onRemoteVideoMuted?.(uid, false);
+          listeners.onRemoteVideoState?.(uid, true);
+        }
         notifyRemoteVideoState(uid, state, reason);
       },
       onUserOffline: (_connection, uid) => {
         if (!isLocalUid(uid)) {
+          remotePeerUids.delete(uid);
           listeners.onRemoteUserLeft?.(uid);
         }
       },
@@ -365,11 +416,7 @@ export const agoraMediaService = {
     }
 
     await leaveChannelIfNeeded(rtc);
-
-    if (params.callType === 'video' && previewActive) {
-      rtc.stopPreview();
-      previewActive = false;
-    }
+    remotePeerUids.clear();
 
     listeners.onConnectionState?.('connecting');
     const joinPromise = waitForJoinChannel();
@@ -384,9 +431,18 @@ export const agoraMediaService = {
     await joinPromise;
 
     if (params.callType === 'video') {
-      rtc.muteLocalVideoStream(!localVideoEnabled);
-      rtc.muteAllRemoteVideoStreams(false);
-      rtc.updateChannelMediaOptions(buildChannelMediaOptions('video'));
+      startLocalVideoPublish(rtc);
+    }
+  },
+
+  ensureRemoteVideoView(uid: number): void {
+    if (!inChannel || activeCallType !== 'video' || isLocalUid(uid)) {
+      return;
+    }
+    remotePeerUids.add(uid);
+    if (engine != null) {
+      subscribeRemoteVideo(engine, uid);
+      bindRemoteVideoView(uid);
     }
   },
 
@@ -425,6 +481,7 @@ export const agoraMediaService = {
     if (engine == null || activeCallType !== 'video') {
       return;
     }
+    engine.enableLocalVideo(enabled);
     engine.muteLocalVideoStream(!enabled);
     engine.updateChannelMediaOptions(buildChannelMediaOptions(activeCallType));
   },
@@ -470,5 +527,6 @@ export const agoraMediaService = {
     activeCallType = 'voice';
     joinedLocalUid = 0;
     joinedChannelName = '';
+    remotePeerUids.clear();
   },
 };

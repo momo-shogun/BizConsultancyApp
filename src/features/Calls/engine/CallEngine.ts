@@ -234,7 +234,9 @@ class CallEngineImpl {
       },
       onRemoteVideoState: (uid, active) => {
         store.dispatch(setRemoteVideoUid(uid));
-        store.dispatch(setRemoteVideoEnabled(active));
+        if (active) {
+          store.dispatch(setRemoteVideoEnabled(true));
+        }
       },
     });
   }

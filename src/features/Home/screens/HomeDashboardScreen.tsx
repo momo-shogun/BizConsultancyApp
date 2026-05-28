@@ -284,14 +284,7 @@ export function HomeDashboardScreen(): React.ReactElement {
       <ZeptoHS header={zeptoHeader}>
         {(_categoryId: HomeCategoryId) => (
           <View style={styles.sheet}>
-            {homeInterestItems.length > 0 ? (
-              <InterestEventsSection
-                cardWidth={HOME_WORKSHOP_CARD_WIDTH}
-                items={homeInterestItems}
-                onViewAllPress={onInterestViewAll}
-                onItemPress={onWorkshopPress}
-              />
-            ) : null}
+
             {isAuthenticated && homeUpcomingBookings.items.length > 0 ? (
               <UpcomingBookingsSection
                 title={isConsultant ? 'Upcoming sessions' : 'Upcoming bookings'}
@@ -304,6 +297,15 @@ export function HomeDashboardScreen(): React.ReactElement {
                 }
               />
             ) : null}
+            {homeInterestItems.length > 0 ? (
+              <InterestEventsSection
+                cardWidth={HOME_WORKSHOP_CARD_WIDTH}
+                items={homeInterestItems}
+                onViewAllPress={onInterestViewAll}
+                onItemPress={onWorkshopPress}
+              />
+            ) : null}
+
             {topConsultantItems.length > 0 ? (
               <TopConsultantsSection
                 title="Top consultants"

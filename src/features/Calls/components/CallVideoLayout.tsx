@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   type LayoutChangeEvent,
@@ -9,6 +9,8 @@ import {
 } from 'react-native';
 import { RenderModeType, RtcSurfaceView, VideoSourceType } from 'react-native-agora';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+
+import { agoraMediaService } from '../services/agoraMediaService';
 
 import { CallAvatar } from './CallAvatar';
 import { PIP_HEIGHT, PIP_MARGIN, PIP_WIDTH, styles } from './CallVideoLayout.styles';
@@ -64,6 +66,12 @@ export function CallVideoLayout(props: CallVideoLayoutProps): React.ReactElement
 
   const hasRemoteUid = remoteUid != null && remoteUid > 0;
   const showRemoteCameraOff = hasRemoteUid && !remoteVideoEnabled;
+
+  useEffect(() => {
+    if (hasRemoteUid && remoteUid != null) {
+      agoraMediaService.ensureRemoteVideoView(remoteUid);
+    }
+  }, [hasRemoteUid, remoteUid]);
 
   const [containerSize, setContainerSize] = useState<Size>({ width: 0, height: 0 });
   const position = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
