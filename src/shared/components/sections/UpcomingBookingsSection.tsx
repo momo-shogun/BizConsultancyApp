@@ -19,6 +19,8 @@ export interface UpcomingBookingsSectionProps {
   contentBottomInset?: number;
   onItemPress?: (item: UpcomingBookingItem) => void;
   onJoinCallPress?: (item: UpcomingBookingItem) => void;
+  /** When omitted, join is enabled whenever `onJoinCallPress` is set. */
+  isJoinCallEnabled?: (item: UpcomingBookingItem) => boolean;
 }
 
 export function UpcomingBookingsSection(props: UpcomingBookingsSectionProps): React.ReactElement {
@@ -31,6 +33,7 @@ export function UpcomingBookingsSection(props: UpcomingBookingsSectionProps): Re
     contentBottomInset = THEME.spacing[16],
     onItemPress,
     onJoinCallPress,
+    isJoinCallEnabled,
   } = props;
 
   return (
@@ -61,15 +64,21 @@ export function UpcomingBookingsSection(props: UpcomingBookingsSectionProps): Re
         snapToAlignment="center"
         contentContainerStyle={styles.carousel}
       >
-        {items.map((item) => (
-          <UpcomingBookingCard
-            key={item.id}
-            item={item}
-            cardWidth={cardWidth}
-            onPress={() => onItemPress?.(item)}
-            onJoinCallPress={onJoinCallPress ? () => onJoinCallPress(item) : undefined}
-          />
-        ))}
+        {items.map((item) => {
+          const joinEnabled =
+            onJoinCallPress != null && (isJoinCallEnabled?.(item) ?? true);
+          return (
+            <UpcomingBookingCard
+              key={item.id}
+              item={item}
+              cardWidth={cardWidth}
+              onPress={() => onItemPress?.(item)}
+              onJoinCallPress={
+                joinEnabled ? () => onJoinCallPress?.(item) : undefined
+              }
+            />
+          );
+        })}
       </ScrollView>
     </View>
   );

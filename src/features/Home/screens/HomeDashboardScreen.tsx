@@ -10,6 +10,9 @@ import {
   selectAccountRole,
   selectIsAuthenticated,
 } from '@/features/Auth/store/authSelectors';
+import { useHomeUpcomingBookings } from '@/features/Bookings/hooks/useHomeUpcomingBookings';
+import type { HomeUpcomingBookingEntry } from '@/features/Bookings/hooks/useHomeUpcomingBookings';
+import { useUserBookingCall } from '@/features/Bookings/hooks/useUserBookingCall';
 import { CallController } from '@/features/Calls/controllers/CallController';
 import { useGetPublicConsultantsQuery } from '@/features/consultant/api/consultantApi';
 import { mapConsultantDetailToCardItem } from '@/features/consultant/utils/consultantMappers';
@@ -53,6 +56,7 @@ import {
   type MembershipPlanItem,
   MembershipPlansSection,
 } from '@/shared/components';
+import { showGlobalToast } from '@/shared/components/toast';
 import type { HomeCategoryId } from './ZeptoHS/ZeptoHS.types';
 import { ZeptoHS } from './ZeptoHS/ZeptoHS';
 
@@ -132,7 +136,16 @@ export function HomeDashboardScreen(): React.ReactElement {
     return mapPublicWorkshopsToEventSpotlightItems(rows).slice(0, HOME_WORKSHOPS_PREVIEW_COUNT);
   }, [publicWorkshops?.items]);
 
-  const upcomingBookingItems = useMemo((): UpcomingBookingItem[] => [], []);
+  const homeUpcomingBookings = useHomeUpcomingBookings(isConsultant);
+  const { startCallFromBooking } = useUserBookingCall();
+
+  const upcomingBookingEntriesById = useMemo((): Map<string, HomeUpcomingBookingEntry> => {
+    const map = new Map<string, HomeUpcomingBookingEntry>();
+    for (const entry of homeUpcomingBookings.entries) {
+      map.set(entry.item.id, entry);
+    }
+    return map;
+  }, [homeUpcomingBookings.entries]);
 
   const testimonialItems = useMemo((): TestimonialItem[] => {
     const rows = publicTestimonials ?? [];
@@ -213,6 +226,47 @@ export function HomeDashboardScreen(): React.ReactElement {
     navigation.navigate(ROUTES.App.Account, { screen: ROUTES.Account.Home });
   }, [navigation]);
 
+  const onUpcomingBookingsViewAll = useCallback((): void => {
+    navigation.navigate(ROUTES.App.Account, {
+      screen: isConsultant ? ROUTES.Account.ConsultantBookings : ROUTES.Account.MyBookings,
+    });
+  }, [isConsultant, navigation]);
+
+  const onUpcomingBookingJoinCall = useCallback(
+    (item: UpcomingBookingItem): void => {
+      const entry = upcomingBookingEntriesById.get(item.id);
+      if (entry == null) {
+        return;
+      }
+
+      if (!entry.canJoinCall) {
+        showGlobalToast({
+          message: isConsultant
+            ? 'Call is available for confirmed upcoming phone or video sessions'
+            : 'Call unlocks when your confirmed session slot starts',
+          variant: 'error',
+        });
+        return;
+      }
+
+      if (entry.kind === 'user') {
+        void startCallFromBooking(entry.booking, 'upcoming');
+        return;
+      }
+
+      void CallController.startOutgoingFromBooking(
+        entry.booking.id,
+        entry.booking.name,
+        entry.booking.consultationType,
+      ).then((err) => {
+        if (err != null) {
+          showGlobalToast({ message: err, variant: 'error' });
+        }
+      });
+    },
+    [isConsultant, startCallFromBooking, upcomingBookingEntriesById],
+  );
+
   const zeptoHeader = useMemo(
     () => ({
       backgroundColor: '#E6C8A4',
@@ -238,28 +292,16 @@ export function HomeDashboardScreen(): React.ReactElement {
                 onItemPress={onWorkshopPress}
               />
             ) : null}
-            {upcomingBookingItems.length > 0 ? (
+            {isAuthenticated && homeUpcomingBookings.items.length > 0 ? (
               <UpcomingBookingsSection
-                title="Upcoming bookings"
-                items={upcomingBookingItems}
-                onItemPress={() => undefined}
-                onJoinCallPress={(item) => {
-                  const bookingId = Number.parseInt(item.id.replace(/\D/g, ''), 10);
-                  if (!Number.isFinite(bookingId) || bookingId <= 0) {
-                    return;
-                  }
-                  void CallController.startOutgoingFromBooking(
-                    bookingId,
-                    item.consultantName,
-                    item.callType === 'video' ? 'video' : 'phone',
-                  ).then(
-                    (err) => {
-                      if (err != null) {
-                        console.warn('Join call:', err);
-                      }
-                    },
-                  );
-                }}
+                title={isConsultant ? 'Upcoming sessions' : 'Upcoming bookings'}
+                items={homeUpcomingBookings.items}
+                onViewAllPress={onUpcomingBookingsViewAll}
+                onItemPress={onUpcomingBookingsViewAll}
+                onJoinCallPress={onUpcomingBookingJoinCall}
+                isJoinCallEnabled={(item) =>
+                  upcomingBookingEntriesById.get(item.id)?.canJoinCall === true
+                }
               />
             ) : null}
             {topConsultantItems.length > 0 ? (
