@@ -6,6 +6,7 @@ import {
   createAgoraRtcEngine,
   RemoteAudioState,
   RemoteVideoState,
+  RemoteVideoStateReason,
   VideoCodecType,
   type ChannelMediaOptions,
   type IRtcEngine,
@@ -127,21 +128,49 @@ function applyMediaSettings(rtc: IRtcEngine): void {
   }
 }
 
-function notifyRemoteVideoState(uid: number, state: RemoteVideoState): void {
+function isLocalUid(uid: number): boolean {
+  return joinedLocalUid > 0 && uid === joinedLocalUid;
+}
+
+function registerRemotePeer(uid: number): void {
+  if (isLocalUid(uid)) {
+    return;
+  }
+  if (engine != null) {
+    subscribeRemoteAudio(engine, uid);
+    subscribeRemoteVideo(engine, uid);
+  }
+  listeners.onRemoteUserJoined?.(uid);
+}
+
+function notifyRemoteVideoState(
+  uid: number,
+  state: RemoteVideoState,
+  reason: RemoteVideoStateReason,
+): void {
+  if (isLocalUid(uid)) {
+    return;
+  }
+
   const active =
     state === RemoteVideoState.RemoteVideoStateStarting ||
-    state === RemoteVideoState.RemoteVideoStateDecoding;
+    state === RemoteVideoState.RemoteVideoStateDecoding ||
+    state === RemoteVideoState.RemoteVideoStateFrozen;
+
   const inactive =
     state === RemoteVideoState.RemoteVideoStateStopped ||
     state === RemoteVideoState.RemoteVideoStateFailed;
 
   if (active) {
-    listeners.onRemoteUserJoined?.(uid);
     listeners.onRemoteVideoState?.(uid, true);
     return;
   }
   if (inactive) {
-    listeners.onRemoteVideoMuted?.(uid, true);
+    const remoteCameraOff =
+      reason === RemoteVideoStateReason.RemoteVideoStateReasonRemoteMuted;
+    if (remoteCameraOff) {
+      listeners.onRemoteVideoMuted?.(uid, true);
+    }
     listeners.onRemoteVideoState?.(uid, false);
   }
 }
@@ -163,7 +192,11 @@ function getOrCreateEngine(): IRtcEngine {
     engine = createAgoraRtcEngine();
     engine.initialize({ appId: '' });
     eventHandler = {
-      onJoinChannelSuccess: (_connection) => {
+      onJoinChannelSuccess: (connection) => {
+        const localUid = connection.localUid ?? 0;
+        if (localUid > 0) {
+          joinedLocalUid = localUid;
+        }
         if (engine != null) {
           applyMediaSettings(engine);
           if (activeCallType === 'video') {
@@ -179,30 +212,33 @@ function getOrCreateEngine(): IRtcEngine {
         listeners.onConnectionState?.('disconnected');
       },
       onUserJoined: (_connection, uid) => {
-        if (engine != null) {
-          subscribeRemoteAudio(engine, uid);
-          subscribeRemoteVideo(engine, uid);
-        }
-        if (uid !== joinedLocalUid) {
-          listeners.onRemoteUserJoined?.(uid);
-        }
+        registerRemotePeer(uid);
       },
-      onRemoteVideoStateChanged: (_connection, uid, state) => {
-        if (engine != null && uid !== joinedLocalUid) {
-          subscribeRemoteVideo(engine, uid);
-          notifyRemoteVideoState(uid, state);
+      onFirstRemoteVideoDecoded: (_connection, remoteUid) => {
+        registerRemotePeer(remoteUid);
+        listeners.onRemoteVideoState?.(remoteUid, true);
+      },
+      onFirstRemoteVideoFrame: (_connection, remoteUid) => {
+        registerRemotePeer(remoteUid);
+        listeners.onRemoteVideoState?.(remoteUid, true);
+      },
+      onRemoteVideoStateChanged: (_connection, uid, state, reason) => {
+        if (isLocalUid(uid)) {
+          return;
         }
+        registerRemotePeer(uid);
+        notifyRemoteVideoState(uid, state, reason);
       },
       onUserOffline: (_connection, uid) => {
-        listeners.onRemoteUserLeft?.(uid);
-      },
-      onRemoteAudioStateChanged: (_connection, remoteUid, state) => {
-        if (engine != null && state === RemoteAudioState.RemoteAudioStateDecoding) {
-          subscribeRemoteAudio(engine, remoteUid);
+        if (!isLocalUid(uid)) {
+          listeners.onRemoteUserLeft?.(uid);
         }
       },
-      onUserMuteVideo: (_connection, uid, muted) => {
-        listeners.onRemoteVideoMuted?.(uid, muted);
+      onRemoteAudioStateChanged: (_connection, remoteUid, state) => {
+        if (engine != null && !isLocalUid(remoteUid) && state === RemoteAudioState.RemoteAudioStateDecoding) {
+          subscribeRemoteAudio(engine, remoteUid);
+          listeners.onRemoteUserJoined?.(remoteUid);
+        }
       },
       onConnectionLost: () => {
         listeners.onConnectionState?.('failed');

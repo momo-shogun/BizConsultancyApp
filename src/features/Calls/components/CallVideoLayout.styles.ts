@@ -12,6 +12,14 @@ export const styles = StyleSheet.create({
   remoteVideo: {
     ...StyleSheet.absoluteFillObject,
   },
+  remoteCameraOffOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    gap: 10,
+    backgroundColor: 'rgba(10, 15, 20, 0.92)',
+  },
   remoteFallback: {
     flex: 1,
     alignItems: 'center',

@@ -7,7 +7,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { RenderModeType, RtcSurfaceView } from 'react-native-agora';
+import { RenderModeType, RtcSurfaceView, VideoSourceType } from 'react-native-agora';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { CallAvatar } from './CallAvatar';
@@ -63,7 +63,7 @@ export function CallVideoLayout(props: CallVideoLayoutProps): React.ReactElement
   } = props;
 
   const hasRemoteUid = remoteUid != null && remoteUid > 0;
-  const showRemoteSurface = hasRemoteUid && remoteVideoEnabled;
+  const showRemoteCameraOff = hasRemoteUid && !remoteVideoEnabled;
 
   const [containerSize, setContainerSize] = useState<Size>({ width: 0, height: 0 });
   const position = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
@@ -168,26 +168,30 @@ export function CallVideoLayout(props: CallVideoLayoutProps): React.ReactElement
 
   return (
     <View style={styles.root} onLayout={handleLayout}>
-      {showRemoteSurface ? (
-        <RtcSurfaceView
-          key={`remote-${remoteUid}`}
-          style={styles.remoteVideo}
-          canvas={{
-            uid: remoteUid,
-            renderMode: RenderModeType.RenderModeHidden,
-          }}
-        />
+      {hasRemoteUid ? (
+        <>
+          <RtcSurfaceView
+            key={`remote-${remoteUid}`}
+            style={styles.remoteVideo}
+            canvas={{
+              uid: remoteUid,
+              sourceType: VideoSourceType.VideoSourceRemote,
+              renderMode: RenderModeType.RenderModeHidden,
+            }}
+          />
+          {showRemoteCameraOff ? (
+            <View style={styles.remoteCameraOffOverlay} pointerEvents="none">
+              <CallAvatar uri={remoteAvatarUrl} name={remoteName} size={96} />
+              <Text style={styles.remoteName}>{remoteName}</Text>
+              <Text style={styles.waitingText}>Camera is off</Text>
+            </View>
+          ) : null}
+        </>
       ) : (
         <View style={styles.remoteFallback}>
           <CallAvatar uri={remoteAvatarUrl} name={remoteName} size={120} />
           <Text style={styles.remoteName}>{remoteName}</Text>
-          <Text style={styles.waitingText}>
-            {!hasRemoteUid
-              ? 'Waiting for video…'
-              : remoteVideoEnabled
-                ? 'Connecting video…'
-                : 'Camera is off'}
-          </Text>
+          <Text style={styles.waitingText}>Waiting for video…</Text>
         </View>
       )}
 

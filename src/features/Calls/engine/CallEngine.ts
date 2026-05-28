@@ -226,7 +226,11 @@ class CallEngineImpl {
         store.dispatch(setRemoteVideoEnabled(false));
       },
       onRemoteVideoMuted: (_uid, muted) => {
-        store.dispatch(setRemoteVideoEnabled(!muted));
+        if (muted) {
+          store.dispatch(setRemoteVideoEnabled(false));
+          return;
+        }
+        store.dispatch(setRemoteVideoEnabled(true));
       },
       onRemoteVideoState: (uid, active) => {
         store.dispatch(setRemoteVideoUid(uid));
