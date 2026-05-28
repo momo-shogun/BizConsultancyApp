@@ -13,12 +13,16 @@ type BizAIVoiceDockProps = {
   onKeyboardPress: () => void;
   onMicPress: () => void;
   onBrandPress: () => void;
+  isListening: boolean;
+  isSpeechAvailable: boolean;
 };
 
 export function BizAIVoiceDock({
   onKeyboardPress,
   onMicPress,
   onBrandPress,
+  isListening,
+  isSpeechAvailable,
 }: BizAIVoiceDockProps): React.ReactElement {
   return (
     <Animated.View entering={FadeInDown.duration(280)} style={styles.root}>
@@ -29,10 +33,10 @@ export function BizAIVoiceDock({
         pointerEvents="none"
       />
       <Animated.Text entering={FadeIn.duration(200)} style={styles.hint} numberOfLines={2}>
-        Tap to talk
+        {isListening ? 'Listening now' : 'Tap to talk'}
       </Animated.Text>
       <Text style={styles.comingSoon} numberOfLines={1}>
-        Voice input coming soon
+        {isSpeechAvailable ? 'Voice recognition enabled' : 'Speech recognition unavailable'}
       </Text>
 
       <View style={styles.controls}>
@@ -48,9 +52,9 @@ export function BizAIVoiceDock({
 
         <BizAIOrbButton
           size={58}
-          isListening={false}
+          isListening={isListening}
           onPress={onMicPress}
-          accessibilityLabel="Voice input coming soon"
+          accessibilityLabel={isListening ? 'Stop listening' : 'Start listening'}
         />
 
         <BizAIBrandCapsule onPress={onBrandPress} compact />
@@ -72,7 +76,7 @@ const styles = StyleSheet.create({
     fontSize: THEME.typography.size[16],
     fontWeight: THEME.typography.weight.semibold as '600',
     color: 'rgba(255,255,255,0.92)',
-    marginBottom: THEME.spacing[6],
+    marginBottom: THEME.spacing[8],
     paddingHorizontal: THEME.spacing[16],
   },
   comingSoon: {

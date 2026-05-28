@@ -1,4 +1,22 @@
 {
+  "expo": {
+    "name": "BizConsultancyApp",
+    "slug": "bizconsultancyapp",
+    "plugins": [
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone for voice assistant input.",
+          "speechRecognitionPermission": "Allow $(PRODUCT_NAME) to use speech recognition for voice assistant input.",
+          "androidSpeechServicePackages": [
+            "com.google.android.googlequicksearchbox",
+            "com.google.android.tts",
+            "com.google.android.as"
+          ]
+        }
+      ]
+    ]
+  },
   "name": "BizConsultancyApp",
   "displayName": "BizConsultancyApp"
 }

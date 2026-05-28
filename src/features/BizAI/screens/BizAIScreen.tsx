@@ -29,6 +29,7 @@ import { SafeAreaWrapper } from '@/shared/components';
 import { showGlobalToast } from '@/shared/components/toast';
 
 import { BizAIKeyboardComposer } from '../components/BizAIKeyboardComposer';
+import { BizAISpeechStatusPanel } from '../components/BizAISpeechStatusPanel';
 import { BizAISuggestionChip } from '../components/BizAISuggestionChip';
 import { BizAIVoiceDock } from '../components/BizAIVoiceDock';
 import {
@@ -37,6 +38,7 @@ import {
   BIZ_AI_SUGGESTIONS,
 } from '../constants/bizAiSuggestions';
 import { useBizAIKeyboardInset } from '../hooks/useBizAIKeyboardInset';
+import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import type { BizAIInputMode } from '../types/bizAiInput.types';
 
 const VOICE_DOCK_HEIGHT = 176;
@@ -54,6 +56,23 @@ export function BizAIScreen(): React.ReactElement {
   const [response, setResponse] = useState<string>('');
   const responseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const spin = useSharedValue(0);
+  const speech = useSpeechRecognition({
+    locale: 'en-US',
+    continuous: true,
+    interimResults: true,
+    silenceTimeoutMs: 4500,
+  });
+  const {
+    isAvailable: isSpeechAvailable,
+    isListening: isSpeechListening,
+    startListening,
+    stopListening,
+    abortListening,
+    transcript: speechTranscript,
+    partialTranscript: speechPartialTranscript,
+    volume: speechVolume,
+    errorMessage: speechErrorMessage,
+  } = speech;
 
   const greeting = useMemo(
     () => BIZ_AI_GREETINGS[Math.floor(Date.now() / 86_400_000) % BIZ_AI_GREETINGS.length],
@@ -61,13 +80,20 @@ export function BizAIScreen(): React.ReactElement {
   );
 
   const onMicPress = useCallback((): void => {
-    showGlobalToast({
-      variant: 'info',
-      title: 'Coming soon',
-      message: 'Voice input will be available soon. Use the keyboard for now.',
-      position: 'bottom',
-    });
-  }, []);
+    if (!isSpeechAvailable) {
+      showGlobalToast({
+        variant: 'error',
+        message: 'Speech recognition is unavailable on this device.',
+        position: 'bottom',
+      });
+      return;
+    }
+    if (isSpeechListening) {
+      stopListening();
+      return;
+    }
+    void startListening();
+  }, [isSpeechAvailable, isSpeechListening, startListening, stopListening]);
 
   const close = useCallback((): void => {
     Keyboard.dismiss();
@@ -129,6 +155,23 @@ export function BizAIScreen(): React.ReactElement {
       responseTimerRef.current = null;
     }, 1700);
   }, [draft]);
+
+  useEffect(() => {
+    const spoken =
+      speechPartialTranscript.trim().length > 0 ? speechPartialTranscript : speechTranscript;
+    if (inputMode !== 'voice') {
+      return;
+    }
+    if (spoken.trim().length > 0) {
+      setDraft(spoken);
+    }
+  }, [inputMode, speechPartialTranscript, speechTranscript]);
+
+  useEffect(() => {
+    if (inputMode !== 'voice' && isSpeechListening) {
+      abortListening();
+    }
+  }, [abortListening, inputMode, isSpeechListening]);
 
   useEffect(() => {
     if (isAwaitingResponse) {
@@ -266,12 +309,24 @@ export function BizAIScreen(): React.ReactElement {
         </ScrollView>
       )}
 
+      {!showLoaderScreen && inputMode === 'voice' ? (
+        <BizAISpeechStatusPanel
+          isListening={isSpeechListening}
+          transcript={speechTranscript}
+          partialTranscript={speechPartialTranscript}
+          volume={speechVolume}
+          errorMessage={speechErrorMessage}
+        />
+      ) : null}
+
       {!showLoaderScreen && (inputMode === 'voice' ? (
         <View style={[styles.dockHost, { paddingBottom: insets.bottom }]}>
           <BizAIVoiceDock
             onKeyboardPress={openKeyboardMode}
             onMicPress={onMicPress}
             onBrandPress={close}
+            isListening={isSpeechListening}
+            isSpeechAvailable={isSpeechAvailable}
           />
         </View>
       ) : (

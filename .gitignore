@@ -81,3 +81,7 @@ pnpm-lock.yaml
 
 
 .cursor
+# Expo
+.expo
+dist/
+web-build/

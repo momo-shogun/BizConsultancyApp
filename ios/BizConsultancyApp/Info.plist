@@ -35,6 +35,8 @@
 	</dict>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>BizConsultancy needs microphone access for voice and video calls with consultants.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>BizConsultancy uses speech recognition to convert your voice into text for Biz AI assistant.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>BizConsultancy needs camera access for video calls and document uploads.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

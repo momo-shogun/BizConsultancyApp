@@ -3,6 +3,7 @@
  */
 
 import 'react-native-gesture-handler';
+import './src/polyfills/readableStream';
 import messaging from '@react-native-firebase/messaging';
 import notifee from '@notifee/react-native';
 import { AppRegistry } from 'react-native';
