@@ -7,9 +7,7 @@ import {
   RemoteAudioState,
   RemoteVideoState,
   RemoteVideoStateReason,
-  RenderModeType,
   VideoCodecType,
-  VideoSourceType,
   type ChannelMediaOptions,
   type IRtcEngine,
   type IRtcEngineEventHandler,
@@ -132,18 +130,6 @@ function startLocalVideoPublish(rtc: IRtcEngine): void {
   rtc.updateChannelMediaOptions(buildChannelMediaOptions('video'));
 }
 
-function bindRemoteVideoView(uid: number): void {
-  if (engine == null || activeCallType !== 'video' || isLocalUid(uid)) {
-    return;
-  }
-  engine.setupRemoteVideo({
-    uid,
-    sourceType: VideoSourceType.VideoSourceRemote,
-    renderMode: RenderModeType.RenderModeHidden,
-  });
-  subscribeRemoteVideo(engine, uid);
-}
-
 function startVideoCapture(rtc: IRtcEngine): void {
   applyVideoSettings(rtc);
   if (!inChannel) {
@@ -173,7 +159,6 @@ function registerRemotePeer(uid: number): void {
   if (engine != null) {
     subscribeRemoteAudio(engine, uid);
     subscribeRemoteVideo(engine, uid);
-    bindRemoteVideoView(uid);
   }
   listeners.onRemoteUserJoined?.(uid);
 }
@@ -252,7 +237,6 @@ function getOrCreateEngine(): IRtcEngine {
             startLocalVideoPublish(engine);
             for (const remoteUid of remotePeerUids) {
               subscribeRemoteVideo(engine, remoteUid);
-              bindRemoteVideoView(remoteUid);
             }
             // Android can race publish flags around join; re-apply shortly after join.
             setTimeout(() => {
@@ -456,17 +440,6 @@ export const agoraMediaService = {
 
     if (params.callType === 'video') {
       startLocalVideoPublish(rtc);
-    }
-  },
-
-  ensureRemoteVideoView(uid: number): void {
-    if (!inChannel || activeCallType !== 'video' || isLocalUid(uid)) {
-      return;
-    }
-    remotePeerUids.add(uid);
-    if (engine != null) {
-      subscribeRemoteVideo(engine, uid);
-      bindRemoteVideoView(uid);
     }
   },
 
