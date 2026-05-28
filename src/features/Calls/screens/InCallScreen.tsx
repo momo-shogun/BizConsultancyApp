@@ -128,6 +128,71 @@ export function InCallScreen({ navigation }: Props): React.ReactElement {
     </View>
   );
 
+  const videoControls = (
+    <View style={[styles.videoControlsDock, { paddingBottom: insets.bottom + 16 }]}>
+      <View style={styles.videoControlsPill}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={localVideoEnabled ? 'Turn off video' : 'Turn on video'}
+          onPress={() => CallController.setVideoEnabled(!localVideoEnabled)}
+          style={({ pressed }) => [
+            styles.videoIconBtn,
+            !localVideoEnabled ? styles.videoIconBtnActive : null,
+            pressed ? styles.videoIconBtnPressed : null,
+          ]}
+        >
+          <Ionicons
+            name={localVideoEnabled ? 'videocam-outline' : 'videocam-off-outline'}
+            size={22}
+            color="#FFFFFF"
+          />
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={localMuted ? 'Unmute microphone' : 'Mute microphone'}
+          onPress={() => CallController.setMuted(!localMuted)}
+          style={({ pressed }) => [
+            styles.videoIconBtn,
+            localMuted ? styles.videoIconBtnActive : null,
+            pressed ? styles.videoIconBtnPressed : null,
+          ]}
+        >
+          <Ionicons name={localMuted ? 'mic-off-outline' : 'mic-outline'} size={22} color="#FFFFFF" />
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={speakerOn ? 'Turn off speaker' : 'Turn on speaker'}
+          onPress={() => CallController.setSpeaker(!speakerOn)}
+          style={({ pressed }) => [styles.videoIconBtn, pressed ? styles.videoIconBtnPressed : null]}
+        >
+          <Ionicons name={speakerOn ? 'volume-high-outline' : 'volume-mute-outline'} size={22} color="#FFFFFF" />
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Flip camera"
+          onPress={() => CallController.switchCamera()}
+          style={({ pressed }) => [styles.videoIconBtn, pressed ? styles.videoIconBtnPressed : null]}
+        >
+          <Ionicons name="camera-reverse-outline" size={22} color="#FFFFFF" />
+        </Pressable>
+      </View>
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="End call"
+        onPress={() => {
+          void CallController.endCall();
+        }}
+        style={({ pressed }) => [
+          styles.videoEndCallBtn,
+          pressed ? styles.videoEndCallBtnPressed : null,
+        ]}
+      >
+        <Ionicons name="call" size={22} color="#FFFFFF" />
+      </Pressable>
+    </View>
+  );
+
   if (isVideoCall) {
     return (
       <View style={styles.videoRoot}>
@@ -140,7 +205,7 @@ export function InCallScreen({ navigation }: Props): React.ReactElement {
         />
         <View style={styles.videoOverlay} pointerEvents="box-none">
           {topBar}
-          {controls}
+          {videoControls}
         </View>
       </View>
     );
@@ -172,7 +237,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#0A0F14',
   },
   videoOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     justifyContent: 'space-between',
   },
   topBar: {
@@ -272,5 +337,46 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     paddingHorizontal: 8,
     gap: 4,
+  },
+  videoControlsDock: {
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  videoControlsPill: {
+    height: 64,
+    borderRadius: 32,
+    paddingHorizontal: 10,
+    backgroundColor: 'rgba(6, 32, 45, 0.88)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.2)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  videoIconBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  videoIconBtnActive: {
+    backgroundColor: 'rgba(255,255,255,0.18)',
+  },
+  videoIconBtnPressed: {
+    opacity: 0.85,
+  },
+  videoEndCallBtn: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#EF4444',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  videoEndCallBtnPressed: {
+    opacity: 0.9,
   },
 });
