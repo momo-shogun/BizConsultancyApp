@@ -46,6 +46,7 @@ let activeCallType: CallType = 'voice';
 let joinedLocalUid = 0;
 let joinedChannelName = '';
 const remotePeerUids = new Set<number>();
+const remoteVideoEverActiveUids = new Set<number>();
 
 function buildChannelMediaOptions(callType: CallType): ChannelMediaOptions {
   const isVideo = callType === 'video';
@@ -175,6 +176,14 @@ function registerRemotePeer(uid: number): void {
     bindRemoteVideoView(uid);
   }
   listeners.onRemoteUserJoined?.(uid);
+}
+
+function markRemoteVideoActive(uid: number): void {
+  if (isLocalUid(uid)) {
+    return;
+  }
+  remoteVideoEverActiveUids.add(uid);
+  listeners.onRemoteVideoMuted?.(uid, false);
   listeners.onRemoteVideoState?.(uid, true);
 }
 
@@ -197,11 +206,14 @@ function notifyRemoteVideoState(
     state === RemoteVideoState.RemoteVideoStateFailed;
 
   if (active) {
-    listeners.onRemoteVideoState?.(uid, true);
+    markRemoteVideoActive(uid);
     return;
   }
   if (inactive) {
-    if (reason === RemoteVideoStateReason.RemoteVideoStateReasonRemoteMuted) {
+    if (
+      reason === RemoteVideoStateReason.RemoteVideoStateReasonRemoteMuted &&
+      remoteVideoEverActiveUids.has(uid)
+    ) {
       listeners.onRemoteVideoMuted?.(uid, true);
       return;
     }
@@ -242,6 +254,16 @@ function getOrCreateEngine(): IRtcEngine {
               subscribeRemoteVideo(engine, remoteUid);
               bindRemoteVideoView(remoteUid);
             }
+            // Android can race publish flags around join; re-apply shortly after join.
+            setTimeout(() => {
+              if (engine == null || !inChannel || activeCallType !== 'video') {
+                return;
+              }
+              engine.enableLocalVideo(localVideoEnabled);
+              engine.muteLocalVideoStream(!localVideoEnabled);
+              engine.muteAllRemoteVideoStreams(false);
+              engine.updateChannelMediaOptions(buildChannelMediaOptions('video'));
+            }, 300);
           }
         }
         settleJoinSuccess();
@@ -256,11 +278,11 @@ function getOrCreateEngine(): IRtcEngine {
       },
       onFirstRemoteVideoDecoded: (_connection, remoteUid) => {
         registerRemotePeer(remoteUid);
-        listeners.onRemoteVideoState?.(remoteUid, true);
+        markRemoteVideoActive(remoteUid);
       },
       onFirstRemoteVideoFrame: (_connection, remoteUid) => {
         registerRemotePeer(remoteUid);
-        listeners.onRemoteVideoState?.(remoteUid, true);
+        markRemoteVideoActive(remoteUid);
       },
       onRemoteVideoStateChanged: (_connection, uid, state, reason) => {
         if (isLocalUid(uid)) {
@@ -272,16 +294,17 @@ function getOrCreateEngine(): IRtcEngine {
           state === RemoteVideoState.RemoteVideoStateFrozen
         ) {
           registerRemotePeer(uid);
+          markRemoteVideoActive(uid);
         }
         if (reason === RemoteVideoStateReason.RemoteVideoStateReasonRemoteUnmuted) {
-          listeners.onRemoteVideoMuted?.(uid, false);
-          listeners.onRemoteVideoState?.(uid, true);
+          markRemoteVideoActive(uid);
         }
         notifyRemoteVideoState(uid, state, reason);
       },
       onUserOffline: (_connection, uid) => {
         if (!isLocalUid(uid)) {
           remotePeerUids.delete(uid);
+          remoteVideoEverActiveUids.delete(uid);
           listeners.onRemoteUserLeft?.(uid);
         }
       },
@@ -417,6 +440,7 @@ export const agoraMediaService = {
 
     await leaveChannelIfNeeded(rtc);
     remotePeerUids.clear();
+    remoteVideoEverActiveUids.clear();
 
     listeners.onConnectionState?.('connecting');
     const joinPromise = waitForJoinChannel();
@@ -528,5 +552,6 @@ export const agoraMediaService = {
     joinedLocalUid = 0;
     joinedChannelName = '';
     remotePeerUids.clear();
+    remoteVideoEverActiveUids.clear();
   },
 };

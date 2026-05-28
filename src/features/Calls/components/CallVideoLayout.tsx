@@ -189,9 +189,11 @@ export function CallVideoLayout(props: CallVideoLayoutProps): React.ReactElement
           />
           {showRemoteCameraOff ? (
             <View style={styles.remoteCameraOffOverlay} pointerEvents="none">
-              <CallAvatar uri={remoteAvatarUrl} name={remoteName} size={96} />
-              <Text style={styles.remoteName}>{remoteName}</Text>
-              <Text style={styles.waitingText}>Camera is off</Text>
+              <View style={styles.remoteCameraOffCard}>
+                <CallAvatar uri={remoteAvatarUrl} name={remoteName} size={96} />
+                <Text style={styles.remoteName}>{remoteName}</Text>
+                <Text style={styles.waitingText}>Camera is off</Text>
+              </View>
             </View>
           ) : null}
         </>

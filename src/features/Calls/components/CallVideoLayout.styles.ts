@@ -17,8 +17,17 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
+  },
+  remoteCameraOffCard: {
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: 10,
-    backgroundColor: 'rgba(10, 15, 20, 0.92)',
+    paddingHorizontal: 20,
+    paddingVertical: 18,
+    borderRadius: 18,
+    backgroundColor: 'rgba(10, 15, 20, 0.42)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.32)',
   },
   remoteFallback: {
     flex: 1,
