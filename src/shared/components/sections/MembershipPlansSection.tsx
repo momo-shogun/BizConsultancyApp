@@ -4,6 +4,8 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { THEME } from '@/constants/theme';
 import { MembershipPlanCard, type MembershipPlanItem } from '../cards/MembershipPlanCard/MembershipPlanCard';
 
+const MEMBERSHIP_CAROUSEL_BOTTOM_PADDING = THEME.spacing[24];
+
 export interface MembershipPlansSectionProps {
   title?: string;
   onViewAllPress?: () => void;
@@ -49,8 +51,9 @@ export function MembershipPlansSection(props: MembershipPlansSectionProps): Reac
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        decelerationRate="fast"
+        decelerationRate={0.985}
         snapToAlignment="center"
+        snapToInterval={cardWidth + THEME.spacing[12]}
         contentContainerStyle={styles.carousel}
       >
         {items.map((item) => (
@@ -103,9 +106,10 @@ const styles = StyleSheet.create({
     color: THEME.colors.primary,
   },
   carousel: {
+    alignItems: 'flex-start',
     paddingLeft: THEME.spacing[16],
     paddingRight: THEME.spacing[8],
-    paddingBottom: THEME.spacing[4],
+    paddingBottom: MEMBERSHIP_CAROUSEL_BOTTOM_PADDING,
     gap: THEME.spacing[12],
   },
 });

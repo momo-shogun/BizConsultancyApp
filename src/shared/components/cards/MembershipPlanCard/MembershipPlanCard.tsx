@@ -28,6 +28,8 @@ export interface MembershipPlanCardProps {
 
 export function MembershipPlanCard(props: MembershipPlanCardProps): React.ReactElement {
   const { item, cardWidth = 320, onPress, onCtaPress } = props;
+  const visibleFeatures = item.features.slice(0, 6);
+  const hiddenFeaturesCount = Math.max(0, item.features.length - visibleFeatures.length);
 
   return (
     <Pressable
@@ -86,7 +88,7 @@ export function MembershipPlanCard(props: MembershipPlanCardProps): React.ReactE
         </View>
 
         <View style={styles.featuresGrid}>
-          {item.features.map((feature, index) => (
+          {visibleFeatures.map((feature, index) => (
             <View key={`${item.id}-feature-${index}`} style={styles.featureItem}>
               <View style={styles.check}>
                 <Ionicons name="checkmark" size={14} color={THEME.colors.white} />
@@ -97,6 +99,19 @@ export function MembershipPlanCard(props: MembershipPlanCardProps): React.ReactE
             </View>
           ))}
         </View>
+        {hiddenFeaturesCount > 0 ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Read more plan details"
+            hitSlop={8}
+            onPress={onPress}
+            style={({ pressed }) => [styles.readMoreBtn, pressed ? styles.readMoreBtnPressed : null]}
+          >
+            <Text style={styles.readMoreText}>
+              +{hiddenFeaturesCount} more • Read more
+            </Text>
+          </Pressable>
+        ) : null}
       </LinearGradient>
     </Pressable>
   );
@@ -138,7 +153,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   typePillText: {
-    fontSize: THEME.typography.size[11],
+    fontSize: THEME.typography.size[12],
     fontWeight: THEME.typography.weight.bold as '700',
     color: THEME.colors.white,
     letterSpacing: 0.4,
@@ -246,6 +261,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     rowGap: THEME.spacing[12],
     columnGap: THEME.spacing[12],
+    minHeight: 108,
   },
   featureItem: {
     flexDirection: 'row',
@@ -268,6 +284,21 @@ const styles = StyleSheet.create({
     fontWeight: THEME.typography.weight.semibold as '600',
     color: 'rgba(255,255,255,0.92)',
     lineHeight: 16,
+  },
+  readMoreBtn: {
+    alignSelf: 'flex-start',
+    marginTop: THEME.spacing[4],
+    paddingVertical: 4,
+    paddingHorizontal: 2,
+  },
+  readMoreBtnPressed: {
+    opacity: 0.78,
+  },
+  readMoreText: {
+    fontSize: THEME.typography.size[12],
+    fontWeight: THEME.typography.weight.bold as '700',
+    color: 'rgba(255,255,255,0.96)',
+    textDecorationLine: 'underline',
   },
 });
 
