@@ -2,6 +2,9 @@ export interface ConsultantSelfBooking {
   id: number;
   consultantId: number;
   name: string;
+  customerImageUrl?: string | null;
+  customerImage?: string | null;
+  profileImage?: string | null;
   email: string;
   phone: string;
   consultationType: string;

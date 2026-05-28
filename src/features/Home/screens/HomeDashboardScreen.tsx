@@ -14,8 +14,14 @@ import { useGetConsultantSelfBookingsQuery } from '@/features/Bookings/api/consu
 import { useGetMyConsultantBookingsPageQuery } from '@/features/Bookings/api/myConsultantBookingsApi';
 import type { ConsultantSelfBooking } from '@/features/Bookings/types/consultantSelfBooking.types';
 import type { MyConsultantBooking } from '@/features/Bookings/types/myConsultantBooking.types';
-import { buildBookingDateTime, formatBookingDate } from '@/features/Bookings/utils/bookingDateTime';
+import {
+  buildBookingDateTime,
+  formatBookingDate,
+  hasBookingStarted,
+  isBookingUpcoming,
+} from '@/features/Bookings/utils/bookingDateTime';
 import { getBookingConsultationKind } from '@/features/Bookings/utils/bookingDisplay';
+import { CallController } from '@/features/Calls/controllers/CallController';
 import { useGetPublicConsultantsQuery } from '@/features/consultant/api/consultantApi';
 import { mapConsultantDetailToCardItem } from '@/features/consultant/utils/consultantMappers';
 import {
@@ -59,6 +65,7 @@ import {
   type MembershipPlanItem,
   MembershipPlansSection,
 } from '@/shared/components';
+import { showGlobalToast } from '@/shared/components/toast';
 import type { HomeCategoryId, ZeptoHSShellColors } from './ZeptoHS/ZeptoHS.types';
 import { ZeptoHS } from './ZeptoHS/ZeptoHS';
 
@@ -95,7 +102,20 @@ function HomeSectionSkeleton(props: { compact?: boolean }): React.ReactElement {
 
 function isStatusVisibleOnHome(status: string): boolean {
   const normalized = status.trim().toLowerCase();
-  return normalized !== 'completed' && normalized !== 'cancelled' && normalized !== 'canceled';
+  return normalized !== 'cancelled' && normalized !== 'canceled';
+}
+
+function isStatusVisibleForHomeUpcoming(
+  status: string,
+  bookingDate: string,
+  slotTime: string,
+  now: Date,
+): boolean {
+  const normalized = status.trim().toLowerCase();
+  if (normalized === 'completed') {
+    return isBookingUpcoming(bookingDate, slotTime, now);
+  }
+  return isStatusVisibleOnHome(status);
 }
 
 function isBookingVisibleInHomeWindow(bookingDate: string, slotTime: string, now: Date): boolean {
@@ -116,22 +136,21 @@ function compareByStartTime(
   return aStart - bStart;
 }
 
-function readImageField(record: Record<string, unknown>, key: string): string | undefined {
-  const value = record[key];
-  if (typeof value !== 'string') {
-    return undefined;
-  }
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : undefined;
-}
-
 function extractBookingAvatarUrl(booking: MyConsultantBooking | ConsultantSelfBooking): string | undefined {
-  const record = booking as unknown as Record<string, unknown>;
+  if ('consultantId' in booking && 'consultantSlug' in booking) {
+    return (
+      booking.consultantImageUrl?.trim() ||
+      booking.consultantImage?.trim() ||
+      booking.consultantProfileImage?.trim() ||
+      booking.profileImage?.trim() ||
+      undefined
+    );
+  }
   return (
-    readImageField(record, 'consultantImageUrl') ??
-    readImageField(record, 'consultantImage') ??
-    readImageField(record, 'consultantProfileImage') ??
-    readImageField(record, 'profileImage')
+    booking.customerImageUrl?.trim() ||
+    booking.customerImage?.trim() ||
+    booking.profileImage?.trim() ||
+    undefined
   );
 }
 
@@ -139,6 +158,7 @@ function mapUserBookingToHomeItem(booking: MyConsultantBooking): UpcomingBooking
   const consultationKind = getBookingConsultationKind(booking.consultationType);
   return {
     id: `user-${booking.id}`,
+    bookingId: booking.id,
     dateLabel: formatBookingDate(booking.bookingDate),
     timeLabel: booking.slotTime,
     consultantName: booking.consultantName?.trim() || booking.name.trim() || 'Consultant',
@@ -153,6 +173,7 @@ function mapConsultantBookingToHomeItem(booking: ConsultantSelfBooking): Upcomin
   const consultationKind = getBookingConsultationKind(booking.consultationType);
   return {
     id: `consultant-${booking.id}`,
+    bookingId: booking.id,
     dateLabel: formatBookingDate(booking.bookingDate),
     timeLabel: booking.slotTime,
     consultantName: booking.name.trim() || 'Client',
@@ -288,7 +309,9 @@ export function HomeDashboardScreen(): React.ReactElement {
     const now = new Date();
     if (isConsultant) {
       const rows = (consultantBookings ?? [])
-        .filter((booking) => isStatusVisibleOnHome(booking.status))
+        .filter((booking) =>
+          isStatusVisibleForHomeUpcoming(booking.status, booking.bookingDate, booking.slotTime, now),
+        )
         .filter((booking) => isBookingVisibleInHomeWindow(booking.bookingDate, booking.slotTime, now))
         .sort(compareByStartTime)
         .slice(0, HOME_UPCOMING_BOOKINGS_LIMIT);
@@ -296,7 +319,9 @@ export function HomeDashboardScreen(): React.ReactElement {
     }
 
     const rows = (myBookingsPage?.data ?? [])
-      .filter((booking) => isStatusVisibleOnHome(booking.status))
+      .filter((booking) =>
+        isStatusVisibleForHomeUpcoming(booking.status, booking.bookingDate, booking.slotTime, now),
+      )
       .filter((booking) => isBookingVisibleInHomeWindow(booking.bookingDate, booking.slotTime, now))
       .sort(compareByStartTime)
       .slice(0, HOME_UPCOMING_BOOKINGS_LIMIT);
@@ -388,6 +413,61 @@ export function HomeDashboardScreen(): React.ReactElement {
     });
   }, [isConsultant, navigation]);
 
+  const onUpcomingBookingJoinCall = useCallback(
+    async (item: UpcomingBookingItem): Promise<void> => {
+      const bookingId = item.bookingId;
+      if (bookingId == null) {
+        return;
+      }
+
+      if (isConsultant) {
+        const booking = (consultantBookings ?? []).find((row) => row.id === bookingId);
+        if (booking == null) {
+          showGlobalToast({ message: 'Booking details not found', variant: 'error' });
+          return;
+        }
+        const error = await CallController.startOutgoingFromBooking(
+          booking.id,
+          booking.name,
+          booking.consultationType,
+        );
+        if (error != null) {
+          showGlobalToast({ message: error, variant: 'error' });
+        }
+        return;
+      }
+
+      const booking = (myBookingsPage?.data ?? []).find((row) => row.id === bookingId);
+      if (booking == null) {
+        showGlobalToast({ message: 'Booking details not found', variant: 'error' });
+        return;
+      }
+      const error = await CallController.startOutgoingFromUserBooking(booking);
+      if (error != null) {
+        showGlobalToast({ message: error, variant: 'error' });
+      }
+    },
+    [consultantBookings, isConsultant, myBookingsPage?.data],
+  );
+
+  const isUpcomingBookingJoinEnabled = useCallback(
+    (item: UpcomingBookingItem): boolean => {
+      if (isConsultant) {
+        return true;
+      }
+      const bookingId = item.bookingId;
+      if (bookingId == null) {
+        return false;
+      }
+      const booking = (myBookingsPage?.data ?? []).find((row) => row.id === bookingId);
+      if (booking == null) {
+        return false;
+      }
+      return hasBookingStarted(booking.bookingDate, booking.slotTime);
+    },
+    [isConsultant, myBookingsPage?.data],
+  );
+
   const zeptoHeader = useMemo(
     () => ({
       backgroundColor: HOME_DEFAULT_SHELL_BG,
@@ -426,6 +506,10 @@ export function HomeDashboardScreen(): React.ReactElement {
                 items={upcomingBookingItems}
                 onViewAllPress={onUpcomingBookingsViewAll}
                 onItemPress={onUpcomingBookingsViewAll}
+                onJoinCallPress={(item) => {
+                  void onUpcomingBookingJoinCall(item);
+                }}
+                isJoinCallEnabled={isUpcomingBookingJoinEnabled}
               />
             ) : null}
 

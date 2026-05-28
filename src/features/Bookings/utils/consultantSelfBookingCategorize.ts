@@ -2,7 +2,7 @@ import type {
   ConsultantBookingsFilter,
   ConsultantSelfBooking,
 } from '../types/consultantSelfBooking.types';
-import { buildBookingDateTime, parseBookingDate } from './bookingDateTime';
+import { isBookingUpcoming, parseBookingDate } from './bookingDateTime';
 
 export function categorizeConsultantBooking(
   booking: ConsultantSelfBooking,
@@ -14,13 +14,8 @@ export function categorizeConsultantBooking(
   if (status === 'cancelled' || paymentStatus === 'failed' || paymentStatus === 'refunded') {
     return 'past';
   }
-  if (status === 'completed') {
-    return 'past';
-  }
-
-  const dateTime = buildBookingDateTime(booking.bookingDate, booking.slotTime);
-  if (dateTime != null) {
-    return dateTime.getTime() >= now.getTime() ? 'upcoming' : 'past';
+  if (isBookingUpcoming(booking.bookingDate, booking.slotTime, now)) {
+    return 'upcoming';
   }
 
   const dateOnly = parseBookingDate(booking.bookingDate);

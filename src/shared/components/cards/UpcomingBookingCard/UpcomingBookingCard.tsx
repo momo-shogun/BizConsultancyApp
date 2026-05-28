@@ -6,6 +6,7 @@ import { THEME } from '@/constants/theme';
 
 export interface UpcomingBookingItem {
   id: string;
+  bookingId?: number;
   dateLabel: string;
   timeLabel: string;
   consultantName: string;

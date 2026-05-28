@@ -1,3 +1,5 @@
+export const UPCOMING_GRACE_MINUTES = 30;
+
 export function parseBookingDate(dateStr: string): Date | null {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
   if (match) {
@@ -67,7 +69,8 @@ export function hasBookingStarted(bookingDate: string, slotTime: string, now = n
 export function isBookingUpcoming(bookingDate: string, slotTime: string, now = new Date()): boolean {
   const bookingDateTime = buildBookingDateTime(bookingDate, slotTime);
   if (bookingDateTime != null) {
-    return bookingDateTime.getTime() >= now.getTime();
+    const graceMs = UPCOMING_GRACE_MINUTES * 60 * 1000;
+    return now.getTime() <= bookingDateTime.getTime() + graceMs;
   }
   const dateOnly = parseBookingDate(bookingDate);
   if (dateOnly == null) {

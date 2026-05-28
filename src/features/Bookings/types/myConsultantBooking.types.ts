@@ -2,6 +2,10 @@ export interface MyConsultantBooking {
   id: number;
   consultantId: number;
   consultantName: string | null;
+  consultantImageUrl?: string | null;
+  consultantImage?: string | null;
+  consultantProfileImage?: string | null;
+  profileImage?: string | null;
   consultantSlug: string | null;
   name: string;
   email: string;
