@@ -27,9 +27,82 @@ export const styles = StyleSheet.create({
     backgroundColor: CONSULTANT_CANVAS,
   },
   scrollContent: {
-    paddingTop: THEME.spacing[16],
+    paddingTop: THEME.spacing[14],
     paddingBottom: THEME.spacing[24],
     paddingHorizontal: THEME.spacing[16],
+  },
+  heroActionCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#D8E3F2',
+    backgroundColor: '#FFFFFF',
+    padding: THEME.spacing[14],
+    marginBottom: THEME.spacing[12],
+    ...Platform.select({
+      ios: {
+        shadowColor: '#0F172A',
+        shadowOpacity: 0.06,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 4 },
+      },
+      android: { elevation: 2 },
+      default: {},
+    }),
+  },
+  heroActionHead: {
+    gap: 2,
+  },
+  heroActionEyebrow: {
+    fontSize: THEME.typography.size[11],
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    color: '#0EA5A4',
+  },
+  heroActionTitle: {
+    marginTop: 2,
+    fontSize: THEME.typography.size[16],
+    fontWeight: '700',
+    color: '#0F172A',
+    letterSpacing: -0.2,
+  },
+  heroActionSubtitle: {
+    marginTop: 4,
+    fontSize: THEME.typography.size[12],
+    lineHeight: 17,
+    color: '#64748B',
+  },
+  quickActionsRow: {
+    marginTop: THEME.spacing[12],
+    gap: THEME.spacing[8],
+  },
+  quickActionItem: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#F8FAFC',
+    paddingHorizontal: THEME.spacing[10],
+    paddingVertical: THEME.spacing[10],
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: THEME.spacing[8],
+  },
+  quickActionPressed: {
+    opacity: 0.86,
+  },
+  quickActionIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 9,
+    backgroundColor: 'rgba(5,150,105,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickActionLabel: {
+    flex: 1,
+    fontSize: THEME.typography.size[13],
+    fontWeight: '600',
+    color: '#0F172A',
   },
   editProfileRow: {
     flexDirection: 'row',
@@ -169,7 +242,7 @@ export const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
   section: {
-    marginTop: THEME.spacing[14],
+    marginTop: THEME.spacing[4],
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -201,6 +274,9 @@ export const styles = StyleSheet.create({
     minHeight: 128,
     justifyContent: 'space-between',
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
   },
   statCardTop: {
     flexDirection: 'row',
@@ -241,7 +317,7 @@ export const styles = StyleSheet.create({
     fontSize: THEME.typography.size[12],
     lineHeight: 16,
     fontWeight: THEME.typography.weight.medium as '500',
-    color: '#94A3B8',
+    color: '#64748B',
   },
   notificationCard: {
     marginHorizontal: THEME.spacing[12],

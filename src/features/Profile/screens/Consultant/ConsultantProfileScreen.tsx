@@ -20,10 +20,10 @@ import { Card } from '@/shared/components/card';
 
 import { ProfileScreenHeaderChrome } from '@/features/Profile/components/ProfileScreenHeaderChrome';
 import { ProfileSignInGate } from '@/features/Profile/components/ProfileSignInGate';
-import { UserProfileMembershipSection } from '@/features/Profile/components/UserProfileMembershipSection';
 import { useGetConsultantMyProfileQuery } from '@/features/Profile/api/consultantProfileApi';
 import { useNavigateToLogin } from '@/features/Profile/hooks/useNavigateToLogin';
 import { useProfileLoginPrompt } from '@/features/Profile/hooks/useProfileLoginPrompt';
+import { useUserProfileMembershipSection } from '@/features/Profile/hooks/useUserProfileMembershipSection';
 
 import { styles } from './ConsultantProfileScreen.styles';
 
@@ -99,20 +99,29 @@ function SettingsHeaderButton(props: { onPress: () => void }): React.ReactElemen
       style={({ pressed }) => [headerBtnStyles.btn, pressed ? headerBtnStyles.btnPressed : null]}
     >
       <Ionicons name="options-outline" size={20} color="#FFFFFF" />
+      <Text style={headerBtnStyles.btnText}>Settings</Text>
     </Pressable>
   );
 }
 
 const headerBtnStyles = StyleSheet.create({
   btn: {
-    width: 40,
+    minWidth: 40,
     height: 40,
     borderRadius: 12,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
     backgroundColor: 'rgba(255,255,255,0.16)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.22)',
+  },
+  btnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
   },
   btnPressed: {
     opacity: 0.88,
@@ -178,6 +187,10 @@ export function ConsultantProfileScreen(): React.ReactElement {
   const { data: profile } = useGetConsultantMyProfileQuery(undefined, {
     skip: !hasVerifiedLogin,
   });
+  const membership = useUserProfileMembershipSection({
+    enabled: hasVerifiedLogin,
+    membershipLine: 'experts',
+  });
 
   const heroName = useMemo((): string => {
     if (!hasVerifiedLogin) {
@@ -207,6 +220,18 @@ export function ConsultantProfileScreen(): React.ReactElement {
 
   const avatarUri = hasVerifiedLogin ? (profile?.thumbnail ?? null) : null;
   const avatarInitial = hasVerifiedLogin ? (heroName ?? 'C').charAt(0).toUpperCase() : 'G';
+  const membershipLabel = useMemo((): string | undefined => {
+    if (!hasVerifiedLogin) {
+      return undefined;
+    }
+    if (membership.isLoading) {
+      return 'Loading plan...';
+    }
+    if (membership.hasPlan) {
+      return membership.planName;
+    }
+    return 'No active plan';
+  }, [hasVerifiedLogin, membership.hasPlan, membership.isLoading, membership.planName]);
 
   const statCardWidth = useMemo((): number => {
     const inner = screenWidth - THEME.spacing[16] * 2 - GRID_GAP;
@@ -245,6 +270,8 @@ export function ConsultantProfileScreen(): React.ReactElement {
         avatarInitial={avatarInitial}
         displayName={heroName}
         displaySubtitle={heroSubtitle}
+        membershipLabel={membershipLabel}
+        onMembershipPress={hasVerifiedLogin ? membership.onMembershipPress : undefined}
         onAvatarPress={openEditProfile}
         rightAction={<SettingsHeaderButton onPress={openHelpSettings} />}
       >
@@ -257,26 +284,6 @@ export function ConsultantProfileScreen(): React.ReactElement {
         >
           {hasVerifiedLogin ? (
             <>
-              <Pressable
-                style={styles.editProfileRow}
-                onPress={openEditProfile}
-                accessibilityRole="button"
-                accessibilityLabel="Edit profile"
-              >
-                <View style={styles.editProfileIcon}>
-                  <Ionicons name="create-outline" size={18} color={THEME.colors.primary} />
-                </View>
-                <View style={styles.editProfileTextBlock}>
-                  <Text style={styles.editProfileTitle}>Edit profile</Text>
-                  <Text style={styles.editProfileSubtitle}>
-                    Photo, fees, summary & professional details
-                  </Text>
-                </View>
-                <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
-              </Pressable>
-
-              <UserProfileMembershipSection membershipLine="experts" />
-
               <View style={styles.section}>
                 <SectionHeading title="Business overview" />
                 <View style={styles.statsGrid}>

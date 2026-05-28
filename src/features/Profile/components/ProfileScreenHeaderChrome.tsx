@@ -21,6 +21,8 @@ export interface ProfileScreenHeaderChromeProps {
   displayName?: string;
   displaySubtitle?: string;
   onAvatarPress?: () => void;
+  membershipLabel?: string;
+  onMembershipPress?: () => void;
   rightAction?: React.ReactNode;
   children: React.ReactNode;
 }
@@ -103,6 +105,40 @@ export function ProfileScreenHeaderChrome(
                 {props.displaySubtitle}
               </Text>
             ) : null}
+            {props.membershipLabel != null && props.membershipLabel.trim().length > 0 ? (
+              <Pressable
+                onPress={props.onMembershipPress}
+                disabled={props.onMembershipPress == null}
+                accessibilityRole={props.onMembershipPress != null ? 'button' : 'text'}
+                accessibilityLabel={
+                  props.onMembershipPress != null
+                    ? `Membership plan ${props.membershipLabel}. Open plans`
+                    : `Membership plan ${props.membershipLabel}`
+                }
+                style={({ pressed }) => [
+                  chromeStyles.membershipPill,
+                  props.onMembershipPress == null ? chromeStyles.membershipPillStatic : null,
+                  pressed && props.onMembershipPress != null ? chromeStyles.membershipPillPressed : null,
+                ]}
+              >
+                <View style={chromeStyles.membershipLeadingIcon}>
+                  <Ionicons name="ribbon-outline" size={13} color="#FFFFFF" />
+                </View>
+                <View style={chromeStyles.membershipTextWrap}>
+                  <Text style={chromeStyles.membershipEyebrow} numberOfLines={1}>
+                    Current plan
+                  </Text>
+                  <Text style={chromeStyles.membershipText} numberOfLines={1}>
+                    {props.membershipLabel}
+                  </Text>
+                </View>
+                {props.onMembershipPress != null ? (
+                  <View style={chromeStyles.membershipCtaIcon}>
+                    <Ionicons name="arrow-up-outline" size={13} color="#FFFFFF" />
+                  </View>
+                ) : null}
+              </Pressable>
+            ) : null}
           </View>
         ) : null}
       </LinearGradient>
@@ -139,7 +175,7 @@ const chromeStyles = StyleSheet.create({
   heroBlock: {
     alignItems: 'center',
     paddingHorizontal: THEME.spacing[16],
-    gap: THEME.spacing[6],
+    gap: THEME.spacing[8],
   },
   avatarRing: {
     width: 96,
@@ -191,6 +227,61 @@ const chromeStyles = StyleSheet.create({
     fontWeight: '500',
     color: 'rgba(255,255,255,0.88)',
     maxWidth: '100%',
+  },
+  membershipPill: {
+    marginTop: THEME.spacing[8],
+    maxWidth: '92%',
+    borderRadius: 14,
+    minHeight: 44,
+    paddingVertical: 7,
+    paddingHorizontal: 9,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(255,255,255,0.20)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.32)',
+  },
+  membershipPillStatic: {
+    paddingRight: 12,
+  },
+  membershipPillPressed: {
+    opacity: 0.92,
+    transform: [{ scale: 0.99 }],
+  },
+  membershipLeadingIcon: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  membershipTextWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
+  membershipEyebrow: {
+    color: 'rgba(255,255,255,0.75)',
+    fontSize: 10,
+    fontWeight: '600',
+    letterSpacing: 0.35,
+  },
+  membershipText: {
+    color: '#FFFFFF',
+    fontSize: THEME.typography.size[12],
+    fontWeight: '700',
+    marginTop: 1,
+  },
+  membershipCtaIcon: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.16)',
   },
   body: {
     flex: 1,
