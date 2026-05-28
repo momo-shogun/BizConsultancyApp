@@ -13,6 +13,7 @@ import { useEdpLandingFaqs } from './useEdpLandingFaqs';
 export interface UseEdpLandingScreenOptions {
   onModulePress?: (moduleSlug: string) => void;
   onViewAllModules?: () => void;
+  onAskQuestion?: () => void;
 }
 
 export function useEdpLandingScreen(options: UseEdpLandingScreenOptions = {}) {
@@ -29,6 +30,15 @@ export function useEdpLandingScreen(options: UseEdpLandingScreenOptions = {}) {
   const onGetStarted = useCallback((): void => {
     navigateToModules();
   }, [navigateToModules]);
+
+  const onAskQuestion = useCallback((): void => {
+    if (options.onAskQuestion != null) {
+      options.onAskQuestion();
+      return;
+    }
+
+    navigation.navigate(ROUTES.Edp.AskQuestions);
+  }, [navigation, options.onAskQuestion]);
 
   const openModules = useCallback((): void => {
     if (onViewAllModules != null) {
@@ -54,6 +64,7 @@ export function useEdpLandingScreen(options: UseEdpLandingScreenOptions = {}) {
     courses,
     faqs,
     onGetStarted,
+    onAskQuestion,
     openModules,
     handleModulePress,
   };

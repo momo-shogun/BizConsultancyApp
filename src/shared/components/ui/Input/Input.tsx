@@ -26,6 +26,8 @@ interface InputProps {
   inputStyle?: StyleProp<TextStyle>;
   rightAdornment?: React.ReactNode;
   error?: string | null;
+  editable?: boolean;
+  multiline?: boolean;
   onFocus?: () => void;
   onBlur?: () => void;
 }
@@ -33,6 +35,7 @@ interface InputProps {
 export function Input(props: InputProps): React.ReactElement {
   const focus = useSharedValue(0);
   const hasError = props.error != null && props.error.length > 0;
+  const isEditable = props.editable ?? true;
 
   const animatedContainerStyle = useAnimatedStyle(() => {
     if (hasError) {
@@ -82,6 +85,8 @@ export function Input(props: InputProps): React.ReactElement {
         style={[
           styles.inputContainer,
           hasError ? styles.inputContainerError : null,
+          !isEditable ? styles.inputContainerDisabled : null,
+          props.multiline ? styles.inputContainerMultiline : null,
           animatedContainerStyle,
           props.containerStyle,
         ]}
@@ -89,7 +94,12 @@ export function Input(props: InputProps): React.ReactElement {
         <View style={styles.row}>
           <TextInput
             accessibilityLabel={props.accessibilityLabel}
-            style={[styles.input, props.inputStyle]}
+            style={[
+              styles.input,
+              props.multiline ? styles.inputMultiline : null,
+              !isEditable ? styles.inputDisabled : null,
+              props.inputStyle,
+            ]}
             value={props.value}
             onChangeText={props.onChangeText}
             placeholder={props.placeholder}
@@ -99,11 +109,20 @@ export function Input(props: InputProps): React.ReactElement {
             textContentType={props.textContentType}
             maxLength={props.maxLength}
             autoCapitalize={props.autoCapitalize ?? 'none'}
+            editable={isEditable}
+            multiline={props.multiline}
+            textAlignVertical={props.multiline ? 'top' : 'center'}
             onFocus={() => {
+              if (!isEditable) {
+                return;
+              }
               focus.value = withTiming(1, { duration: 160, easing: Easing.out(Easing.cubic) });
               props.onFocus?.();
             }}
             onBlur={() => {
+              if (!isEditable) {
+                return;
+              }
               focus.value = withTiming(0, { duration: 160, easing: Easing.out(Easing.cubic) });
               props.onBlur?.();
             }}
@@ -136,6 +155,22 @@ const styles = StyleSheet.create({
   },
   inputContainerError: {
     backgroundColor: '#FEF2F2',
+  },
+  inputContainerDisabled: {
+    backgroundColor: THEME.colors.surface,
+    borderColor: THEME.colors.border,
+  },
+  inputContainerMultiline: {
+    minHeight: 120,
+    alignItems: 'flex-start',
+  },
+  inputMultiline: {
+    minHeight: 104,
+    paddingTop: THEME.spacing[12],
+    paddingBottom: THEME.spacing[12],
+  },
+  inputDisabled: {
+    color: THEME.colors.textSecondary,
   },
   errorText: {
     fontSize: THEME.typography.size[12],
