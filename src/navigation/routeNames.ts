@@ -16,6 +16,8 @@ export const ROUTES = {
     Search: 'Root/Search',
     BizAI: 'Root/BizAI',
     BusinessDiagnosis: 'Root/BusinessDiagnosis',
+    MyBookings: 'Root/MyBookings',
+    ConsultantBookings: 'Root/ConsultantBookings',
   },
   Auth: {
     Splash: 'Auth/Splash',

@@ -24,9 +24,12 @@ import WorkshopDetailsScreen from '@/features/Home/screens/WorkshopDetailsScreen
 import { BizAIScreen } from '@/features/BizAI/screens/BizAIScreen';
 import { SearchScreen } from '@/features/Search/screens/SearchScreen';
 import { BusinessDiagnosisScreen } from '@/features/Diagnostics/screens/BusinessDiagnosisScreen';
+import { ConsultantBookingsScreen } from '@/features/Bookings/screens/ConsultantBookingsScreen';
+import { MyBookingsScreen } from '@/features/Bookings/screens/MyBookingsScreen';
 import { callEngine } from '@/features/Calls/engine/CallEngine';
 
 import { navigationRef } from './navigationContainerRef';
+import { rootSlideFromRightScreenOptions } from './rootStackScreenOptions';
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 
@@ -54,14 +57,12 @@ export function RootNavigator(): React.ReactElement {
             <RootStack.Screen
               name={ROUTES.Root.ConsultantsList}
               component={ConsultantViewAllScreen}
-              options={{
-                headerShown: false,
-              }}
+              options={rootSlideFromRightScreenOptions}
             />
             <RootStack.Screen
               name={ROUTES.Root.ConsultantDetail}
               component={ConsultantDetailScreen}
-              options={{ headerShown: false }}
+              options={rootSlideFromRightScreenOptions}
             />
 
             <RootStack.Screen
@@ -103,9 +104,19 @@ export function RootNavigator(): React.ReactElement {
               options={{ headerShown: false }}
             />
             <RootStack.Screen
+              name={ROUTES.Root.MyBookings}
+              component={MyBookingsScreen}
+              options={rootSlideFromRightScreenOptions}
+            />
+            <RootStack.Screen
+              name={ROUTES.Root.ConsultantBookings}
+              component={ConsultantBookingsScreen}
+              options={rootSlideFromRightScreenOptions}
+            />
+            <RootStack.Screen
               name={ROUTES.Root.WorkshopsList}
               component={WorkshopListScreen}
-              options={{ headerShown: false }}
+              options={rootSlideFromRightScreenOptions}
             />
             <RootStack.Screen
               name={ROUTES.Root.WorkshopsDetail}

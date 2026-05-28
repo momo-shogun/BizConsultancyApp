@@ -227,9 +227,9 @@ export function HomeDashboardScreen(): React.ReactElement {
   }, [navigation]);
 
   const onUpcomingBookingsViewAll = useCallback((): void => {
-    navigation.navigate(ROUTES.App.Account, {
-      screen: isConsultant ? ROUTES.Account.ConsultantBookings : ROUTES.Account.MyBookings,
-    });
+    navigation.navigate(
+      isConsultant ? ROUTES.Root.ConsultantBookings : ROUTES.Root.MyBookings,
+    );
   }, [isConsultant, navigation]);
 
   const onUpcomingBookingJoinCall = useCallback(

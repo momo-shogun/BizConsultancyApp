@@ -2,7 +2,7 @@ import type { NavigatorScreenParams } from '@react-navigation/native';
 
 import type { SearchScreenParams } from '@/features/Search/types/search.types';
 
-import { ROUTES } from './routeNames';
+import { type ROUTES } from './routeNames';
 
 export type AuthStackParamList = {
   [ROUTES.Auth.Splash]: undefined;
@@ -98,4 +98,6 @@ export type RootStackParamList = {
   [ROUTES.Root.Search]: SearchScreenParams | undefined;
   [ROUTES.Root.BizAI]: undefined;
   [ROUTES.Root.BusinessDiagnosis]: undefined;
+  [ROUTES.Root.MyBookings]: undefined;
+  [ROUTES.Root.ConsultantBookings]: undefined;
 };
