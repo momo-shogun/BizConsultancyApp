@@ -22,7 +22,6 @@ import type { ServicesStackParamList } from '@/navigation/types';
 import {
   EmptyState,
   SafeAreaWrapper,
-  ScreenHeader,
   ScreenWrapper,
   ScrollWrapper,
 } from '@/shared/components';
@@ -156,7 +155,7 @@ export function ServiceDetailScreen(): React.ReactElement {
   );
 
   const handleBack = useCallback((): void => {
-    navigation.navigate(ROUTES.Services.List);
+    navigation.goBack();
   }, [navigation]);
 
   const openConsultantsList = useCallback((): void => {

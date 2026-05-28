@@ -8,33 +8,39 @@ import {
   selectLoggedInEmail,
   selectLoggedInMobile,
 } from '@/features/Auth/store/authSelectors';
+import {
+  useGetMasterCategoriesQuery,
+  useGetMasterSegmentsQuery,
+} from '@/features/consultant/api/consultantApi';
+import { useSubmitEdpEnquiryMutation } from '@/features/Edp/api/edpEnquiryApi';
+import { EDP_PROGRAMME_ENQUIRY_CATEGORY_ID } from '@/features/Edp/constants/edpEnquiryConfig';
 import { useGetUserMeQuery } from '@/features/Profile/api/userProfileApi';
-import { ROUTES } from '@/navigation/routeNames';
+import { type ROUTES } from '@/navigation/routeNames';
 import type { EdpStackParamList } from '@/navigation/types';
 import { showGlobalToast } from '@/shared/components/toast';
+import { getApiErrorMessage } from '@/utils/apiError';
 import { formatIndianMobile } from '@/utils/formatPhone';
 import { useAppSelector } from '@/store/typedHooks';
 
 import type {
   FdpAskQuestionsFormState,
-  FdpCategoryOption,
+  FdpMasterDropdownOption,
 } from '../types/fdpAskQuestions.types';
+import {
+  buildEdpEnquiryMessage,
+  findMasterName,
+  toEnquiryPhone,
+} from '../utils/edpEnquiryMessage';
 import {
   sanitizeRemark,
   validateFdpAskQuestionsForm,
 } from '../utils/fdpAskQuestionsValidation';
 
 const EMPTY_FORM: FdpAskQuestionsFormState = {
-  category: '',
+  categoryId: '',
+  segmentId: '',
   remark: '',
 };
-
-export const FDP_CATEGORY_OPTIONS: FdpCategoryOption[] = [
-  { label: 'Professional', value: 'professional' },
-  { label: 'Student', value: 'student' },
-  { label: 'Business Owner', value: 'business_owner' },
-  { label: 'Consultant', value: 'consultant' },
-];
 
 function pickDisplayValue(apiValue: string | null | undefined, authValue: string | null): string {
   const fromApi = apiValue?.trim() ?? '';
@@ -48,19 +54,33 @@ function pickDisplayValue(apiValue: string | null | undefined, authValue: string
   return '';
 }
 
+function mapMasterOptions(
+  items: Array<{ id: number; name: string }>,
+): FdpMasterDropdownOption[] {
+  return items.map((item) => ({
+    label: item.name,
+    value: String(item.id),
+  }));
+}
+
 export interface UseFdpAskQuestionsScreenResult {
   form: FdpAskQuestionsFormState;
-  categoryOptions: FdpCategoryOption[];
+  categoryOptions: FdpMasterDropdownOption[];
+  segmentOptions: FdpMasterDropdownOption[];
   name: string;
   mobile: string;
   email: string;
   isAuthenticated: boolean;
   isProfileLoading: boolean;
+  isCategoriesLoading: boolean;
+  isSegmentsLoading: boolean;
   isSubmitting: boolean;
   validationError: string | null;
   categoryError: string | null;
+  segmentError: string | null;
   canSubmit: boolean;
-  setCategory: (value: string) => void;
+  setCategoryId: (value: string) => void;
+  setSegmentId: (value: string) => void;
   setRemark: (value: string) => void;
   handleSubmit: () => void;
   goBack: () => void;
@@ -78,13 +98,19 @@ export function useFdpAskQuestionsScreen(): UseFdpAskQuestionsScreenResult {
   const authMobile = useAppSelector(selectLoggedInMobile);
   const authEmail = useAppSelector(selectLoggedInEmail);
 
-  const { data: profile, isLoading } = useGetUserMeQuery(undefined, {
+  const { data: profile, isLoading: isProfileQueryLoading } = useGetUserMeQuery(undefined, {
     skip: !isAuthenticated,
   });
 
   const [form, setForm] = useState<FdpAskQuestionsFormState>(EMPTY_FORM);
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [submitAttempted, setSubmitAttempted] = useState<boolean>(false);
+  const [submitEdpEnquiry, { isLoading: isSubmitting }] = useSubmitEdpEnquiryMutation();
+
+  const { data: categories = [], isLoading: isCategoriesLoading } = useGetMasterCategoriesQuery();
+  const { data: segments = [], isLoading: isSegmentsLoading } = useGetMasterSegmentsQuery(
+    form.categoryId.length > 0 ? { categoryId: form.categoryId } : undefined,
+    { skip: form.categoryId.length === 0 },
+  );
 
   const name = useMemo(
     (): string => pickDisplayValue(profile?.name, authName),
@@ -104,29 +130,64 @@ export function useFdpAskQuestionsScreen(): UseFdpAskQuestionsScreenResult {
     [authEmail, profile?.email],
   );
 
-  const isProfileLoading = isAuthenticated && isLoading && profile == null;
+  const phoneForApi = useMemo((): string => {
+    const raw = pickDisplayValue(profile?.mobile, authMobile);
+    return toEnquiryPhone(raw);
+  }, [authMobile, profile?.mobile]);
+
+  const hasContactDetails =
+    name.trim().length > 0 && email.trim().length > 0 && phoneForApi.length >= 10;
+
+  const categoryOptions = useMemo(
+    (): FdpMasterDropdownOption[] => mapMasterOptions(categories),
+    [categories],
+  );
+
+  const segmentOptions = useMemo(
+    (): FdpMasterDropdownOption[] => mapMasterOptions(segments),
+    [segments],
+  );
+
+  const isProfileLoading = isAuthenticated && isProfileQueryLoading && profile == null;
 
   const validationError = useMemo((): string | null => validateFdpAskQuestionsForm(form), [form]);
 
   const categoryError = useMemo((): string | null => {
-    if (!submitAttempted && form.category.length === 0) {
+    if (!submitAttempted && form.categoryId.length === 0) {
       return null;
     }
-    if (form.category.trim().length === 0) {
+    if (form.categoryId.trim().length === 0) {
       return 'Please select a category.';
     }
     return null;
-  }, [form.category, submitAttempted]);
+  }, [form.categoryId, submitAttempted]);
+
+  const segmentError = useMemo((): string | null => {
+    if (!submitAttempted && form.segmentId.length === 0) {
+      return null;
+    }
+    if (form.segmentId.trim().length === 0) {
+      return 'Please select a segment.';
+    }
+    return null;
+  }, [form.segmentId, submitAttempted]);
 
   const canSubmit =
     isAuthenticated &&
+    hasContactDetails &&
     !isProfileLoading &&
+    !isCategoriesLoading &&
     !isSubmitting &&
     validationError == null &&
-    form.category.trim().length > 0;
+    form.categoryId.trim().length > 0 &&
+    form.segmentId.trim().length > 0;
 
-  const setCategory = useCallback((value: string): void => {
-    setForm((prev) => ({ ...prev, category: value }));
+  const setCategoryId = useCallback((value: string): void => {
+    setForm((prev) => ({ ...prev, categoryId: value, segmentId: '' }));
+  }, []);
+
+  const setSegmentId = useCallback((value: string): void => {
+    setForm((prev) => ({ ...prev, segmentId: value }));
   }, []);
 
   const setRemark = useCallback((value: string): void => {
@@ -139,6 +200,14 @@ export function useFdpAskQuestionsScreen(): UseFdpAskQuestionsScreenResult {
       return;
     }
 
+    if (!hasContactDetails) {
+      showGlobalToast({
+        variant: 'error',
+        message: 'Your profile must include name, email, and mobile before submitting.',
+      });
+      return;
+    }
+
     setSubmitAttempted(true);
     const fieldError = validateFdpAskQuestionsForm(form);
     if (fieldError != null) {
@@ -146,28 +215,57 @@ export function useFdpAskQuestionsScreen(): UseFdpAskQuestionsScreenResult {
       return;
     }
 
+    const categoryId = Number(form.categoryId);
+    const segmentId = Number(form.segmentId);
+    if (!Number.isFinite(categoryId) || categoryId < 1 || !Number.isFinite(segmentId) || segmentId < 1) {
+      showGlobalToast({ variant: 'error', message: 'Please select a valid category and segment.' });
+      return;
+    }
+
+    const categoryName = findMasterName(categories, form.categoryId);
+    const segmentName = findMasterName(segments, form.segmentId);
+    const message = buildEdpEnquiryMessage({
+      categoryName,
+      segmentName,
+      remark: form.remark,
+    });
+
     void (async (): Promise<void> => {
-      setIsSubmitting(true);
       try {
-        await new Promise<void>((resolve) => {
-          setTimeout(resolve, 600);
-        });
+        const result = await submitEdpEnquiry({
+          name: name.trim(),
+          email: email.trim(),
+          phone: phoneForApi,
+          enqCategoryId: EDP_PROGRAMME_ENQUIRY_CATEGORY_ID,
+          categoryInterestedId: categoryId,
+          message,
+        }).unwrap();
+
         showGlobalToast({
           variant: 'success',
           title: 'Submitted',
-          message: 'Your programme guidance request has been received.',
+          message: result.message,
         });
         navigation.goBack();
-      } catch {
+      } catch (error) {
         showGlobalToast({
           variant: 'error',
-          message: 'Failed to submit request. Please try again.',
+          message: getApiErrorMessage(error, 'Failed to submit request. Please try again.'),
         });
-      } finally {
-        setIsSubmitting(false);
       }
     })();
-  }, [form, isAuthenticated, navigation]);
+  }, [
+    categories,
+    email,
+    form,
+    hasContactDetails,
+    isAuthenticated,
+    name,
+    navigation,
+    phoneForApi,
+    segments,
+    submitEdpEnquiry,
+  ]);
 
   const goBack = useCallback((): void => {
     navigation.goBack();
@@ -175,17 +273,22 @@ export function useFdpAskQuestionsScreen(): UseFdpAskQuestionsScreenResult {
 
   return {
     form,
-    categoryOptions: FDP_CATEGORY_OPTIONS,
+    categoryOptions,
+    segmentOptions,
     name,
     mobile,
     email,
     isAuthenticated,
     isProfileLoading,
+    isCategoriesLoading,
+    isSegmentsLoading,
     isSubmitting,
     validationError,
     categoryError,
+    segmentError,
     canSubmit,
-    setCategory,
+    setCategoryId,
+    setSegmentId,
     setRemark,
     handleSubmit,
     goBack,

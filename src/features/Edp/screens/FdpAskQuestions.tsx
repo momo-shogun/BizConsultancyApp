@@ -27,7 +27,7 @@ function SectionLabel({ title }: { title: string }): React.ReactElement {
 const FdpAskQuestions = (): React.ReactElement => {
   const insets = useSafeAreaInsets();
   const screen = useFdpAskQuestionsScreen();
-  const footerBottomInset = FOOTER_PADDING + insets.bottom;
+  const footerBottomInset = FOOTER_PADDING ;
 
   const topChrome = (
     <View style={[styles.topChrome, { paddingTop: insets.top }]}>
@@ -39,7 +39,7 @@ const FdpAskQuestions = (): React.ReactElement => {
     </View>
   );
 
-  if (screen.isProfileLoading) {
+  if (screen.isProfileLoading || screen.isCategoriesLoading) {
     return (
       <SafeAreaWrapper
         edges={['bottom']}
@@ -150,10 +150,10 @@ const FdpAskQuestions = (): React.ReactElement => {
                 labelField="label"
                 valueField="value"
                 placeholder="Select category"
-                value={screen.form.category || null}
+                value={screen.form.categoryId || null}
                 onChange={(item) => {
                   if (item != null && typeof item.value === 'string') {
-                    screen.setCategory(item.value);
+                    screen.setCategoryId(item.value);
                   }
                 }}
                 error={screen.categoryError != null}
@@ -161,6 +161,39 @@ const FdpAskQuestions = (): React.ReactElement => {
               />
               {screen.categoryError != null ? (
                 <Text style={styles.fieldError}>{screen.categoryError}</Text>
+              ) : null}
+            </View>
+
+            <View style={styles.fieldBlock}>
+              <Text style={styles.fieldLabel}>Segment</Text>
+              <Dropdown
+                anchorMenu
+                data={screen.segmentOptions.map((option) => ({
+                  label: option.label,
+                  value: option.value,
+                }))}
+                labelField="label"
+                valueField="value"
+                placeholder={
+                  screen.form.categoryId.length > 0
+                    ? 'Select segment'
+                    : 'Select category first'
+                }
+                value={screen.form.segmentId || null}
+                onChange={(item) => {
+                  if (item != null && typeof item.value === 'string') {
+                    screen.setSegmentId(item.value);
+                  }
+                }}
+                error={screen.segmentError != null}
+                disabled={
+                  screen.form.categoryId.length === 0 ||
+                  screen.isSubmitting ||
+                  screen.isSegmentsLoading
+                }
+              />
+              {screen.segmentError != null ? (
+                <Text style={styles.fieldError}>{screen.segmentError}</Text>
               ) : null}
             </View>
 
@@ -178,7 +211,9 @@ const FdpAskQuestions = (): React.ReactElement => {
               Optional. Up to {REMARK_MAX_LENGTH} characters.
             </Text>
 
-            {screen.validationError != null && screen.categoryError == null ? (
+            {screen.validationError != null &&
+            screen.categoryError == null &&
+            screen.segmentError == null ? (
               <View style={styles.errorRow}>
                 <Ionicons
                   name="alert-circle-outline"

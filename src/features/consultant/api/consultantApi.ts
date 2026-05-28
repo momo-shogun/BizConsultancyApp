@@ -98,6 +98,9 @@ export const consultantApi = baseApi.injectEndpoints({
       }),
       transformResponse: (response: unknown): MasterDataItem[] => parseMasterDataList(response),
     }),
+
+
+    
     getMasterIndustries: build.query<MasterDataItem[], MasterIndustriesQuery>({
       query: (params) => ({
         url: 'public/master-industries',
