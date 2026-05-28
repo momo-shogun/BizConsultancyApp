@@ -10,10 +10,12 @@ import {
   selectAccountRole,
   selectIsAuthenticated,
 } from '@/features/Auth/store/authSelectors';
-import { useHomeUpcomingBookings } from '@/features/Bookings/hooks/useHomeUpcomingBookings';
-import type { HomeUpcomingBookingEntry } from '@/features/Bookings/hooks/useHomeUpcomingBookings';
-import { useUserBookingCall } from '@/features/Bookings/hooks/useUserBookingCall';
-import { CallController } from '@/features/Calls/controllers/CallController';
+import { useGetConsultantSelfBookingsQuery } from '@/features/Bookings/api/consultantSelfBookingsApi';
+import { useGetMyConsultantBookingsPageQuery } from '@/features/Bookings/api/myConsultantBookingsApi';
+import type { ConsultantSelfBooking } from '@/features/Bookings/types/consultantSelfBooking.types';
+import type { MyConsultantBooking } from '@/features/Bookings/types/myConsultantBooking.types';
+import { buildBookingDateTime, formatBookingDate } from '@/features/Bookings/utils/bookingDateTime';
+import { getBookingConsultationKind } from '@/features/Bookings/utils/bookingDisplay';
 import { useGetPublicConsultantsQuery } from '@/features/consultant/api/consultantApi';
 import { mapConsultantDetailToCardItem } from '@/features/consultant/utils/consultantMappers';
 import {
@@ -56,7 +58,6 @@ import {
   type MembershipPlanItem,
   MembershipPlansSection,
 } from '@/shared/components';
-import { showGlobalToast } from '@/shared/components/toast';
 import type { HomeCategoryId } from './ZeptoHS/ZeptoHS.types';
 import { ZeptoHS } from './ZeptoHS/ZeptoHS';
 
@@ -71,6 +72,57 @@ const HOME_WORKSHOPS_PREVIEW_COUNT = 2;
 const HOME_RECOMMENDED_SERVICES_CARD_WIDTH = 320;
 const HOME_TESTIMONIALS_CARD_WIDTH = 260;
 const HOME_MEMBERSHIP_PLANS_CARD_WIDTH = 360;
+const HOME_UPCOMING_BOOKINGS_LIMIT = 5;
+const BOOKING_VISIBLE_AFTER_START_MINUTES = 30;
+
+function isStatusVisibleOnHome(status: string): boolean {
+  const normalized = status.trim().toLowerCase();
+  return normalized !== 'completed' && normalized !== 'cancelled' && normalized !== 'canceled';
+}
+
+function isBookingVisibleInHomeWindow(bookingDate: string, slotTime: string, now: Date): boolean {
+  const start = buildBookingDateTime(bookingDate, slotTime);
+  if (start == null) {
+    return false;
+  }
+  const visibleUntil = start.getTime() + BOOKING_VISIBLE_AFTER_START_MINUTES * 60 * 1000;
+  return now.getTime() <= visibleUntil;
+}
+
+function compareByStartTime(
+  a: { bookingDate: string; slotTime: string },
+  b: { bookingDate: string; slotTime: string },
+): number {
+  const aStart = buildBookingDateTime(a.bookingDate, a.slotTime)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+  const bStart = buildBookingDateTime(b.bookingDate, b.slotTime)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+  return aStart - bStart;
+}
+
+function mapUserBookingToHomeItem(booking: MyConsultantBooking): UpcomingBookingItem {
+  const consultationKind = getBookingConsultationKind(booking.consultationType);
+  return {
+    id: `user-${booking.id}`,
+    dateLabel: formatBookingDate(booking.bookingDate),
+    timeLabel: booking.slotTime,
+    consultantName: booking.consultantName?.trim() || booking.name.trim() || 'Consultant',
+    consultantTitle: 'Consultation',
+    callType: consultationKind === 'video' ? 'video' : 'audio',
+    statusLabel: booking.status.trim() || 'Upcoming',
+  };
+}
+
+function mapConsultantBookingToHomeItem(booking: ConsultantSelfBooking): UpcomingBookingItem {
+  const consultationKind = getBookingConsultationKind(booking.consultationType);
+  return {
+    id: `consultant-${booking.id}`,
+    dateLabel: formatBookingDate(booking.bookingDate),
+    timeLabel: booking.slotTime,
+    consultantName: booking.name.trim() || 'Client',
+    consultantTitle: 'Client session',
+    callType: consultationKind === 'video' ? 'video' : 'audio',
+    statusLabel: booking.status.trim() || 'Upcoming',
+  };
+}
 
 export function HomeDashboardScreen(): React.ReactElement {
   const navigation = useNavigation<HomeDashboardNavigationProp>();
@@ -120,6 +172,13 @@ export function HomeDashboardScreen(): React.ReactElement {
   const { data: publicTestimonials } = useGetPublicTestimonialsQuery({ showOnHomescreen: true });
 
   const { data: publicMemberships } = useGetPublicMembershipsQuery();
+  const { data: myBookingsPage } = useGetMyConsultantBookingsPageQuery(
+    { page: 1, limit: 100 },
+    { skip: !isAuthenticated || isConsultant },
+  );
+  const { data: consultantBookings } = useGetConsultantSelfBookingsQuery(undefined, {
+    skip: !isAuthenticated || !isConsultant,
+  });
 
   const topConsultantItems = useMemo((): TopConsultantItem[] => {
     const rows = consultantsPage?.items ?? [];
@@ -136,16 +195,27 @@ export function HomeDashboardScreen(): React.ReactElement {
     return mapPublicWorkshopsToEventSpotlightItems(rows).slice(0, HOME_WORKSHOPS_PREVIEW_COUNT);
   }, [publicWorkshops?.items]);
 
-  const homeUpcomingBookings = useHomeUpcomingBookings(isConsultant);
-  const { startCallFromBooking } = useUserBookingCall();
-
-  const upcomingBookingEntriesById = useMemo((): Map<string, HomeUpcomingBookingEntry> => {
-    const map = new Map<string, HomeUpcomingBookingEntry>();
-    for (const entry of homeUpcomingBookings.entries) {
-      map.set(entry.item.id, entry);
+  const upcomingBookingItems = useMemo((): UpcomingBookingItem[] => {
+    if (!isAuthenticated) {
+      return [];
     }
-    return map;
-  }, [homeUpcomingBookings.entries]);
+    const now = new Date();
+    if (isConsultant) {
+      const rows = (consultantBookings ?? [])
+        .filter((booking) => isStatusVisibleOnHome(booking.status))
+        .filter((booking) => isBookingVisibleInHomeWindow(booking.bookingDate, booking.slotTime, now))
+        .sort(compareByStartTime)
+        .slice(0, HOME_UPCOMING_BOOKINGS_LIMIT);
+      return rows.map(mapConsultantBookingToHomeItem);
+    }
+
+    const rows = (myBookingsPage?.data ?? [])
+      .filter((booking) => isStatusVisibleOnHome(booking.status))
+      .filter((booking) => isBookingVisibleInHomeWindow(booking.bookingDate, booking.slotTime, now))
+      .sort(compareByStartTime)
+      .slice(0, HOME_UPCOMING_BOOKINGS_LIMIT);
+    return rows.map(mapUserBookingToHomeItem);
+  }, [consultantBookings, isAuthenticated, isConsultant, myBookingsPage?.data]);
 
   const testimonialItems = useMemo((): TestimonialItem[] => {
     const rows = publicTestimonials ?? [];
@@ -227,45 +297,10 @@ export function HomeDashboardScreen(): React.ReactElement {
   }, [navigation]);
 
   const onUpcomingBookingsViewAll = useCallback((): void => {
-    navigation.navigate(
-      isConsultant ? ROUTES.Root.ConsultantBookings : ROUTES.Root.MyBookings,
-    );
+    navigation.navigate(ROUTES.App.Account, {
+      screen: isConsultant ? ROUTES.Account.ConsultantBookings : ROUTES.Account.MyBookings,
+    });
   }, [isConsultant, navigation]);
-
-  const onUpcomingBookingJoinCall = useCallback(
-    (item: UpcomingBookingItem): void => {
-      const entry = upcomingBookingEntriesById.get(item.id);
-      if (entry == null) {
-        return;
-      }
-
-      if (!entry.canJoinCall) {
-        showGlobalToast({
-          message: isConsultant
-            ? 'Call is available for confirmed upcoming phone or video sessions'
-            : 'Call unlocks when your confirmed session slot starts',
-          variant: 'error',
-        });
-        return;
-      }
-
-      if (entry.kind === 'user') {
-        void startCallFromBooking(entry.booking, 'upcoming');
-        return;
-      }
-
-      void CallController.startOutgoingFromBooking(
-        entry.booking.id,
-        entry.booking.name,
-        entry.booking.consultationType,
-      ).then((err) => {
-        if (err != null) {
-          showGlobalToast({ message: err, variant: 'error' });
-        }
-      });
-    },
-    [isConsultant, startCallFromBooking, upcomingBookingEntriesById],
-  );
 
   const zeptoHeader = useMemo(
     () => ({
@@ -285,16 +320,12 @@ export function HomeDashboardScreen(): React.ReactElement {
         {(_categoryId: HomeCategoryId) => (
           <View style={styles.sheet}>
 
-            {isAuthenticated && homeUpcomingBookings.items.length > 0 ? (
+            {isAuthenticated && upcomingBookingItems.length > 0 ? (
               <UpcomingBookingsSection
                 title={isConsultant ? 'Upcoming sessions' : 'Upcoming bookings'}
-                items={homeUpcomingBookings.items}
+                items={upcomingBookingItems}
                 onViewAllPress={onUpcomingBookingsViewAll}
                 onItemPress={onUpcomingBookingsViewAll}
-                onJoinCallPress={onUpcomingBookingJoinCall}
-                isJoinCallEnabled={(item) =>
-                  upcomingBookingEntriesById.get(item.id)?.canJoinCall === true
-                }
               />
             ) : null}
             {homeInterestItems.length > 0 ? (

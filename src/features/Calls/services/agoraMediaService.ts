@@ -4,13 +4,9 @@ import {
   ChannelProfileType,
   ClientRoleType,
   createAgoraRtcEngine,
-  RenderModeType,
   RemoteAudioState,
   RemoteVideoState,
-  RemoteVideoStateReason,
   VideoCodecType,
-  VideoStreamType,
-  VideoSourceType,
   type ChannelMediaOptions,
   type IRtcEngine,
   type IRtcEngineEventHandler,
@@ -46,21 +42,6 @@ let previewActive = false;
 let activeCallType: CallType = 'voice';
 let joinedLocalUid = 0;
 let joinedChannelName = '';
-const remotePeerUids = new Set<number>();
-const remoteVideoEverActiveUids = new Set<number>();
-
-function debugVideoLog(label: string, extra?: Record<string, unknown>): void {
-  const payload = {
-    label,
-    activeCallType,
-    inChannel,
-    localVideoEnabled,
-    joinedLocalUid,
-    joinedChannelName,
-    ...extra,
-  };
-  console.log('[video-debug][agora-media]', payload);
-}
 
 function buildChannelMediaOptions(callType: CallType): ChannelMediaOptions {
   const isVideo = callType === 'video';
@@ -124,26 +105,9 @@ function applyVideoSettings(rtc: IRtcEngine): void {
     frameRate: 15,
     bitrate: 0,
   });
-  rtc.enableLocalVideo(localVideoEnabled);
   rtc.muteLocalVideoStream(!localVideoEnabled);
   rtc.muteAllRemoteVideoStreams(false);
   rtc.updateChannelMediaOptions(buildChannelMediaOptions(activeCallType));
-}
-
-/** Starts camera capture and publishes video after joining a channel. */
-function startLocalVideoPublish(rtc: IRtcEngine): void {
-  if (activeCallType !== 'video') {
-    return;
-  }
-  if (previewActive) {
-    rtc.stopPreview();
-    previewActive = false;
-  }
-  rtc.enableVideo();
-  rtc.enableLocalVideo(localVideoEnabled);
-  rtc.muteLocalVideoStream(!localVideoEnabled);
-  rtc.muteAllRemoteVideoStreams(false);
-  rtc.updateChannelMediaOptions(buildChannelMediaOptions('video'));
 }
 
 function startVideoCapture(rtc: IRtcEngine): void {
@@ -163,90 +127,22 @@ function applyMediaSettings(rtc: IRtcEngine): void {
   }
 }
 
-function isLocalUid(uid: number): boolean {
-  return joinedLocalUid > 0 && uid === joinedLocalUid;
-}
-
-function registerRemotePeer(uid: number): void {
-  if (isLocalUid(uid)) {
-    return;
-  }
-  remotePeerUids.add(uid);
-  if (engine != null) {
-    subscribeRemoteAudio(engine, uid);
-    subscribeRemoteVideo(engine, uid);
-    bindRemoteVideoCanvas(engine, uid);
-  }
-  listeners.onRemoteUserJoined?.(uid);
-  debugVideoLog('remote-peer-registered', {
-    uid,
-    remotePeerUids: Array.from(remotePeerUids),
-  });
-}
-
-function markRemoteVideoActive(uid: number): void {
-  if (isLocalUid(uid)) {
-    return;
-  }
-  remoteVideoEverActiveUids.add(uid);
-  listeners.onRemoteVideoMuted?.(uid, false);
-  listeners.onRemoteVideoState?.(uid, true);
-  debugVideoLog('remote-video-active', {
-    uid,
-    remoteVideoEverActiveUids: Array.from(remoteVideoEverActiveUids),
-  });
-}
-
-function notifyRemoteVideoState(
-  uid: number,
-  state: RemoteVideoState,
-  reason: RemoteVideoStateReason,
-): void {
-  if (isLocalUid(uid)) {
-    return;
-  }
-
+function notifyRemoteVideoState(uid: number, state: RemoteVideoState): void {
   const active =
     state === RemoteVideoState.RemoteVideoStateStarting ||
-    state === RemoteVideoState.RemoteVideoStateDecoding ||
-    state === RemoteVideoState.RemoteVideoStateFrozen;
-
+    state === RemoteVideoState.RemoteVideoStateDecoding;
   const inactive =
     state === RemoteVideoState.RemoteVideoStateStopped ||
     state === RemoteVideoState.RemoteVideoStateFailed;
 
-  debugVideoLog('remote-video-state-changed', {
-    uid,
-    state,
-    reason,
-    active,
-    inactive,
-    remoteVideoEverActive: remoteVideoEverActiveUids.has(uid),
-  });
-
   if (active) {
-    markRemoteVideoActive(uid);
+    listeners.onRemoteUserJoined?.(uid);
+    listeners.onRemoteVideoState?.(uid, true);
     return;
   }
   if (inactive) {
-    if (reason === RemoteVideoStateReason.RemoteVideoStateReasonLocalMuted) {
-      if (engine != null) {
-        subscribeRemoteVideo(engine, uid);
-      }
-      debugVideoLog('remote-video-local-muted-recovered', { uid });
-      return;
-    }
-    if (
-      reason === RemoteVideoStateReason.RemoteVideoStateReasonRemoteMuted &&
-      remoteVideoEverActiveUids.has(uid)
-    ) {
-      listeners.onRemoteVideoMuted?.(uid, true);
-      return;
-    }
-    if (reason === RemoteVideoStateReason.RemoteVideoStateReasonRemoteOffline) {
-      listeners.onRemoteUserLeft?.(uid);
-      remotePeerUids.delete(uid);
-    }
+    listeners.onRemoteVideoMuted?.(uid, true);
+    listeners.onRemoteVideoState?.(uid, false);
   }
 }
 
@@ -260,18 +156,6 @@ function subscribeRemoteVideo(rtc: IRtcEngine, uid: number): void {
     return;
   }
   rtc.muteRemoteVideoStream(uid, false);
-  rtc.setRemoteVideoStreamType(uid, VideoStreamType.VideoStreamHigh);
-}
-
-function bindRemoteVideoCanvas(rtc: IRtcEngine, uid: number): void {
-  if (activeCallType !== 'video' || isLocalUid(uid)) {
-    return;
-  }
-  rtc.setupRemoteVideo({
-    uid,
-    sourceType: VideoSourceType.VideoSourceRemote,
-    renderMode: RenderModeType.RenderModeFit,
-  });
 }
 
 function getOrCreateEngine(): IRtcEngine {
@@ -279,33 +163,12 @@ function getOrCreateEngine(): IRtcEngine {
     engine = createAgoraRtcEngine();
     engine.initialize({ appId: '' });
     eventHandler = {
-      onJoinChannelSuccess: (connection) => {
-        const localUid = connection.localUid ?? 0;
-        if (localUid > 0) {
-          joinedLocalUid = localUid;
-        }
-        debugVideoLog('join-channel-success', {
-          connectionLocalUid: connection.localUid ?? 0,
-        });
+      onJoinChannelSuccess: (_connection) => {
         if (engine != null) {
           applyMediaSettings(engine);
           if (activeCallType === 'video') {
-            startLocalVideoPublish(engine);
-            for (const remoteUid of remotePeerUids) {
-              subscribeRemoteVideo(engine, remoteUid);
-              bindRemoteVideoCanvas(engine, remoteUid);
-            }
-            // Android can race publish flags around join; re-apply shortly after join.
-            setTimeout(() => {
-              if (engine == null || !inChannel || activeCallType !== 'video') {
-                return;
-              }
-              debugVideoLog('join-post-delay-video-reapply');
-              engine.enableLocalVideo(localVideoEnabled);
-              engine.muteLocalVideoStream(!localVideoEnabled);
-              engine.muteAllRemoteVideoStreams(false);
-              engine.updateChannelMediaOptions(buildChannelMediaOptions('video'));
-            }, 300);
+            engine.muteLocalVideoStream(!localVideoEnabled);
+            engine.muteAllRemoteVideoStreams(false);
           }
         }
         settleJoinSuccess();
@@ -316,55 +179,30 @@ function getOrCreateEngine(): IRtcEngine {
         listeners.onConnectionState?.('disconnected');
       },
       onUserJoined: (_connection, uid) => {
-        debugVideoLog('on-user-joined', { uid });
-        registerRemotePeer(uid);
-      },
-      onFirstRemoteVideoDecoded: (_connection, remoteUid) => {
-        debugVideoLog('on-first-remote-video-decoded', { remoteUid });
-        registerRemotePeer(remoteUid);
-        markRemoteVideoActive(remoteUid);
-      },
-      onFirstRemoteVideoFrame: (_connection, remoteUid) => {
-        debugVideoLog('on-first-remote-video-frame', { remoteUid });
-        registerRemotePeer(remoteUid);
-        markRemoteVideoActive(remoteUid);
-      },
-      onRemoteVideoStateChanged: (_connection, uid, state, reason) => {
-        if (isLocalUid(uid)) {
-          return;
-        }
         if (engine != null) {
+          subscribeRemoteAudio(engine, uid);
           subscribeRemoteVideo(engine, uid);
         }
-        if (
-          state === RemoteVideoState.RemoteVideoStateStarting ||
-          state === RemoteVideoState.RemoteVideoStateDecoding ||
-          state === RemoteVideoState.RemoteVideoStateFrozen
-        ) {
-          registerRemotePeer(uid);
-          markRemoteVideoActive(uid);
+        if (uid !== joinedLocalUid) {
+          listeners.onRemoteUserJoined?.(uid);
         }
-        if (reason === RemoteVideoStateReason.RemoteVideoStateReasonRemoteUnmuted) {
-          markRemoteVideoActive(uid);
+      },
+      onRemoteVideoStateChanged: (_connection, uid, state) => {
+        if (engine != null && uid !== joinedLocalUid) {
+          subscribeRemoteVideo(engine, uid);
+          notifyRemoteVideoState(uid, state);
         }
-        notifyRemoteVideoState(uid, state, reason);
       },
       onUserOffline: (_connection, uid) => {
-        if (!isLocalUid(uid)) {
-          remotePeerUids.delete(uid);
-          remoteVideoEverActiveUids.delete(uid);
-          debugVideoLog('on-user-offline', {
-            uid,
-            remotePeerUids: Array.from(remotePeerUids),
-          });
-          listeners.onRemoteUserLeft?.(uid);
-        }
+        listeners.onRemoteUserLeft?.(uid);
       },
       onRemoteAudioStateChanged: (_connection, remoteUid, state) => {
-        if (engine != null && !isLocalUid(remoteUid) && state === RemoteAudioState.RemoteAudioStateDecoding) {
+        if (engine != null && state === RemoteAudioState.RemoteAudioStateDecoding) {
           subscribeRemoteAudio(engine, remoteUid);
-          listeners.onRemoteUserJoined?.(remoteUid);
         }
+      },
+      onUserMuteVideo: (_connection, uid, muted) => {
+        listeners.onRemoteVideoMuted?.(uid, muted);
       },
       onConnectionLost: () => {
         listeners.onConnectionState?.('failed');
@@ -374,7 +212,6 @@ function getOrCreateEngine(): IRtcEngine {
       },
       onError: (err) => {
         const message = `Agora error ${err}`;
-        debugVideoLog('on-error', { err, message });
         listeners.onError?.(message);
         if (joinReject != null) {
           settleJoinFailure(message);
@@ -463,11 +300,6 @@ export const agoraMediaService = {
     uid: number;
     callType: CallType;
   }): Promise<void> {
-    debugVideoLog('join-start', {
-      paramsUid: params.uid,
-      paramsCallType: params.callType,
-      paramsChannelName: params.channelName,
-    });
     const permissions = await ensureCallPermissions(params.callType);
     if (!permissions.microphone) {
       throw new Error('Microphone permission denied');
@@ -497,8 +329,11 @@ export const agoraMediaService = {
     }
 
     await leaveChannelIfNeeded(rtc);
-    remotePeerUids.clear();
-    remoteVideoEverActiveUids.clear();
+
+    if (params.callType === 'video' && previewActive) {
+      rtc.stopPreview();
+      previewActive = false;
+    }
 
     listeners.onConnectionState?.('connecting');
     const joinPromise = waitForJoinChannel();
@@ -506,7 +341,6 @@ export const agoraMediaService = {
 
     const code = rtc.joinChannel(params.token, params.channelName, params.uid, mediaOptions);
     if (code !== 0) {
-      debugVideoLog('join-failed-sync', { code });
       settleJoinFailure(`joinChannel failed (${code})`);
       throw new Error(`joinChannel failed (${code})`);
     }
@@ -514,7 +348,9 @@ export const agoraMediaService = {
     await joinPromise;
 
     if (params.callType === 'video') {
-      startLocalVideoPublish(rtc);
+      rtc.muteLocalVideoStream(!localVideoEnabled);
+      rtc.muteAllRemoteVideoStreams(false);
+      rtc.updateChannelMediaOptions(buildChannelMediaOptions('video'));
     }
   },
 
@@ -553,7 +389,6 @@ export const agoraMediaService = {
     if (engine == null || activeCallType !== 'video') {
       return;
     }
-    engine.enableLocalVideo(enabled);
     engine.muteLocalVideoStream(!enabled);
     engine.updateChannelMediaOptions(buildChannelMediaOptions(activeCallType));
   },
@@ -599,7 +434,5 @@ export const agoraMediaService = {
     activeCallType = 'voice';
     joinedLocalUid = 0;
     joinedChannelName = '';
-    remotePeerUids.clear();
-    remoteVideoEverActiveUids.clear();
   },
 };

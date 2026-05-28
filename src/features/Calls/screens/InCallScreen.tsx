@@ -9,7 +9,6 @@ import type { RootStackParamList } from '@/navigation/types';
 import { useAppSelector } from '@/store/typedHooks';
 
 import { CallAvatar } from '../components/CallAvatar';
-import { CallVideoControls } from '../components/CallVideoControls';
 import { CallVideoLayout } from '../components/CallVideoLayout';
 import { InCallControlButton } from '../components/InCallControlButton';
 import { CallController } from '../controllers/CallController';
@@ -40,30 +39,6 @@ export function InCallScreen({ navigation }: Props): React.ReactElement {
   const isVideoCall = (callType ?? credentials?.callType) === 'video';
 
   useEffect(() => {
-    if (!isVideoCall) {
-      return;
-    }
-    console.log('[video-debug][incall-state]', {
-      remoteVideoUid,
-      remoteVideoEnabled,
-      localVideoEnabled,
-      callType,
-      credentialsCallType: credentials?.callType ?? null,
-      reconnecting,
-      phase,
-    });
-  }, [
-    callType,
-    credentials?.callType,
-    isVideoCall,
-    localVideoEnabled,
-    phase,
-    reconnecting,
-    remoteVideoEnabled,
-    remoteVideoUid,
-  ]);
-
-  useEffect(() => {
     audioSessionService.configureForCall();
     CallController.setSpeaker(true);
   }, []);
@@ -88,8 +63,6 @@ export function InCallScreen({ navigation }: Props): React.ReactElement {
   const statusText = reconnecting
     ? 'Reconnecting…'
     : `Connected · ${formatCallDuration(elapsedSeconds)}`;
-  const videoTimerText = reconnecting ? 'Reconnecting…' : formatCallDuration(elapsedSeconds);
-  const videoBottomReserved = insets.bottom + 108;
 
   const topBar = (
     <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
@@ -99,7 +72,7 @@ export function InCallScreen({ navigation }: Props): React.ReactElement {
         accessibilityRole="button"
         accessibilityLabel="Minimize call"
       >
-        <Ionicons name="chevron-down-outline" size={26} color="#fff" />
+        <Ionicons name="chevron-down" size={28} color="#fff" />
       </Pressable>
       {!isVideoCall ? (
         <Text style={styles.topHint}>Swipe down to browse app</Text>
@@ -108,14 +81,14 @@ export function InCallScreen({ navigation }: Props): React.ReactElement {
           <Text style={styles.videoTopName} numberOfLines={1}>
             {remoteName}
           </Text>
-          <Text style={styles.videoTopStatus}>{videoTimerText}</Text>
+          <Text style={styles.videoTopStatus}>{statusText}</Text>
         </View>
       )}
       <View style={styles.topSpacer} />
     </View>
   );
 
-  const voiceControls = (
+  const controls = (
     <View style={[styles.controls, { paddingBottom: insets.bottom + 28 }]}>
       <InCallControlButton
         icon={localMuted ? 'mic-off' : 'mic'}
@@ -129,6 +102,21 @@ export function InCallScreen({ navigation }: Props): React.ReactElement {
         active={speakerOn}
         onPress={() => CallController.setSpeaker(!speakerOn)}
       />
+      {isVideoCall ? (
+        <>
+          <InCallControlButton
+            icon={localVideoEnabled ? 'videocam' : 'videocam-off'}
+            label={localVideoEnabled ? 'Video' : 'No video'}
+            active={!localVideoEnabled}
+            onPress={() => CallController.setVideoEnabled(!localVideoEnabled)}
+          />
+          <InCallControlButton
+            icon="camera-reverse-outline"
+            label="Flip"
+            onPress={() => CallController.switchCamera()}
+          />
+        </>
+      ) : null}
       <InCallControlButton
         icon="call"
         label="End"
@@ -149,25 +137,10 @@ export function InCallScreen({ navigation }: Props): React.ReactElement {
           localVideoEnabled={localVideoEnabled}
           remoteName={remoteName}
           remoteAvatarUrl={remoteAvatarUrl}
-          onFlipCamera={() => CallController.switchCamera()}
-          topInset={insets.top + 56}
-          bottomReserved={videoBottomReserved}
         />
         <View style={styles.videoOverlay} pointerEvents="box-none">
           {topBar}
-          <View style={[styles.videoControlsWrap, { paddingBottom: insets.bottom + 16 }]}>
-            <CallVideoControls
-              localMuted={localMuted}
-              speakerOn={speakerOn}
-              localVideoEnabled={localVideoEnabled}
-              onToggleMute={() => CallController.setMuted(!localMuted)}
-              onToggleSpeaker={() => CallController.setSpeaker(!speakerOn)}
-              onToggleVideo={() => CallController.setVideoEnabled(!localVideoEnabled)}
-              onEndCall={() => {
-                void CallController.endCall();
-              }}
-            />
-          </View>
+          {controls}
         </View>
       </View>
     );
@@ -185,7 +158,7 @@ export function InCallScreen({ navigation }: Props): React.ReactElement {
           <Text style={styles.status}>{statusText}</Text>
         </View>
       </View>
-      {voiceControls}
+      {controls}
     </LinearGradient>
   );
 }
@@ -232,26 +205,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   videoTopName: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '700',
     color: '#FFFFFF',
-    textShadowColor: 'rgba(0,0,0,0.45)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
   },
   videoTopStatus: {
     marginTop: 2,
-    fontSize: 13,
-    fontWeight: '500',
-    color: 'rgba(255,255,255,0.88)',
+    fontSize: 12,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.75)',
     fontVariant: ['tabular-nums'],
-    textShadowColor: 'rgba(0,0,0,0.45)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
-  },
-  videoControlsWrap: {
-    alignItems: 'center',
-    paddingHorizontal: 16,
   },
   topSpacer: {
     width: 44,
