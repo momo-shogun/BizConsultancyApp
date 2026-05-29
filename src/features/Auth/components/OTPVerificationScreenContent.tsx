@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react';
 import {
   Image,
+  Linking,
   Platform,
   Pressable,
   StatusBar,
@@ -161,7 +162,13 @@ export function OTPVerificationScreenContent(
 
               <Text style={styles.footerHelp}>
                 Experiencing issues? Email our team:{'\n'}
-                <Text style={styles.footerHelpStrong}>support@samadhan.app</Text>
+                <Pressable
+                  onPress={() => Linking.openURL('mailto:bizconsultancy@iid.org.in')}
+                >
+                  <Text style={styles.footerHelpStrong}>
+                    bizconsultancy@iid.org.in
+                  </Text>
+                </Pressable>
               </Text>
 
               <Pressable
@@ -302,8 +309,9 @@ const styles = StyleSheet.create({
     color: THEME.colors.textSecondary,
   },
   footerHelpStrong: {
-    color: THEME.colors.textPrimary,
+    color: "blue",
     fontWeight: THEME.typography.weight.semibold,
+    fontSize: 12,
   },
   hiddenInput: {
     height: 0,
