@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import type { VaultDocument } from '../types/documentVault.types';
@@ -11,6 +11,7 @@ export interface VaultDocumentRowProps {
   showActions: boolean;
   disabled?: boolean;
   onPressActions: () => void;
+  onPreview: (document: VaultDocument) => void;
 }
 
 function VaultDocumentRowComponent({
@@ -18,11 +19,12 @@ function VaultDocumentRowComponent({
   showActions,
   disabled = false,
   onPressActions,
+  onPreview,
 }: VaultDocumentRowProps): React.ReactElement {
   const title = getVaultDocumentTitle(document);
 
   const openPreview = (): void => {
-    void Linking.openURL(document.documentUrl);
+    onPreview(document);
   };
 
   return (

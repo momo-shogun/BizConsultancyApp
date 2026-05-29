@@ -1,5 +1,14 @@
 import type { VaultDocument, VaultDocumentGroup } from '../types/documentVault.types';
 
+export function isVaultPdfDocument(doc: VaultDocument): boolean {
+  const mime = (doc.mimeType ?? '').toLowerCase();
+  if (mime === 'application/pdf') {
+    return true;
+  }
+  const name = (doc.originalFilename ?? doc.documentUrl).toLowerCase();
+  return name.endsWith('.pdf');
+}
+
 export function isVaultImageDocument(doc: VaultDocument): boolean {
   const mime = (doc.mimeType ?? '').toLowerCase();
   if (mime.startsWith('image/')) {

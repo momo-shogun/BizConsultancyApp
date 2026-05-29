@@ -1,7 +1,7 @@
 import React, { memo } from 'react';
-import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import type { VaultDocumentShare } from '../types/documentVault.types';
+import type { VaultDocument, VaultDocumentShare } from '../types/documentVault.types';
 import { getVaultDocumentTitle } from '../utils/documentVaultDisplay';
 import { VaultDocumentThumb } from './VaultDocumentThumb';
 
@@ -11,6 +11,7 @@ export interface VaultShareRowProps {
   showUnshare?: boolean;
   isBusy?: boolean;
   onUnshare?: () => void;
+  onPreview?: (document: VaultDocument) => void;
 }
 
 function VaultShareRowComponent({
@@ -19,14 +20,15 @@ function VaultShareRowComponent({
   showUnshare = false,
   isBusy = false,
   onUnshare,
+  onPreview,
 }: VaultShareRowProps): React.ReactElement {
   const document = share.userDocument;
   const title =
     document != null ? getVaultDocumentTitle(document) : `Document #${share.userDocumentId}`;
 
   const openPreview = (): void => {
-    if (document?.documentUrl != null) {
-      void Linking.openURL(document.documentUrl);
+    if (document != null) {
+      onPreview?.(document);
     }
   };
 

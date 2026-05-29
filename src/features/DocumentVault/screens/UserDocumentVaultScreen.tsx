@@ -14,7 +14,6 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import {
   ACCOUNT_HUB_GREEN_HEADER_GRADIENT,
-  ACCOUNT_HUB_GREEN_HEADER_STATUS_BAR,
   ACCOUNT_HUB_LIST_CANVAS,
 } from '@/constants/accountScreenTheme';
 import { THEME } from '@/constants/theme';
@@ -27,6 +26,7 @@ import { VaultShareModal } from '../components/VaultShareModal';
 import { VaultShareRow } from '../components/VaultShareRow';
 import { VaultUploadModal } from '../components/VaultUploadModal';
 import { useUserDocumentVaultScreen } from '../hooks/useUserDocumentVaultScreen';
+import { useVaultDocumentPreviewModal } from '../hooks/useVaultDocumentPreviewModal';
 import type { VaultDocument, VaultDocumentShare } from '../types/documentVault.types';
 import {
   formatShareTargetConsultantLabel,
@@ -53,6 +53,7 @@ function confirmUnshare(onConfirm: () => void): void {
 export function UserDocumentVaultScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
   const screen = useUserDocumentVaultScreen();
+  const { openPreview, previewModal } = useVaultDocumentPreviewModal();
 
   const handleUnshare = useCallback(
     (shareId: number): void => {
@@ -78,10 +79,7 @@ export function UserDocumentVaultScreen(): React.ReactElement {
       <AccountHubScreenShell
         title="My Locker"
         canvasColor={ACCOUNT_HUB_LIST_CANVAS}
-        headerGradientColors={[
-          ACCOUNT_HUB_GREEN_HEADER_STATUS_BAR,
-          ...ACCOUNT_HUB_GREEN_HEADER_GRADIENT.slice(1),
-        ]}
+        headerGradientColors={ACCOUNT_HUB_GREEN_HEADER_GRADIENT}
         onBackPress={() => navigation.goBack()}
         headerRightAction={uploadHeaderAction}
       >
@@ -96,10 +94,7 @@ export function UserDocumentVaultScreen(): React.ReactElement {
     <AccountHubScreenShell
       title="My Locker"
       canvasColor={ACCOUNT_HUB_LIST_CANVAS}
-      headerGradientColors={[
-        ACCOUNT_HUB_GREEN_HEADER_STATUS_BAR,
-        ...ACCOUNT_HUB_GREEN_HEADER_GRADIENT.slice(1),
-      ]}
+      headerGradientColors={ACCOUNT_HUB_GREEN_HEADER_GRADIENT}
       onBackPress={() => navigation.goBack()}
       headerRightAction={uploadHeaderAction}
     >
@@ -151,6 +146,7 @@ export function UserDocumentVaultScreen(): React.ReactElement {
                 <VaultShareRow
                   key={share.id}
                   share={share}
+                  onPreview={openPreview}
                   subtitle={`Shared with ${
                     share.targetName ??
                     formatShareTargetConsultantLabel(null, [], share.targetUserId)
@@ -174,6 +170,7 @@ export function UserDocumentVaultScreen(): React.ReactElement {
                 <VaultShareRow
                   key={share.id}
                   share={share}
+                  onPreview={openPreview}
                   subtitle={`Shared by ${
                     share.ownerName ??
                     (share.ownerUserType.toLowerCase() === 'consultant'
@@ -203,6 +200,7 @@ export function UserDocumentVaultScreen(): React.ReactElement {
                       document={document}
                       showActions={screen.isOwnDocument(document)}
                       disabled={screen.isBusy}
+                      onPreview={openPreview}
                       onPressActions={() => screen.openDocumentActions(document)}
                     />
                   ))}
@@ -222,6 +220,8 @@ export function UserDocumentVaultScreen(): React.ReactElement {
         onSelectDocumentType={screen.setSelectedDocumentTypeId}
         onPickSource={(source) => void screen.uploadFromSource(source)}
       />
+
+      {previewModal}
 
       <VaultShareModal
         visible={screen.shareModalVisible}

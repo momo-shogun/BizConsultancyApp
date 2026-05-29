@@ -5,6 +5,7 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -38,6 +39,8 @@ export function VaultUploadModal({
   onPickSource,
 }: VaultUploadModalProps): React.ReactElement {
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
+  const sheetMinHeight = Math.round(windowHeight * 0.7);
 
   const typeOptions = documentTypes.map((dt) => ({
     label: dt.docName,
@@ -61,7 +64,7 @@ export function VaultUploadModal({
         />
 
         <View style={styles.sheetHost} pointerEvents="box-none">
-          <View style={styles.sheet}>
+          <View style={[styles.sheet, { minHeight: sheetMinHeight }]}>
             <View style={styles.handleRow}>
               <View style={styles.handle} />
             </View>
@@ -75,7 +78,7 @@ export function VaultUploadModal({
             <Text style={styles.title}>Upload document</Text>
           </LinearGradient>
 
-          <View style={styles.body}>
+          <View style={styles.bodyFlex}>
             <Text style={styles.label}>Document type</Text>
             <Dropdown
               anchorMenu
@@ -146,6 +149,7 @@ const styles = StyleSheet.create({
   },
   sheetHost: {
     width: '100%',
+    minHeight: '70%',
     maxHeight: '92%',
   },
   bottomBar: {
@@ -154,6 +158,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   sheet: {
+    flex: 1,
     width: '100%',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
@@ -190,7 +195,8 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#FFFFFF',
   },
-  body: {
+  bodyFlex: {
+    flex: 1,
     paddingHorizontal: 20,
     paddingTop: 18,
   },
