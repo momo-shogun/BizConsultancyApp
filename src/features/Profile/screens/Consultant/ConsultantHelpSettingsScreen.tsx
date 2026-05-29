@@ -1,19 +1,12 @@
 import React from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NavigationProp } from '@react-navigation/native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { useAuth } from '@/app/providers/AuthProvider';
 import { CONSULTANT_HELP_SETTINGS_SECTIONS } from '@/features/Profile/components/helpSettings/consultantHelpSettingsConfig';
-import { HelpSettingsSection } from '@/features/Profile/components/helpSettings/HelpSettingsSection';
-import {
-  HELP_SETTINGS_CANVAS,
-  helpSettingsStyles,
-} from '@/features/Profile/components/helpSettings/helpSettings.styles';
+import { HelpSettingsScreenLayout } from '@/features/Profile/components/helpSettings/HelpSettingsScreenLayout';
 import { ROUTES } from '@/navigation/routeNames';
 import type { AccountStackParamList } from '@/navigation/types';
-import { SafeAreaWrapper, ScreenHeader } from '@/shared/components';
 
 export interface ConsultantHelpSettingsScreenProps {
   appVersion?: string;
@@ -96,51 +89,16 @@ export function ConsultantHelpSettingsScreen(
   };
 
   return (
-    <SafeAreaWrapper edges={['top', 'bottom']} bgColor={HELP_SETTINGS_CANVAS}>
-      <ScreenHeader title="Help & Settings" onBackPress={() => navigation.goBack()} />
-
-      <ScrollView
-        style={helpSettingsStyles.screen}
-        contentContainerStyle={helpSettingsStyles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {CONSULTANT_HELP_SETTINGS_SECTIONS.map((section, index) => (
-          <HelpSettingsSection
-            key={section.id}
-            section={section}
-            isFirst={index === 0}
-            onRowPress={handleRowPress}
-          />
-        ))}
-
-        <View style={helpSettingsStyles.logoutContainer}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Log out"
-            onPress={props.onLogout ?? logout}
-            style={({ pressed }) => [
-              helpSettingsStyles.logoutBtn,
-              pressed ? { opacity: 0.9 } : null,
-            ]}
-          >
-            <Ionicons name="log-out-outline" size={18} color="#E5484D" />
-            <Text style={helpSettingsStyles.logoutText}>Log Out</Text>
-          </Pressable>
-        </View>
-
-        <View style={helpSettingsStyles.footer}>
-          <View style={helpSettingsStyles.footerLinks}>
-            <Pressable accessibilityRole="button" onPress={props.onPrivacyPolicy}>
-              <Text style={helpSettingsStyles.footerLink}>Privacy Policy</Text>
-            </Pressable>
-            <Text style={helpSettingsStyles.footerDot}>•</Text>
-            <Pressable accessibilityRole="button" onPress={props.onSubscriberAgreement}>
-              <Text style={helpSettingsStyles.footerLink}>Subscriber Agreement</Text>
-            </Pressable>
-          </View>
-          <Text style={helpSettingsStyles.footerVersion}>App Version {appVersion}</Text>
-        </View>
-      </ScrollView>
-    </SafeAreaWrapper>
+    <HelpSettingsScreenLayout
+      sections={CONSULTANT_HELP_SETTINGS_SECTIONS}
+      heroTitle="Practice settings"
+      heroSubtitle="Manage payouts, clients, services, and your consultant profile from one screen."
+      appVersion={appVersion}
+      onBackPress={() => navigation.goBack()}
+      onRowPress={handleRowPress}
+      onLogout={props.onLogout ?? logout}
+      onPrivacyPolicy={props.onPrivacyPolicy}
+      onSubscriberAgreement={props.onSubscriberAgreement}
+    />
   );
 }

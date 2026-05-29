@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -14,10 +14,17 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
+import {
+  ACCOUNT_HUB_GREEN_HEADER_GRADIENT,
+  ACCOUNT_HUB_GREEN_HEADER_STATUS_BAR,
+  ACCOUNT_HUB_LIST_CANVAS,
+} from '@/constants/accountScreenTheme';
 import { THEME } from '@/constants/theme';
 import { ROUTES } from '@/navigation/routeNames';
 import type { ServicesStackParamList } from '@/navigation/types';
 import {
+  AccountHubScreenShell,
+  AnimatedHeaderSearchBar,
   ContentPlaceholder,
   EmptyState,
   FilterChipsBar,
@@ -27,8 +34,6 @@ import {
   type FilterSheetValue,
   RecommendedServiceCard,
   type RecommendedServiceItem,
-  SafeAreaWrapper,
-  ScreenHeader,
   ScreenWrapper,
 } from '@/shared/components';
 
@@ -51,7 +56,6 @@ import {
 
 const LIST_SEPARATOR_HEIGHT = THEME.spacing[12];
 const CATEGORY_BOOTSTRAP_LIMIT = 100;
-const H_PADDING = THEME.spacing[16];
 const PLACEHOLDER_CARD_COUNT = 5;
 const PLACEHOLDER_KEYS = Array.from(
   { length: PLACEHOLDER_CARD_COUNT },
@@ -64,6 +68,7 @@ const AnimatedPlaceholderFlatList = Animated.createAnimatedComponent(FlatList<st
 export function ServicesListingScreen(): React.ReactElement {
   const navigation = useNavigation<NativeStackNavigationProp<ServicesStackParamList>>();
   const onBizAiScroll = useBizAIScrollReporter();
+  const searchInputRef = useRef<TextInput>(null);
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [debouncedSearch, setDebouncedSearch] = useState<string>('');
@@ -240,6 +245,15 @@ export function ServicesListingScreen(): React.ReactElement {
     [navigation],
   );
 
+  const openSearch = useCallback((): void => {
+    setIsSearchOpen(true);
+  }, []);
+
+  const closeSearch = useCallback((): void => {
+    setIsSearchOpen(false);
+    setSearchQuery('');
+  }, []);
+
   const renderPlaceholderItem = useCallback<ListRenderItem<string>>(
     () => <ContentPlaceholder variant="service-card" />,
     [],
@@ -293,46 +307,38 @@ export function ServicesListingScreen(): React.ReactElement {
   }, [activeFilterCount, chipItems, isFetching, isLoading]);
 
   return (
-    <SafeAreaWrapper edges={['top', 'bottom']}>
-      <ScreenHeader
-        title="Services"
-        onSearchPress={() => setIsSearchOpen((v) => !v)}
-      />
-
-      {isSearchOpen ? (
-        <View style={styles.searchRow}>
-          <TextInput
-            accessibilityLabel="Search services"
-            placeholder="Service name, category…"
-            placeholderTextColor={THEME.colors.textSecondary}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            style={styles.searchInput}
-            returnKeyType="search"
-            clearButtonMode="while-editing"
-            autoFocus
-          />
+    <AccountHubScreenShell
+      title="Services"
+      canvasColor={ACCOUNT_HUB_LIST_CANVAS}
+      headerColor={ACCOUNT_HUB_GREEN_HEADER_STATUS_BAR}
+      headerGradientColors={ACCOUNT_HUB_GREEN_HEADER_GRADIENT}
+      onSearchPress={isSearchOpen ? undefined : openSearch}
+      headerRightAction={
+        isSearchOpen ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Clear search"
-            onPress={() => setSearchQuery('')}
-            disabled={searchQuery.length === 0}
+            accessibilityLabel="Close search"
+            onPress={closeSearch}
             hitSlop={8}
+            style={styles.headerIconBtn}
           >
-            <Ionicons
-              name="close-circle"
-              size={22}
-              color={
-                searchQuery.length === 0
-                  ? THEME.colors.border
-                  : THEME.colors.textSecondary
-              }
-            />
+            <Ionicons name="close" size={22} color="#FFFFFF" />
           </Pressable>
-        </View>
-      ) : null}
-
-      <ScreenWrapper>
+        ) : undefined
+      }
+      headerAccessory={
+        <AnimatedHeaderSearchBar
+          visible={isSearchOpen}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          inputRef={searchInputRef}
+          placeholder="Service name, category…"
+          accessibilityLabel="Search services"
+          embeddedInHeader
+        />
+      }
+    >
+      <ScreenWrapper style={styles.listShell}>
         {isInitialLoading ? (
           <AnimatedPlaceholderFlatList
             data={PLACEHOLDER_KEYS}
@@ -382,32 +388,20 @@ export function ServicesListingScreen(): React.ReactElement {
           onClear={() => setFilters(EMPTY_SERVICE_LIST_FILTERS)}
         />
       </ScreenWrapper>
-    </SafeAreaWrapper>
+    </AccountHubScreenShell>
   );
 }
 
 const styles = StyleSheet.create({
-  searchRow: {
-    flexDirection: 'row',
+  headerIconBtn: {
+    width: 36,
+    height: 36,
     alignItems: 'center',
-    gap: THEME.spacing[8],
-    paddingHorizontal: H_PADDING,
-    paddingVertical: THEME.spacing[8],
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: THEME.colors.border,
-    backgroundColor: THEME.colors.background,
+    justifyContent: 'center',
   },
-  searchInput: {
+  listShell: {
     flex: 1,
-    minHeight: 40,
-    paddingVertical: THEME.spacing[8],
-    paddingHorizontal: THEME.spacing[10],
-    borderRadius: THEME.radius[12],
-    borderWidth: 1,
-    borderColor: THEME.colors.border,
-    backgroundColor: THEME.colors.white,
-    fontSize: THEME.typography.size[14],
-    color: THEME.colors.textPrimary,
+    backgroundColor: ACCOUNT_HUB_LIST_CANVAS,
   },
   content: {
     padding: THEME.spacing[16],

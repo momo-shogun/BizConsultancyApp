@@ -1,9 +1,18 @@
 import { StyleSheet } from 'react-native';
 
+import {
+  ACCOUNT_HUB_GREEN_HEADER_GRADIENT,
+  ACCOUNT_HUB_GREEN_HEADER_STATUS_BAR,
+  ACCOUNT_HUB_LIST_CANVAS,
+} from '@/constants/accountScreenTheme';
 import { THEME } from '@/constants/theme';
 
 /** WhatsApp-style chat list background */
-export const BOOKINGS_CANVAS = '#F0F2F5';
+export const BOOKINGS_CANVAS = ACCOUNT_HUB_LIST_CANVAS;
+
+/** Matches "Your consultant sessions" hero card — status bar + header chrome */
+export const BOOKINGS_HEADER_STATUS_BAR = ACCOUNT_HUB_GREEN_HEADER_STATUS_BAR;
+export const BOOKINGS_HEADER_GRADIENT = ACCOUNT_HUB_GREEN_HEADER_GRADIENT;
 const WA_DIVIDER = '#E9EDEF';
 const WA_MUTED = '#667781';
 
@@ -58,64 +67,11 @@ export const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.88)',
     lineHeight: 16,
   },
-  tabRow: {
-    flexDirection: 'row',
-    gap: THEME.spacing[8],
-  },
-  tab: {
-    flex: 1,
-    flexDirection: 'row',
+  headerIconBtn: {
+    width: 36,
+    height: 36,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: THEME.spacing[10],
-    borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.14)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  tabActive: {
-    backgroundColor: 'rgba(255,255,255,0.28)',
-    borderColor: 'rgba(255,255,255,0.4)',
-  },
-  tabText: {
-    fontSize: 11,
-    fontWeight: THEME.typography.weight.semibold as '600',
-    color: 'rgba(255,255,255,0.9)',
-  },
-  tabTextActive: {
-    color: THEME.colors.white,
-  },
-  tabCount: {
-    fontSize: 10,
-    fontWeight: THEME.typography.weight.bold as '700',
-    color: 'rgba(255,255,255,0.75)',
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 999,
-    overflow: 'hidden',
-  },
-  tabCountActive: {
-    color: '#075E54',
-    backgroundColor: '#FFFFFF',
-  },
-  searchWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: THEME.spacing[8],
-    backgroundColor: THEME.colors.white,
-    borderRadius: 10,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: WA_DIVIDER,
-    paddingHorizontal: THEME.spacing[12],
-  },
-  searchInput: {
-    flex: 1,
-    paddingVertical: 10,
-    fontSize: THEME.typography.size[14],
-    color: THEME.colors.textPrimary,
   },
   listBlock: {
     gap: THEME.spacing[8],

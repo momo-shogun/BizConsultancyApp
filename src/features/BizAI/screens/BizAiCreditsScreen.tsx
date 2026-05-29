@@ -8,14 +8,11 @@ import { BizAiCreditsHero } from '@/features/BizAI/components/BizAiCreditsHero';
 import { BizAiCreditsPackageCard } from '@/features/BizAI/components/BizAiCreditsPackageCard';
 import { BizAiCreditsWalletCard } from '@/features/BizAI/components/BizAiCreditsWalletCard';
 import { WalletAiCreditsConfirmDialog } from '@/features/BizAI/components/WalletAiCreditsConfirmDialog/WalletAiCreditsConfirmDialog';
-import { EmptyState, SafeAreaWrapper, ScreenHeader } from '@/shared/components';
+import { AccountHubScreenShell, EmptyState } from '@/shared/components';
 
 import { useBizAiCreditsScreen } from '../hooks/useBizAiCreditsScreen';
 import type { AiCreditPackage } from '../types/aiCredits.types';
-import {
-  BIZ_AI_CREDITS_HEADER_COLOR,
-  bizAiCreditsScreenStyles as s,
-} from './BizAiCreditsScreen.styles';
+import { bizAiCreditsScreenStyles as s } from './BizAiCreditsScreen.styles';
 
 function pickPopularPackageIndex(packages: readonly AiCreditPackage[]): number {
   if (packages.length < 2) {
@@ -81,44 +78,27 @@ export function BizAiCreditsScreen(): React.ReactElement {
 
   if (!hasVerifiedLogin) {
     return (
-      <SafeAreaWrapper
-        edges={['top', 'bottom']}
-        bgColor={BIZ_AI_CREDITS_HEADER_COLOR}
-        contentBgColor="#F1F5F9"
-        statusBarStyle="light-content"
+      <AccountHubScreenShell
+        title="Biz AI Credits"
+        onBackPress={goBack}
+        canvasColor="#F1F5F9"
       >
-        <View style={s.headerBand}>
-          <ScreenHeader
-            title="Biz AI Credits"
-            onBackPress={goBack}
-            headerColor={BIZ_AI_CREDITS_HEADER_COLOR}
-          />
-        </View>
         <View style={{ flex: 1, padding: 20 }}>
           <EmptyState
             title="Sign in required"
             description="Log in to your account to buy Biz AI credits."
           />
         </View>
-      </SafeAreaWrapper>
+      </AccountHubScreenShell>
     );
   }
 
   return (
-    <SafeAreaWrapper
-      edges={['top', 'bottom']}
-      bgColor={BIZ_AI_CREDITS_HEADER_COLOR}
-      contentBgColor="#F1F5F9"
-      statusBarStyle="light-content"
+    <AccountHubScreenShell
+      title="Biz AI Credits"
+      onBackPress={goBack}
+      canvasColor="#F1F5F9"
     >
-      <View style={s.headerBand}>
-        <ScreenHeader
-          title="Biz AI Credits"
-          onBackPress={goBack}
-          headerColor={BIZ_AI_CREDITS_HEADER_COLOR}
-        />
-      </View>
-
       <ScrollView
         style={s.screen}
         contentContainerStyle={s.scrollContent}
@@ -205,6 +185,6 @@ export function BizAiCreditsScreen(): React.ReactElement {
         onClose={closeWalletDialog}
         onConfirm={confirmWalletPurchase}
       />
-    </SafeAreaWrapper>
+    </AccountHubScreenShell>
   );
 }

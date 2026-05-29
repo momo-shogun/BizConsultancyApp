@@ -9,15 +9,22 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { useGetCallHistoryQuery } from '@/features/Calls/api/callsApi';
 import type { CallHistoryItem, CallStatus } from '@/features/Calls/types/callApi.types';
+import {
+  CallHistoryFilterTabs,
+  type CallHistoryStatusFilter,
+} from '@/features/Profile/components/CallHistoryFilterTabs';
+import {
+  ACCOUNT_HUB_GREEN_HEADER_GRADIENT,
+  ACCOUNT_HUB_GREEN_HEADER_STATUS_BAR,
+} from '@/constants/accountScreenTheme';
 import { THEME } from '@/constants/theme';
 import { ROUTES } from '@/navigation/routeNames';
 import type { AccountStackParamList } from '@/navigation/types';
-import { SafeAreaWrapper, ScreenHeader } from '@/shared/components';
+import { AccountHubScreenShell } from '@/shared/components';
 
 import { CALL_HISTORY_CANVAS, styles } from './CallHistoryScreen.styles';
 import {
@@ -28,15 +35,7 @@ import {
 
 type Nav = NativeStackNavigationProp<AccountStackParamList, typeof ROUTES.Account.userCallHis>;
 
-type StatusFilter = 'all' | 'completed' | 'missed';
-
 const CALL_HISTORY_PAGE_SIZE = 50;
-
-const STATUS_FILTERS: { id: StatusFilter; label: string }[] = [
-  { id: 'all', label: 'All' },
-  { id: 'completed', label: 'Completed' },
-  { id: 'missed', label: 'Missed' },
-];
 
 const COMPLETED_STATUSES: CallStatus[] = ['ended', 'connected'];
 const MISSED_STATUSES: CallStatus[] = ['declined', 'missed', 'failed'];
@@ -68,7 +67,7 @@ function getStatusVisual(tone: CallCardTone): StatusVisual {
   };
 }
 
-function matchesStatusFilter(item: CallHistoryItem, filter: StatusFilter): boolean {
+function matchesStatusFilter(item: CallHistoryItem, filter: CallHistoryStatusFilter): boolean {
   if (filter === 'all') {
     return true;
   }
@@ -155,58 +154,55 @@ const CallRow = memo(function CallRow(props: CallRowProps): React.ReactElement {
   );
 });
 
-function FilterBar(props: {
-  active: StatusFilter;
-  onChange: (filter: StatusFilter) => void;
-}): React.ReactElement {
-  return (
-    <View style={styles.filterRow}>
-      {STATUS_FILTERS.map((chip) => {
-        const isActive = props.active === chip.id;
-        return (
-          <Pressable
-            key={chip.id}
-            accessibilityRole="button"
-            accessibilityState={{ selected: isActive }}
-            onPress={() => props.onChange(chip.id)}
-            style={[styles.filterChip, isActive ? styles.filterChipActive : null]}
-          >
-            <Text style={[styles.filterChipText, isActive ? styles.filterChipTextActive : null]}>
-              {chip.label}
-            </Text>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
-}
-
 function CallHistoryScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [statusFilter, setStatusFilter] = useState<CallHistoryStatusFilter>('all');
 
   const { data, isLoading, isFetching, isError, refetch } = useGetCallHistoryQuery({
     page: 1,
     limit: CALL_HISTORY_PAGE_SIZE,
   });
 
+  const allItems = useMemo((): CallHistoryItem[] => data?.data ?? [], [data?.data]);
+
+  const filterCounts = useMemo(
+    () => ({
+      all: allItems.length,
+      completed: allItems.filter((item) => COMPLETED_STATUSES.includes(item.status)).length,
+      missed: allItems.filter((item) => MISSED_STATUSES.includes(item.status)).length,
+    }),
+    [allItems],
+  );
+
   const rows = useMemo((): { raw: CallHistoryItem; card: CallHistoryCardModel }[] => {
-    const list = data?.data ?? [];
-    return list
+    return allItems
       .filter((item) => matchesStatusFilter(item, statusFilter))
       .map((raw) => ({ raw, card: mapCallHistoryItem(raw) }));
-  }, [data?.data, statusFilter]);
+  }, [allItems, statusFilter]);
 
   const handleRate = useCallback((): void => {
     navigation.navigate(ROUTES.Account.addReview);
   }, [navigation]);
 
-  const filterLabel = STATUS_FILTERS.find((f) => f.id === statusFilter)?.label ?? 'All';
+  const filterTabs = (
+    <CallHistoryFilterTabs
+      activeFilter={statusFilter}
+      allCount={filterCounts.all}
+      completedCount={filterCounts.completed}
+      missedCount={filterCounts.missed}
+      onFilterChange={setStatusFilter}
+    />
+  );
 
   return (
-    <SafeAreaWrapper edges={['top']} bgColor={CALL_HISTORY_CANVAS} contentBgColor={CALL_HISTORY_CANVAS}>
-      <ScreenHeader title="Call History" onBackPress={() => navigation.goBack()} />
-
+    <AccountHubScreenShell
+      title="Call History"
+      onBackPress={() => navigation.goBack()}
+      canvasColor={CALL_HISTORY_CANVAS}
+      headerColor={ACCOUNT_HUB_GREEN_HEADER_STATUS_BAR}
+      headerGradientColors={ACCOUNT_HUB_GREEN_HEADER_GRADIENT}
+      headerAccessory={filterTabs}
+    >
       {isLoading ? (
         <View style={styles.centeredState}>
           <ActivityIndicator size="large" color={THEME.colors.primary} />
@@ -232,22 +228,8 @@ function CallHistoryScreen(): React.ReactElement {
             />
           }
         >
-          <LinearGradient
-            colors={[THEME.colors.primary, '#166534']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.heroGradient}
-          >
-            <Text style={styles.heroTitle}>Call history</Text>
-            <Text style={styles.heroMeta}>
-              {rows.length} call{rows.length === 1 ? '' : 's'}
-              {statusFilter !== 'all' ? ` · ${filterLabel}` : ''}
-            </Text>
-            <FilterBar active={statusFilter} onChange={setStatusFilter} />
-          </LinearGradient>
-
           {rows.length === 0 ? (
-            <View style={styles.centeredState}>
+            <View style={styles.emptyState}>
               <View style={styles.emptyIcon}>
                 <Ionicons name="call-outline" size={22} color={THEME.colors.primary} />
               </View>
@@ -258,7 +240,9 @@ function CallHistoryScreen(): React.ReactElement {
           ) : (
             <View style={styles.listBlock}>
               <View style={styles.listHeader}>
-                <Text style={styles.listHeaderMeta}>Recent calls</Text>
+                <Text style={styles.listHeaderMeta}>
+                  {rows.length} call{rows.length === 1 ? '' : 's'}
+                </Text>
               </View>
               {rows.map((row, index) => (
                 <CallRow
@@ -273,7 +257,7 @@ function CallHistoryScreen(): React.ReactElement {
           )}
         </ScrollView>
       )}
-    </SafeAreaWrapper>
+    </AccountHubScreenShell>
   );
 }
 

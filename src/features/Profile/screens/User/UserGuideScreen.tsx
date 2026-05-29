@@ -14,7 +14,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import type { AccountStackParamList } from '@/navigation/types';
-import { SafeAreaWrapper, ScreenHeader } from '@/shared/components';
+import { AccountHubScreenShell } from '@/shared/components';
 import { THEME } from '@/constants/theme';
 import { getYouTubeThumbnailUrl, getYouTubeVideoId } from '@/utils/youtubeUrl';
 
@@ -187,9 +187,11 @@ export default function UserGuideScreen(): React.ReactElement {
       : `${USER_GUIDE_FAQ_ITEMS.length} questions`;
 
   return (
-    <SafeAreaWrapper edges={['top', 'bottom']} bgColor={GUIDE_CANVAS}>
-      <ScreenHeader title="User Guide" onBackPress={() => navigation.goBack()} />
-
+    <AccountHubScreenShell
+      title="User Guide"
+      onBackPress={() => navigation.goBack()}
+      canvasColor={GUIDE_CANVAS}
+    >
       <LinearGradient
         colors={['#047857', '#059669', '#0D9488']}
         start={{ x: 0, y: 0 }}
@@ -254,6 +256,6 @@ export default function UserGuideScreen(): React.ReactElement {
         title={activeVideo?.title ?? ''}
         onClose={handleCloseVideo}
       />
-    </SafeAreaWrapper>
+    </AccountHubScreenShell>
   );
 }

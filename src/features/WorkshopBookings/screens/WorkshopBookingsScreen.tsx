@@ -30,7 +30,7 @@ import { THEME } from '@/constants/theme';
 import { navigationRef } from '@/navigation/navigationContainerRef';
 import { ROUTES } from '@/navigation/routeNames';
 import type { AccountStackParamList } from '@/navigation/types';
-import { SafeAreaWrapper, ScreenHeader } from '@/shared/components';
+import { AccountHubScreenShell } from '@/shared/components';
 import { useAppSelector } from '@/store/typedHooks';
 import { getApiErrorMessage } from '@/utils/apiError';
 
@@ -300,19 +300,24 @@ export function WorkshopBookingsScreen(): React.ReactElement {
 
   if (isLoading) {
     return (
-      <SafeAreaWrapper edges={['top', 'bottom']} bgColor={WORKSHOP_CANVAS}>
-        <ScreenHeader title="Workshop Bookings" onBackPress={() => navigation.goBack()} />
+      <AccountHubScreenShell
+        title="Workshop Bookings"
+        onBackPress={() => navigation.goBack()}
+        canvasColor={WORKSHOP_CANVAS}
+      >
         <View style={styles.centered}>
           <ActivityIndicator size="large" color="#0D9488" />
         </View>
-      </SafeAreaWrapper>
+      </AccountHubScreenShell>
     );
   }
 
   return (
-    <SafeAreaWrapper edges={['top', 'bottom']} bgColor={WORKSHOP_CANVAS}>
-      <ScreenHeader title="Workshop Bookings" onBackPress={() => navigation.goBack()} />
-
+    <AccountHubScreenShell
+      title="Workshop Bookings"
+      onBackPress={() => navigation.goBack()}
+      canvasColor={WORKSHOP_CANVAS}
+    >
       <ScrollView
         style={styles.screen}
         contentContainerStyle={styles.scrollContent}
@@ -470,6 +475,6 @@ export function WorkshopBookingsScreen(): React.ReactElement {
           </Pressable>
         </Pressable>
       </Modal>
-    </SafeAreaWrapper>
+    </AccountHubScreenShell>
   );
 }

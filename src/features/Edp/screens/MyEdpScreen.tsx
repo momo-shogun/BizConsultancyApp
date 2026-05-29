@@ -19,7 +19,7 @@ import { formatEdpDate } from '@/features/Edp/utils/edpPurchaseParsing';
 import { navigationRef } from '@/navigation/navigationContainerRef';
 import { ROUTES } from '@/navigation/routeNames';
 import type { AccountStackParamList } from '@/navigation/types';
-import { SafeAreaWrapper, ScreenHeader } from '@/shared/components';
+import { AccountHubScreenShell } from '@/shared/components';
 import { THEME } from '@/constants/theme';
 import { useAppSelector } from '@/store/typedHooks';
 
@@ -73,8 +73,12 @@ export function MyEdpScreen(): React.ReactElement {
 
   if (!isAuthenticated) {
     return (
-      <SafeAreaWrapper edges={['top']} bgColor={MY_EDP_CANVAS}>
-        <ScreenHeader title="My EDP" onBackPress={() => navigation.goBack()} />
+      <AccountHubScreenShell
+        title="My EDP"
+        onBackPress={() => navigation.goBack()}
+        canvasColor={MY_EDP_CANVAS}
+        edges={['top']}
+      >
         <View style={styles.centered}>
           <Text style={styles.cardDesc}>Sign in to view your EDP enrollment.</Text>
           <Pressable
@@ -86,25 +90,32 @@ export function MyEdpScreen(): React.ReactElement {
             <Text style={styles.primaryBtnText}>Log in</Text>
           </Pressable>
         </View>
-      </SafeAreaWrapper>
+      </AccountHubScreenShell>
     );
   }
 
   if (isLoading && enrollment == null) {
     return (
-      <SafeAreaWrapper edges={['top']} bgColor={MY_EDP_CANVAS}>
-        <ScreenHeader title="My EDP" onBackPress={() => navigation.goBack()} />
+      <AccountHubScreenShell
+        title="My EDP"
+        onBackPress={() => navigation.goBack()}
+        canvasColor={MY_EDP_CANVAS}
+        edges={['top']}
+      >
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={THEME.colors.primary} />
         </View>
-      </SafeAreaWrapper>
+      </AccountHubScreenShell>
     );
   }
 
   return (
-    <SafeAreaWrapper edges={['top']} bgColor={MY_EDP_CANVAS} contentBgColor={MY_EDP_CANVAS}>
-      <ScreenHeader title="My EDP" onBackPress={() => navigation.goBack()} />
-
+    <AccountHubScreenShell
+      title="My EDP"
+      onBackPress={() => navigation.goBack()}
+      canvasColor={MY_EDP_CANVAS}
+      edges={['top']}
+    >
       <ScrollView
         style={styles.screen}
         contentContainerStyle={styles.scrollContent}
@@ -226,6 +237,6 @@ export function MyEdpScreen(): React.ReactElement {
         onPayRazorpay={() => void purchaseFlow.payWithRazorpay()}
         onPayWallet={() => void purchaseFlow.payWithWallet()}
       />
-    </SafeAreaWrapper>
+    </AccountHubScreenShell>
   );
 }

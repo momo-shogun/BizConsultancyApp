@@ -7,7 +7,6 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  StatusBar,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -24,10 +23,11 @@ import {
   WALLET_TOPUP_MIN_AMOUNT,
 } from '@/features/Wallet/utils/walletTransactionUtils';
 
-import { THEME } from '@/constants/theme';
 import { navigationRef } from '@/navigation/RootNavigator';
 import { ROUTES } from '@/navigation/routeNames';
-import { SafeAreaWrapper, ScreenHeader } from '@/shared/components';
+import { AccountHubScreenShell } from '@/shared/components';
+
+const WALLET_CANVAS = '#F4F7FB';
 
 const QUICK_AMOUNTS = [500, 1000, 2000, 5000];
 
@@ -48,14 +48,11 @@ export function WalletScreen(): React.ReactElement {
       : formatWalletBalanceInr(balance ?? 0);
 
   return (
-    <SafeAreaWrapper edges={['top', 'bottom']} bgColor="#F4F7FB">
-      <StatusBar barStyle="dark-content" backgroundColor="#F4F7FB" />
-
-      <ScreenHeader
-        title="Biz Wallet"
-        onBackPress={() => navigationRef.goBack()}
-      />
-
+    <AccountHubScreenShell
+      title="Biz Wallet"
+      onBackPress={() => navigationRef.goBack()}
+      canvasColor={WALLET_CANVAS}
+    >
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContainer}
@@ -231,7 +228,7 @@ export function WalletScreen(): React.ReactElement {
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </SafeAreaWrapper>
+    </AccountHubScreenShell>
   );
 }
 

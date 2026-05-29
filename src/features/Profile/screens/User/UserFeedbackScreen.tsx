@@ -15,7 +15,7 @@ import { useSubmitUserFeedbackMutation } from '@/features/Profile/api/userFeedba
 import { selectIsAuthenticated } from '@/features/Auth/store/authSelectors';
 import { ROUTES } from '@/navigation/routeNames';
 import type { AccountStackParamList } from '@/navigation/types';
-import { KeyboardWrapper, SafeAreaWrapper, ScreenHeader } from '@/shared/components';
+import { AccountHubScreenShell, KeyboardWrapper } from '@/shared/components';
 import { showGlobalError, showGlobalToast } from '@/shared/components/toast';
 import { useAppSelector } from '@/store/typedHooks';
 
@@ -79,8 +79,11 @@ export default function UserFeedbackScreen(): React.ReactElement {
 
   if (!isAuthenticated) {
     return (
-      <SafeAreaWrapper edges={['top', 'bottom']} bgColor={USER_FEEDBACK_CANVAS}>
-        <ScreenHeader title="User Feedback" onBackPress={() => navigation.goBack()} />
+      <AccountHubScreenShell
+        title="User Feedback"
+        onBackPress={() => navigation.goBack()}
+        canvasColor={USER_FEEDBACK_CANVAS}
+      >
         <View style={styles.centered}>
           <Ionicons name="chatbubble-ellipses-outline" size={40} color="#94A3B8" />
           <Text style={styles.centeredText}>Sign in to rate your experience and share suggestions.</Text>
@@ -93,15 +96,18 @@ export default function UserFeedbackScreen(): React.ReactElement {
             <Text style={styles.signInButtonText}>Go back</Text>
           </Pressable>
         </View>
-      </SafeAreaWrapper>
+      </AccountHubScreenShell>
     );
   }
 
   const canSubmit = rating != null && !isSubmitting;
 
   return (
-    <SafeAreaWrapper edges={['top', 'bottom']} bgColor={USER_FEEDBACK_CANVAS}>
-      <ScreenHeader title="User Feedback" onBackPress={() => navigation.goBack()} />
+    <AccountHubScreenShell
+      title="User Feedback"
+      onBackPress={() => navigation.goBack()}
+      canvasColor={USER_FEEDBACK_CANVAS}
+    >
       <KeyboardWrapper style={styles.flex}>
         <ScrollView
           contentContainerStyle={styles.scrollContent}
@@ -201,6 +207,6 @@ export default function UserFeedbackScreen(): React.ReactElement {
           </View>
         </ScrollView>
       </KeyboardWrapper>
-    </SafeAreaWrapper>
+    </AccountHubScreenShell>
   );
 }

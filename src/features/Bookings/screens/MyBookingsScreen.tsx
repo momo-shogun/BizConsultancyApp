@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -14,15 +14,22 @@ import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { MyBookingCard } from '@/features/Bookings/components/MyBookingCard';
+import { MyBookingsAnimatedSearchBar } from '@/features/Bookings/components/MyBookingsAnimatedSearchBar';
+import { MyBookingsFilterTabs } from '@/features/Bookings/components/MyBookingsFilterTabs';
 import { useMyBookingsScreen } from '@/features/Bookings/hooks/useMyBookingsScreen';
 import { useUserBookingCall } from '@/features/Bookings/hooks/useUserBookingCall';
 import { THEME } from '@/constants/theme';
 import { navigationRef } from '@/navigation/navigationContainerRef';
 import { ROUTES } from '@/navigation/routeNames';
 import type { AccountStackParamList } from '@/navigation/types';
-import { SafeAreaWrapper, ScreenHeader } from '@/shared/components';
+import { AccountHubScreenShell } from '@/shared/components';
 
-import { BOOKINGS_CANVAS, styles } from './MyBookingsScreen.styles';
+import {
+  BOOKINGS_CANVAS,
+  BOOKINGS_HEADER_GRADIENT,
+  BOOKINGS_HEADER_STATUS_BAR,
+  styles,
+} from './MyBookingsScreen.styles';
 
 type Nav = NativeStackNavigationProp<AccountStackParamList, typeof ROUTES.Account.MyBookings>;
 
@@ -30,28 +37,69 @@ export function MyBookingsScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
   const screen = useMyBookingsScreen();
   const { callingBookingId, startCallFromBooking } = useUserBookingCall();
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchInputRef = useRef<TextInput>(null);
 
   const browseConsultants = useCallback((): void => {
     navigationRef.navigate(ROUTES.Root.ConsultantsList);
   }, []);
 
+  const openSearch = useCallback((): void => {
+    setSearchOpen(true);
+  }, []);
+
+  const closeSearch = useCallback((): void => {
+    setSearchOpen(false);
+    screen.setSearch('');
+  }, [screen]);
+
+  const headerSearch = (
+    <MyBookingsAnimatedSearchBar
+      visible={searchOpen}
+      value={screen.search}
+      onChangeText={screen.setSearch}
+      inputRef={searchInputRef}
+      placeholder="Search by name or email"
+      accessibilityLabel="Search bookings"
+      embeddedInHeader
+    />
+  );
+
+  const shellProps = {
+    title: 'My Bookings',
+    onBackPress: () => navigation.goBack(),
+    canvasColor: BOOKINGS_CANVAS,
+    headerColor: BOOKINGS_HEADER_STATUS_BAR,
+    headerGradientColors: BOOKINGS_HEADER_GRADIENT,
+    onSearchPress: searchOpen ? undefined : openSearch,
+    headerRightAction: searchOpen ? (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Close search"
+        onPress={closeSearch}
+        hitSlop={8}
+        style={styles.headerIconBtn}
+      >
+        <Ionicons name="close" size={22} color="#FFFFFF" />
+      </Pressable>
+    ) : undefined,
+    headerAccessory: headerSearch,
+  } as const;
+
   if (screen.isLoading) {
     return (
-      <SafeAreaWrapper edges={['top', 'bottom']} bgColor={BOOKINGS_CANVAS}>
-        <ScreenHeader title="My Bookings" onBackPress={() => navigation.goBack()} />
+      <AccountHubScreenShell {...shellProps}>
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={THEME.colors.primary} />
         </View>
-      </SafeAreaWrapper>
+      </AccountHubScreenShell>
     );
   }
 
   const isUpcoming = screen.filter === 'upcoming';
 
   return (
-    <SafeAreaWrapper edges={['top', 'bottom']} bgColor={BOOKINGS_CANVAS}>
-      <ScreenHeader title="My Bookings" onBackPress={() => navigation.goBack()} />
-
+    <AccountHubScreenShell {...shellProps}>
       <ScrollView
         style={styles.screen}
         contentContainerStyle={styles.scrollContent}
@@ -87,56 +135,13 @@ export function MyBookingsScreen(): React.ReactElement {
             </View>
           </View>
 
-          <View style={styles.tabRow}>
-            {(['upcoming', 'past'] as const).map((tab) => {
-              const active = screen.filter === tab;
-              const tabLabel = tab === 'upcoming' ? 'Upcoming' : 'Past';
-              return (
-                <Pressable
-                  key={tab}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: active }}
-                  onPress={() => screen.setFilter(tab)}
-                  style={[styles.tab, active ? styles.tabActive : null]}
-                >
-                  <Text style={[styles.tabText, active ? styles.tabTextActive : null]}>
-                    {tabLabel}
-                  </Text>
-                  <Text
-                    style={[styles.tabCount, active ? styles.tabCountActive : null]}
-                  >
-                    {tab === 'upcoming' ? screen.upcomingCount : screen.pastCount}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </LinearGradient>
-
-        <View style={styles.searchWrap}>
-          <Ionicons name="search-outline" size={18} color="#8696A0" />
-          <TextInput
-            value={screen.search}
-            onChangeText={screen.setSearch}
-            placeholder="Search by name or email"
-            placeholderTextColor="#94A3B8"
-            style={styles.searchInput}
-            autoCapitalize="none"
-            autoCorrect={false}
-            returnKeyType="search"
-            accessibilityLabel="Search bookings"
+          <MyBookingsFilterTabs
+            activeFilter={screen.filter}
+            upcomingCount={screen.upcomingCount}
+            pastCount={screen.pastCount}
+            onFilterChange={screen.setFilter}
           />
-          {screen.search.length > 0 ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Clear search"
-              onPress={() => screen.setSearch('')}
-              hitSlop={8}
-            >
-              <Ionicons name="close-circle" size={18} color="#94A3B8" />
-            </Pressable>
-          ) : null}
-        </View>
+        </LinearGradient>
 
         {screen.errorMessage != null ? (
           <View style={styles.errorBanner}>
@@ -208,6 +213,6 @@ export function MyBookingsScreen(): React.ReactElement {
           </View>
         ) : null}
       </ScrollView>
-    </SafeAreaWrapper>
+    </AccountHubScreenShell>
   );
 }

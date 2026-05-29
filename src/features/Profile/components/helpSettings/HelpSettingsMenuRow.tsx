@@ -21,11 +21,11 @@ function HelpSettingsMenuRowComponent(props: HelpSettingsMenuRowProps): React.Re
       onPress={onPress}
       style={({ pressed }) => [
         isLast ? styles.menuCardItemLast : styles.menuCardItem,
-        pressed ? { opacity: 0.92, backgroundColor: '#F8FAFC' } : null,
+        pressed ? styles.menuCardItemPressed : null,
       ]}
     >
       <View style={[styles.menuIconWrap, { backgroundColor: row.iconBgColor }]}>
-        <Ionicons name={row.icon} size={20} color={row.iconColor} />
+        <Ionicons name={row.icon} size={22} color={row.iconColor} />
       </View>
 
       <View style={styles.menuTextGroup}>
@@ -38,7 +38,7 @@ function HelpSettingsMenuRowComponent(props: HelpSettingsMenuRowProps): React.Re
       </View>
 
       <View style={styles.chevronWrap}>
-        <Ionicons name="chevron-forward" size={16} color="#64748B" />
+        <Ionicons name="chevron-forward" size={15} color="#475569" />
       </View>
     </Pressable>
   );

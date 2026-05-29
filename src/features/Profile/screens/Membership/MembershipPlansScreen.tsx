@@ -15,7 +15,7 @@ import { selectIsAuthenticated } from '@/features/Auth/store/authSelectors';
 import { useGetPublicMembershipsQuery } from '@/features/Home/api/homePublicApi';
 import { useAppSelector } from '@/store/typedHooks';
 import type { AccountStackParamList } from '@/navigation/types';
-import { SafeAreaWrapper, ScreenHeader, ScreenWrapper } from '@/shared/components';
+import { AccountHubScreenShell, ScreenWrapper } from '@/shared/components';
 
 import { MembershipCheckoutModal } from '../../components/MembershipCheckoutModal';
 import { useMembershipPurchase } from '../../hooks/useMembershipPurchase';
@@ -371,8 +371,11 @@ export function MembershipPlansScreen({ config }: MembershipPlansScreenProps): R
   };
 
   return (
-    <SafeAreaWrapper edges={['top', 'bottom']} bgColor="white">
-      <ScreenHeader title={config.headerTitle} onBackPress={() => navigation.goBack()} />
+    <AccountHubScreenShell
+      title={config.headerTitle}
+      onBackPress={() => navigation.goBack()}
+      canvasColor="#FFFFFF"
+    >
       <ScreenWrapper style={styles.screen}>
         {isLoading ? (
           <View style={styles.centered}>
@@ -422,6 +425,6 @@ export function MembershipPlansScreen({ config }: MembershipPlansScreenProps): R
         )}
       </ScreenWrapper>
       <MembershipCheckoutModal purchase={purchase} />
-    </SafeAreaWrapper>
+    </AccountHubScreenShell>
   );
 }

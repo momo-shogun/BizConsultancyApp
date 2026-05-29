@@ -1,8 +1,9 @@
 import { StyleSheet } from 'react-native';
 
+import { ACCOUNT_HUB_LIST_CANVAS } from '@/constants/accountScreenTheme';
 import { THEME } from '@/constants/theme';
 
-export const CALL_HISTORY_CANVAS = '#F4F7FB';
+export const CALL_HISTORY_CANVAS = ACCOUNT_HUB_LIST_CANVAS;
 const SLATE_LINE = '#E2E8F0';
 const SLATE_MUTED = '#64748B';
 
@@ -13,48 +14,16 @@ export const styles = StyleSheet.create({
   },
   listContent: {
     paddingHorizontal: THEME.spacing[16],
+    paddingTop: THEME.spacing[12],
     paddingBottom: THEME.spacing[20],
+    flexGrow: 1,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: THEME.spacing[10],
-  },
-  heroGradient: {
-    borderRadius: 16,
-    padding: THEME.spacing[14],
-    gap: THEME.spacing[10],
-    marginBottom: THEME.spacing[4],
-  },
-  heroTitle: {
-    fontSize: THEME.typography.size[18],
-    fontWeight: THEME.typography.weight.bold as '700',
-    color: '#FFFFFF',
-  },
-  heroMeta: {
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.88)',
-  },
-  filterRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: THEME.spacing[8],
-  },
-  filterChip: {
-    paddingHorizontal: THEME.spacing[10],
-    paddingVertical: 6,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.35)',
-    backgroundColor: 'rgba(255,255,255,0.14)',
-  },
-  filterChipActive: {
-    backgroundColor: 'rgba(255,255,255,0.28)',
-    borderColor: 'rgba(255,255,255,0.5)',
-  },
-  filterChipText: {
-    fontSize: 11,
-    fontWeight: THEME.typography.weight.semibold as '600',
-    color: 'rgba(255,255,255,0.9)',
-  },
-  filterChipTextActive: {
-    color: '#FFFFFF',
+    paddingHorizontal: THEME.spacing[20],
+    paddingVertical: THEME.spacing[28],
   },
   listBlock: {
     backgroundColor: THEME.colors.white,

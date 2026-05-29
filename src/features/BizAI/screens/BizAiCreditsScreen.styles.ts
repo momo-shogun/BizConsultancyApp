@@ -1,9 +1,10 @@
 import { Platform, StyleSheet } from 'react-native';
 
+import { ACCOUNT_SUBSCREEN_HEADER_COLOR } from '@/constants/accountScreenTheme';
 import { THEME } from '@/constants/theme';
 
 /** Matches hero gradient top — status bar + ScreenHeader */
-export const BIZ_AI_CREDITS_HEADER_COLOR = '#0F172A';
+export const BIZ_AI_CREDITS_HEADER_COLOR = ACCOUNT_SUBSCREEN_HEADER_COLOR;
 
 const SLATE_50 = '#F8FAFC';
 const SLATE_100 = '#F1F5F9';

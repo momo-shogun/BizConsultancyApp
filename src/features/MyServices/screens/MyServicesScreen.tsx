@@ -15,7 +15,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { ROUTES } from '@/navigation/routeNames';
 import { navigationRef } from '@/navigation/navigationContainerRef';
 import type { AccountStackParamList } from '@/navigation/types';
-import { SafeAreaWrapper, ScreenHeader } from '@/shared/components';
+import { AccountHubScreenShell } from '@/shared/components';
 
 import { MyServiceCard } from '../components/MyServiceCard';
 import { MyServiceCardSkeleton } from '../components/MyServiceCardSkeleton';
@@ -134,9 +134,11 @@ export function MyServicesScreen(): React.ReactElement {
   );
 
   return (
-    <SafeAreaWrapper edges={['top', 'bottom']} bgColor="#F4F7FA">
-      <ScreenHeader title="My Services" onBackPress={() => navigation.goBack()} />
-
+    <AccountHubScreenShell
+      title="My Services"
+      onBackPress={() => navigation.goBack()}
+      canvasColor="#F4F7FA"
+    >
       {screen.errorMessage != null && !screen.isLoading ? (
         <View style={styles.errorBanner}>
           <Text style={styles.errorText}>{screen.errorMessage}</Text>
@@ -188,7 +190,7 @@ export function MyServicesScreen(): React.ReactElement {
         visible={screen.selectedDetailId != null}
         onClose={() => screen.setSelectedDetailId(null)}
       />
-    </SafeAreaWrapper>
+    </AccountHubScreenShell>
   );
 }
 

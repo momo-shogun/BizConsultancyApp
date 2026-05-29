@@ -1,16 +1,24 @@
 import { Platform, StyleSheet } from 'react-native';
 
+import { ACCOUNT_SUBSCREEN_HEADER_COLOR } from '@/constants/accountScreenTheme';
 import { THEME } from '@/constants/theme';
 
-export const HELP_SETTINGS_CANVAS = '#F8FAFC';
-const SLATE_LINE = '#E2E8F0';
+/** Status bar + ScreenHeader — matches account sub-screens (e.g. Biz AI credits) */
+export const HELP_SETTINGS_HEADER_COLOR = ACCOUNT_SUBSCREEN_HEADER_COLOR;
+
+export const HELP_SETTINGS_CANVAS = '#F1F5F9';
+
+const SLATE_200 = '#E2E8F0';
+const SLATE_500 = '#64748B';
+const SLATE_700 = '#334155';
+const SLATE_900 = '#0F172A';
 
 const CARD_SHADOW = Platform.select({
   ios: {
-    shadowColor: '#0F172A',
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
+    shadowColor: SLATE_900,
+    shadowOpacity: 0.07,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 5 },
   },
   android: { elevation: 3 },
   default: {},
@@ -22,126 +30,195 @@ export const helpSettingsStyles = StyleSheet.create({
     backgroundColor: HELP_SETTINGS_CANVAS,
   },
   scrollContent: {
-    paddingBottom: THEME.spacing[24],
+    paddingBottom: 28,
   },
-  sectionBlock: {
-    marginTop: THEME.spacing[20],
-    paddingHorizontal: THEME.spacing[16],
+  headerBand: {
+    backgroundColor: HELP_SETTINGS_HEADER_COLOR,
   },
-  sectionBlockFirst: {
-    marginTop: THEME.spacing[12],
-    paddingHorizontal: THEME.spacing[16],
+  heroStrip: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 8,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    borderRadius: 18,
+    backgroundColor: HELP_SETTINGS_HEADER_COLOR,
+    overflow: 'hidden',
   },
-  sectionLabel: {
+  heroEyebrow: {
     fontSize: 11,
-    fontWeight: THEME.typography.weight.bold as '700',
-    color: '#64748B',
+    fontWeight: '700',
     letterSpacing: 0.8,
     textTransform: 'uppercase',
-    marginBottom: THEME.spacing[8],
-    marginLeft: THEME.spacing[4],
+    color: 'rgba(255,255,255,0.65)',
+    marginBottom: 6,
+  },
+  heroTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: -0.4,
+    marginBottom: 6,
+  },
+  heroSubtitle: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: 'rgba(255,255,255,0.78)',
+    fontWeight: '500',
+  },
+  sectionBlock: {
+    marginTop: 20,
+    paddingHorizontal: 16,
+  },
+  sectionBlockFirst: {
+    marginTop: 12,
+    paddingHorizontal: 16,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+    paddingHorizontal: 4,
+  },
+  sectionLabel: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: SLATE_900,
+    letterSpacing: -0.25,
+  },
+  sectionCount: {
+    minWidth: 26,
+    height: 26,
+    paddingHorizontal: 8,
+    borderRadius: 13,
+    backgroundColor: 'rgba(15, 23, 42, 0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sectionCountText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: SLATE_700,
   },
   menuCard: {
     overflow: 'hidden',
     backgroundColor: THEME.colors.white,
-    borderRadius: THEME.radius[16],
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: SLATE_LINE,
+    borderColor: SLATE_200,
     ...CARD_SHADOW,
   },
   menuCardItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: THEME.spacing[14],
-    paddingVertical: THEME.spacing[14],
+    minHeight: 64,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: SLATE_LINE,
+    borderBottomColor: SLATE_200,
+  },
+  menuCardItemPressed: {
+    backgroundColor: '#F8FAFC',
   },
   menuCardItemLast: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: THEME.spacing[14],
-    paddingVertical: THEME.spacing[14],
+    minHeight: 64,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
   menuIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: THEME.radius[12],
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: THEME.spacing[12],
+    marginRight: 12,
   },
   menuTextGroup: {
     flex: 1,
     minWidth: 0,
-    gap: THEME.spacing[4],
+    gap: 3,
+    paddingRight: 8,
   },
   menuTitle: {
-    fontSize: THEME.typography.size[14],
-    fontWeight: THEME.typography.weight.semibold as '600',
-    color: THEME.colors.textPrimary,
-    letterSpacing: -0.15,
+    fontSize: 15,
+    fontWeight: '700',
+    color: SLATE_900,
+    letterSpacing: -0.2,
   },
   menuSubtitle: {
-    fontSize: THEME.typography.size[12],
-    fontWeight: THEME.typography.weight.regular as '400',
-    color: THEME.colors.textSecondary,
-    lineHeight: 16,
+    fontSize: 12,
+    fontWeight: '500',
+    color: SLATE_500,
+    lineHeight: 17,
   },
   chevronWrap: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 30,
+    height: 30,
+    borderRadius: 10,
     backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: SLATE_200,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: THEME.spacing[8],
   },
   logoutContainer: {
-    marginTop: THEME.spacing[28],
-    paddingHorizontal: THEME.spacing[16],
+    marginTop: 28,
+    paddingHorizontal: 16,
   },
   logoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: THEME.spacing[8],
-    paddingVertical: THEME.spacing[14],
-    borderRadius: THEME.radius[12],
+    gap: 8,
+    minHeight: 52,
+    paddingVertical: 14,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(229,72,77,0.35)',
-    backgroundColor: THEME.colors.white,
+    borderColor: 'rgba(229, 72, 77, 0.28)',
+    backgroundColor: '#FEF2F2',
     ...CARD_SHADOW,
   },
-  logoutText: {
-    color: THEME.colors.danger,
-    fontSize: THEME.typography.size[14],
-    fontWeight: THEME.typography.weight.semibold as '600',
-    letterSpacing: 0.1,
+  logoutBtnPressed: {
+    opacity: 0.9,
   },
-  footer: {
+  logoutText: {
+    color: '#DC2626',
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: -0.1,
+  },
+  footerCard: {
+    marginHorizontal: 16,
+
+    paddingHorizontal: 16,
+    // backgroundColor: THEME.colors.white,
+    // borderWidth: 1,
+    // borderColor: SLATE_200,
     alignItems: 'center',
-    paddingTop: THEME.spacing[24],
-    paddingBottom: THEME.spacing[20],
-    gap: THEME.spacing[8],
+    gap: 10,
   },
   footerLinks: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: THEME.spacing[8],
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
   },
   footerLink: {
-    color: THEME.colors.textSecondary,
-    fontSize: THEME.typography.size[12],
-    fontWeight: THEME.typography.weight.medium as '500',
+    color: SLATE_700,
+    fontSize: 13,
+    fontWeight: '600',
   },
   footerDot: {
     color: '#CBD5E1',
-    fontSize: THEME.typography.size[12],
+    fontSize: 13,
   },
   footerVersion: {
-    color: '#94A3B8',
-    fontSize: THEME.typography.size[12],
-    fontWeight: THEME.typography.weight.medium as '500',
+    color: SLATE_500,
+    fontSize: 12,
+    fontWeight: '500',
   },
 });

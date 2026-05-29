@@ -25,7 +25,7 @@ import { THEME } from '@/constants/theme';
 import { navigationRef } from '@/navigation/navigationContainerRef';
 import { ROUTES } from '@/navigation/routeNames';
 import type { AccountStackParamList } from '@/navigation/types';
-import { SafeAreaWrapper, ScreenHeader } from '@/shared/components';
+import { AccountHubScreenShell } from '@/shared/components';
 
 import { PACK_CANVAS, styles } from './MyDiagnosticPackScreen.styles';
 
@@ -139,8 +139,11 @@ export function MyDiagnosticPackScreen(): React.ReactElement {
 
   if (!screen.isAuthenticated) {
     return (
-      <SafeAreaWrapper edges={['top', 'bottom']} bgColor={PACK_CANVAS}>
-        <ScreenHeader title="My Diagnostic Pack" onBackPress={() => navigation.goBack()} />
+      <AccountHubScreenShell
+        title="My Diagnostic Pack"
+        onBackPress={() => navigation.goBack()}
+        canvasColor={PACK_CANVAS}
+      >
         <View style={styles.centered}>
           <EmptyStatePanel
             icon="lock-closed-outline"
@@ -150,25 +153,31 @@ export function MyDiagnosticPackScreen(): React.ReactElement {
             onAction={navigateToLogin}
           />
         </View>
-      </SafeAreaWrapper>
+      </AccountHubScreenShell>
     );
   }
 
   if (screen.isLoading) {
     return (
-      <SafeAreaWrapper edges={['top', 'bottom']} bgColor={PACK_CANVAS}>
-        <ScreenHeader title="My Diagnostic Pack" onBackPress={() => navigation.goBack()} />
+      <AccountHubScreenShell
+        title="My Diagnostic Pack"
+        onBackPress={() => navigation.goBack()}
+        canvasColor={PACK_CANVAS}
+      >
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={THEME.colors.primary} />
         </View>
-      </SafeAreaWrapper>
+      </AccountHubScreenShell>
     );
   }
 
   if (screen.errorMessage != null) {
     return (
-      <SafeAreaWrapper edges={['top', 'bottom']} bgColor={PACK_CANVAS}>
-        <ScreenHeader title="My Diagnostic Pack" onBackPress={() => navigation.goBack()} />
+      <AccountHubScreenShell
+        title="My Diagnostic Pack"
+        onBackPress={() => navigation.goBack()}
+        canvasColor={PACK_CANVAS}
+      >
         <View style={styles.centered}>
           <View style={styles.statePanel}>
             <Ionicons name="cloud-offline-outline" size={36} color="#94A3B8" />
@@ -178,7 +187,7 @@ export function MyDiagnosticPackScreen(): React.ReactElement {
             </Pressable>
           </View>
         </View>
-      </SafeAreaWrapper>
+      </AccountHubScreenShell>
     );
   }
 
@@ -187,8 +196,11 @@ export function MyDiagnosticPackScreen(): React.ReactElement {
 
   if (current == null) {
     return (
-      <SafeAreaWrapper edges={['top', 'bottom']} bgColor={PACK_CANVAS}>
-        <ScreenHeader title="My Diagnostic Pack" onBackPress={() => navigation.goBack()} />
+      <AccountHubScreenShell
+        title="My Diagnostic Pack"
+        onBackPress={() => navigation.goBack()}
+        canvasColor={PACK_CANVAS}
+      >
         <ScrollView
           style={styles.screen}
           contentContainerStyle={[styles.scrollContent, { flexGrow: 1, justifyContent: 'center' }]}
@@ -201,7 +213,7 @@ export function MyDiagnosticPackScreen(): React.ReactElement {
             onAction={navigateToPackages}
           />
         </ScrollView>
-      </SafeAreaWrapper>
+      </AccountHubScreenShell>
     );
   }
 
@@ -219,9 +231,11 @@ export function MyDiagnosticPackScreen(): React.ReactElement {
       : null;
 
   return (
-    <SafeAreaWrapper edges={['top', 'bottom']} bgColor={PACK_CANVAS}>
-      <ScreenHeader title="My Diagnostic Pack" onBackPress={() => navigation.goBack()} />
-
+    <AccountHubScreenShell
+      title="My Diagnostic Pack"
+      onBackPress={() => navigation.goBack()}
+      canvasColor={PACK_CANVAS}
+    >
       <ScrollView
         style={styles.screen}
         contentContainerStyle={styles.scrollContent}
@@ -346,6 +360,6 @@ export function MyDiagnosticPackScreen(): React.ReactElement {
         onToggle={screen.toggleDocument}
         onApply={() => void screen.applyDocuments()}
       />
-    </SafeAreaWrapper>
+    </AccountHubScreenShell>
   );
 }

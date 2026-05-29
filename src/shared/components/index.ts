@@ -22,6 +22,8 @@ export {
   type FilterSheetValue,
 } from './filters/FilterSheet';
 
+export { AccountHubScreenShell, type AccountHubScreenShellProps } from './layout/AccountHubScreenShell';
+export { AnimatedHeaderSearchBar, type AnimatedHeaderSearchBarProps } from './layout/AnimatedHeaderSearchBar';
 export { ScreenWrapper } from './wrappers/ScreenWrapper';
 export { SafeAreaWrapper } from './wrappers/SafeAreaWrapper';
 export { KeyboardWrapper } from './wrappers/KeyboardWrapper';
