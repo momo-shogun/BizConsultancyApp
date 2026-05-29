@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { Platform, StatusBar, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView, type SafeAreaViewProps } from 'react-native-safe-area-context';
@@ -26,6 +26,14 @@ function resolveStatusBarStyle(
   return isLight ? 'light-content' : 'dark-content';
 }
 
+function applyStatusBarAppearance(barStyle: StatusBarIconStyle, backgroundColor: string): void {
+  StatusBar.setBarStyle(barStyle, true);
+  if (Platform.OS === 'android') {
+    StatusBar.setBackgroundColor(backgroundColor, true);
+    StatusBar.setTranslucent(false);
+  }
+}
+
 export function SafeAreaWrapper({
   bgColor,
   contentBgColor,
@@ -38,13 +46,13 @@ export function SafeAreaWrapper({
   const backgroundColor = bgColor ?? THEME.colors.background;
   const barStyle = resolveStatusBarStyle(isLight, statusBarStyle);
 
+  useEffect(() => {
+    applyStatusBarAppearance(barStyle, backgroundColor);
+  }, [barStyle, backgroundColor]);
+
   useFocusEffect(
     useCallback(() => {
-      StatusBar.setBarStyle(barStyle, true);
-      if (Platform.OS === 'android') {
-        StatusBar.setBackgroundColor(backgroundColor, true);
-        StatusBar.setTranslucent(false);
-      }
+      applyStatusBarAppearance(barStyle, backgroundColor);
     }, [barStyle, backgroundColor]),
   );
 

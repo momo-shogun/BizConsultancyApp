@@ -119,6 +119,9 @@ export function ExpertConsultation({
       style={[styles.scrollRoot, { backgroundColor }]}
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
+      showsHorizontalScrollIndicator={false}
+      scrollEnabled={false}
+      nestedScrollEnabled
     >
       <View style={styles.heroOuter}>
         <Animated.View
