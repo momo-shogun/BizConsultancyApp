@@ -7,12 +7,13 @@ import {
   CONSULTANT_WALLET_LAYOUT,
 } from '../constants/consultantWalletTheme';
 
-const { screenPaddingH, screenPaddingTop, screenPaddingBottom, sectionGap, cardRadius, cardPadding } =
+const { screenPaddingH, screenPaddingTop, screenPaddingBottom, cardRadius, cardPadding } =
   CONSULTANT_WALLET_LAYOUT;
 
 const CARD_BORDER = 'rgba(15, 23, 42, 0.07)';
 const SLATE_MUTED = '#64748B';
 const SLATE_LINE = '#E2E8F0';
+const TEXT_PRIMARY = '#1C1C1C';
 
 const cardShadow = Platform.select({
   ios: {
@@ -32,9 +33,37 @@ export const consultantWalletStyles = StyleSheet.create({
   },
   scroll: {
     flexGrow: 1,
+  },
+  headerBalanceShell: {
     paddingHorizontal: screenPaddingH,
-    paddingTop: screenPaddingTop,
+    paddingBottom: THEME.spacing[10],
+  },
+  headerBalanceInner: {
+    gap: THEME.spacing[10],
+  },
+  balanceAmountHeader: {
+    fontSize: 30,
+    lineHeight: 36,
+  },
+  balanceHintHeader: {
+    fontSize: THEME.typography.size[12],
+    lineHeight: 17,
+    color: 'rgba(255,255,255,0.88)',
+  },
+  contentSheet: {
+    flexGrow: 1,
+    backgroundColor: THEME.colors.white,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    paddingTop: THEME.spacing[20],
+    paddingHorizontal: screenPaddingH,
     paddingBottom: screenPaddingBottom,
+    minHeight: 320,
+  },
+  menuBlock: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: SLATE_LINE,
   },
   listContent: {
     flexGrow: 1,
@@ -43,13 +72,10 @@ export const consultantWalletStyles = StyleSheet.create({
     paddingBottom: screenPaddingBottom,
   },
   sectionLabel: {
-    fontSize: THEME.typography.size[12],
-    fontWeight: '800',
-    color: SLATE_MUTED,
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-    marginBottom: THEME.spacing[10],
-    marginTop: THEME.spacing[20],
+    fontSize: THEME.typography.size[14],
+    fontWeight: '700',
+    color: TEXT_PRIMARY,
+    marginBottom: THEME.spacing[12],
   },
   balanceCard: {
     borderRadius: cardRadius,
@@ -216,23 +242,20 @@ export const consultantWalletStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tipCard: {
+  tipRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: THEME.spacing[12],
-    marginTop: sectionGap,
-    padding: THEME.spacing[14],
-    borderRadius: 14,
-    backgroundColor: 'rgba(5,150,105,0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(5,150,105,0.14)',
+    gap: THEME.spacing[8],
+    marginTop: THEME.spacing[20],
+    paddingTop: THEME.spacing[16],
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: SLATE_LINE,
   },
   tipText: {
     flex: 1,
     fontSize: THEME.typography.size[12],
     lineHeight: 18,
-    color: '#047857',
-    fontWeight: '500',
+    color: SLATE_MUTED,
   },
   listSectionTitle: {
     fontSize: THEME.typography.size[14],
