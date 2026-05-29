@@ -69,7 +69,7 @@ export const styles = StyleSheet.create({
     ...CARD_SHADOW_RESET,
   },
   section: {
-    marginTop: THEME.spacing[14],
+    // marginTop: THEME.spacing[4],
   },
   sectionHeader: {
     flexDirection: 'row',

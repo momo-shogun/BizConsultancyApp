@@ -3,6 +3,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { useGetPublicMembershipsQuery } from '@/features/Home/api/homePublicApi';
+import type { PublicMembershipApiRow } from '@/features/Home/types/publicMembershipApi.types';
 import { ROUTES } from '@/navigation/routeNames';
 import type { AccountStackParamList } from '@/navigation/types';
 
@@ -17,6 +18,17 @@ import {
 type AccountNav = NativeStackNavigationProp<AccountStackParamList>;
 
 const MAX_BENEFITS = 8;
+const MAX_PLAN_TEASERS = 3;
+
+export interface ProfilePlanTeaser {
+  id: number;
+  name: string;
+  priceLabel: string;
+  durationLabel: string | null;
+  perkCount: number;
+  themeIndex: number;
+  isPopular: boolean;
+}
 
 export interface UserProfileMembershipSectionModel {
   isLoading: boolean;
@@ -34,6 +46,74 @@ export interface UserProfileMembershipSectionModel {
   showUpgradeCta: boolean;
   upgradeCtaLabel: string;
   onMembershipPress: () => void;
+  priceLabel: string | null;
+  durationLabel: string | null;
+  planThemeIndex: number;
+  planTeasers: ProfilePlanTeaser[];
+}
+
+function parseAmount(value: string | number | null | undefined): number | null {
+  if (value == null) {
+    return null;
+  }
+  const n = typeof value === 'string' ? Number.parseFloat(value) : value;
+  return Number.isFinite(n) ? n : null;
+}
+
+function formatPlanPrice(row: PublicMembershipApiRow): string {
+  const amount = parseAmount(row.amount);
+  if (amount == null || amount <= 0) {
+    return 'Free';
+  }
+  return `₹${Math.round(amount).toLocaleString('en-IN')}`;
+}
+
+function planPerkCount(row: PublicMembershipApiRow): number {
+  const scopes =
+    row.scopes
+      ?.filter((scope) => scope.status !== 0 && (scope.isDeleted ?? 0) === 0)
+      .map((scope) => scope.title.trim())
+      .filter((title) => title.length > 0) ?? [];
+  if (scopes.length > 0) {
+    return scopes.length;
+  }
+  return row.feature?.map((item) => item.trim()).filter((item) => item.length > 0).length ?? 0;
+}
+
+function formatPlanDuration(days: number | null): string | null {
+  if (days == null || days <= 0) {
+    return null;
+  }
+  if (days >= 365) {
+    const years = Math.round(days / 365);
+    return years === 1 ? '1 year' : `${years} years`;
+  }
+  if (days >= 30) {
+    const months = Math.round(days / 30);
+    return months === 1 ? '1 month' : `${months} months`;
+  }
+  return days === 1 ? '1 day' : `${days} days`;
+}
+
+function activePublicPlans(rows: PublicMembershipApiRow[] | undefined): PublicMembershipApiRow[] {
+  if (rows == null) {
+    return [];
+  }
+  return rows
+    .filter((row) => row.status !== 0 && (row.isDeleted ?? 0) === 0)
+    .sort((a, b) => {
+      const rankA = a.tierRank > 0 ? a.tierRank : a.id;
+      const rankB = b.tierRank > 0 ? b.tierRank : b.id;
+      return rankA - rankB;
+    });
+}
+
+function planThemeIndexForRow(
+  row: PublicMembershipApiRow,
+  sortedPlans: PublicMembershipApiRow[],
+): number {
+  const index = sortedPlans.findIndex((plan) => plan.id === row.id);
+  return index >= 0 ? index : 0;
 }
 
 function benefitsFromCatalog(
@@ -153,6 +233,27 @@ export function useUserProfileMembershipSection(
         ? dashboard.upgradeHint
         : null;
 
+    const sortedPlans = activePublicPlans(publicPlans);
+    const matchedPlan =
+      current != null ? sortedPlans.find((plan) => plan.id === current.membershipId) : undefined;
+    const planThemeIndex =
+      matchedPlan != null ? planThemeIndexForRow(matchedPlan, sortedPlans) : 0;
+    const priceLabel = matchedPlan != null ? formatPlanPrice(matchedPlan) : null;
+    const durationLabel =
+      matchedPlan != null ? formatPlanDuration(matchedPlan.days) : null;
+
+    const planTeasers: ProfilePlanTeaser[] = sortedPlans.slice(0, MAX_PLAN_TEASERS).map(
+      (row, index) => ({
+        id: row.id,
+        name: row.name.trim(),
+        priceLabel: formatPlanPrice(row),
+        durationLabel: formatPlanDuration(row.days),
+        perkCount: planPerkCount(row),
+        themeIndex: index,
+        isPopular: row.isMostPopular === 1,
+      }),
+    );
+
     let showUpgradeCta = false;
     let upgradeCtaLabel = 'View membership plans';
 
@@ -183,6 +284,10 @@ export function useUserProfileMembershipSection(
       showUpgradeCta,
       upgradeCtaLabel,
       onMembershipPress,
+      priceLabel,
+      durationLabel,
+      planThemeIndex,
+      planTeasers,
     };
   }, [
     dashboard,

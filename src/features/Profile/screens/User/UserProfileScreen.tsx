@@ -11,7 +11,6 @@ import {
   selectLoggedInMobile,
 } from '@/features/Auth/store/authSelectors';
 import { useBizAIScrollReporter } from '@/features/BizAI/hooks/useBizAIScrollReporter';
-import { THEME } from '@/constants/theme';
 import { ROUTES } from '@/navigation/routeNames';
 import type { AccountStackParamList } from '@/navigation/types';
 import { useAppSelector } from '@/store/typedHooks';
@@ -23,6 +22,7 @@ import { UserProfileMembershipSection } from '@/features/Profile/components/User
 import { useGetUserMeQuery } from '@/features/Profile/api/userProfileApi';
 import { useNavigateToLogin } from '@/features/Profile/hooks/useNavigateToLogin';
 import { useProfileLoginPrompt } from '@/features/Profile/hooks/useProfileLoginPrompt';
+import { useUserProfileMembershipSection } from '@/features/Profile/hooks/useUserProfileMembershipSection';
 
 import { styles } from './UserProfileScreen.styles';
 
@@ -32,25 +32,43 @@ function SettingsHeaderButton(props: { onPress: () => void }): React.ReactElemen
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="Open settings menu"
+      accessibilityLabel="Help and settings"
       onPress={props.onPress}
       style={({ pressed }) => [headerBtnStyles.btn, pressed ? headerBtnStyles.btnPressed : null]}
     >
-      <Ionicons name="menu-outline" size={22} color="#FFFFFF" />
+      <Ionicons name="options-outline" size={20} color="#FFFFFF" />
+      <Text style={headerBtnStyles.btnText}>Settings</Text>
     </Pressable>
+  );
+}
+
+function SectionHeading(props: { title: string }): React.ReactElement {
+  return (
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionTitle}>{props.title}</Text>
+      <View style={styles.sectionLine} />
+    </View>
   );
 }
 
 const headerBtnStyles = StyleSheet.create({
   btn: {
-    width: 40,
+    minWidth: 40,
     height: 40,
     borderRadius: 12,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
     backgroundColor: 'rgba(255,255,255,0.16)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.22)',
+  },
+  btnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
   },
   btnPressed: {
     opacity: 0.88,
@@ -67,6 +85,10 @@ export function UserProfileScreen(): React.ReactElement {
   const { promptLogin, profileLoginDialog } = useProfileLoginPrompt();
 
   const { data: profile } = useGetUserMeQuery(undefined, { skip: !hasVerifiedLogin });
+  const membership = useUserProfileMembershipSection({
+    enabled: hasVerifiedLogin,
+    membershipLine: 'users',
+  });
 
   const heroName = useMemo((): string => {
     if (!hasVerifiedLogin) {
@@ -96,6 +118,19 @@ export function UserProfileScreen(): React.ReactElement {
 
   const avatarUri = hasVerifiedLogin ? (profile?.thumbnail ?? null) : null;
   const avatarInitial = hasVerifiedLogin ? (heroName ?? 'U').charAt(0).toUpperCase() : 'G';
+
+  const membershipLabel = useMemo((): string | undefined => {
+    if (!hasVerifiedLogin) {
+      return undefined;
+    }
+    if (membership.isLoading) {
+      return 'Loading plan...';
+    }
+    if (membership.hasPlan) {
+      return membership.planName;
+    }
+    return 'No active plan';
+  }, [hasVerifiedLogin, membership.hasPlan, membership.isLoading, membership.planName]);
 
   const openEditProfile = useCallback((): void => {
     if (!hasVerifiedLogin) {
@@ -127,6 +162,8 @@ export function UserProfileScreen(): React.ReactElement {
         avatarInitial={avatarInitial}
         displayName={heroName}
         displaySubtitle={heroSubtitle}
+        membershipLabel={membershipLabel}
+        onMembershipPress={hasVerifiedLogin ? membership.onMembershipPress : undefined}
         onAvatarPress={openEditProfile}
         rightAction={<SettingsHeaderButton onPress={openHelpSettings} />}
       >
@@ -139,23 +176,11 @@ export function UserProfileScreen(): React.ReactElement {
         >
           {hasVerifiedLogin ? (
             <>
-              <Pressable
-                style={styles.editProfileRow}
-                onPress={openEditProfile}
-                accessibilityRole="button"
-                accessibilityLabel="Edit profile"
-              >
-                <View style={styles.editProfileIcon}>
-                  <Ionicons name="create-outline" size={18} color={THEME.colors.primary} />
-                </View>
-                <View style={styles.editProfileTextBlock}>
-                  <Text style={styles.editProfileTitle}>Edit profile</Text>
-                  <Text style={styles.editProfileSubtitle}>Update photo, email & location</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
-              </Pressable>
 
-              <UserProfileMembershipSection />
+              <View style={styles.section}>
+                <SectionHeading title="Membership & benefits" />
+                <UserProfileMembershipSection model={membership} />
+              </View>
             </>
           ) : (
             <ProfileSignInGate onSignIn={() => navigateToLogin('user')} />

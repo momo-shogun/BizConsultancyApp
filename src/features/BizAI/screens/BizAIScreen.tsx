@@ -313,7 +313,6 @@ export function BizAIScreen(): React.ReactElement {
             <BizAIVoiceDock
               onKeyboardPress={openKeyboardMode}
               onMicPress={onMicPress}
-              onBrandPress={close}
               isListening={isSpeechListening}
               isSpeechAvailable={isSpeechAvailable}
             />

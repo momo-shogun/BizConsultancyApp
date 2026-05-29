@@ -47,26 +47,33 @@ export interface UseSpeechRecognitionResult {
   clearError: () => void;
 }
 
-function messageForErrorCode(code: ExpoSpeechRecognitionErrorCode | 'unknown'): string {
+const BENIGN_SPEECH_ERROR_CODES = new Set<string>([
+  'no-speech',
+  'speech-timeout',
+  'aborted',
+  'canceled',
+  'cancelled',
+]);
+
+/** Errors that should never surface in the voice UI (expected stop / silence / retry). */
+function isBenignSpeechError(code: ExpoSpeechRecognitionErrorCode | 'unknown'): boolean {
+  if (BENIGN_SPEECH_ERROR_CODES.has(code)) {
+    return true;
+  }
+  return code === 'unknown' || code === 'network' || code === 'busy';
+}
+
+function messageForBlockingErrorCode(code: ExpoSpeechRecognitionErrorCode | 'unknown'): string | null {
   if (code === 'not-allowed') {
-    return 'Microphone permission is required. Please allow it from settings.';
+    return 'Microphone permission is required. Allow it in Settings to use voice.';
   }
   if (code === 'service-not-allowed') {
-    return 'Speech service is unavailable on this device.';
+    return 'Speech recognition is unavailable on this device.';
   }
   if (code === 'language-not-supported') {
-    return 'Selected speech language is not supported on this device.';
+    return 'This speech language is not supported on your device.';
   }
-  if (code === 'network') {
-    return 'Network issue while processing speech. Please try again.';
-  }
-  if (code === 'no-speech' || code === 'speech-timeout') {
-    return 'No speech detected. Please try speaking again.';
-  }
-  if (code === 'busy') {
-    return 'Speech recognizer is busy. Retrying...';
-  }
-  return 'Voice recognition failed. Please try again.';
+  return null;
 }
 
 function isVolumeActive(value: number, threshold: number): boolean {
@@ -98,6 +105,7 @@ export function useSpeechRecognition(
   const lastResultTextRef = useRef('');
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
   const isListeningRef = useRef(false);
+  const stoppingIntentionallyRef = useRef(false);
 
   const diagnostics = useMemo(() => getSpeechDiagnostics(), []);
 
@@ -118,18 +126,22 @@ export function useSpeechRecognition(
   }, []);
 
   const stopListening = useCallback((): void => {
+    stoppingIntentionallyRef.current = true;
+    clearError();
     stopSpeechRecognition();
-  }, []);
+  }, [clearError]);
 
   const abortListening = useCallback((): void => {
+    stoppingIntentionallyRef.current = true;
+    clearError();
     abortSpeechRecognition();
-  }, []);
+  }, [clearError]);
 
   const startListening = useCallback(async (): Promise<void> => {
     clearError();
     if (!diagnostics.isRecognitionAvailable) {
       setErrorCode('service-not-allowed');
-      setErrorMessage(messageForErrorCode('service-not-allowed'));
+      setErrorMessage(messageForBlockingErrorCode('service-not-allowed'));
       return;
     }
     if (isListeningRef.current) {
@@ -141,7 +153,7 @@ export function useSpeechRecognition(
       if (!permission.canAskAgain || permission.restricted) {
         setCanRetryPermission(false);
         setErrorCode('not-allowed');
-        setErrorMessage(messageForErrorCode('not-allowed'));
+        setErrorMessage(messageForBlockingErrorCode('not-allowed'));
         return;
       }
       setIsRequestingPermission(true);
@@ -153,10 +165,11 @@ export function useSpeechRecognition(
     setCanRetryPermission(permission.canAskAgain);
     if (!permission.granted) {
       setErrorCode('not-allowed');
-      setErrorMessage(messageForErrorCode('not-allowed'));
+      setErrorMessage(messageForBlockingErrorCode('not-allowed'));
       return;
     }
 
+    stoppingIntentionallyRef.current = false;
     retryCountRef.current = 0;
     setPartialTranscript('');
     setVolume(-2);
@@ -256,6 +269,14 @@ export function useSpeechRecognition(
       'error',
       (event: ExpoSpeechRecognitionErrorEvent) => {
         const code = normalizeSpeechErrorCode(event.error);
+        if (
+          stoppingIntentionallyRef.current ||
+          isBenignSpeechError(code)
+        ) {
+          stoppingIntentionallyRef.current = false;
+          clearError();
+          return;
+        }
         if (code === 'busy' && retryCountRef.current < SPEECH_MAX_RETRIES) {
           retryCountRef.current += 1;
           lowVolumeSinceRef.current = Date.now();
@@ -270,14 +291,21 @@ export function useSpeechRecognition(
           }, 280);
           return;
         }
+        const blockingMessage = messageForBlockingErrorCode(code);
+        if (blockingMessage == null) {
+          clearError();
+          return;
+        }
         setErrorCode(code);
-        setErrorMessage(messageForErrorCode(code));
+        setErrorMessage(blockingMessage);
       },
     );
 
     const onEnd = ExpoSpeechRecognitionModule.addListener('end', () => {
       setIsListening(false);
       retryCountRef.current = 0;
+      stoppingIntentionallyRef.current = false;
+      clearError();
       resetLowVolumeTimer();
     });
 

@@ -3,70 +3,103 @@ import { Platform, StyleSheet } from 'react-native';
 import { THEME } from '@/constants/theme';
 
 const SLATE_LINE = '#E2E8F0';
-const EMERALD = '#059669';
-const EMERALD_SOFT = 'rgba(5,150,105,0.1)';
 
-const CARD_SHADOW_RESET = Platform.select({
+const CARD_SHADOW = Platform.select({
   ios: {
-    shadowColor: 'transparent',
-    shadowOpacity: 0,
-    shadowRadius: 0,
-    shadowOffset: { width: 0, height: 0 },
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
   },
-  android: { elevation: 0 },
+  android: { elevation: 3 },
   default: {},
 });
 
 export const styles = StyleSheet.create({
   card: {
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: SLATE_LINE,
     backgroundColor: THEME.colors.white,
-    padding: THEME.spacing[14],
-    ...CARD_SHADOW_RESET,
+    overflow: 'hidden',
+    ...CARD_SHADOW,
+    marginBottom: THEME.spacing[20],
   },
-  headerRow: {
+  planHero: {
+    paddingHorizontal: THEME.spacing[14],
+    paddingVertical: THEME.spacing[14],
+    gap: 10,
+  },
+  planHeroTop: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    gap: THEME.spacing[10],
+    gap: 10,
   },
-  headerText: {
+  planHeroLeft: {
     flex: 1,
     minWidth: 0,
-    gap: 4,
+    gap: 6,
   },
-  title: {
-    fontSize: THEME.typography.size[16],
+  planEyebrow: {
+    fontSize: 11,
     fontWeight: '700',
-    color: THEME.colors.textPrimary,
-    letterSpacing: -0.2,
+    color: 'rgba(255,255,255,0.82)',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
   },
-  subtitle: {
-    fontSize: THEME.typography.size[12],
-    color: '#64748B',
-    lineHeight: 17,
+  planName: {
+    fontSize: THEME.typography.size[18],
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: -0.35,
+  },
+  planMetaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  planMetaChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.28)',
+  },
+  planMetaChipText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   statusPill: {
     borderRadius: 999,
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    backgroundColor: EMERALD_SOFT,
+    paddingVertical: 5,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.35)',
   },
   statusPillExpired: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: 'rgba(15,23,42,0.25)',
+    borderColor: 'rgba(255,255,255,0.2)',
   },
   statusPillText: {
     fontSize: 11,
     fontWeight: '700',
-    color: EMERALD,
+    color: '#FFFFFF',
   },
   statusPillTextExpired: {
-    color: '#475569',
+    color: '#E2E8F0',
+  },
+  body: {
+    padding: THEME.spacing[14],
+    gap: THEME.spacing[12],
   },
   progressBlock: {
-    marginTop: THEME.spacing[12],
     gap: 6,
   },
   progressMeta: {
@@ -80,18 +113,16 @@ export const styles = StyleSheet.create({
     color: '#64748B',
   },
   progressTrack: {
-    height: 6,
+    height: 7,
     borderRadius: 999,
     backgroundColor: '#E2E8F0',
     overflow: 'hidden',
   },
   progressFill: {
-    height: 6,
+    height: 7,
     borderRadius: 999,
-    backgroundColor: EMERALD,
   },
   hintBox: {
-    marginTop: THEME.spacing[10],
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 8,
@@ -107,33 +138,69 @@ export const styles = StyleSheet.create({
     lineHeight: 17,
     color: '#92400E',
   },
-  benefitsBlock: {
-    marginTop: THEME.spacing[14],
-    gap: 8,
+  sectionLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  benefitsTitle: {
+  sectionLabel: {
     fontSize: THEME.typography.size[13],
     fontWeight: '700',
     color: THEME.colors.textPrimary,
+    letterSpacing: -0.1,
   },
-  benefitRow: {
+  sectionCount: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  benefitsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  benefitChip: {
+    width: '48%',
+    flexGrow: 1,
+    minWidth: 140,
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 8,
+    padding: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: SLATE_LINE,
+    backgroundColor: '#F8FAFC',
+  },
+  benefitChipSuccess: {
+    borderColor: 'rgba(5,150,105,0.25)',
+    backgroundColor: '#F0FDF4',
+  },
+  benefitChipDanger: {
+    borderColor: 'rgba(239,68,68,0.22)',
+    backgroundColor: '#FEF2F2',
+  },
+  benefitChipPending: {
+    borderColor: 'rgba(217,119,6,0.25)',
+    backgroundColor: '#FFFBEB',
+  },
+  benefitIconWrap: {
+    marginTop: 1,
   },
   benefitTextBlock: {
     flex: 1,
     minWidth: 0,
-    gap: 1,
+    gap: 2,
   },
   benefitTitle: {
-    fontSize: THEME.typography.size[13],
+    fontSize: 12,
     fontWeight: '600',
     color: THEME.colors.textPrimary,
-    lineHeight: 18,
+    lineHeight: 16,
   },
   benefitStatus: {
-    fontSize: 11,
+    fontSize: 10,
+    fontWeight: '600',
     color: '#64748B',
   },
   emptyBenefits: {
@@ -142,14 +209,13 @@ export const styles = StyleSheet.create({
     lineHeight: 17,
   },
   upgradeBtn: {
-    marginTop: THEME.spacing[14],
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: EMERALD,
+    backgroundColor: '#059669',
   },
   upgradeBtnPressed: {
     opacity: 0.9,
@@ -160,9 +226,10 @@ export const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   loadingCard: {
-    minHeight: 140,
+    minHeight: 160,
     alignItems: 'center',
     justifyContent: 'center',
+    padding: THEME.spacing[14],
   },
   errorText: {
     fontSize: 13,
@@ -182,5 +249,84 @@ export const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: THEME.colors.textPrimary,
+  },
+  emptyHero: {
+    padding: THEME.spacing[14],
+    gap: 8,
+  },
+  emptyTitle: {
+    fontSize: THEME.typography.size[16],
+    fontWeight: '700',
+    color: THEME.colors.textPrimary,
+    letterSpacing: -0.2,
+  },
+  emptySubtitle: {
+    fontSize: THEME.typography.size[12],
+    color: '#64748B',
+    lineHeight: 17,
+  },
+  teaserScroll: {
+    paddingHorizontal: THEME.spacing[14],
+    paddingBottom: THEME.spacing[4],
+    gap: 10,
+  },
+  teaserCard: {
+    width: 168,
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 12,
+    gap: 8,
+  },
+  teaserPopular: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  teaserPopularText: {
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  teaserIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  teaserName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: THEME.colors.textPrimary,
+    letterSpacing: -0.15,
+    paddingRight: 48,
+  },
+  teaserPrice: {
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+  },
+  teaserMeta: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  teaserPerks: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  teaserPerksText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  emptyFooter: {
+    paddingHorizontal: THEME.spacing[14],
+    paddingBottom: THEME.spacing[14],
+    gap: THEME.spacing[10],
   },
 });

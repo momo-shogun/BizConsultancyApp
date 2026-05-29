@@ -7,13 +7,11 @@ import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { THEME } from '@/constants/theme';
 
 import { BIZ_AI_THEME } from '../constants/bizAiTheme';
-import { BizAIBrandCapsule } from './BizAIBrandCapsule';
 import { BizAIOrbButton } from './BizAIOrbButton';
 
 type BizAIVoiceDockProps = {
   onKeyboardPress: () => void;
   onMicPress: () => void;
-  onBrandPress: () => void;
   isListening: boolean;
   isSpeechAvailable: boolean;
 };
@@ -21,7 +19,6 @@ type BizAIVoiceDockProps = {
 export function BizAIVoiceDock({
   onKeyboardPress,
   onMicPress,
-  onBrandPress,
   isListening,
   isSpeechAvailable,
 }: BizAIVoiceDockProps): React.ReactElement {
@@ -52,24 +49,28 @@ export function BizAIVoiceDock({
       </Text>
 
       <View style={styles.controls}>
-        <Pressable
-          onPress={onKeyboardPress}
-          hitSlop={12}
-          accessibilityRole="button"
-          accessibilityLabel="Switch to keyboard input"
-          style={({ pressed }) => [styles.sideBtn, pressed && styles.sideBtnPressed]}
-        >
-          <Ionicons name="keypad-outline" size={22} color={BIZ_AI_THEME.text.secondary} />
-        </Pressable>
+        <View style={styles.sideSlot}>
+          <Pressable
+            onPress={onKeyboardPress}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Switch to keyboard input"
+            style={({ pressed }) => [styles.sideBtn, pressed && styles.sideBtnPressed]}
+          >
+            <Ionicons name="keypad-outline" size={22} color={BIZ_AI_THEME.text.secondary} />
+          </Pressable>
+        </View>
 
-        <BizAIOrbButton
-          size={58}
-          isListening={isListening}
-          onPress={onMicPress}
-          accessibilityLabel={isListening ? 'Stop listening' : 'Start listening'}
-        />
+        <View style={styles.centerSlot}>
+          <BizAIOrbButton
+            size={58}
+            isListening={isListening}
+            onPress={onMicPress}
+            accessibilityLabel={isListening ? 'Stop listening' : 'Start listening'}
+          />
+        </View>
 
-        <BizAIBrandCapsule onPress={onBrandPress} compact />
+        <View style={styles.sideSlot} />
       </View>
     </Animated.View>
   );
@@ -102,8 +103,15 @@ const styles = StyleSheet.create({
   controls: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: THEME.spacing[4],
+  },
+  sideSlot: {
+    width: BIZ_AI_THEME.touch.min,
+    alignItems: 'center',
+  },
+  centerSlot: {
+    flex: 1,
+    alignItems: 'center',
   },
   sideBtn: {
     width: BIZ_AI_THEME.touch.min,
