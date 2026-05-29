@@ -5,15 +5,12 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { AccountHubScreenShell } from '@/shared/components';
 
-import { HelpSettingsScreenHero } from './HelpSettingsScreenHero';
 import { HelpSettingsSection } from './HelpSettingsSection';
 import { HELP_SETTINGS_CANVAS, helpSettingsStyles } from './helpSettings.styles';
 import type { SettingsSectionConfig } from './helpSettings.types';
 
 export interface HelpSettingsScreenLayoutProps {
   sections: SettingsSectionConfig[];
-  heroTitle: string;
-  heroSubtitle: string;
   appVersion: string;
   onBackPress: () => void;
   onRowPress: (rowId: string) => void;
@@ -27,8 +24,6 @@ export function HelpSettingsScreenLayout(
 ): React.ReactElement {
   const {
     sections,
-    heroTitle,
-    heroSubtitle,
     appVersion,
     onBackPress,
     onRowPress,
@@ -48,8 +43,6 @@ export function HelpSettingsScreenLayout(
         contentContainerStyle={helpSettingsStyles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <HelpSettingsScreenHero title={heroTitle} subtitle={heroSubtitle} />
-
         {sections.map((section, index) => (
           <HelpSettingsSection
             key={section.id}

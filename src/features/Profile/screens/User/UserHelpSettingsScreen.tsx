@@ -69,8 +69,6 @@ export function UserHelpSettingsScreen(props: UserHelpSettingsScreenProps): Reac
   return (
     <HelpSettingsScreenLayout
       sections={USER_HELP_SETTINGS_SECTIONS}
-      heroTitle="Your account hub"
-      heroSubtitle="Membership, wallet, Biz AI credits, bookings, and support — all in one place."
       appVersion={appVersion}
       onBackPress={() => navigation.goBack()}
       onRowPress={handleRowPress}

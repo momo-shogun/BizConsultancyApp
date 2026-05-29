@@ -91,8 +91,6 @@ export function ConsultantHelpSettingsScreen(
   return (
     <HelpSettingsScreenLayout
       sections={CONSULTANT_HELP_SETTINGS_SECTIONS}
-      heroTitle="Practice settings"
-      heroSubtitle="Manage payouts, clients, services, and your consultant profile from one screen."
       appVersion={appVersion}
       onBackPress={() => navigation.goBack()}
       onRowPress={handleRowPress}
