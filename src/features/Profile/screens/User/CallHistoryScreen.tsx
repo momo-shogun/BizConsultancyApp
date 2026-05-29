@@ -239,11 +239,6 @@ function CallHistoryScreen(): React.ReactElement {
             </View>
           ) : (
             <View style={styles.listBlock}>
-              <View style={styles.listHeader}>
-                <Text style={styles.listHeaderMeta}>
-                  {rows.length} call{rows.length === 1 ? '' : 's'}
-                </Text>
-              </View>
               {rows.map((row, index) => (
                 <CallRow
                   key={row.raw.id}

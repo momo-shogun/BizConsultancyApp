@@ -1,30 +1,54 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   FlatList,
   Pressable,
   RefreshControl,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
+import {
+  ACCOUNT_HUB_GREEN_HEADER_GRADIENT,
+  ACCOUNT_HUB_GREEN_HEADER_STATUS_BAR,
+  ACCOUNT_HUB_LIST_CANVAS,
+} from '@/constants/accountScreenTheme';
 import { ROUTES } from '@/navigation/routeNames';
 import { navigationRef } from '@/navigation/navigationContainerRef';
 import type { AccountStackParamList } from '@/navigation/types';
-import { AccountHubScreenShell } from '@/shared/components';
+import { AccountHubScreenShell, AnimatedHeaderSearchBar } from '@/shared/components';
 
 import { MyServiceCard } from '../components/MyServiceCard';
 import { MyServiceCardSkeleton } from '../components/MyServiceCardSkeleton';
 import { MyServiceDetailSheet } from '../components/MyServiceDetailSheet';
-import { MyServicesFilterBar } from '../components/MyServicesFilterBar';
+import { MyServicesFilterTabs } from '../components/MyServicesFilterTabs';
 import { useMyServicesScreen } from '../hooks/useMyServicesScreen';
 import type { MyOnboardingSubmission } from '../types/myServices.types';
 
 type Nav = NativeStackNavigationProp<AccountStackParamList, typeof ROUTES.Account.MyServices>;
+
+function matchesMyServiceSearch(item: MyOnboardingSubmission, query: string): boolean {
+  const q = query.trim().toLowerCase();
+  if (q.length === 0) {
+    return true;
+  }
+  const haystack = [
+    item.serviceName,
+    item.status,
+    item.paymentMode,
+    item.orderId,
+    item.name,
+    item.email,
+  ]
+    .filter((part) => part != null && String(part).trim().length > 0)
+    .join(' ')
+    .toLowerCase();
+  return haystack.includes(q);
+}
 
 function MyServicesEmpty({ onBrowse }: { onBrowse: () => void }): React.ReactElement {
   return (
@@ -47,6 +71,25 @@ function MyServicesEmpty({ onBrowse }: { onBrowse: () => void }): React.ReactEle
 export function MyServicesScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
   const screen = useMyServicesScreen();
+  const searchInputRef = useRef<TextInput>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const openSearch = useCallback((): void => {
+    setSearchOpen(true);
+  }, []);
+
+  const closeSearch = useCallback((): void => {
+    setSearchOpen(false);
+    setSearchQuery('');
+  }, []);
+
+  const displayItems = useMemo(
+    () => screen.filteredItems.filter((item) => matchesMyServiceSearch(item, searchQuery)),
+    [screen.filteredItems, searchQuery],
+  );
+
+  const hasSearchQuery = searchQuery.trim().length > 0;
 
   const selectedItem = useMemo((): MyOnboardingSubmission | null => {
     if (screen.selectedDetailId == null) {
@@ -98,46 +141,49 @@ export function MyServicesScreen(): React.ReactElement {
     [navigation, navigateToOnboarding, screen],
   );
 
-  const listHeader = (
-    <>
-      <LinearGradient
-        colors={['#0B3B66', '#146E9A']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.hero}
-      >
-        <Text style={styles.heroTitle}>My services</Text>
-        <Text style={styles.heroSubtitle}>
-          Track registrations, payments, and application progress.
-        </Text>
-        <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Services</Text>
-            <Text style={styles.statValue}>{screen.statsCount}</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Total paid</Text>
-            <Text style={styles.statValue} numberOfLines={1}>
-              {screen.statsTotal}
-            </Text>
-          </View>
-        </View>
-      </LinearGradient>
-
-      <MyServicesFilterBar
-        tabs={screen.filterTabs}
+  const headerAccessory = (
+    <View style={styles.headerAccessoryStack}>
+      <AnimatedHeaderSearchBar
+        visible={searchOpen}
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        inputRef={searchInputRef}
+        placeholder="Service name, status, payment…"
+        accessibilityLabel="Search my services"
+        embeddedInHeader
+      />
+      <MyServicesFilterTabs
         activeTab={screen.activeTab}
-        counts={screen.tabCounts}
+        allCount={screen.tabCounts.all}
+        actionCount={screen.tabCounts.action}
+        activeCount={screen.tabCounts.active}
         onTabChange={screen.setActiveTab}
       />
-    </>
+    </View>
   );
 
   return (
     <AccountHubScreenShell
       title="My Services"
       onBackPress={() => navigation.goBack()}
-      canvasColor="#F4F7FA"
+      canvasColor={ACCOUNT_HUB_LIST_CANVAS}
+      headerColor={ACCOUNT_HUB_GREEN_HEADER_STATUS_BAR}
+      headerGradientColors={ACCOUNT_HUB_GREEN_HEADER_GRADIENT}
+      onSearchPress={searchOpen ? undefined : openSearch}
+      headerRightAction={
+        searchOpen ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close search"
+            onPress={closeSearch}
+            hitSlop={8}
+            style={styles.headerIconBtn}
+          >
+            <Ionicons name="close" size={22} color="#FFFFFF" />
+          </Pressable>
+        ) : undefined
+      }
+      headerAccessory={headerAccessory}
     >
       {screen.errorMessage != null && !screen.isLoading ? (
         <View style={styles.errorBanner}>
@@ -150,7 +196,6 @@ export function MyServicesScreen(): React.ReactElement {
 
       {screen.isLoading ? (
         <View style={styles.listPad}>
-          {listHeader}
           {[1, 2, 3, 4].map((k) => (
             <View key={k} style={styles.cardGap}>
               <MyServiceCardSkeleton />
@@ -159,16 +204,19 @@ export function MyServicesScreen(): React.ReactElement {
         </View>
       ) : (
         <FlatList
-          data={screen.filteredItems}
+          data={displayItems}
           keyExtractor={(item) => String(item.id)}
           renderItem={renderItem}
-          ListHeaderComponent={listHeader}
           ListEmptyComponent={
             screen.items.length === 0 ? (
               <MyServicesEmpty onBrowse={navigateToBrowse} />
             ) : (
               <View style={styles.filterEmpty}>
-                <Text style={styles.filterEmptyText}>No services in this filter.</Text>
+                <Text style={styles.filterEmptyText}>
+                  {hasSearchQuery
+                    ? 'No services match your search.'
+                    : 'No services in this filter.'}
+                </Text>
               </View>
             )
           }
@@ -178,7 +226,7 @@ export function MyServicesScreen(): React.ReactElement {
             <RefreshControl
               refreshing={screen.isRefreshing}
               onRefresh={screen.refresh}
-              tintColor="#0B3B66"
+              tintColor="#128C7E"
             />
           }
           showsVerticalScrollIndicator={false}
@@ -195,50 +243,18 @@ export function MyServicesScreen(): React.ReactElement {
 }
 
 const styles = StyleSheet.create({
-  hero: {
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 14,
-    overflow: 'hidden',
+  headerAccessoryStack: {
+    gap: 8,
   },
-  heroTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: -0.3,
-  },
-  heroSubtitle: {
-    marginTop: 4,
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.85)',
-    lineHeight: 18,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 14,
-  },
-  statCard: {
-    flex: 1,
-    padding: 10,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.14)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  statLabel: {
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.8)',
-    fontWeight: '600',
-  },
-  statValue: {
-    marginTop: 2,
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#FFFFFF',
+  headerIconBtn: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   listPad: {
     paddingHorizontal: 16,
+    paddingTop: 12,
     paddingBottom: 24,
   },
   cardGap: {

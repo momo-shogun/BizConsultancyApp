@@ -26,6 +26,10 @@ import {
   formatWorkshopDisplayDate,
   hasWorkshopPassed,
 } from '@/features/WorkshopBookings/utils/workshopBookingDisplay';
+import {
+  ACCOUNT_HUB_GREEN_HEADER_GRADIENT,
+  ACCOUNT_HUB_GREEN_HEADER_STATUS_BAR,
+} from '@/constants/accountScreenTheme';
 import { THEME } from '@/constants/theme';
 import { navigationRef } from '@/navigation/navigationContainerRef';
 import { ROUTES } from '@/navigation/routeNames';
@@ -208,22 +212,6 @@ function WorkshopBookingCard(props: WorkshopBookingCardProps): React.ReactElemen
           </View>
         )}
 
-        {/* {recordingAvailable ? (
-          <Pressable
-            style={[styles.actionPill, styles.actionPillSky]}
-            onPress={() => openUrl(item.workshopUrl as string)}
-          >
-            <Ionicons name="play-circle-outline" size={14} color="#FFFFFF" />
-            <Text style={styles.actionPillText}>Recording</Text>
-          </Pressable>9
-        ) : (
-          <View style={[styles.actionPill, styles.actionPillMuted]}>
-            <Ionicons name="play-outline" size={14} color="#94A3B8" />
-            <Text style={[styles.actionPillText, styles.actionPillTextDark]}>
-              {passed ? 'No recording' : 'After event'}
-            </Text>
-          </View>
-        )} */}
 
         {certificateAvailable ? (
           <Pressable
@@ -304,6 +292,8 @@ export function WorkshopBookingsScreen(): React.ReactElement {
         title="Workshop Bookings"
         onBackPress={() => navigation.goBack()}
         canvasColor={WORKSHOP_CANVAS}
+        headerColor={ACCOUNT_HUB_GREEN_HEADER_STATUS_BAR}
+        headerGradientColors={ACCOUNT_HUB_GREEN_HEADER_GRADIENT}
       >
         <View style={styles.centered}>
           <ActivityIndicator size="large" color="#0D9488" />
@@ -317,6 +307,8 @@ export function WorkshopBookingsScreen(): React.ReactElement {
       title="Workshop Bookings"
       onBackPress={() => navigation.goBack()}
       canvasColor={WORKSHOP_CANVAS}
+      headerColor={ACCOUNT_HUB_GREEN_HEADER_STATUS_BAR}
+      headerGradientColors={ACCOUNT_HUB_GREEN_HEADER_GRADIENT}
     >
       <ScrollView
         style={styles.screen}
@@ -327,32 +319,6 @@ export function WorkshopBookingsScreen(): React.ReactElement {
           <RefreshControl refreshing={isFetching} onRefresh={refetch} tintColor="#0D9488" />
         }
       >
-        <LinearGradient
-          colors={['#0D9488', '#0F766E']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.heroGradient}
-        >
-          <View style={styles.heroTop}>
-            <View style={styles.heroLeft}>
-              <View style={styles.heroIconWrap}>
-                <Ionicons name="school-outline" size={22} color="#FFFFFF" />
-              </View>
-              <View>
-                <Text style={styles.heroTitle}>My workshops</Text>
-                <Text style={styles.heroMeta}>
-                  {bookings.length} booking{bookings.length === 1 ? '' : 's'} · Join, replay, or
-                  download certificates
-                </Text>
-              </View>
-            </View>
-            <Pressable style={styles.browseBtn} onPress={browseWorkshops} hitSlop={8}>
-              <Text style={styles.browseBtnText}>Browse</Text>
-              <Ionicons name="arrow-forward" size={12} color="#FFFFFF" />
-            </Pressable>
-          </View>
-        </LinearGradient>
-
         {bookings.length > 0 ? (
           <>
             <View style={styles.searchWrap}>
