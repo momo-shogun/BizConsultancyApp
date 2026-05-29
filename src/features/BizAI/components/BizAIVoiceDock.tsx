@@ -86,10 +86,10 @@ const styles = StyleSheet.create({
   },
   hint: {
     textAlign: 'center',
-    fontSize: THEME.typography.size[17],
+    fontSize: THEME.typography.size[16],
     fontWeight: THEME.typography.weight.semibold as '600',
     color: BIZ_AI_THEME.text.primary,
-    marginBottom: THEME.spacing[6],
+    marginBottom: THEME.spacing[8],
     paddingHorizontal: THEME.spacing[16],
     letterSpacing: -0.2,
   },

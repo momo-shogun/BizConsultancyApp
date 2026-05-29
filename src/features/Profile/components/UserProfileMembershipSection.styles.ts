@@ -144,7 +144,7 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   sectionLabel: {
-    fontSize: THEME.typography.size[13],
+    fontSize: THEME.typography.size[14],
     fontWeight: '700',
     color: THEME.colors.textPrimary,
     letterSpacing: -0.1,

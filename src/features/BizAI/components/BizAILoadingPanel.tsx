@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
     marginBottom: THEME.spacing[4],
   },
   ring: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: 44,
     borderWidth: 1.5,
     borderColor: BIZ_AI_THEME.border.accent,

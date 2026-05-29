@@ -439,7 +439,7 @@ const styles = StyleSheet.create({
     gap: THEME.spacing[10],
   },
   followUpTitle: {
-    fontSize: THEME.typography.size[13],
+    fontSize: THEME.typography.size[14],
     fontWeight: THEME.typography.weight.semibold as '600',
     color: BIZ_AI_THEME.text.muted,
     letterSpacing: 0.3,
