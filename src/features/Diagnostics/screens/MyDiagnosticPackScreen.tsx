@@ -306,7 +306,7 @@ export function MyDiagnosticPackScreen(): React.ReactElement {
               <Text style={styles.servicesTitle}>Services</Text>
               <Text style={styles.servicesCount}>{featureCount} deliverables</Text>
             </View>
-            <Pressable
+            {/* <Pressable
               accessibilityRole="button"
               accessibilityLabel="Apply documents"
               disabled={screen.docItems.length === 0}
@@ -319,7 +319,7 @@ export function MyDiagnosticPackScreen(): React.ReactElement {
             >
               <Ionicons name="document-attach-outline" size={13} color="#FFFFFF" />
               <Text style={styles.applyBtnText}>Apply</Text>
-            </Pressable>
+            </Pressable> */}
           </View>
 
           {features.length === 0 ? (

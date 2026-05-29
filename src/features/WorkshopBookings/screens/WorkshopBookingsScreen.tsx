@@ -22,7 +22,6 @@ import {
 } from '@/features/Home/api/workshopBookingsApi';
 import {
   canJoinWorkshop,
-  canOpenWorkshopRecording,
   canViewCertificate,
   formatWorkshopDisplayDate,
   hasWorkshopPassed,
@@ -117,7 +116,6 @@ function WorkshopBookingCard(props: WorkshopBookingCardProps): React.ReactElemen
   const visual = getWorkshopCardVisual(item);
   const passed = hasWorkshopPassed(item);
   const joinAvailable = canJoinWorkshop(item);
-  const recordingAvailable = canOpenWorkshopRecording(item);
   const certificateAvailable = canViewCertificate(item);
   const statusLabel = item.bookingStatus || 'active';
   const statusStyle = getStatusPillStyle(statusLabel);
@@ -210,14 +208,14 @@ function WorkshopBookingCard(props: WorkshopBookingCardProps): React.ReactElemen
           </View>
         )}
 
-        {recordingAvailable ? (
+        {/* {recordingAvailable ? (
           <Pressable
             style={[styles.actionPill, styles.actionPillSky]}
             onPress={() => openUrl(item.workshopUrl as string)}
           >
             <Ionicons name="play-circle-outline" size={14} color="#FFFFFF" />
             <Text style={styles.actionPillText}>Recording</Text>
-          </Pressable>
+          </Pressable>9
         ) : (
           <View style={[styles.actionPill, styles.actionPillMuted]}>
             <Ionicons name="play-outline" size={14} color="#94A3B8" />
@@ -225,7 +223,7 @@ function WorkshopBookingCard(props: WorkshopBookingCardProps): React.ReactElemen
               {passed ? 'No recording' : 'After event'}
             </Text>
           </View>
-        )}
+        )} */}
 
         {certificateAvailable ? (
           <Pressable

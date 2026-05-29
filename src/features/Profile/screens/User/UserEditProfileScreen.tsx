@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -11,7 +11,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-
+import type { ScrollView as ScrollViewType } from 'react-native';
 import { THEME } from '@/constants/theme';
 import { type ROUTES } from '@/navigation/routeNames';
 import type { AccountStackParamList } from '@/navigation/types';
@@ -55,6 +55,7 @@ function ReadOnlyField(props: ReadOnlyFieldProps): React.ReactElement {
 export function UserEditProfileScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
+  const scrollRef = useRef<ScrollViewType>(null);
   const {
     isAuthenticated,
     isLoading,
@@ -164,6 +165,7 @@ export function UserEditProfileScreen(): React.ReactElement {
         keyboardVerticalOffset={keyboardVerticalOffset}
       >
         <ScrollView
+          ref={scrollRef}
           style={styles.flex}
           contentContainerStyle={[styles.scrollContent, { paddingBottom: 24 }]}
           contentInsetAdjustmentBehavior="always"
@@ -224,6 +226,14 @@ export function UserEditProfileScreen(): React.ReactElement {
             <Input
               label="Pincode"
               value={form.pincode}
+              onFocus={() => {
+                setTimeout(() => {
+                  scrollRef.current?.scrollTo({
+                    y: 420,
+                    animated: true,
+                  });
+                }, 150);
+              }}
               onChangeText={(text) =>
                 setFormField('pincode', text.replace(/\D/g, '').slice(0, 6))
               }
