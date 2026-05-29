@@ -18,6 +18,7 @@ import { MyDiagnosticPackScreen } from '@/features/Diagnostics/screens/MyDiagnos
 import { MyEdpScreen } from '@/features/Edp/screens/MyEdpScreen';
 import { WorkshopBookingsScreen } from '@/features/WorkshopBookings/screens/WorkshopBookingsScreen';
 import { MyServicesScreen } from '@/features/MyServices/screens/MyServicesScreen';
+import { UserAiCreditsScreen } from '@/features/Profile/screens/User/UserAiCreditsScreen';
 
 const Stack = createNativeStackNavigator<AccountStackParamList>();
 
@@ -45,6 +46,11 @@ export function UserAccountStackNavigator(): React.ReactElement {
       <Stack.Screen
         name={ROUTES.Account.Membership}
         component={UserMembershipScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name={ROUTES.Account.CreditsScreen}
+        component={UserAiCreditsScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen

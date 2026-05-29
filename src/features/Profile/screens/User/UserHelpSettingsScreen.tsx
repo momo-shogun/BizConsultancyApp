@@ -53,6 +53,9 @@ export function UserHelpSettingsScreen(props: UserHelpSettingsScreenProps): Reac
     if (rowId === 'wallet') {
       navigationRef.navigate(ROUTES.Root.Wallet);
     }
+    if (rowId === 'bizCredits') {
+      navigation.navigate(ROUTES.Account.CreditsScreen);
+    }
     if (rowId === 'diagnosticPack') {
       navigation.navigate(ROUTES.Account.MyDiagnosticPack);
     }

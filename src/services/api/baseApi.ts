@@ -160,6 +160,7 @@ export const baseApi = createApi({
     'ConsultantExpertise',
     'ConsultantExpertVideos',
     'ConsultantReviews',
+    'AiCredits',
   ],
   endpoints: () => ({}),
 });
