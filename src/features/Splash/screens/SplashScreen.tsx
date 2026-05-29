@@ -1,57 +1,69 @@
 import React, { useEffect, useRef } from 'react';
-import { AccessibilityInfo, Animated, Dimensions, Image, StatusBar, StyleSheet, View } from 'react-native';
+import {
+  AccessibilityInfo,
+  Animated,
+  Dimensions,
+  Image,
+  StyleSheet,
+  View,
+} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { THEME } from '@/constants/theme';
-import { selectPreferredAccountRole } from '@/features/Auth/store/authSelectors';
+import {
+  selectIsRestoringSession,
+  selectPreferredAccountRole,
+} from '@/features/Auth/store/authSelectors';
+import { navigationRef } from '@/navigation/navigationContainerRef';
 import { ROUTES } from '@/navigation/routeNames';
-import type { AuthStackParamList } from '@/navigation/types';
 import { SafeAreaWrapper } from '@/shared/components';
 import { useAppSelector } from '@/store/typedHooks';
 
-import splashLogo from '@/assets/lightlogo.png';
+import splashLogo from '@/assets/bizWhite.png';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
-const LOGO_MAX_WIDTH = Math.min(SCREEN_WIDTH * 0.58, 300);
+const LOGO_WIDTH = Math.min(SCREEN_WIDTH * 0.64, 320);
 
-/** Base vertical gradient — multiple stops avoid a flat or harsh band between hues */
 const BASE_GRADIENT_COLORS = [
-  THEME.colors.splashGreen1,
-  THEME.colors.splashGreen2,
-  THEME.colors.splashGreen3,
-  THEME.colors.splashGreen4,
+  '#0f2d1a',
+  '#0a2014',
+  '#061510',
+  '#030e08',
 ] as const;
 
-const BASE_GRADIENT_LOCATIONS = [0, 0.32, 0.65, 1] as const;
+const BASE_GRADIENT_LOCATIONS = [0, 0.35, 0.65, 1] as const;
 
-/** Soft highlight at top + light vignette at bottom for depth */
 const OVERLAY_GRADIENT_COLORS = [
-  'rgba(255,255,255,0.38)',
-  'rgba(255,255,255,0.06)',
-  'rgba(255,255,255,0)',
-  'rgba(0,0,0,0.12)',
+  'rgba(34,197,94,0.14)',
+  'rgba(22,163,74,0.05)',
+  'rgba(0,0,0,0)',
+  'rgba(0,0,0,0.15)',
 ] as const;
 
 const OVERLAY_LOCATIONS = [0, 0.25, 0.55, 1] as const;
-
-type Nav = NativeStackNavigationProp<AuthStackParamList, typeof ROUTES.Auth.Splash>;
+const SAFE_AREA_TOP_COLOR = '#124223';
 
 export function SplashScreen(): React.ReactElement {
-  const navigation = useNavigation<Nav>();
   const preferredRole = useAppSelector(selectPreferredAccountRole);
+  const isRestoringSession = useAppSelector(selectIsRestoringSession);
   const logoOpacity = useRef(new Animated.Value(0)).current;
-  const logoScale = useRef(new Animated.Value(0.94)).current;
+  const logoScale = useRef(new Animated.Value(0.96)).current;
 
   useEffect(() => {
+    if (isRestoringSession) {
+      return;
+    }
+
     const nextRoute =
       preferredRole != null ? ROUTES.Auth.Login : ROUTES.Auth.Landing;
     const id = setTimeout(() => {
-      navigation.replace(nextRoute);
+      if (!navigationRef.isReady()) {
+        return;
+      }
+      navigationRef.navigate(nextRoute as never);
     }, 800);
     return () => clearTimeout(id);
-  }, [navigation, preferredRole]);
+  }, [isRestoringSession, preferredRole]);
 
   useEffect(() => {
     let cancelled = false;
@@ -68,13 +80,13 @@ export function SplashScreen(): React.ReactElement {
       Animated.parallel([
         Animated.timing(logoOpacity, {
           toValue: 1,
-          duration: 420,
+          duration: 400,
           useNativeDriver: true,
         }),
         Animated.spring(logoScale, {
           toValue: 1,
-          friction: 7,
-          tension: 72,
+          friction: 8,
+          tension: 60,
           useNativeDriver: true,
         }),
       ]).start();
@@ -86,8 +98,12 @@ export function SplashScreen(): React.ReactElement {
   }, [logoOpacity, logoScale]);
 
   return (
-    <SafeAreaWrapper edges={['top', 'bottom']}>
-      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+    <SafeAreaWrapper
+      edges={['top', 'bottom']}
+      bgColor={SAFE_AREA_TOP_COLOR}
+      contentBgColor={SAFE_AREA_TOP_COLOR}
+      statusBarStyle="light-content"
+    >
       <View style={styles.root}>
         <LinearGradient
           colors={[...BASE_GRADIENT_COLORS]}
@@ -144,9 +160,10 @@ const styles = StyleSheet.create({
   logoWrap: {
     alignItems: 'center',
     justifyContent: 'center',
+    gap: THEME.spacing[10],
   },
   logo: {
-    width: LOGO_MAX_WIDTH,
-    height: LOGO_MAX_WIDTH * 0.72,
+    width: LOGO_WIDTH,
+    height: LOGO_WIDTH * 0.74,
   },
 });

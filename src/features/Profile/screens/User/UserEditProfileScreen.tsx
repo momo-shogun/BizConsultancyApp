@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
   Pressable,
   ScrollView,
   Text,
@@ -8,12 +9,13 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { THEME } from '@/constants/theme';
 import { type ROUTES } from '@/navigation/routeNames';
 import type { AccountStackParamList } from '@/navigation/types';
-import { Input, KeyboardWrapper, Loader } from '@/shared/components';
+import { Input, Loader } from '@/shared/components';
 
 import { ProfilePhotoSourceDialog } from '../../components/ProfilePhotoSourceDialog';
 import { ProfileScreenHeaderChrome } from '../../components/ProfileScreenHeaderChrome';
@@ -52,6 +54,7 @@ function ReadOnlyField(props: ReadOnlyFieldProps): React.ReactElement {
 
 export function UserEditProfileScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const {
     isAuthenticated,
     isLoading,
@@ -81,6 +84,9 @@ export function UserEditProfileScreen(): React.ReactElement {
     pendingImageName != null
       ? `${pendingImageName} — tap Save to upload`
       : 'Tap photo to change · JPEG, PNG, GIF or WebP · max 5MB';
+
+  // FIX: keyboardVerticalOffset — header + status bar height
+  const keyboardVerticalOffset = insets.top + THEME.spacing[8];
 
   const chromeProps = {
     title: 'My Profile',
@@ -141,10 +147,26 @@ export function UserEditProfileScreen(): React.ReactElement {
           void selectProfileImageSource(source);
         }}
       />
-      <KeyboardWrapper style={styles.flex}>
+
+      {/*
+        FIX SUMMARY:
+        - behavior="padding" on both iOS & Android
+          (Android pe "height" shrink karta tha screen ko instead of push karne ke,
+           jisse pincode field keyboard ke peeche chali jaati thi)
+        - ScrollView ke contentContainerStyle mein paddingBottom add kiya
+          taaki last field (pincode/gender) keyboard ke upar clearly visible rahe
+        - automaticallyAdjustKeyboardInsets hata diya — yeh sirf iOS 15+ pe kaam
+          karta tha aur KeyboardAvoidingView ke saath conflict karta tha
+      */}
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior="padding"
+        keyboardVerticalOffset={keyboardVerticalOffset}
+      >
         <ScrollView
           style={styles.flex}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: 24 }]}
+          contentInsetAdjustmentBehavior="always"
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           showsVerticalScrollIndicator={false}
@@ -253,6 +275,9 @@ export function UserEditProfileScreen(): React.ReactElement {
           </View>
         </ScrollView>
 
+        {/* Save footer KeyboardAvoidingView ke ANDAR hai — 
+            iska matlab keyboard aane pe footer bhi upar uthega 
+            aur content squeeze nahi hoga */}
         <View style={styles.saveFooter}>
           <Pressable
             style={[styles.saveButton, isSaving ? styles.saveButtonDisabled : null]}
@@ -269,7 +294,7 @@ export function UserEditProfileScreen(): React.ReactElement {
             )}
           </Pressable>
         </View>
-      </KeyboardWrapper>
+      </KeyboardAvoidingView>
     </ProfileScreenHeaderChrome>
   );
 }
