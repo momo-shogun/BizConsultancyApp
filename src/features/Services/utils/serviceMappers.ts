@@ -19,6 +19,7 @@ import type {
   TextSegment,
 } from '../screens/types';
 
+import { extractRecommendedServiceSlug } from './recommendedServiceLinks';
 import { resolveServiceAssetUrl } from './serviceMedia';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -371,11 +372,6 @@ function mapFaqs(raw: unknown): FAQSection | undefined {
   };
 }
 
-function slugFromHref(href: string): string {
-  const parts = href.split('/').filter((part) => part.length > 0);
-  return parts[parts.length - 1] ?? href;
-}
-
 function mapRecommendedFromApi(raw: unknown): ServicePage['recommendedServices'] {
   if (!isRecord(raw) || !Array.isArray(raw.items)) {
     return undefined;
@@ -386,19 +382,20 @@ function mapRecommendedFromApi(raw: unknown): ServicePage['recommendedServices']
       if (!isRecord(row)) {
         return null;
       }
-      const slug =
-        typeof row.slug === 'string' && row.slug.length > 0
-          ? row.slug
-          : typeof row.href === 'string'
-            ? slugFromHref(row.href)
-            : '';
+      const slug = extractRecommendedServiceSlug(row);
       if (slug.length === 0) {
+        return null;
+      }
+      const title = typeof row.title === 'string' ? row.title.trim() : '';
+      const description =
+        typeof row.description === 'string' ? row.description.trim() : '';
+      if (title.length === 0) {
         return null;
       }
       return {
         slug,
-        title: typeof row.title === 'string' ? row.title : '',
-        description: typeof row.description === 'string' ? row.description : '',
+        title,
+        description,
         servicePageId: typeof row.servicePageId === 'number' ? row.servicePageId : undefined,
       };
     })

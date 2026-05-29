@@ -30,6 +30,8 @@ import { PremiumHorizontalTabBar } from '@/shared/components/navigation/PremiumH
 import { SERVICE_DETAIL_TABS, type DetailTabKey } from './serviceTabs';
 
 import { useServiceBySlug } from '../hooks/useServiceBySlug';
+import { useServicePageSlugLookup } from '../hooks/useServicePageSlugLookup';
+import type { RecommendedServiceCard } from './types';
 import { mapAboutToUiProps } from '../utils/serviceAboutUi';
 
 import { styles } from './ServiceDetailsStyle';
@@ -143,15 +145,20 @@ export function ServiceDetailScreen(): React.ReactElement {
   const slug = route.params.slug;
 
   const { service: item, isLoading, isError } = useServiceBySlug(slug);
+  const { resolveRecommendedTargetSlug } = useServicePageSlugLookup();
 
   const [activeTab, setActiveTab] =
     useState<DetailTabKey>('about');
 
   const openRelatedService = useCallback(
-    (targetSlug: string): void => {
-      navigation.navigate(ROUTES.Services.Detail, { slug: targetSlug });
+    (service: RecommendedServiceCard): void => {
+      const targetSlug = resolveRecommendedTargetSlug(service);
+      if (targetSlug.length === 0) {
+        return;
+      }
+      navigation.push(ROUTES.Services.Detail, { slug: targetSlug });
     },
-    [navigation],
+    [navigation, resolveRecommendedTargetSlug],
   );
 
   const handleBack = useCallback((): void => {
@@ -425,12 +432,10 @@ export function ServiceDetailScreen(): React.ReactElement {
 
           {tabPanel}
 
-          {item.recommendedServices != null ? (
-            <RecommendedServicesSection
-              recommendedServices={item.recommendedServices}
-              onPressService={(service) => openRelatedService(service.slug)}
-            />
-          ) : null}
+          <RecommendedServicesSection
+            recommendedServices={item.recommendedServices}
+            onPressService={openRelatedService}
+          />
 
         </ScrollWrapper>
 

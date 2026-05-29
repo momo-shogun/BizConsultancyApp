@@ -11,20 +11,21 @@ import Animated, {
   FadeInUp,
 } from 'react-native-reanimated';
 
+import type { RecommendedServiceCard } from '../../types';
+
 import { styles } from './RecommendedServicesSection.styles';
 
-export interface RecommendedServiceCardItem {
-  slug: string;
-  title: string;
-  description: string;
-  servicePageId?: number;
-}
+export type RecommendedServiceCardItem = RecommendedServiceCard;
 
 interface RecommendedServicesData {
   title?: string;
   description?: string;
   items?: RecommendedServiceCardItem[];
 }
+
+const DEFAULT_TITLE = 'Related Services / Recommended Packs';
+const DEFAULT_DESCRIPTION =
+  'Explore allied services frequently chosen together for faster compliance and smoother business operations.';
 
 interface RecommendedServicesSectionProps {
   recommendedServices?: RecommendedServicesData;
@@ -68,6 +69,10 @@ const RecommendedServicesSection: React.FC<
     return null;
   }
 
+  const sectionTitle = recommendedServices?.title?.trim() || DEFAULT_TITLE;
+  const sectionDescription =
+    recommendedServices?.description?.trim() || DEFAULT_DESCRIPTION;
+
   return (
     <View style={styles.section}>
       {/* Header */}
@@ -75,27 +80,20 @@ const RecommendedServicesSection: React.FC<
         <View style={styles.headerWrap}>
           <View style={styles.badge}>
             <Text style={styles.badgeText}>
-              Recommended
+              Featured Insights
             </Text>
           </View>
 
-          {!!recommendedServices?.title && (
-            <Text style={styles.title}>
-              {recommendedServices.title}
-            </Text>
-          )}
+          <Text style={styles.title}>{sectionTitle}</Text>
 
-          {!!recommendedServices?.description && (
-            <Text style={styles.description}>
-              {recommendedServices.description}
-            </Text>
-          )}
+          <Text style={styles.description}>{sectionDescription}</Text>
         </View>
       </Animated.View>
 
       {/* Horizontal Cards */}
       <ScrollView
         horizontal
+        nestedScrollEnabled
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
@@ -107,7 +105,11 @@ const RecommendedServicesSection: React.FC<
 
           return (
             <Animated.View
-              key={`${service.title}-${index}`}
+              key={
+                service.servicePageId != null
+                  ? `recommended-${service.servicePageId}-${index}`
+                  : `${service.slug}-${index}`
+              }
               entering={FadeInDown.delay(
                 index * 70
               )}
@@ -180,7 +182,7 @@ const RecommendedServicesSection: React.FC<
                           },
                         ]}
                       >
-                        Service
+                        Service Spotlight
                       </Text>
                     </View>
                   </View>
@@ -210,7 +212,7 @@ const RecommendedServicesSection: React.FC<
                         },
                       ]}
                     >
-                      Explore Service
+                      View service
                     </Text>
 
                     <Text
