@@ -196,7 +196,7 @@ export function ChooseAccountTypeScreen(): React.ReactElement {
               source={lightLogo}
               style={styles.logoImage}
               resizeMode="contain"
-              accessibilityLabel="BizConsultancy"
+              accessibilityLabel="Biz Consultancy"
             />
           </View>
 

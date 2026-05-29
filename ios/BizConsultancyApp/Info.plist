@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>BizConsultancyApp</string>
+	<string>Biz Consultancy</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -34,13 +34,13 @@
 		<true/>
 	</dict>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>BizConsultancy needs microphone access for voice and video calls with consultants.</string>
+	<string>Biz Consultancy needs microphone access for voice and video calls with consultants.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>BizConsultancy uses speech recognition to convert your voice into text for Biz AI assistant.</string>
+	<string>Biz Consultancy uses speech recognition to convert your voice into text for Biz AI assistant.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>BizConsultancy needs camera access for video calls and document uploads.</string>
+	<string>Biz Consultancy needs camera access for video calls and document uploads.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>BizConsultancy needs photo library access to upload documents for your applications.</string>
+	<string>Biz Consultancy needs photo library access to upload documents for your applications.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string/>
 	<key>UIBackgroundModes</key>

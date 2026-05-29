@@ -320,7 +320,7 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.samadhan.bizconsultancyapp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bizconsultancyapp;
 				PRODUCT_NAME = BizConsultancyApp;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -350,7 +350,7 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.samadhan.bizconsultancyapp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.bizconsultancyapp;
 				PRODUCT_NAME = BizConsultancyApp;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SWIFT_VERSION = 5.0;

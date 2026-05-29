@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "BizConsultancyApp",
+    "name": "Biz Consultancy",
     "slug": "bizconsultancyapp",
     "plugins": [
       [
@@ -18,5 +18,5 @@
     ]
   },
   "name": "BizConsultancyApp",
-  "displayName": "BizConsultancyApp"
+  "displayName": "Biz Consultancy"
 }
