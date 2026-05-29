@@ -1,5 +1,6 @@
 import type { NavigatorScreenParams } from '@react-navigation/native';
 
+import type { BizAIInputMode } from '@/features/BizAI/types/bizAiInput.types';
 import type { SearchScreenParams } from '@/features/Search/types/search.types';
 
 import { type ROUTES } from './routeNames';
@@ -96,7 +97,7 @@ export type RootStackParamList = {
   [ROUTES.Root.OutgoingCall]: { sessionId: number };
   [ROUTES.Root.InCall]: { sessionId: number };
   [ROUTES.Root.Search]: SearchScreenParams | undefined;
-  [ROUTES.Root.BizAI]: undefined;
+  [ROUTES.Root.BizAI]: { initialInputMode?: BizAIInputMode } | undefined;
   [ROUTES.Root.BusinessDiagnosis]: undefined;
   [ROUTES.Root.MyBookings]: undefined;
   [ROUTES.Root.ConsultantBookings]: undefined;

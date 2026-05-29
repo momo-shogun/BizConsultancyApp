@@ -1,25 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Keyboard,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Keyboard, ScrollView, StyleSheet, Text, View } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useNavigation } from '@react-navigation/native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
-import {
-  Easing,
-  cancelAnimation,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { THEME } from '@/constants/theme';
@@ -28,7 +12,12 @@ import type { RootStackParamList } from '@/navigation/types';
 import { SafeAreaWrapper } from '@/shared/components';
 import { showGlobalToast } from '@/shared/components/toast';
 
+import { BizAIConversationCard } from '../components/BizAIConversationCard';
+import { BizAIHeader } from '../components/BizAIHeader';
 import { BizAIKeyboardComposer } from '../components/BizAIKeyboardComposer';
+import { BizAILoadingPanel } from '../components/BizAILoadingPanel';
+import { BizAIShortcutPill } from '../components/BizAIShortcutPill';
+import { BizAISpeechStatusPanel } from '../components/BizAISpeechStatusPanel';
 import { BizAISuggestionChip } from '../components/BizAISuggestionChip';
 import { BizAIVoiceDock } from '../components/BizAIVoiceDock';
 import {
@@ -36,24 +25,54 @@ import {
   BIZ_AI_SHORTCUTS,
   BIZ_AI_SUGGESTIONS,
 } from '../constants/bizAiSuggestions';
+import { BIZ_AI_THEME } from '../constants/bizAiTheme';
 import { useBizAIKeyboardInset } from '../hooks/useBizAIKeyboardInset';
+import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import type { BizAIInputMode } from '../types/bizAiInput.types';
 
 const VOICE_DOCK_HEIGHT = 176;
 const KEYBOARD_DOCK_HEIGHT = 72;
+const SPEECH_PANEL_HEIGHT = 132;
+const PREVIEW_HINT =
+  'Full AI chat will connect to Biz Assistant API in the next release.';
+
+const SPEECH_SILENCE_MS = 4000;
+
+type BizAIRouteProp = RouteProp<RootStackParamList, typeof ROUTES.Root.BizAI>;
 
 export function BizAIScreen(): React.ReactElement {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const route = useRoute<BizAIRouteProp>();
   const insets = useSafeAreaInsets();
   const { keyboardHeight } = useBizAIKeyboardInset();
 
-  const [inputMode, setInputMode] = useState<BizAIInputMode>('keyboard');
+  const initialInputMode = route.params?.initialInputMode ?? 'keyboard';
+  const [inputMode, setInputMode] = useState<BizAIInputMode>(initialInputMode);
+  const didApplyLaunchModeRef = useRef(false);
   const [query, setQuery] = useState<string>('');
   const [draft, setDraft] = useState<string>('');
   const [isAwaitingResponse, setIsAwaitingResponse] = useState<boolean>(false);
   const [response, setResponse] = useState<string>('');
   const responseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const spin = useSharedValue(0);
+
+  const speech = useSpeechRecognition({
+    locale: 'en-US',
+    continuous: true,
+    interimResults: true,
+    silenceTimeoutMs: SPEECH_SILENCE_MS,
+  });
+  const {
+    isAvailable: isSpeechAvailable,
+    isListening: isSpeechListening,
+    startListening,
+    stopListening,
+    abortListening,
+    transcript: speechTranscript,
+    partialTranscript: speechPartialTranscript,
+    volume: speechVolume,
+    msSinceLowVolume: speechMsSinceLowVolume,
+    errorMessage: speechErrorMessage,
+  } = speech;
 
   const greeting = useMemo(
     () => BIZ_AI_GREETINGS[Math.floor(Date.now() / 86_400_000) % BIZ_AI_GREETINGS.length],
@@ -61,13 +80,20 @@ export function BizAIScreen(): React.ReactElement {
   );
 
   const onMicPress = useCallback((): void => {
-    showGlobalToast({
-      variant: 'info',
-      title: 'Coming soon',
-      message: 'Voice input will be available soon. Use the keyboard for now.',
-      position: 'bottom',
-    });
-  }, []);
+    if (!isSpeechAvailable) {
+      showGlobalToast({
+        variant: 'error',
+        message: 'Speech recognition is unavailable on this device.',
+        position: 'bottom',
+      });
+      return;
+    }
+    if (isSpeechListening) {
+      stopListening();
+      return;
+    }
+    void startListening();
+  }, [isSpeechAvailable, isSpeechListening, startListening, stopListening]);
 
   const close = useCallback((): void => {
     Keyboard.dismiss();
@@ -130,75 +156,84 @@ export function BizAIScreen(): React.ReactElement {
     }, 1700);
   }, [draft]);
 
+  const onVoiceSend = useCallback((): void => {
+    if (isSpeechListening) {
+      stopListening();
+    }
+    onSend();
+  }, [isSpeechListening, onSend, stopListening]);
+
   useEffect(() => {
-    if (isAwaitingResponse) {
-      spin.value = withRepeat(withTiming(360, { duration: 1800, easing: Easing.linear }), -1, false);
+    if (didApplyLaunchModeRef.current) {
       return;
     }
-    cancelAnimation(spin);
-    spin.value = 0;
-  }, [isAwaitingResponse, spin]);
+    const launchMode = route.params?.initialInputMode;
+    if (launchMode == null) {
+      return;
+    }
+    didApplyLaunchModeRef.current = true;
+    setInputMode(launchMode);
+    if (launchMode !== 'voice' || !isSpeechAvailable) {
+      return;
+    }
+    const timer = setTimeout(() => {
+      void startListening();
+    }, 360);
+    return () => clearTimeout(timer);
+  }, [isSpeechAvailable, route.params?.initialInputMode, startListening]);
+
+  useEffect(() => {
+    const spoken =
+      speechPartialTranscript.trim().length > 0 ? speechPartialTranscript : speechTranscript;
+    if (inputMode !== 'voice') {
+      return;
+    }
+    if (spoken.trim().length > 0) {
+      setDraft(spoken);
+    }
+  }, [inputMode, speechPartialTranscript, speechTranscript]);
+
+  useEffect(() => {
+    if (inputMode !== 'voice' && isSpeechListening) {
+      abortListening();
+    }
+  }, [abortListening, inputMode, isSpeechListening]);
 
   useEffect(() => {
     return () => {
       if (responseTimerRef.current != null) {
         clearTimeout(responseTimerRef.current);
       }
-      cancelAnimation(spin);
     };
-  }, [spin]);
-
-  const loaderIconStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${spin.value}deg` }],
-  }));
+  }, []);
 
   const bottomPad =
     inputMode === 'voice'
-      ? insets.bottom + VOICE_DOCK_HEIGHT
+      ? insets.bottom + VOICE_DOCK_HEIGHT + SPEECH_PANEL_HEIGHT
       : insets.bottom + KEYBOARD_DOCK_HEIGHT + 24;
+
   const showLoaderScreen = isAwaitingResponse;
   const showResultScreen = !isAwaitingResponse && query.length > 0 && response.length > 0;
+  const showPreviewCard = !showResultScreen && query.length > 0;
 
   return (
     <SafeAreaWrapper
       edges={['top', 'bottom']}
-      bgColor="#0B0F19"
-      contentBgColor="#0B0F19"
+      bgColor={BIZ_AI_THEME.bg.base}
+      contentBgColor={BIZ_AI_THEME.bg.base}
       statusBarStyle="light-content"
       style={styles.root}
     >
       <LinearGradient
-        colors={['#0B0F19', '#111827', '#1E1B4B', '#312E81']}
-        locations={[0, 0.45, 0.78, 1]}
+        colors={[...BIZ_AI_THEME.gradient.screen]}
+        locations={[...BIZ_AI_THEME.gradient.screenLocations]}
         style={StyleSheet.absoluteFill}
       />
 
-      <View style={[styles.header, { paddingTop: 8 }]}>
-        <Pressable onPress={close} hitSlop={12} accessibilityRole="button" accessibilityLabel="Close">
-          <Ionicons name="chevron-down" size={28} color={THEME.colors.white} />
-        </Pressable>
-        <View style={styles.headerTitleWrap}>
-          <Ionicons name="sparkles" size={18} color="#A5B4FC" />
-          <Text style={styles.headerTitle}>Biz AI</Text>
-        </View>
-        <View style={styles.headerSpacer} />
-      </View>
+      <BizAIHeader onClose={close} />
 
       {showLoaderScreen ? (
-        <View style={styles.fullLoaderScreen}>
-          <LinearGradient
-            colors={['rgba(14,165,233,0.16)', 'rgba(59,130,246,0.06)', 'rgba(168,85,247,0.16)']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.fullLoaderPanel}
-          >
-            <Text style={styles.loaderTitle}>Fetching something for you...</Text>
-            <Text style={styles.loaderSubTitle}>Working on it</Text>
-            <Animated.View style={[styles.loaderOrb, loaderIconStyle]}>
-              <Ionicons name="sparkles" size={24} color="#C4B5FD" />
-            </Animated.View>
-          </LinearGradient>
-        </View>
+        <BizAILoadingPanel query={query} />
       ) : (
         <ScrollView
           showsVerticalScrollIndicator={false}
@@ -206,41 +241,39 @@ export function BizAIScreen(): React.ReactElement {
           contentContainerStyle={[styles.scroll, { paddingBottom: bottomPad }]}
         >
           {showResultScreen ? (
-            <Animated.View entering={FadeIn.duration(220)} style={styles.previewCard}>
-              <Text style={styles.previewLabel}>Your question</Text>
-              <Text style={styles.previewText}>{query}</Text>
-              <View style={styles.responseBlock}>
-                <Text style={styles.previewLabel}>Biz AI response</Text>
-                <Text style={styles.responseText}>{response}</Text>
-              </View>
-            </Animated.View>
+            <BizAIConversationCard query={query} response={response} />
           ) : (
             <>
-              <Animated.View entering={FadeInDown.duration(240)}>
-                <Text style={styles.greeting}>{greeting}</Text>
+              <Animated.View entering={FadeInDown.duration(260)} style={styles.hero}>
+                <Text style={styles.greeting} accessibilityRole="header">
+                  {greeting}
+                </Text>
                 <Text style={styles.subGreeting}>
-                  Tap a suggestion or type your question in the keyboard below.
+                  Ask about GST, compliance, funding, or pick a suggestion below.
                 </Text>
               </Animated.View>
 
-              <Animated.View entering={FadeInDown.delay(80).duration(220)} style={styles.shortcutRow}>
+              <Animated.View entering={FadeInDown.delay(60).duration(240)} style={styles.shortcutRow}>
                 {BIZ_AI_SHORTCUTS.map((item) => (
-                  <Pressable
+                  <BizAIShortcutPill
                     key={item.id}
+                    label={item.label}
+                    icon={item.icon}
                     onPress={() => onShortcutPress(item.id)}
-                    style={({ pressed }) => [styles.shortcut, pressed && styles.shortcutPressed]}
-                  >
-                    <Ionicons name={item.icon} size={16} color="#C7D2FE" />
-                    <Text style={styles.shortcutText}>{item.label}</Text>
-                  </Pressable>
+                  />
                 ))}
               </Animated.View>
 
-              <Text style={styles.sectionLabel}>Suggestions for your business</Text>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionLabel}>Quick suggestions</Text>
+                <Text style={styles.sectionHint}>Swipe for more</Text>
+              </View>
+
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.suggestionRow}
+                decelerationRate="fast"
               >
                 {BIZ_AI_SUGGESTIONS.map((item, index) => (
                   <BizAISuggestionChip
@@ -252,37 +285,48 @@ export function BizAIScreen(): React.ReactElement {
                 ))}
               </ScrollView>
 
-              {query.length > 0 ? (
-                <Animated.View entering={FadeIn.duration(200)} style={styles.previewCard}>
-                  <Text style={styles.previewLabel}>Your question</Text>
-                  <Text style={styles.previewText}>{query}</Text>
-                  <Text style={styles.previewHint}>
-                    Full AI chat will connect to Biz Assistant API in the next release.
-                  </Text>
-                </Animated.View>
+              {showPreviewCard ? (
+                <BizAIConversationCard query={query} hint={PREVIEW_HINT} />
               ) : null}
             </>
           )}
         </ScrollView>
       )}
 
-      {!showLoaderScreen && (inputMode === 'voice' ? (
-        <View style={[styles.dockHost, { paddingBottom: insets.bottom }]}>
-          <BizAIVoiceDock
-            onKeyboardPress={openKeyboardMode}
-            onMicPress={onMicPress}
-            onBrandPress={close}
-          />
-        </View>
-      ) : (
-        <BizAIKeyboardComposer
-          value={draft}
-          onChangeText={setDraft}
-          onSend={onSend}
-          onVoiceModePress={openVoiceMode}
-          keyboardHeight={keyboardHeight}
+      {!showLoaderScreen && inputMode === 'voice' ? (
+        <BizAISpeechStatusPanel
+          isListening={isSpeechListening}
+          transcript={speechTranscript}
+          partialTranscript={speechPartialTranscript}
+          volume={speechVolume}
+          msSinceLowVolume={speechMsSinceLowVolume}
+          silenceTimeoutMs={SPEECH_SILENCE_MS}
+          errorMessage={speechErrorMessage}
+          bottomInset={insets.bottom + VOICE_DOCK_HEIGHT - 8}
+          onSend={onVoiceSend}
         />
-      ))}
+      ) : null}
+
+      {!showLoaderScreen &&
+        (inputMode === 'voice' ? (
+          <View style={[styles.dockHost, { paddingBottom: insets.bottom }]}>
+            <BizAIVoiceDock
+              onKeyboardPress={openKeyboardMode}
+              onMicPress={onMicPress}
+              onBrandPress={close}
+              isListening={isSpeechListening}
+              isSpeechAvailable={isSpeechAvailable}
+            />
+          </View>
+        ) : (
+          <BizAIKeyboardComposer
+            value={draft}
+            onChangeText={setDraft}
+            onSend={onSend}
+            onVoiceModePress={openVoiceMode}
+            keyboardHeight={keyboardHeight}
+          />
+        ))}
     </SafeAreaWrapper>
   );
 }
@@ -292,166 +336,55 @@ export default BizAIScreen;
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#0B0F19',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: THEME.spacing[16],
-    paddingBottom: THEME.spacing[12],
-  },
-  headerTitleWrap: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  headerTitle: {
-    fontSize: THEME.typography.size[16],
-    fontWeight: THEME.typography.weight.semibold as '600',
-    color: THEME.colors.white,
-  },
-  headerSpacer: {
-    width: 28,
+    backgroundColor: BIZ_AI_THEME.bg.base,
   },
   scroll: {
-    paddingHorizontal: THEME.spacing[16],
-    paddingTop: THEME.spacing[8],
+    paddingHorizontal: BIZ_AI_THEME.spacing.screenX,
+    paddingTop: THEME.spacing[16],
+  },
+  hero: {
+    marginBottom: BIZ_AI_THEME.spacing.section,
   },
   greeting: {
     fontSize: THEME.typography.size[28],
     fontWeight: THEME.typography.weight.bold as '700',
-    color: THEME.colors.white,
-    lineHeight: 34,
-    marginBottom: THEME.spacing[8],
+    color: BIZ_AI_THEME.text.primary,
+    lineHeight: 36,
+    letterSpacing: -0.4,
+    marginBottom: THEME.spacing[10],
   },
   subGreeting: {
     fontSize: THEME.typography.size[14],
-    color: 'rgba(255,255,255,0.62)',
-    lineHeight: 20,
-    marginBottom: THEME.spacing[20],
+    color: BIZ_AI_THEME.text.secondary,
+    lineHeight: 22,
+    maxWidth: 320,
   },
   shortcutRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: THEME.spacing[8],
-    marginBottom: THEME.spacing[24],
+    gap: THEME.spacing[10],
+    marginBottom: BIZ_AI_THEME.spacing.section,
   },
-  shortcut: {
+  sectionHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: THEME.spacing[12],
-    paddingVertical: THEME.spacing[8],
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  shortcutPressed: {
-    opacity: 0.8,
-  },
-  shortcutText: {
-    fontSize: THEME.typography.size[12],
-    color: 'rgba(255,255,255,0.88)',
-    fontWeight: THEME.typography.weight.medium as '500',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    marginBottom: THEME.spacing[14],
   },
   sectionLabel: {
-    fontSize: THEME.typography.size[12],
+    fontSize: THEME.typography.size[14],
     fontWeight: THEME.typography.weight.semibold as '600',
-    color: 'rgba(255,255,255,0.55)',
-    marginBottom: THEME.spacing[12],
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
+    color: BIZ_AI_THEME.text.muted,
+    letterSpacing: 0.4,
+  },
+  sectionHint: {
+    fontSize: THEME.typography.size[12],
+    color: BIZ_AI_THEME.text.faint,
   },
   suggestionRow: {
     gap: THEME.spacing[12],
-    paddingRight: THEME.spacing[16],
-    marginBottom: THEME.spacing[24],
-  },
-  previewCard: {
-    borderRadius: 16,
-    padding: THEME.spacing[16],
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  previewLabel: {
-    fontSize: THEME.typography.size[12],
-    color: 'rgba(255,255,255,0.5)',
-    marginBottom: 6,
-  },
-  previewText: {
-    fontSize: THEME.typography.size[14],
-    color: THEME.colors.white,
-    lineHeight: 22,
-    marginBottom: THEME.spacing[8],
-  },
-  previewHint: {
-    fontSize: THEME.typography.size[12],
-    color: 'rgba(255,255,255,0.45)',
-    lineHeight: 18,
-  },
-  fullLoaderScreen: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: THEME.spacing[16],
-    paddingBottom: 48,
-  },
-  fullLoaderPanel: {
-    width: '100%',
-    borderRadius: 22,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(148, 163, 184, 0.35)',
-    paddingVertical: THEME.spacing[24],
-    paddingHorizontal: THEME.spacing[16],
-    alignItems: 'center',
-    gap: THEME.spacing[8],
-  },
-  loaderWrap: {
-    marginTop: THEME.spacing[8],
-  },
-  loaderPanel: {
-    borderRadius: 14,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(148, 163, 184, 0.35)',
-    paddingVertical: THEME.spacing[16],
-    paddingHorizontal: THEME.spacing[14],
-    alignItems: 'center',
-    gap: THEME.spacing[8],
-  },
-  loaderTitle: {
-    color: '#E2E8F0',
-    fontSize: THEME.typography.size[18],
-    fontWeight: THEME.typography.weight.semibold as '600',
-    textAlign: 'center',
-  },
-  loaderSubTitle: {
-    color: 'rgba(226,232,240,0.8)',
-    fontSize: THEME.typography.size[14],
-    textAlign: 'center',
-  },
-  loaderOrb: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    borderWidth: 1,
-    borderColor: 'rgba(196, 181, 253, 0.65)',
-    backgroundColor: 'rgba(15, 23, 42, 0.38)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: THEME.spacing[4],
-  },
-  responseBlock: {
-    marginTop: THEME.spacing[10],
-    gap: THEME.spacing[8],
-  },
-  responseText: {
-    fontSize: THEME.typography.size[14],
-    color: 'rgba(248,250,252,0.92)',
-    lineHeight: 22,
+    paddingRight: BIZ_AI_THEME.spacing.screenX,
+    marginBottom: BIZ_AI_THEME.spacing.section,
   },
   dockHost: {
     position: 'absolute',

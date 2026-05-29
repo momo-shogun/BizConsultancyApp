@@ -1,4 +1,5 @@
 package com.bizconsultancyapp
+import expo.modules.ReactActivityDelegateWrapper
 
 import android.os.Build
 import android.os.Bundle
@@ -39,5 +40,5 @@ class MainActivity : ReactActivity() {
   }
 
   override fun createReactActivityDelegate(): ReactActivityDelegate =
-      DefaultReactActivityDelegate(this, mainComponentName, fabricEnabled)
+      ReactActivityDelegateWrapper(this, BuildConfig.IS_NEW_ARCHITECTURE_ENABLED, DefaultReactActivityDelegate(this, mainComponentName, fabricEnabled))
 }

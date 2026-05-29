@@ -1,8 +1,8 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { CompositeNavigationProp } from '@react-navigation/native';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { THEME } from '@/constants/theme';
@@ -43,6 +43,7 @@ import {
 } from '@/features/Home/utils/membershipMappers';
 import { mapPublicTestimonialsToCardItems } from '@/features/Home/utils/testimonialMappers';
 import { mapPublicWorkshopsToEventSpotlightItems } from '@/features/Home/utils/workshopMappers';
+import { applyHomeStatusBar, applyHomeStatusBarSoon } from '@/features/Home/utils/homeStatusBar';
 import { darkenHex, ZEPTO_TABS_TRACK_DARKEN } from '@/utils/darkenHex';
 import { useGetPublicServicesQuery } from '@/features/Services/api/servicesApi';
 import { mapPublicServiceToCardItem } from '@/features/Services/utils/serviceMappers';
@@ -501,12 +502,31 @@ export function HomeDashboardScreen(): React.ReactElement {
     [activeShell?.topTabsBackground],
   );
 
+  const onShellColorsChange = useCallback((shell: ZeptoHSShellColors) => {
+    setActiveShell(shell);
+    applyHomeStatusBarSoon(
+      darkenHex(shell.topTabsBackground, ZEPTO_TABS_TRACK_DARKEN),
+    );
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      applyHomeStatusBar(safeAreaBgColor);
+    }, [safeAreaBgColor]),
+  );
+
+  useEffect(() => {
+    applyHomeStatusBar(safeAreaBgColor);
+  }, [safeAreaBgColor]);
+
   return (
     <SafeAreaWrapper
       edges={['top', 'bottom']}
       bgColor={safeAreaBgColor}
+      contentBgColor={THEME.colors.background}
+      statusBarStyle="dark-content"
     >
-      <ZeptoHS header={zeptoHeader} onShellColorsChange={setActiveShell}>
+      <ZeptoHS header={zeptoHeader} onShellColorsChange={onShellColorsChange}>
         {(_categoryId: HomeCategoryId) => (
           <View style={styles.sheet}>
             {isUpcomingBookingsLoading && upcomingBookingItems.length === 0 ? (

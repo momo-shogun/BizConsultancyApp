@@ -1,4 +1,7 @@
 package com.bizconsultancyapp
+import android.content.res.Configuration
+import expo.modules.ApplicationLifecycleDispatcher
+import expo.modules.ExpoReactHostFactory
 
 import android.app.Application
 import android.app.Notification
@@ -15,13 +18,15 @@ import org.wonday.orientation.OrientationActivityLifecycle
 class MainApplication : Application(), ReactApplication {
 
   override val reactHost: ReactHost by lazy {
-    getDefaultReactHost(
+    ExpoReactHostFactory.getDefaultReactHost(
       context = applicationContext,
       packageList =
         PackageList(this).packages.apply {
           // Packages that cannot be autolinked yet can be added manually here, for example:
           // add(MyReactNativePackage())
         },
+      // Use the standard RN entry when running `react-native start` (not `expo start`).
+      jsMainModulePath = "index",
     )
   }
 
@@ -30,6 +35,7 @@ class MainApplication : Application(), ReactApplication {
     registerActivityLifecycleCallbacks(OrientationActivityLifecycle.getInstance())
     createIncomingCallNotificationChannel()
     loadReactNative(this)
+    ApplicationLifecycleDispatcher.onApplicationCreate(this)
   }
 
   private fun createIncomingCallNotificationChannel() {
@@ -56,5 +62,10 @@ class MainApplication : Application(), ReactApplication {
 
   companion object {
     const val INCOMING_CALLS_CHANNEL_ID = "incoming_calls_v2"
+  }
+
+  override fun onConfigurationChanged(newConfig: Configuration) {
+    super.onConfigurationChanged(newConfig)
+    ApplicationLifecycleDispatcher.onConfigurationChanged(this, newConfig)
   }
 }

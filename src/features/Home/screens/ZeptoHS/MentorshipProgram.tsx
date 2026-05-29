@@ -113,6 +113,9 @@ export function MentorshipProgram({
       style={[styles.container, { backgroundColor }]}
       contentContainerStyle={styles.contentContainer}
       showsVerticalScrollIndicator={false}
+      showsHorizontalScrollIndicator={false}
+      scrollEnabled={false}
+      nestedScrollEnabled
     >
       <View style={styles.unifiedOuter}>
         <LinearGradient

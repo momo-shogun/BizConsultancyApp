@@ -205,7 +205,12 @@ export function ZeptoHS(props: ZeptoHSProps): React.ReactElement {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
-        showsVerticalScrollIndicator
+        showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
+        {...Platform.select({
+          android: { persistentScrollbar: false, overScrollMode: 'never' as const },
+          default: {},
+        })}
         onScroll={onScroll}
         scrollEventThrottle={16}
       >
