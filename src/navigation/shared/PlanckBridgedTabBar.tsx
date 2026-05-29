@@ -12,6 +12,7 @@ import Animated, {
 import type { SharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ROUTES } from '../routeNames';
 import { PLANK_BAR_V1_BLUE } from '../tabNavigators/plankBarV1/plankBarV1.styles';
 
 /** Spring config — snappy but smooth; matches iOS spring feel. */
@@ -212,6 +213,16 @@ export function PlanckBridgedTabBar({
               target: route.key,
               canPreventDefault: true,
             });
+
+            if (route.name === ROUTES.App.Account) {
+              if (!event.defaultPrevented) {
+                navigation.navigate(ROUTES.App.Account, {
+                  screen: ROUTES.Account.Home,
+                });
+              }
+              return;
+            }
+
             if (!focused && !event.defaultPrevented) {
               navigation.navigate(route.name, route.params);
             }

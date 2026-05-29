@@ -7,6 +7,7 @@ import type { AppTabParamList } from '../../types';
 import { ROUTES } from '../../routeNames';
 import { PlanckBridgedTabBar } from '../../shared/PlanckBridgedTabBar';
 import { isTabBarHiddenFromOptions } from '../../tabBar/isTabBarHiddenFromOptions';
+import { accountTabListeners } from '../../tabBar/accountTabListeners';
 import { getStackTabScreenOptions } from '../../tabBar/tabBarVisibility';
 
 import { HomeDashboardScreen } from '@/features/Home/screens/HomeDashboardScreen';
@@ -86,6 +87,7 @@ export function PlankBarV1TabNavigator(): React.ReactElement {
       <PlankTab.Screen
         name={ROUTES.App.Account}
         component={AccountTabHost}
+        listeners={accountTabListeners}
         options={({ route }) => ({
           title: 'Account',
           ...getStackTabScreenOptions(route),
