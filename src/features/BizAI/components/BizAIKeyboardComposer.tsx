@@ -18,6 +18,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { THEME } from '@/constants/theme';
 
+import { BIZ_AI_THEME } from '../constants/bizAiTheme';
+
 type BizAIKeyboardComposerProps = {
   value: string;
   onChangeText: (text: string) => void;
@@ -58,8 +60,8 @@ export function BizAIKeyboardComposer({
   return (
     <Animated.View entering={FadeInDown.duration(240)} style={[styles.root, dockStyle]}>
       <LinearGradient
-        colors={['transparent', 'rgba(11,15,25,0.88)', 'rgba(11,15,25,0.98)']}
-        locations={[0, 0.2, 1]}
+        colors={[...BIZ_AI_THEME.gradient.dockFade]}
+        locations={[0, 0.25, 1]}
         style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
@@ -69,10 +71,10 @@ export function BizAIKeyboardComposer({
           onPress={onVoiceModePress}
           hitSlop={10}
           accessibilityRole="button"
-          accessibilityLabel="Voice input coming soon"
+          accessibilityLabel="Switch to voice input"
           style={({ pressed }) => [styles.sideBtn, pressed && styles.sideBtnPressed]}
         >
-          <Ionicons name="chevron-down" size={22} color="rgba(255,255,255,0.88)" />
+          <Ionicons name="mic-outline" size={22} color={BIZ_AI_THEME.text.secondary} />
         </Pressable>
 
         <View style={styles.inputWrap}>
@@ -81,7 +83,7 @@ export function BizAIKeyboardComposer({
             value={value}
             onChangeText={onChangeText}
             placeholder="Ask about GST, compliance, funding…"
-            placeholderTextColor="rgba(255,255,255,0.42)"
+            placeholderTextColor={BIZ_AI_THEME.text.faint}
             style={styles.input}
             multiline={false}
             maxLength={500}
@@ -89,6 +91,7 @@ export function BizAIKeyboardComposer({
             onSubmitEditing={onSend}
             autoCorrect
             autoCapitalize="sentences"
+            accessibilityLabel="Biz AI question input"
           />
         </View>
 
@@ -97,15 +100,20 @@ export function BizAIKeyboardComposer({
           disabled={!canSend}
           accessibilityRole="button"
           accessibilityLabel="Send message"
+          accessibilityState={{ disabled: !canSend }}
           style={({ pressed }) => [styles.sendWrap, pressed && canSend && styles.sendPressed]}
         >
           <LinearGradient
-            colors={canSend ? ['#38BDF8', '#6366F1', '#EC4899'] : ['#334155', '#334155']}
+            colors={
+              canSend
+                ? [...BIZ_AI_THEME.gradient.sendActive]
+                : [...BIZ_AI_THEME.gradient.sendDisabled]
+            }
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.sendBtn}
           >
-            <Ionicons name="arrow-up" size={20} color={THEME.colors.white} />
+            <Ionicons name="arrow-up" size={20} color={BIZ_AI_THEME.text.primary} />
           </LinearGradient>
         </Pressable>
       </View>
@@ -118,7 +126,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    paddingHorizontal: THEME.spacing[12],
+    paddingHorizontal: BIZ_AI_THEME.spacing.screenX - 4,
     paddingTop: THEME.spacing[12],
     zIndex: 50,
   },
@@ -126,23 +134,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: THEME.spacing[8],
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
-    backgroundColor: 'rgba(20,28,45,0.95)',
+    borderRadius: BIZ_AI_THEME.radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: BIZ_AI_THEME.border.default,
+    backgroundColor: BIZ_AI_THEME.bg.composer,
     paddingLeft: THEME.spacing[4],
     paddingRight: THEME.spacing[4],
     paddingVertical: THEME.spacing[4],
-    minHeight: 52,
+    minHeight: 54,
+    ...BIZ_AI_THEME.shadow.card,
   },
   sideBtn: {
-    width: 40,
-    height: 40,
+    width: BIZ_AI_THEME.touch.min,
+    height: BIZ_AI_THEME.touch.min,
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: BIZ_AI_THEME.radius.md,
   },
   sideBtnPressed: {
     opacity: 0.75,
+    backgroundColor: BIZ_AI_THEME.bg.elevated,
   },
   inputWrap: {
     flex: 1,
@@ -150,7 +161,7 @@ const styles = StyleSheet.create({
   },
   input: {
     fontSize: THEME.typography.size[16],
-    color: THEME.colors.white,
+    color: BIZ_AI_THEME.text.primary,
     paddingVertical: Platform.OS === 'android' ? 6 : 8,
     paddingHorizontal: THEME.spacing[4],
     ...Platform.select({
@@ -158,16 +169,17 @@ const styles = StyleSheet.create({
     }),
   },
   sendWrap: {
-    borderRadius: 12,
+    borderRadius: BIZ_AI_THEME.radius.md,
     overflow: 'hidden',
   },
   sendPressed: {
     opacity: 0.9,
+    transform: [{ scale: 0.96 }],
   },
   sendBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: BIZ_AI_THEME.touch.min,
+    height: BIZ_AI_THEME.touch.min,
+    borderRadius: BIZ_AI_THEME.radius.md,
     alignItems: 'center',
     justifyContent: 'center',
   },

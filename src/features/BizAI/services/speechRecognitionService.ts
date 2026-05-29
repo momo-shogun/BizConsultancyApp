@@ -6,7 +6,10 @@ import {
 import { Platform } from 'react-native';
 
 export const SPEECH_MAX_RETRIES = 2;
-export const SPEECH_SILENCE_TIMEOUT_MS = 5000;
+/** Stop listening after volume stays below threshold for this long. */
+export const SPEECH_SILENCE_TIMEOUT_MS = 4000;
+/** Volume at or above this counts as active speech (matches UI meter). */
+export const SPEECH_ACTIVE_VOLUME_THRESHOLD = 4;
 
 export interface SpeechPermissionState {
   granted: boolean;

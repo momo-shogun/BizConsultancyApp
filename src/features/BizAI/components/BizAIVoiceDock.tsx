@@ -6,6 +6,7 @@ import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
 import { THEME } from '@/constants/theme';
 
+import { BIZ_AI_THEME } from '../constants/bizAiTheme';
 import { BizAIBrandCapsule } from './BizAIBrandCapsule';
 import { BizAIOrbButton } from './BizAIOrbButton';
 
@@ -24,19 +25,30 @@ export function BizAIVoiceDock({
   isListening,
   isSpeechAvailable,
 }: BizAIVoiceDockProps): React.ReactElement {
+  const statusLabel = isListening
+    ? 'Listening now'
+    : isSpeechAvailable
+      ? 'Tap to talk'
+      : 'Voice unavailable';
+
+  const subLabel = isSpeechAvailable
+    ? 'Voice recognition enabled'
+    : 'Speech recognition unavailable';
+
   return (
     <Animated.View entering={FadeInDown.duration(280)} style={styles.root}>
       <LinearGradient
-        colors={['transparent', 'rgba(11,15,25,0.55)', 'rgba(11,15,25,0.94)']}
-        locations={[0, 0.35, 1]}
+        colors={[...BIZ_AI_THEME.gradient.dockFade]}
+        locations={[0, 0.3, 1]}
         style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
+
       <Animated.Text entering={FadeIn.duration(200)} style={styles.hint} numberOfLines={2}>
-        {isListening ? 'Listening now' : 'Tap to talk'}
+        {statusLabel}
       </Animated.Text>
-      <Text style={styles.comingSoon} numberOfLines={1}>
-        {isSpeechAvailable ? 'Voice recognition enabled' : 'Speech recognition unavailable'}
+      <Text style={styles.subHint} numberOfLines={1}>
+        {subLabel}
       </Text>
 
       <View style={styles.controls}>
@@ -47,7 +59,7 @@ export function BizAIVoiceDock({
           accessibilityLabel="Switch to keyboard input"
           style={({ pressed }) => [styles.sideBtn, pressed && styles.sideBtnPressed]}
         >
-          <Ionicons name="keypad-outline" size={22} color="rgba(255,255,255,0.92)" />
+          <Ionicons name="keypad-outline" size={22} color={BIZ_AI_THEME.text.secondary} />
         </Pressable>
 
         <BizAIOrbButton
@@ -67,23 +79,24 @@ const styles = StyleSheet.create({
   root: {
     paddingTop: THEME.spacing[20],
     paddingBottom: THEME.spacing[8],
-    paddingHorizontal: THEME.spacing[16],
+    paddingHorizontal: BIZ_AI_THEME.spacing.screenX,
     minHeight: 168,
     justifyContent: 'flex-end',
   },
   hint: {
     textAlign: 'center',
-    fontSize: THEME.typography.size[16],
+    fontSize: THEME.typography.size[17],
     fontWeight: THEME.typography.weight.semibold as '600',
-    color: 'rgba(255,255,255,0.92)',
-    marginBottom: THEME.spacing[8],
+    color: BIZ_AI_THEME.text.primary,
+    marginBottom: THEME.spacing[6],
     paddingHorizontal: THEME.spacing[16],
+    letterSpacing: -0.2,
   },
-  comingSoon: {
+  subHint: {
     textAlign: 'center',
     fontSize: THEME.typography.size[12],
-    color: 'rgba(255,255,255,0.45)',
-    marginBottom: THEME.spacing[14],
+    color: BIZ_AI_THEME.text.muted,
+    marginBottom: THEME.spacing[16],
     paddingHorizontal: THEME.spacing[16],
   },
   controls: {
@@ -93,12 +106,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: THEME.spacing[4],
   },
   sideBtn: {
-    width: 44,
-    height: 44,
+    width: BIZ_AI_THEME.touch.min,
+    height: BIZ_AI_THEME.touch.min,
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: BIZ_AI_THEME.radius.pill,
+    backgroundColor: BIZ_AI_THEME.bg.elevated,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: BIZ_AI_THEME.border.subtle,
   },
   sideBtnPressed: {
-    opacity: 0.75,
+    opacity: 0.78,
+    transform: [{ scale: 0.96 }],
   },
 });

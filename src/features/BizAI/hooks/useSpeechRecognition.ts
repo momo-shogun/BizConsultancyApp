@@ -8,6 +8,7 @@ import {
 } from 'expo-speech-recognition';
 
 import {
+  SPEECH_ACTIVE_VOLUME_THRESHOLD,
   SPEECH_MAX_RETRIES,
   SPEECH_SILENCE_TIMEOUT_MS,
   abortSpeechRecognition,
@@ -24,6 +25,7 @@ export interface UseSpeechRecognitionOptions {
   continuous?: boolean;
   interimResults?: boolean;
   silenceTimeoutMs?: number;
+  volumeThreshold?: number;
 }
 
 export interface UseSpeechRecognitionResult {
@@ -34,6 +36,8 @@ export interface UseSpeechRecognitionResult {
   transcript: string;
   partialTranscript: string;
   volume: number;
+  /** Ms that volume has stayed below the active threshold while listening. */
+  msSinceLowVolume: number;
   errorMessage: string | null;
   errorCode: ExpoSpeechRecognitionErrorCode | 'unknown' | null;
   canRetryPermission: boolean;
@@ -65,6 +69,10 @@ function messageForErrorCode(code: ExpoSpeechRecognitionErrorCode | 'unknown'): 
   return 'Voice recognition failed. Please try again.';
 }
 
+function isVolumeActive(value: number, threshold: number): boolean {
+  return value >= threshold;
+}
+
 export function useSpeechRecognition(
   options: UseSpeechRecognitionOptions = {},
 ): UseSpeechRecognitionResult {
@@ -72,6 +80,7 @@ export function useSpeechRecognition(
   const continuous = options.continuous ?? true;
   const interimResults = options.interimResults ?? true;
   const silenceTimeoutMs = options.silenceTimeoutMs ?? SPEECH_SILENCE_TIMEOUT_MS;
+  const volumeThreshold = options.volumeThreshold ?? SPEECH_ACTIVE_VOLUME_THRESHOLD;
 
   const [isListening, setIsListening] = useState(false);
   const [isPermissionGranted, setIsPermissionGranted] = useState(false);
@@ -80,31 +89,28 @@ export function useSpeechRecognition(
   const [transcript, setTranscript] = useState('');
   const [partialTranscript, setPartialTranscript] = useState('');
   const [volume, setVolume] = useState(-2);
+  const [msSinceLowVolume, setMsSinceLowVolume] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [errorCode, setErrorCode] = useState<ExpoSpeechRecognitionErrorCode | 'unknown' | null>(null);
 
   const retryCountRef = useRef(0);
-  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lowVolumeSinceRef = useRef<number | null>(null);
+  const lastResultTextRef = useRef('');
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
+  const isListeningRef = useRef(false);
 
   const diagnostics = useMemo(() => getSpeechDiagnostics(), []);
 
-  const clearSilenceTimer = useCallback((): void => {
-    if (silenceTimerRef.current != null) {
-      clearTimeout(silenceTimerRef.current);
-      silenceTimerRef.current = null;
-    }
+  const resetLowVolumeTimer = useCallback((): void => {
+    lowVolumeSinceRef.current = null;
+    setMsSinceLowVolume(0);
   }, []);
 
-  const scheduleSilenceStop = useCallback((): void => {
-    if (!continuous) {
-      return;
+  const startLowVolumeTimer = useCallback((): void => {
+    if (lowVolumeSinceRef.current == null) {
+      lowVolumeSinceRef.current = Date.now();
     }
-    clearSilenceTimer();
-    silenceTimerRef.current = setTimeout(() => {
-      stopSpeechRecognition();
-    }, silenceTimeoutMs);
-  }, [clearSilenceTimer, continuous, silenceTimeoutMs]);
+  }, []);
 
   const clearError = useCallback((): void => {
     setErrorMessage(null);
@@ -112,14 +118,12 @@ export function useSpeechRecognition(
   }, []);
 
   const stopListening = useCallback((): void => {
-    clearSilenceTimer();
     stopSpeechRecognition();
-  }, [clearSilenceTimer]);
+  }, []);
 
   const abortListening = useCallback((): void => {
-    clearSilenceTimer();
     abortSpeechRecognition();
-  }, [clearSilenceTimer]);
+  }, []);
 
   const startListening = useCallback(async (): Promise<void> => {
     clearError();
@@ -128,7 +132,7 @@ export function useSpeechRecognition(
       setErrorMessage(messageForErrorCode('service-not-allowed'));
       return;
     }
-    if (isListening) {
+    if (isListeningRef.current) {
       return;
     }
 
@@ -156,6 +160,9 @@ export function useSpeechRecognition(
     retryCountRef.current = 0;
     setPartialTranscript('');
     setVolume(-2);
+    lastResultTextRef.current = '';
+    lowVolumeSinceRef.current = Date.now();
+    setMsSinceLowVolume(0);
     startSpeechRecognition({
       locale,
       continuous,
@@ -163,17 +170,18 @@ export function useSpeechRecognition(
       silenceMs: silenceTimeoutMs,
       onDevice: Platform.OS === 'ios',
     });
-    scheduleSilenceStop();
   }, [
     clearError,
     diagnostics.isRecognitionAvailable,
-    isListening,
     locale,
     continuous,
     interimResults,
     silenceTimeoutMs,
-    scheduleSilenceStop,
   ]);
+
+  useEffect(() => {
+    isListeningRef.current = isListening;
+  }, [isListening]);
 
   useEffect(() => {
     void getSpeechPermissionState().then((permission) => {
@@ -183,10 +191,33 @@ export function useSpeechRecognition(
   }, []);
 
   useEffect(() => {
+    if (!isListening) {
+      return;
+    }
+
+    const tick = setInterval(() => {
+      if (lowVolumeSinceRef.current == null) {
+        setMsSinceLowVolume(0);
+        return;
+      }
+      const elapsed = Date.now() - lowVolumeSinceRef.current;
+      setMsSinceLowVolume(elapsed);
+      if (elapsed >= silenceTimeoutMs) {
+        stopListening();
+      }
+    }, 200);
+
+    return () => {
+      clearInterval(tick);
+    };
+  }, [isListening, silenceTimeoutMs, stopListening]);
+
+  useEffect(() => {
     const onStart = ExpoSpeechRecognitionModule.addListener('start', () => {
       setIsListening(true);
       clearError();
-      scheduleSilenceStop();
+      lowVolumeSinceRef.current = Date.now();
+      setMsSinceLowVolume(0);
     });
 
     const onResult = ExpoSpeechRecognitionModule.addListener(
@@ -196,19 +227,29 @@ export function useSpeechRecognition(
         if (text.length === 0) {
           return;
         }
+        if (text !== lastResultTextRef.current) {
+          lastResultTextRef.current = text;
+          resetLowVolumeTimer();
+        }
         if (event.isFinal) {
           setTranscript((prev) => (prev.length > 0 ? `${prev}\n${text}` : text));
           setPartialTranscript('');
         } else {
           setPartialTranscript(text);
         }
-        scheduleSilenceStop();
       },
     );
 
     const onVolume = ExpoSpeechRecognitionModule.addListener('volumechange', (event) => {
       setVolume(event.value);
-      scheduleSilenceStop();
+      if (!isListeningRef.current) {
+        return;
+      }
+      if (isVolumeActive(event.value, volumeThreshold)) {
+        resetLowVolumeTimer();
+        return;
+      }
+      startLowVolumeTimer();
     });
 
     const onError = ExpoSpeechRecognitionModule.addListener(
@@ -217,6 +258,7 @@ export function useSpeechRecognition(
         const code = normalizeSpeechErrorCode(event.error);
         if (code === 'busy' && retryCountRef.current < SPEECH_MAX_RETRIES) {
           retryCountRef.current += 1;
+          lowVolumeSinceRef.current = Date.now();
           setTimeout(() => {
             startSpeechRecognition({
               locale,
@@ -235,8 +277,8 @@ export function useSpeechRecognition(
 
     const onEnd = ExpoSpeechRecognitionModule.addListener('end', () => {
       setIsListening(false);
-      clearSilenceTimer();
       retryCountRef.current = 0;
+      resetLowVolumeTimer();
     });
 
     return () => {
@@ -245,16 +287,16 @@ export function useSpeechRecognition(
       onVolume.remove();
       onError.remove();
       onEnd.remove();
-      clearSilenceTimer();
     };
   }, [
     clearError,
-    clearSilenceTimer,
     continuous,
     interimResults,
     locale,
-    scheduleSilenceStop,
+    resetLowVolumeTimer,
     silenceTimeoutMs,
+    startLowVolumeTimer,
+    volumeThreshold,
   ]);
 
   useEffect(() => {
@@ -284,6 +326,7 @@ export function useSpeechRecognition(
     transcript,
     partialTranscript,
     volume,
+    msSinceLowVolume,
     errorMessage,
     errorCode,
     canRetryPermission,

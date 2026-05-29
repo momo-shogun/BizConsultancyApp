@@ -12,8 +12,9 @@ import { THEME } from '@/constants/theme';
 import { ROUTES } from '@/navigation/routeNames';
 import type { RootStackParamList } from '@/navigation/types';
 
-import { useBizAIFloatingMotion, useBizAIPressMotion } from '../hooks/useBizAIFloatingMotion';
+import { useBizAIFloatingMotion } from '../hooks/useBizAIFloatingMotion';
 import { useBizAIVisibility } from '../hooks/useBizAIVisibility';
+import type { BizAIInputMode } from '../types/bizAiInput.types';
 
 const TAB_BAR_ESTIMATE = 62;
 const FLOAT_BOTTOM_GAP = 14;
@@ -37,14 +38,24 @@ export function BizAIFloatingEntry(): React.ReactElement {
     glowStyle,
     shadowStyle,
   } = useBizAIFloatingMotion(isTabVisible);
-  const { pressStyle, onPressIn, onPressOut } = useBizAIPressMotion();
 
   const bottomOffset = insets.bottom + TAB_BAR_ESTIMATE + FLOAT_BOTTOM_GAP;
 
-  const openBizAI = useCallback((): void => {
-    triggerTapHaptic();
-    navigation.navigate(ROUTES.Root.BizAI);
-  }, [navigation]);
+  const openBizAI = useCallback(
+    (initialInputMode: BizAIInputMode): void => {
+      triggerTapHaptic();
+      navigation.navigate(ROUTES.Root.BizAI, { initialInputMode });
+    },
+    [navigation],
+  );
+
+  const openKeyboardMode = useCallback((): void => {
+    openBizAI('keyboard');
+  }, [openBizAI]);
+
+  const openVoiceMode = useCallback((): void => {
+    openBizAI('voice');
+  }, [openBizAI]);
 
   return (
     <Animated.View
@@ -52,14 +63,12 @@ export function BizAIFloatingEntry(): React.ReactElement {
       style={[styles.host, { bottom: bottomOffset }, hostStyle]}
     >
       <Animated.View style={clusterStyle}>
-        <Animated.View style={pressStyle}>
+        <View style={styles.row}>
           <Pressable
-            onPress={openBizAI}
-            onPressIn={onPressIn}
-            onPressOut={onPressOut}
+            onPress={openKeyboardMode}
             accessibilityRole="button"
-            accessibilityLabel="Open Biz AI assistant"
-            style={styles.pressable}
+            accessibilityLabel="Open Biz AI with keyboard"
+            style={({ pressed }) => [pressed && styles.pressed]}
           >
             <Animated.View
               style={[
@@ -79,7 +88,14 @@ export function BizAIFloatingEntry(): React.ReactElement {
                 <Text style={styles.label}>Biz AI</Text>
               </Animated.View>
             </Animated.View>
+          </Pressable>
 
+          <Pressable
+            onPress={openVoiceMode}
+            accessibilityRole="button"
+            accessibilityLabel="Open Biz AI with voice input"
+            style={({ pressed }) => [styles.orbPressable, pressed && styles.pressed]}
+          >
             <View style={styles.orbWrap}>
               <Animated.View style={[styles.glow, glowStyle]}>
                 <LinearGradient
@@ -103,7 +119,7 @@ export function BizAIFloatingEntry(): React.ReactElement {
               </Animated.View>
             </View>
           </Pressable>
-        </Animated.View>
+        </View>
       </Animated.View>
     </Animated.View>
   );
@@ -117,10 +133,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 200,
   },
-  pressable: {
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+  },
+  pressed: {
+    opacity: 0.88,
+    transform: [{ scale: 0.97 }],
   },
   capsule: {
     borderRadius: 999,
@@ -143,6 +163,9 @@ const styles = StyleSheet.create({
     fontWeight: THEME.typography.weight.semibold as '600',
     color: THEME.colors.white,
     letterSpacing: 0.2,
+  },
+  orbPressable: {
+    borderRadius: 26,
   },
   orbWrap: {
     width: 52,
