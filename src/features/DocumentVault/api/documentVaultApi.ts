@@ -132,14 +132,18 @@ export const documentVaultApi = baseApi.injectEndpoints({
     }),
     createVaultDocumentShare: build.mutation<
       VaultDocumentShare,
-      { userDocumentId: number; targetUserId: number }
+      {
+        userDocumentId: number;
+        targetUserId: number;
+        targetUserType: 'user' | 'consultant';
+      }
     >({
       query: (body) => ({
         url: 'document-vault/me/document-shares',
         method: 'POST',
         body: {
           userDocumentId: body.userDocumentId,
-          targetUserType: 'user',
+          targetUserType: body.targetUserType,
           targetUserId: body.targetUserId,
         },
       }),

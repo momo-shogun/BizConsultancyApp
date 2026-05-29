@@ -61,6 +61,9 @@ export function UserHelpSettingsScreen(props: UserHelpSettingsScreenProps): Reac
     if (rowId === 'edp') {
       navigation.navigate(ROUTES.Account.MyEdp);
     }
+    if (rowId === 'locker') {
+      navigation.navigate(ROUTES.Account.UserLockers);
+    }
   };
 
   return (

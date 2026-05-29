@@ -72,6 +72,7 @@ export const ROUTES = {
     MyBookings: 'App/Account/MyBookings',
     WorkshopBookings: 'App/Account/WorkshopBookings',
     MyEdp: 'App/Account/MyEdp',
+    UserLockers: 'App/Account/UserLockers',
   },
 } as const;
 

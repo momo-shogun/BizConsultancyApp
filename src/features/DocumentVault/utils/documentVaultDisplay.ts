@@ -36,3 +36,13 @@ export function formatShareTargetLabel(
   const phone = mobile?.trim();
   return phone != null && phone.length > 0 ? `${displayName} (${phone})` : displayName;
 }
+
+export function formatShareTargetConsultantLabel(
+  name: string | null | undefined,
+  industryNames: readonly string[],
+  fallbackId: number,
+): string {
+  const displayName = name?.trim() || `Consultant #${fallbackId}`;
+  const industries = industryNames.map((n) => n.trim()).filter((n) => n.length > 0).join(', ');
+  return industries.length > 0 ? `${displayName} (${industries})` : displayName;
+}

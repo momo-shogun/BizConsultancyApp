@@ -14,15 +14,23 @@ import { CONSULTANT_MODAL_SCRIM } from '@/features/ConsultantSelf/components/Con
 import { PROFILE_HEADER_GRADIENT } from '@/features/Profile/constants/profileScreenTheme';
 import { Dropdown } from '@/shared/components/dropdown/dropdown';
 
-import type { VaultDocument, VaultShareTargetUser } from '../types/documentVault.types';
-import { formatShareTargetLabel, getVaultDocumentTitle } from '../utils/documentVaultDisplay';
+import type { VaultDocument } from '../types/documentVault.types';
+import { getVaultDocumentTitle } from '../utils/documentVaultDisplay';
+
+export interface VaultShareTargetOption {
+  id: number;
+  label: string;
+}
 
 export interface VaultShareModalProps {
   visible: boolean;
   document: VaultDocument | null;
-  shareTargets: VaultShareTargetUser[];
+  shareTargets: VaultShareTargetOption[];
   shareTargetUserId: string;
   isBusy: boolean;
+  shareWithLabel?: string;
+  modalSubtitle?: string;
+  searchPlaceholder?: string;
   onClose: () => void;
   onSelectTarget: (value: string) => void;
   onSubmit: () => void;
@@ -34,6 +42,9 @@ export function VaultShareModal({
   shareTargets,
   shareTargetUserId,
   isBusy,
+  shareWithLabel = 'Share with user',
+  modalSubtitle = 'View-only access for the selected user.',
+  searchPlaceholder = 'Search by name or number',
   onClose,
   onSelectTarget,
   onSubmit,
@@ -43,7 +54,7 @@ export function VaultShareModal({
   const targetOptions = useMemo(
     () =>
       shareTargets.map((target) => ({
-        label: formatShareTargetLabel(target.name, target.mobile, target.id),
+        label: target.label,
         value: String(target.id),
       })),
     [shareTargets],
@@ -81,7 +92,7 @@ export function VaultShareModal({
           >
             <Text style={styles.eyebrow}>Document vault</Text>
             <Text style={styles.title}>Share document</Text>
-            <Text style={styles.subtitle}>View-only access for the selected user.</Text>
+            <Text style={styles.subtitle}>{modalSubtitle}</Text>
           </LinearGradient>
 
           <View style={styles.body}>
@@ -92,7 +103,7 @@ export function VaultShareModal({
               </Text>
             </View>
 
-            <Text style={[styles.label, styles.targetLabel]}>Share with user</Text>
+            <Text style={[styles.label, styles.targetLabel]}>{shareWithLabel}</Text>
             <Dropdown
               anchorMenu
               anchorMenuTheme="consultant"
@@ -100,9 +111,9 @@ export function VaultShareModal({
               labelField="label"
               valueField="value"
               value={shareTargetUserId}
-              placeholder="Select user"
+              placeholder={shareWithLabel}
               search
-              searchPlaceholder="Search by name or number"
+              searchPlaceholder={searchPlaceholder}
               onChange={(item) => {
                 if (item != null && typeof item.value === 'string') {
                   onSelectTarget(item.value);

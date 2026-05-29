@@ -17,17 +17,17 @@ import {
   useGetVaultDocumentTypesQuery,
   useUploadVaultDocumentMutation,
 } from '../api/documentVaultApi';
+import type { VaultShareTargetOption } from '../components/VaultShareModal';
 import type {
   VaultDocument,
   VaultDocumentShare,
   VaultDocumentType,
-  VaultShareTargetUser,
+  VaultShareTargetConsultant,
 } from '../types/documentVault.types';
 import {
-  formatShareTargetLabel,
+  formatShareTargetConsultantLabel,
   groupVaultDocumentsByType,
 } from '../utils/documentVaultDisplay';
-import type { VaultShareTargetOption } from '../components/VaultShareModal';
 import {
   getVaultAssetMimeType,
   launchVaultImagePicker,
@@ -36,7 +36,7 @@ import {
 } from '@/features/MyServices/utils/vaultImagePicker';
 import { buildVaultUploadFilename } from '@/features/MyServices/utils/vaultUploadFilename';
 
-export interface UseConsultantDocumentVaultScreenResult {
+export interface UseUserDocumentVaultScreenResult {
   isLoading: boolean;
   isRefreshing: boolean;
   isBusy: boolean;
@@ -70,13 +70,13 @@ export interface UseConsultantDocumentVaultScreenResult {
   openDocumentActions: (document: VaultDocument) => void;
 }
 
-export function useConsultantDocumentVaultScreen(): UseConsultantDocumentVaultScreenResult {
+export function useUserDocumentVaultScreen(): UseUserDocumentVaultScreenResult {
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const authUser = useAppSelector((state) => state.auth.user);
   const accountRole = useAppSelector((state) => state.auth.accountRole);
   const displayName = useAppSelector((state) => state.auth.displayName);
 
-  const actorType = (accountRole ?? 'consultant').toLowerCase();
+  const actorType = (accountRole ?? 'user').toLowerCase();
   const actorId = Number(authUser?.id ?? 0);
   const personNameForUpload = (displayName ?? authUser?.name ?? 'User').trim() || 'User';
 
@@ -115,10 +115,10 @@ export function useConsultantDocumentVaultScreen(): UseConsultantDocumentVaultSc
 
   const shareTargetOptions = useMemo((): VaultShareTargetOption[] => {
     return shareTargetsRaw
-      .filter((t): t is VaultShareTargetUser => t.userType === 'user')
+      .filter((t): t is VaultShareTargetConsultant => t.userType === 'consultant')
       .map((target) => ({
         id: target.id,
-        label: formatShareTargetLabel(target.name, target.mobile, target.id),
+        label: formatShareTargetConsultantLabel(target.name, target.industryNames, target.id),
       }));
   }, [shareTargetsRaw]);
 
@@ -268,7 +268,7 @@ export function useConsultantDocumentVaultScreen(): UseConsultantDocumentVaultSc
       return;
     }
     if (!Number.isFinite(targetUserId) || targetUserId <= 0) {
-      showGlobalToast('Select a user first');
+      showGlobalToast('Select a consultant first');
       return;
     }
 
@@ -277,7 +277,7 @@ export function useConsultantDocumentVaultScreen(): UseConsultantDocumentVaultSc
       await createVaultDocumentShare({
         userDocumentId,
         targetUserId,
-        targetUserType: 'user',
+        targetUserType: 'consultant',
       }).unwrap();
       closeShareModal();
       showGlobalToast('Document shared');

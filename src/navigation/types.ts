@@ -62,6 +62,7 @@ export type AccountStackParamList = {
   [ROUTES.Account.MyBookings]: undefined;
   [ROUTES.Account.WorkshopBookings]: undefined;
   [ROUTES.Account.MyEdp]: undefined;
+  [ROUTES.Account.UserLockers]: undefined;
 };
 
 export type AppTabParamList = {
