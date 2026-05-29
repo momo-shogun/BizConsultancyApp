@@ -35,6 +35,7 @@ import '@/features/Profile/api/userFeedbackApi';
 import '@/features/Profile/api/userProfileApi';
 import '@/features/Profile/api/membershipRegistrationApi';
 import '@/features/Profile/api/consultantProfileApi';
+import '@/features/BizAI/api/bizAssistantApi';
 
 const MMKV = new MMKVStorage.Loader().initialize();
 

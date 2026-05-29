@@ -8,9 +8,10 @@ import { BIZ_AI_THEME } from '../constants/bizAiTheme';
 
 type BizAIHeaderProps = {
   onClose: () => void;
+  usageBadgeLabel?: string | null;
 };
 
-export function BizAIHeader({ onClose }: BizAIHeaderProps): React.ReactElement {
+export function BizAIHeader({ onClose, usageBadgeLabel }: BizAIHeaderProps): React.ReactElement {
   return (
     <View style={styles.header}>
       <Pressable
@@ -35,7 +36,13 @@ export function BizAIHeader({ onClose }: BizAIHeaderProps): React.ReactElement {
         </View>
       </View>
 
-      <View style={styles.spacer} />
+      {usageBadgeLabel != null && usageBadgeLabel.length > 0 ? (
+        <View style={styles.usagePill} accessibilityLabel={`AI usage ${usageBadgeLabel}`}>
+          <Text style={styles.usageText}>{usageBadgeLabel}</Text>
+        </View>
+      ) : (
+        <View style={styles.spacer} />
+      )}
     </View>
   );
 }
@@ -106,5 +113,22 @@ const styles = StyleSheet.create({
   },
   spacer: {
     width: CLOSE_SIZE,
+  },
+  usagePill: {
+    minWidth: CLOSE_SIZE,
+    height: 28,
+    paddingHorizontal: THEME.spacing[10],
+    borderRadius: BIZ_AI_THEME.radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(34,197,94,0.14)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(34,197,94,0.35)',
+  },
+  usageText: {
+    fontSize: 11,
+    fontWeight: THEME.typography.weight.bold as '700',
+    color: '#86EFAC',
+    letterSpacing: 0.2,
   },
 });

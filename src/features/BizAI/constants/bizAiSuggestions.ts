@@ -2,7 +2,16 @@ export type BizAiSuggestion = {
   id: string;
   label: string;
   prompt: string;
-  icon: 'business-outline' | 'document-text-outline' | 'shield-checkmark-outline' | 'trending-up-outline' | 'school-outline' | 'cash-outline' | 'ribbon-outline' | 'bulb-outline';
+  icon:
+    | 'business-outline'
+    | 'document-text-outline'
+    | 'shield-checkmark-outline'
+    | 'trending-up-outline'
+    | 'school-outline'
+    | 'cash-outline'
+    | 'ribbon-outline'
+    | 'bulb-outline'
+    | 'people-outline';
 };
 
 export const BIZ_AI_GREETINGS = [
@@ -11,62 +20,40 @@ export const BIZ_AI_GREETINGS = [
   'Your consultancy copilot is ready.',
 ] as const;
 
+/** Starter prompts aligned with portal `ChatWidget` DEFAULT_SUGGESTIONS. */
 export const BIZ_AI_SUGGESTIONS: BizAiSuggestion[] = [
   {
-    id: 'company-type',
-    label: 'Best company type',
-    prompt: 'Suggest the best company registration type for my business',
-    icon: 'business-outline',
-  },
-  {
-    id: 'gst',
-    label: 'GST requirements',
-    prompt: 'What GST requirements apply to my business?',
+    id: 'portal-services',
+    label: 'Portal services',
+    prompt:
+      'What registrations, licences, and compliance services can I apply for on this portal?',
     icon: 'document-text-outline',
   },
   {
-    id: 'licenses',
-    label: 'Licenses needed',
-    prompt: 'What licenses do I need to start operating?',
-    icon: 'shield-checkmark-outline',
+    id: 'portal-consultant',
+    label: 'Book consultant',
+    prompt: 'How can I find and book the right consultant for my industry?',
+    icon: 'people-outline',
   },
   {
-    id: 'tax-saving',
-    label: 'Tax-saving options',
-    prompt: 'Recommend tax-saving options for a small business',
-    icon: 'cash-outline',
-  },
-  {
-    id: 'compliance',
-    label: 'Compliance checklist',
-    prompt: 'Give me a business compliance checklist',
+    id: 'portal-membership',
+    label: 'Membership plans',
+    prompt: 'What membership plans are available for users and consultants?',
     icon: 'ribbon-outline',
   },
   {
-    id: 'funding',
-    label: 'Startup funding',
-    prompt: 'Guide me on startup funding options in India',
-    icon: 'trending-up-outline',
-  },
-  {
-    id: 'trademark',
-    label: 'Trademark help',
-    prompt: 'How do I register a trademark for my brand?',
-    icon: 'bulb-outline',
-  },
-  {
-    id: 'msme',
-    label: 'MSME benefits',
-    prompt: 'What MSME benefits can my business claim?',
-    icon: 'business-outline',
-  },
-  {
-    id: 'edp',
-    label: 'EDP programs',
-    prompt: 'Which EDP program fits my business stage?',
+    id: 'portal-workshops',
+    label: 'Workshops',
+    prompt: 'What workshops/webinars are available, and how do I book one?',
     icon: 'school-outline',
   },
 ];
+
+export const BIZ_AI_RELATED_FALLBACK = [
+  'What can I do in My Services, My Locker, and the document vault?',
+  'How do I book a consultant or a workshop?',
+  'How does wallet and membership work on the portal?',
+] as const;
 
 export const BIZ_AI_SHORTCUTS = [
   { id: 'services', label: 'Browse services', icon: 'grid-outline' as const },

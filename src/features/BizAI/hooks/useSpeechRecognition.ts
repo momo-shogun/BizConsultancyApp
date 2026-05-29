@@ -45,6 +45,7 @@ export interface UseSpeechRecognitionResult {
   stopListening: () => void;
   abortListening: () => void;
   clearError: () => void;
+  clearTranscript: () => void;
 }
 
 const BENIGN_SPEECH_ERROR_CODES = new Set<string>([
@@ -124,6 +125,13 @@ export function useSpeechRecognition(
     setErrorMessage(null);
     setErrorCode(null);
   }, []);
+
+  const clearTranscript = useCallback((): void => {
+    setTranscript('');
+    setPartialTranscript('');
+    lastResultTextRef.current = '';
+    resetLowVolumeTimer();
+  }, [resetLowVolumeTimer]);
 
   const stopListening = useCallback((): void => {
     stoppingIntentionallyRef.current = true;
@@ -362,5 +370,6 @@ export function useSpeechRecognition(
     stopListening,
     abortListening,
     clearError,
+    clearTranscript,
   };
 }

@@ -16,12 +16,19 @@ import Animated, {
 import { THEME } from '@/constants/theme';
 
 import { BIZ_AI_THEME } from '../constants/bizAiTheme';
+import { BIZ_AI_THINKING_STEPS } from '../constants/bizAiThinkingSteps';
 
 type BizAILoadingPanelProps = {
   query: string;
+  stepIndex?: number;
+  compact?: boolean;
 };
 
-export function BizAILoadingPanel({ query }: BizAILoadingPanelProps): React.ReactElement {
+export function BizAILoadingPanel({
+  query,
+  stepIndex = 0,
+  compact = false,
+}: BizAILoadingPanelProps): React.ReactElement {
   const spin = useSharedValue(0);
   const pulse = useSharedValue(1);
 
@@ -54,7 +61,10 @@ export function BizAILoadingPanel({ query }: BizAILoadingPanelProps): React.Reac
     query.length > 64 ? `${query.slice(0, 61).trimEnd()}…` : query;
 
   return (
-    <Animated.View entering={FadeIn.duration(280)} style={styles.root}>
+    <Animated.View
+      entering={FadeIn.duration(280)}
+      style={[styles.root, compact ? styles.rootCompact : null]}
+    >
       <LinearGradient
         colors={[...BIZ_AI_THEME.gradient.loader]}
         start={{ x: 0, y: 0 }}
@@ -77,9 +87,14 @@ export function BizAILoadingPanel({ query }: BizAILoadingPanelProps): React.Reac
         </View>
 
         <View style={styles.stepsRow}>
-          <LoadingStep label="Understanding" active />
-          <LoadingStep label="Analyzing" />
-          <LoadingStep label="Drafting" />
+          {BIZ_AI_THINKING_STEPS.map((label, index) => (
+            <LoadingStep
+              key={label}
+              label={label}
+              completed={index < stepIndex}
+              active={index === stepIndex}
+            />
+          ))}
         </View>
       </LinearGradient>
     </Animated.View>
@@ -89,13 +104,33 @@ export function BizAILoadingPanel({ query }: BizAILoadingPanelProps): React.Reac
 type LoadingStepProps = {
   label: string;
   active?: boolean;
+  completed?: boolean;
 };
 
-function LoadingStep({ label, active = false }: LoadingStepProps): React.ReactElement {
+function LoadingStep({
+  label,
+  active = false,
+  completed = false,
+}: LoadingStepProps): React.ReactElement {
   return (
     <View style={styles.step}>
-      <View style={[styles.stepDot, active ? styles.stepDotActive : null]} />
-      <Text style={[styles.stepLabel, active ? styles.stepLabelActive : null]}>{label}</Text>
+      <View
+        style={[
+          styles.stepDot,
+          completed ? styles.stepDotCompleted : null,
+          active ? styles.stepDotActive : null,
+        ]}
+      />
+      <Text
+        style={[
+          styles.stepLabel,
+          completed ? styles.stepLabelCompleted : null,
+          active ? styles.stepLabelActive : null,
+        ]}
+        numberOfLines={2}
+      >
+        {label}
+      </Text>
     </View>
   );
 }
@@ -107,6 +142,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: BIZ_AI_THEME.spacing.screenX,
     paddingBottom: 56,
+  },
+  rootCompact: {
+    flex: 0,
+    paddingBottom: 0,
+    paddingHorizontal: 0,
   },
   panel: {
     width: '100%',
@@ -167,20 +207,29 @@ const styles = StyleSheet.create({
   },
   stepsRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: THEME.spacing[16],
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: THEME.spacing[8],
     marginTop: THEME.spacing[4],
+    width: '100%',
   },
   step: {
+    flex: 1,
     alignItems: 'center',
     gap: 6,
+    minWidth: 0,
   },
   stepDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
     backgroundColor: 'rgba(255,255,255,0.22)',
+  },
+  stepDotCompleted: {
+    backgroundColor: BIZ_AI_THEME.accent.success,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   stepDotActive: {
     backgroundColor: BIZ_AI_THEME.accent.sky,
@@ -192,8 +241,14 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: BIZ_AI_THEME.text.faint,
     fontWeight: THEME.typography.weight.medium as '500',
+    textAlign: 'center',
+    lineHeight: 13,
+  },
+  stepLabelCompleted: {
+    color: BIZ_AI_THEME.text.muted,
   },
   stepLabelActive: {
     color: BIZ_AI_THEME.text.secondary,
+    fontWeight: THEME.typography.weight.semibold as '600',
   },
 });

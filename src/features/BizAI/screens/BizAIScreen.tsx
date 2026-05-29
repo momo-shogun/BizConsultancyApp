@@ -12,7 +12,7 @@ import type { RootStackParamList } from '@/navigation/types';
 import { SafeAreaWrapper } from '@/shared/components';
 import { showGlobalToast } from '@/shared/components/toast';
 
-import { BizAIConversationCard } from '../components/BizAIConversationCard';
+import { BizAIChatThread } from '../components/BizAIChatThread';
 import { BizAIHeader } from '../components/BizAIHeader';
 import { BizAIKeyboardComposer } from '../components/BizAIKeyboardComposer';
 import { BizAILoadingPanel } from '../components/BizAILoadingPanel';
@@ -26,16 +26,15 @@ import {
   BIZ_AI_SUGGESTIONS,
 } from '../constants/bizAiSuggestions';
 import { BIZ_AI_THEME } from '../constants/bizAiTheme';
+import { useBizAIChat } from '../hooks/useBizAIChat';
 import { useBizAIKeyboardInset } from '../hooks/useBizAIKeyboardInset';
+import { useBizAIThinkingStep } from '../hooks/useBizAIThinkingStep';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import type { BizAIInputMode } from '../types/bizAiInput.types';
 
 const VOICE_DOCK_HEIGHT = 176;
 const KEYBOARD_DOCK_HEIGHT = 72;
 const SPEECH_PANEL_HEIGHT = 132;
-const PREVIEW_HINT =
-  'Full AI chat will connect to Biz Assistant API in the next release.';
-
 const SPEECH_SILENCE_MS = 4000;
 
 type BizAIRouteProp = RouteProp<RootStackParamList, typeof ROUTES.Root.BizAI>;
@@ -49,11 +48,18 @@ export function BizAIScreen(): React.ReactElement {
   const initialInputMode = route.params?.initialInputMode ?? 'keyboard';
   const [inputMode, setInputMode] = useState<BizAIInputMode>(initialInputMode);
   const didApplyLaunchModeRef = useRef(false);
-  const [query, setQuery] = useState<string>('');
+  const scrollRef = useRef<ScrollView>(null);
   const [draft, setDraft] = useState<string>('');
-  const [isAwaitingResponse, setIsAwaitingResponse] = useState<boolean>(false);
-  const [response, setResponse] = useState<string>('');
-  const responseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const {
+    messages,
+    pendingQuery,
+    relatedQuestions,
+    isAwaitingResponse,
+    usageBadgeLabel,
+    hasChatHistory,
+    sendMessage,
+  } = useBizAIChat();
 
   const speech = useSpeechRecognition({
     locale: 'en-US',
@@ -72,6 +78,7 @@ export function BizAIScreen(): React.ReactElement {
     volume: speechVolume,
     msSinceLowVolume: speechMsSinceLowVolume,
     errorMessage: speechErrorMessage,
+    clearTranscript,
   } = speech;
 
   const greeting = useMemo(
@@ -102,10 +109,21 @@ export function BizAIScreen(): React.ReactElement {
     }
   }, [navigation]);
 
-  const onSuggestionPress = useCallback((prompt: string): void => {
-    setDraft(prompt);
-    setQuery(prompt);
-  }, []);
+  const onSuggestionPress = useCallback(
+    (prompt: string): void => {
+      setDraft(prompt);
+      void sendMessage(prompt);
+    },
+    [sendMessage],
+  );
+
+  const onRelatedQuestionPress = useCallback(
+    (prompt: string): void => {
+      setDraft(prompt);
+      void sendMessage(prompt);
+    },
+    [sendMessage],
+  );
 
   const onShortcutPress = useCallback(
     (id: string): void => {
@@ -137,31 +155,18 @@ export function BizAIScreen(): React.ReactElement {
     if (trimmed.length === 0) {
       return;
     }
-    if (responseTimerRef.current != null) {
-      clearTimeout(responseTimerRef.current);
-      responseTimerRef.current = null;
-    }
-    setQuery(trimmed);
-    setResponse('');
-    setIsAwaitingResponse(true);
     Keyboard.dismiss();
-    responseTimerRef.current = setTimeout(() => {
-      setResponse(`Got it. Here is a quick direction for "${trimmed}".
-
-- I can break this into actionable steps.
-- I can suggest the right service flow for your use case.
-- I can also draft a checklist you can follow immediately.`);
-      setIsAwaitingResponse(false);
-      responseTimerRef.current = null;
-    }, 1700);
-  }, [draft]);
+    void sendMessage(trimmed);
+    setDraft('');
+  }, [draft, sendMessage]);
 
   const onVoiceSend = useCallback((): void => {
     if (isSpeechListening) {
       stopListening();
     }
+    clearTranscript();
     onSend();
-  }, [isSpeechListening, onSend, stopListening]);
+  }, [clearTranscript, isSpeechListening, onSend, stopListening]);
 
   useEffect(() => {
     if (didApplyLaunchModeRef.current) {
@@ -200,21 +205,31 @@ export function BizAIScreen(): React.ReactElement {
   }, [abortListening, inputMode, isSpeechListening]);
 
   useEffect(() => {
-    return () => {
-      if (responseTimerRef.current != null) {
-        clearTimeout(responseTimerRef.current);
-      }
-    };
-  }, []);
+    if (messages.length === 0 && pendingQuery == null) {
+      return;
+    }
+    const timer = setTimeout(() => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    }, 120);
+    return () => clearTimeout(timer);
+  }, [messages, pendingQuery, isAwaitingResponse]);
+
+  const thinkingStepIndex = useBizAIThinkingStep(isAwaitingResponse);
+  const hasAssistantReply = messages.some((row) => row.role === 'assistant');
+  const showPendingLoader = isAwaitingResponse && pendingQuery != null;
+  const showFullScreenLoader = showPendingLoader && !hasAssistantReply;
+  const showInlineLoader = showPendingLoader && hasAssistantReply;
+  const showFollowUps =
+    hasChatHistory && relatedQuestions.length > 0 && !isAwaitingResponse;
+  const showVoiceSpeechPanel =
+    !showPendingLoader && inputMode === 'voice' && (!hasChatHistory || isSpeechListening);
 
   const bottomPad =
     inputMode === 'voice'
-      ? insets.bottom + VOICE_DOCK_HEIGHT + SPEECH_PANEL_HEIGHT
+      ? insets.bottom +
+        VOICE_DOCK_HEIGHT +
+        (showVoiceSpeechPanel ? SPEECH_PANEL_HEIGHT : 0)
       : insets.bottom + KEYBOARD_DOCK_HEIGHT + 24;
-
-  const showLoaderScreen = isAwaitingResponse;
-  const showResultScreen = !isAwaitingResponse && query.length > 0 && response.length > 0;
-  const showPreviewCard = !showResultScreen && query.length > 0;
 
   return (
     <SafeAreaWrapper
@@ -230,18 +245,55 @@ export function BizAIScreen(): React.ReactElement {
         style={StyleSheet.absoluteFill}
       />
 
-      <BizAIHeader onClose={close} />
+      <BizAIHeader onClose={close} usageBadgeLabel={usageBadgeLabel} />
 
-      {showLoaderScreen ? (
-        <BizAILoadingPanel query={query} />
+      {showFullScreenLoader && pendingQuery != null ? (
+        <BizAILoadingPanel query={pendingQuery} stepIndex={thinkingStepIndex} />
       ) : (
         <ScrollView
+          ref={scrollRef}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={[styles.scroll, { paddingBottom: bottomPad }]}
         >
-          {showResultScreen ? (
-            <BizAIConversationCard query={query} response={response} />
+          {hasChatHistory ? (
+            <>
+              <BizAIChatThread messages={messages} />
+              {showInlineLoader && pendingQuery != null ? (
+                <View style={styles.inlineLoader}>
+                  <BizAILoadingPanel
+                    query={pendingQuery}
+                    stepIndex={thinkingStepIndex}
+                    compact
+                  />
+                </View>
+              ) : null}
+              {showFollowUps ? (
+                <View style={styles.followUpBlock}>
+                  <Text style={styles.followUpTitle}>Related questions</Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.followUpRow}
+                    decelerationRate="fast"
+                  >
+                    {relatedQuestions.map((item, index) => (
+                      <BizAISuggestionChip
+                        key={item}
+                        item={{
+                          id: item,
+                          label: item,
+                          prompt: item,
+                          icon: 'bulb-outline',
+                        }}
+                        index={index}
+                        onPress={() => onRelatedQuestionPress(item)}
+                      />
+                    ))}
+                  </ScrollView>
+                </View>
+              ) : null}
+            </>
           ) : (
             <>
               <Animated.View entering={FadeInDown.duration(260)} style={styles.hero}>
@@ -249,7 +301,8 @@ export function BizAIScreen(): React.ReactElement {
                   {greeting}
                 </Text>
                 <Text style={styles.subGreeting}>
-                  Ask about GST, compliance, funding, or pick a suggestion below.
+                  Ask in English, Hindi, or Hinglish about services, bookings, membership, and
+                  compliance — powered by the same Biz Assistant as the portal.
                 </Text>
               </Animated.View>
 
@@ -266,7 +319,7 @@ export function BizAIScreen(): React.ReactElement {
 
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionLabel}>Quick suggestions</Text>
-                <Text style={styles.sectionHint}>Swipe for more</Text>
+                <Text style={styles.sectionHint}>Tap to ask</Text>
               </View>
 
               <ScrollView
@@ -284,16 +337,12 @@ export function BizAIScreen(): React.ReactElement {
                   />
                 ))}
               </ScrollView>
-
-              {showPreviewCard ? (
-                <BizAIConversationCard query={query} hint={PREVIEW_HINT} />
-              ) : null}
             </>
           )}
         </ScrollView>
       )}
 
-      {!showLoaderScreen && inputMode === 'voice' ? (
+      {!showFullScreenLoader && showVoiceSpeechPanel ? (
         <BizAISpeechStatusPanel
           isListening={isSpeechListening}
           transcript={speechTranscript}
@@ -307,7 +356,7 @@ export function BizAIScreen(): React.ReactElement {
         />
       ) : null}
 
-      {!showLoaderScreen &&
+      {!showFullScreenLoader &&
         (inputMode === 'voice' ? (
           <View style={[styles.dockHost, { paddingBottom: insets.bottom }]}>
             <BizAIVoiceDock
@@ -384,6 +433,24 @@ const styles = StyleSheet.create({
     gap: THEME.spacing[12],
     paddingRight: BIZ_AI_THEME.spacing.screenX,
     marginBottom: BIZ_AI_THEME.spacing.section,
+  },
+  followUpBlock: {
+    marginTop: THEME.spacing[14],
+    gap: THEME.spacing[10],
+  },
+  followUpTitle: {
+    fontSize: THEME.typography.size[13],
+    fontWeight: THEME.typography.weight.semibold as '600',
+    color: BIZ_AI_THEME.text.muted,
+    letterSpacing: 0.3,
+  },
+  followUpRow: {
+    flexDirection: 'row',
+    gap: THEME.spacing[12],
+    paddingRight: BIZ_AI_THEME.spacing.screenX,
+  },
+  inlineLoader: {
+    marginTop: THEME.spacing[4],
   },
   dockHost: {
     position: 'absolute',

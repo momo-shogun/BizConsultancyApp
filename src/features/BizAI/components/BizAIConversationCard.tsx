@@ -10,12 +10,14 @@ import { BIZ_AI_THEME } from '../constants/bizAiTheme';
 type BizAIConversationCardProps = {
   query: string;
   response?: string;
+  responseLabel?: string | null;
   hint?: string;
 };
 
 export function BizAIConversationCard({
   query,
   response,
+  responseLabel,
   hint,
 }: BizAIConversationCardProps): React.ReactElement {
   const hasResponse = response != null && response.trim().length > 0;
@@ -36,7 +38,9 @@ export function BizAIConversationCard({
             <View style={styles.aiIconWrap}>
               <Ionicons name="sparkles" size={12} color={BIZ_AI_THEME.text.accentBright} />
             </View>
-            <Text style={styles.aiLabel}>Biz AI</Text>
+            <Text style={styles.aiLabel}>
+              {responseLabel != null && responseLabel.length > 0 ? responseLabel : 'Biz AI'}
+            </Text>
           </View>
           <Text style={styles.aiText}>{response}</Text>
         </View>
