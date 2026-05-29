@@ -10,12 +10,15 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import type { NavigationProp } from '@react-navigation/native';
 import Animated, { Easing, FadeIn, FadeInDown } from 'react-native-reanimated';
-import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
+import {
+  ACCOUNT_HUB_GREEN_HEADER_GRADIENT,
+  ACCOUNT_HUB_GREEN_HEADER_STATUS_BAR,
+} from '@/constants/accountScreenTheme';
+import { THEME } from '@/constants/theme';
 import type { AccountStackParamList } from '@/navigation/types';
 import { AccountHubScreenShell } from '@/shared/components';
-import { THEME } from '@/constants/theme';
 import { getYouTubeThumbnailUrl, getYouTubeVideoId } from '@/utils/youtubeUrl';
 
 import {
@@ -25,28 +28,13 @@ import {
   type UserGuideVideo,
 } from '../../constants/userGuideContent';
 import {
-  UserGuideAnimatedTabs,
+  UserGuideFilterTabs,
   type UserGuideTabKey,
-} from '../../components/UserGuideAnimatedTabs';
+} from '../../components/UserGuideFilterTabs';
 import { UserGuideVideoModal } from '../../components/UserGuideVideoModal';
 import { GUIDE_CANVAS, styles } from './UserGuideScreen.styles';
 
 const EASE_OUT_CUBIC = Easing.bezier(0.25, 0.46, 0.45, 0.94);
-
-const GUIDE_TABS = [
-  {
-    key: 'videos' as const,
-    label: 'Videos',
-    icon: 'play-circle-outline' as const,
-    count: USER_GUIDE_VIDEOS.length,
-  },
-  {
-    key: 'faq' as const,
-    label: 'FAQ',
-    icon: 'help-circle-outline' as const,
-    count: USER_GUIDE_FAQ_ITEMS.length,
-  },
-];
 
 interface VideoCardProps {
   item: UserGuideVideo;
@@ -186,32 +174,24 @@ export default function UserGuideScreen(): React.ReactElement {
       ? `${USER_GUIDE_VIDEOS.length} tutorials`
       : `${USER_GUIDE_FAQ_ITEMS.length} questions`;
 
+  const headerTabs = (
+    <UserGuideFilterTabs
+      activeTab={activeTab}
+      videosCount={USER_GUIDE_VIDEOS.length}
+      faqCount={USER_GUIDE_FAQ_ITEMS.length}
+      onTabChange={setActiveTab}
+    />
+  );
+
   return (
     <AccountHubScreenShell
       title="User Guide"
       onBackPress={() => navigation.goBack()}
       canvasColor={GUIDE_CANVAS}
+      headerColor={ACCOUNT_HUB_GREEN_HEADER_STATUS_BAR}
+      headerGradientColors={ACCOUNT_HUB_GREEN_HEADER_GRADIENT}
+      headerAccessory={headerTabs}
     >
-      <LinearGradient
-        colors={['#047857', '#059669', '#0D9488']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.hero}
-      >
-        <Text style={styles.heroEyebrow}>Help center</Text>
-        <Text style={styles.heroTitle}>Learn Biz Consultancy</Text>
-        <Text style={styles.heroSubtitle}>
-          Step-by-step videos and answers to common questions.
-        </Text>
-      </LinearGradient>
-
-      <UserGuideAnimatedTabs
-        tabs={GUIDE_TABS}
-        activeKey={activeTab}
-        onChange={setActiveTab}
-        accentColor={THEME.colors.primary}
-      />
-
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>{sectionTitle}</Text>
         <Text style={styles.sectionMeta}>{sectionMeta}</Text>

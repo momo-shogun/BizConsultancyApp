@@ -1,8 +1,9 @@
 import { StyleSheet } from 'react-native';
 
+import { ACCOUNT_HUB_LIST_CANVAS } from '@/constants/accountScreenTheme';
 import { THEME } from '@/constants/theme';
 
-export const GUIDE_CANVAS = '#F4F7FB';
+export const GUIDE_CANVAS = ACCOUNT_HUB_LIST_CANVAS;
 const SLATE_LINE = '#E2E8F0';
 const SLATE_MUTED = '#64748B';
 
@@ -44,7 +45,8 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: THEME.spacing[16],
-    marginBottom: THEME.spacing[10],
+    paddingTop: THEME.spacing[14],
+    marginBottom: THEME.spacing[12],
   },
   sectionTitle: {
     fontSize: THEME.typography.size[13],
