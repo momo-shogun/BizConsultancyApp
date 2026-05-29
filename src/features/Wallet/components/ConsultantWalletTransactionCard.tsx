@@ -11,6 +11,8 @@ import { THEME } from '@/constants/theme';
 
 export interface ConsultantWalletTransactionCardProps {
   item: ConsultantWalletTransactionItem;
+  variant?: 'card' | 'flat';
+  isLastInSection?: boolean;
 }
 
 function transactionTitle(item: ConsultantWalletTransactionItem): string {
@@ -25,6 +27,8 @@ function transactionTitle(item: ConsultantWalletTransactionItem): string {
 
 export function ConsultantWalletTransactionCard({
   item,
+  variant = 'card',
+  isLastInSection = false,
 }: ConsultantWalletTransactionCardProps): React.ReactElement {
   const isCredit = item.transactionType.toLowerCase() === 'credit';
   const title = useMemo(() => transactionTitle(item), [item]);
@@ -41,8 +45,16 @@ export function ConsultantWalletTransactionCard({
   const accent = isCredit ? '#059669' : '#DC2626';
   const accentSoft = isCredit ? 'rgba(5,150,105,0.12)' : 'rgba(220,38,38,0.10)';
 
+  const isFlat = variant === 'flat';
+
   return (
-    <View style={styles.card}>
+    <View
+      style={[
+        styles.card,
+        isFlat ? styles.cardFlat : null,
+        isFlat && !isLastInSection ? styles.cardFlatBorder : null,
+      ]}
+    >
       <View style={[styles.iconWrap, { backgroundColor: accentSoft }]}>
         <Ionicons name={iconName} size={22} color={accent} />
       </View>
@@ -91,6 +103,18 @@ const styles = StyleSheet.create({
       android: { elevation: 2 },
       default: {},
     }),
+  },
+  cardFlat: {
+    borderRadius: 0,
+    borderWidth: 0,
+    paddingVertical: THEME.spacing[14],
+    paddingHorizontal: 0,
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  cardFlatBorder: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#F0F0F0',
   },
   iconWrap: {
     width: 46,

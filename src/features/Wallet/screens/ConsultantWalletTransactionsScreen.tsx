@@ -1,118 +1,119 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Pressable,
   RefreshControl,
   SectionList,
-  StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { useGetConsultantWalletBalanceQuery } from '@/features/Home/api/userWalletsApi';
 import { useGetConsultantWalletTransactionsQuery } from '@/features/Wallet/api/consultantWalletTransactionsApi';
 import { ConsultantWalletBalanceHero } from '@/features/Wallet/components/ConsultantWalletBalanceHero';
 import { ConsultantWalletTransactionCard } from '@/features/Wallet/components/ConsultantWalletTransactionCard';
-import { CONSULTANT_WALLET_CANVAS } from '@/features/Wallet/constants/consultantWalletTheme';
+import {
+  CONSULTANT_WALLET_CANVAS,
+  CONSULTANT_WALLET_HEADER_GRADIENT,
+  CONSULTANT_WALLET_HEADER_STATUS_BAR,
+} from '@/features/Wallet/constants/consultantWalletTheme';
 import type {
   ConsultantWalletTransactionItem,
   ConsultantWalletTransactionSection,
 } from '@/features/Wallet/types/consultantWallet.types';
 import { groupConsultantTransactionsByDate } from '@/features/Wallet/utils/consultantWalletUtils';
-import { consultantWalletStyles as styles } from '@/features/Wallet/screens/consultantWallet.styles';
-import { THEME } from '@/constants/theme';
-import { SafeAreaWrapper, ScreenHeader } from '@/shared/components';
+import { ROUTES } from '@/navigation/routeNames';
+import type { AccountStackParamList } from '@/navigation/types';
+import { AccountHubScreenShell } from '@/shared/components';
+
+import { styles } from './ConsultantWalletTransactionsScreen.styles';
 
 const PAGE_SIZE = 20;
 
-const localStyles = StyleSheet.create({
-  sectionTitle: {
-    fontSize: THEME.typography.size[12],
-    fontWeight: '800',
-    color: '#64748B',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-    marginBottom: THEME.spacing[10],
-    marginTop: THEME.spacing[16],
-  },
-  headerWrap: {
-    marginBottom: THEME.spacing[4],
-  },
-  activityLabel: {
-    fontSize: THEME.typography.size[14],
-    fontWeight: '800',
-    color: '#64748B',
-    letterSpacing: 0.3,
-    textTransform: 'uppercase',
-    marginTop: THEME.spacing[20],
-    marginBottom: THEME.spacing[12],
-  },
-  pagination: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: THEME.spacing[16],
-    marginTop: THEME.spacing[24],
-    paddingBottom: THEME.spacing[8],
-  },
-  pageChip: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: THEME.colors.white,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pageChipDisabled: {
-    opacity: 0.45,
-  },
-  pageLabel: {
-    fontSize: THEME.typography.size[14],
-    fontWeight: '700',
-    color: '#334155',
-    minWidth: 56,
-    textAlign: 'center',
-  },
-  footerSpace: {
-    height: THEME.spacing[12],
-  },
-});
+type Nav = NativeStackNavigationProp<
+  AccountStackParamList,
+  typeof ROUTES.Account.TransactionHis
+>;
 
 export function ConsultantWalletTransactionsScreen(): React.ReactElement {
-  const navigation = useNavigation();
+  const navigation = useNavigation<Nav>();
   const [page, setPage] = useState(1);
 
-  const { data: balance, isFetching: isBalanceFetching, refetch: refetchBalance } =
-    useGetConsultantWalletBalanceQuery();
+  const {
+    data: balance,
+    isLoading: isBalanceLoading,
+    isFetching: isBalanceFetching,
+    refetch: refetchBalance,
+  } = useGetConsultantWalletBalanceQuery();
   const { data, isLoading, isFetching, isError, refetch } =
     useGetConsultantWalletTransactionsQuery({
       page,
       limit: PAGE_SIZE,
     });
 
-  const transactions = data?.data ?? [];
   const meta = data?.meta ?? { total: 0, page: 1, limit: PAGE_SIZE, totalPages: 1 };
 
   const sections = useMemo(
     (): ConsultantWalletTransactionSection[] =>
-      groupConsultantTransactionsByDate(transactions),
-    [transactions],
+      groupConsultantTransactionsByDate(data?.data ?? []),
+    [data?.data],
   );
 
+  const balanceHint = `${meta.total} wallet transaction${meta.total === 1 ? '' : 's'} on record`;
+
+  const headerBalance = (
+    <ConsultantWalletBalanceHero
+      embeddedInHeader
+      balance={balance}
+      isLoading={isBalanceLoading}
+      isFetching={isBalanceFetching}
+      onRefresh={() => void refetchBalance()}
+      hint={balanceHint}
+      showPills={false}
+    />
+  );
+
+  const shellProps = {
+    title: 'Transaction History',
+    onBackPress: () => navigation.goBack(),
+    canvasColor: CONSULTANT_WALLET_CANVAS,
+    headerColor: CONSULTANT_WALLET_HEADER_STATUS_BAR,
+    headerGradientColors: CONSULTANT_WALLET_HEADER_GRADIENT,
+    headerAccessory: headerBalance,
+  } as const;
+
   const renderSectionHeader = useCallback(
-    ({ section }: { section: ConsultantWalletTransactionSection }) => (
-      <Text style={localStyles.sectionTitle}>{section.title}</Text>
-    ),
-    [],
+    ({ section }: { section: ConsultantWalletTransactionSection }) => {
+      const isFirst = sections[0]?.title === section.title;
+      return (
+        <Text
+          style={[styles.sectionTitle, isFirst ? styles.sectionTitleFirst : null]}
+        >
+          {section.title}
+        </Text>
+      );
+    },
+    [sections],
   );
 
   const renderItem = useCallback(
-    ({ item }: { item: ConsultantWalletTransactionItem }) => (
-      <ConsultantWalletTransactionCard item={item} />
+    ({
+      item,
+      index,
+      section,
+    }: {
+      item: ConsultantWalletTransactionItem;
+      index: number;
+      section: ConsultantWalletTransactionSection;
+    }) => (
+      <ConsultantWalletTransactionCard
+        item={item}
+        variant="flat"
+        isLastInSection={index === section.data.length - 1}
+      />
     ),
     [],
   );
@@ -122,57 +123,120 @@ export function ConsultantWalletTransactionsScreen(): React.ReactElement {
     [],
   );
 
-  const ItemSeparator = useCallback(
-    (): React.ReactElement => <View style={styles.itemGap} />,
+  const listHeader = useMemo(
+    (): React.ReactElement => (
+      <View style={styles.listHeader}>
+        <Text style={styles.listHeaderTitle}>Recent activity</Text>
+        <Text style={styles.listHeaderMeta}>
+          Page {meta.page} of {Math.max(meta.totalPages, 1)}
+        </Text>
+      </View>
+    ),
+    [meta.page, meta.totalPages],
+  );
+
+  const listFooter = useMemo((): React.ReactElement => {
+    if (meta.totalPages <= 1) {
+      return <View style={styles.footerSpace} />;
+    }
+    return (
+      <View style={styles.pagination}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Previous page"
+          disabled={page <= 1 || isFetching}
+          onPress={() => setPage((p) => Math.max(1, p - 1))}
+          style={({ pressed }) => [
+            styles.pageBtn,
+            page <= 1 ? styles.pageBtnDisabled : null,
+            pressed && page > 1 ? { opacity: 0.88 } : null,
+          ]}
+        >
+          <Ionicons name="chevron-back" size={18} color={page <= 1 ? '#CBD5E1' : '#0F172A'} />
+        </Pressable>
+        <Text style={styles.pageLabel}>
+          {meta.page} / {meta.totalPages}
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Next page"
+          disabled={page >= meta.totalPages || isFetching}
+          onPress={() => setPage((p) => p + 1)}
+          style={({ pressed }) => [
+            styles.pageBtn,
+            page >= meta.totalPages ? styles.pageBtnDisabled : null,
+            pressed && page < meta.totalPages ? { opacity: 0.88 } : null,
+          ]}
+        >
+          <Ionicons
+            name="chevron-forward"
+            size={18}
+            color={page >= meta.totalPages ? '#CBD5E1' : '#0F172A'}
+          />
+        </Pressable>
+      </View>
+    );
+  }, [isFetching, meta.page, meta.totalPages, page]);
+
+  const emptyComponent = useMemo(
+    (): React.ReactElement => (
+      <View style={styles.emptyWrap}>
+        <View style={styles.emptyIcon}>
+          <Ionicons name="receipt-outline" size={28} color="#94A3B8" />
+        </View>
+        <Text style={styles.emptyTitle}>No transactions yet</Text>
+        <Text style={styles.emptyText}>
+          Wallet activity from bookings and payouts will appear here.
+        </Text>
+      </View>
+    ),
     [],
   );
 
-  const ListHeader = useMemo(
-    (): React.ReactElement => (
-      <View style={localStyles.headerWrap}>
-        <ConsultantWalletBalanceHero
-          balance={balance}
-          onRefresh={() => void refetchBalance()}
-          isFetching={isBalanceFetching}
-          hint={`${meta.total} wallet transaction${meta.total === 1 ? '' : 's'} on record.`}
-          showPills={false}
-        />
-        <Text style={localStyles.activityLabel}>Recent activity</Text>
-      </View>
-    ),
-    [balance, isBalanceFetching, meta.total, refetchBalance],
-  );
-
-  return (
-    <SafeAreaWrapper edges={['top', 'bottom']} bgColor={CONSULTANT_WALLET_CANVAS}>
-      <ScreenHeader
-        title="Transaction History"
-        onBackPress={() => navigation.goBack()}
-      />
-
-      {isLoading ? (
+  if (isLoading) {
+    return (
+      <AccountHubScreenShell {...shellProps}>
         <View style={styles.centered}>
           <ActivityIndicator size="large" color="#059669" />
-          <Text style={styles.emptyText}>Loading activity…</Text>
+          <Text style={styles.loadingText}>Loading activity…</Text>
         </View>
-      ) : isError ? (
+      </AccountHubScreenShell>
+    );
+  }
+
+  if (isError) {
+    return (
+      <AccountHubScreenShell {...shellProps}>
         <View style={styles.centered}>
           <Text style={styles.emptyTitle}>Could not load transactions</Text>
-          <TouchableOpacity style={styles.retryBtn} onPress={() => void refetch()}>
+          <Text style={styles.emptyText}>Check your connection and try again.</Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => void refetch()}
+            style={styles.retryBtn}
+          >
             <Text style={styles.retryText}>Retry</Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
-      ) : (
+      </AccountHubScreenShell>
+    );
+  }
+
+  return (
+    <AccountHubScreenShell {...shellProps}>
+      <View style={styles.listSheet}>
         <SectionList
           sections={sections}
           keyExtractor={keyExtractor}
           renderItem={renderItem}
           renderSectionHeader={renderSectionHeader}
-          ItemSeparatorComponent={ItemSeparator}
           stickySectionHeadersEnabled={false}
           showsVerticalScrollIndicator={false}
+          style={styles.screen}
           contentContainerStyle={styles.listContent}
-          ListHeaderComponent={ListHeader}
+          ListHeaderComponent={listHeader}
+          ListEmptyComponent={emptyComponent}
+          ListFooterComponent={listFooter}
           refreshControl={
             <RefreshControl
               refreshing={isFetching && !isLoading}
@@ -180,55 +244,8 @@ export function ConsultantWalletTransactionsScreen(): React.ReactElement {
               tintColor="#059669"
             />
           }
-          ListEmptyComponent={
-            <View style={styles.emptyCard}>
-              <View style={styles.emptyIconWrap}>
-                <Ionicons name="receipt-outline" size={32} color="#94A3B8" />
-              </View>
-              <Text style={styles.emptyTitle}>No transactions yet</Text>
-              <Text style={styles.emptyText}>
-                Wallet activity from bookings and payouts will appear here.
-              </Text>
-            </View>
-          }
-          ListFooterComponent={
-            meta.totalPages > 1 ? (
-              <View style={localStyles.pagination}>
-                <TouchableOpacity
-                  style={[localStyles.pageChip, page <= 1 && localStyles.pageChipDisabled]}
-                  disabled={page <= 1 || isFetching}
-                  onPress={() => setPage((p) => Math.max(1, p - 1))}
-                >
-                  <Ionicons
-                    name="chevron-back"
-                    size={18}
-                    color={page <= 1 ? '#CBD5E1' : '#0F172A'}
-                  />
-                </TouchableOpacity>
-                <Text style={localStyles.pageLabel}>
-                  {meta.page} / {meta.totalPages}
-                </Text>
-                <TouchableOpacity
-                  style={[
-                    localStyles.pageChip,
-                    page >= meta.totalPages && localStyles.pageChipDisabled,
-                  ]}
-                  disabled={page >= meta.totalPages || isFetching}
-                  onPress={() => setPage((p) => p + 1)}
-                >
-                  <Ionicons
-                    name="chevron-forward"
-                    size={18}
-                    color={page >= meta.totalPages ? '#CBD5E1' : '#0F172A'}
-                  />
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <View style={localStyles.footerSpace} />
-            )
-          }
         />
-      )}
-    </SafeAreaWrapper>
+      </View>
+    </AccountHubScreenShell>
   );
 }
