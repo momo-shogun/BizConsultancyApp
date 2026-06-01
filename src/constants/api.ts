@@ -1,5 +1,5 @@
 /** Edit this to point at your backend (must include `/api` prefix). */
-export const API_BASE_URL = 'http://192.168.0.154:3001/api';
+export const API_BASE_URL = 'https://apibiz.iid.org.in/api/';
 
 /** Origin for API-hosted assets (legacy paths only). */
 export const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');
