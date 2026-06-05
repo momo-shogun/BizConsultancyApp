@@ -6,7 +6,10 @@ import type {
   BookingsFilter,
   MyConsultantBooking,
 } from '@/features/Bookings/types/myConsultantBooking.types';
-import { isBookingUpcoming } from '@/features/Bookings/utils/bookingDateTime';
+import {
+  isBookingUpcomingTab,
+  sortBookingsBySchedule,
+} from '@/features/Bookings/utils/bookingDateTime';
 import { dedupeBookings } from '@/features/Bookings/utils/myConsultantBookingParsing';
 import { useAppSelector } from '@/store/typedHooks';
 import { getApiErrorMessage } from '@/utils/apiError';
@@ -110,21 +113,22 @@ export function useMyBookingsScreen(): UseMyBookingsScreenResult {
 
   const upcomingCount = useMemo(
     (): number =>
-      searchedBookings.filter((b) => isBookingUpcoming(b.bookingDate, b.slotTime)).length,
+      searchedBookings.filter((b) => isBookingUpcomingTab(b.bookingDate, b.slotTime)).length,
     [searchedBookings],
   );
 
   const pastCount = useMemo(
     (): number =>
-      searchedBookings.filter((b) => !isBookingUpcoming(b.bookingDate, b.slotTime)).length,
+      searchedBookings.filter((b) => !isBookingUpcomingTab(b.bookingDate, b.slotTime)).length,
     [searchedBookings],
   );
 
   const filteredBookings = useMemo((): MyConsultantBooking[] => {
-    return searchedBookings.filter((b) => {
-      const upcoming = isBookingUpcoming(b.bookingDate, b.slotTime);
+    const matched = searchedBookings.filter((b) => {
+      const upcoming = isBookingUpcomingTab(b.bookingDate, b.slotTime);
       return filter === 'upcoming' ? upcoming : !upcoming;
     });
+    return sortBookingsBySchedule(matched, filter === 'upcoming' ? 'asc' : 'desc');
   }, [searchedBookings, filter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredBookings.length / PAGE_SIZE));

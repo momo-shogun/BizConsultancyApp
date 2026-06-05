@@ -3,6 +3,7 @@ import type {
   MyConsultantBookingsMeta,
   MyConsultantBookingsPage,
 } from '../types/myConsultantBooking.types';
+import { normalizeBookingDateString } from './bookingDateTime';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value != null && typeof value === 'object' && !Array.isArray(value);
@@ -21,7 +22,7 @@ export function parseMyConsultantBooking(raw: unknown): MyConsultantBooking | nu
   }
   const id = typeof raw.id === 'number' ? raw.id : null;
   const consultantId = typeof raw.consultantId === 'number' ? raw.consultantId : null;
-  const bookingDate = typeof raw.bookingDate === 'string' ? raw.bookingDate : null;
+  const bookingDate = normalizeBookingDateString(raw.bookingDate);
   const slotTime = typeof raw.slotTime === 'string' ? raw.slotTime : null;
   if (id == null || consultantId == null || bookingDate == null || slotTime == null) {
     return null;
