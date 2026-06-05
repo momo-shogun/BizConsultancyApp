@@ -334,21 +334,7 @@ export function ConsultationStepper(props: ConsultationStepperProps): React.Reac
     }
 
     setActiveStep((prev) => Math.min(prev + 1, totalSteps - 1));
-<<<<<<< HEAD
   }, [isLastStep, startBookingCheckout, totalSteps, validateCurrentStep]);
-=======
-  }, [
-    createBooking,
-    createRazorpayOrder,
-    form,
-    isLastStep,
-    onComplete,
-    selectedTimeSlot?.label,
-    totalSteps,
-    validateCurrentStep,
-    verifyPayment,
-  ]);
->>>>>>> d9ce79b (solving issues)
 
   const handleBack = useCallback(() => {
     setActiveStep((prev) => Math.max(prev - 1, 0));
