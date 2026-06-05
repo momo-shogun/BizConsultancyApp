@@ -88,6 +88,10 @@ export interface AvailableSlot {
   startTime: string;
   endTime?: string;
   label?: string;
+  /** When present, indicates whether this specific slot can be booked. */
+  available?: boolean;
+  /** Some APIs may use `isAvailable` instead of `available`. */
+  isAvailable?: boolean;
 }
 
 export interface AvailableSlotsResponse {

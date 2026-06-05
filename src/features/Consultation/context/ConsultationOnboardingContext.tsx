@@ -30,7 +30,7 @@ import type {
 } from '../types/consultationOnboarding.types';
 import {
   formatConsultationApiDate,
-  mapSlotLabelsToConsultationGroups,
+  mapAvailableSlotsToConsultationGroups,
   todayStart,
 } from '../utils/consultationSlots';
 
@@ -85,11 +85,6 @@ function buildInitialForm(
     preferredDate: todayStart(),
     selectedTimeSlotId: null,
   };
-}
-
-function slotLabelFromApi(slot: { label?: string; startTime: string }): string {
-  const label = slot.label?.trim();
-  return label != null && label.length > 0 ? label : slot.startTime.trim();
 }
 
 interface ConsultationOnboardingProviderProps {
@@ -175,14 +170,27 @@ export function ConsultationOnboardingProvider(
     if (slotsData == null) {
       return [];
     }
-    const labels = slotsData.slots.map(slotLabelFromApi).filter((label) => label.length > 0);
-    return mapSlotLabelsToConsultationGroups(labels);
-  }, [slotsData]);
+    return mapAvailableSlotsToConsultationGroups(slotsData.slots, form.preferredDate);
+  }, [slotsData, form.preferredDate]);
 
   const allTimeSlots = useMemo(
     () => slotGroups.flatMap((group) => group.slots),
     [slotGroups],
   );
+
+  /** Drop selection when the slot is booked, past, or no longer returned by the API. */
+  useEffect(() => {
+    setForm((prev) => {
+      if (prev.selectedTimeSlotId == null) {
+        return prev;
+      }
+      const selected = allTimeSlots.find((slot) => slot.id === prev.selectedTimeSlotId);
+      if (selected != null && selected.available !== false) {
+        return prev;
+      }
+      return { ...prev, selectedTimeSlotId: null };
+    });
+  }, [allTimeSlots]);
 
   /** If Redux auth hydrates after first paint, merge stored name / phone / email into empty fields once. */
   const mergedAuthDefaultsRef = useRef<boolean>(false);

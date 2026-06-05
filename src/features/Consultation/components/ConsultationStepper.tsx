@@ -97,10 +97,10 @@ export function ConsultationStepper(props: ConsultationStepperProps): React.Reac
       return validateContactStep(form.contact);
     }
     if (activeStep === 1) {
-      return validateScheduleStep(form.preferredDate, form.selectedTimeSlotId);
+      return validateScheduleStep(form.preferredDate, selectedTimeSlot);
     }
     return null;
-  }, [activeStep, form.contact, form.preferredDate, form.selectedTimeSlotId]);
+  }, [activeStep, form.contact, form.preferredDate, selectedTimeSlot]);
 
   const handleContinue = useCallback(() => {
     const error = validateCurrentStep();
@@ -110,7 +110,7 @@ export function ConsultationStepper(props: ConsultationStepperProps): React.Reac
     }
 
     if (isLastStep) {
-      const submitError = validateBookingSubmit(form);
+      const submitError = validateBookingSubmit(form, selectedTimeSlot);
       if (submitError != null) {
         showGlobalError(submitError);
         return;
@@ -163,7 +163,7 @@ export function ConsultationStepper(props: ConsultationStepperProps): React.Reac
     form,
     isLastStep,
     onComplete,
-    selectedTimeSlot?.label,
+    selectedTimeSlot,
     totalSteps,
     validateCurrentStep,
     verifyPayment,

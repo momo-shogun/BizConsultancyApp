@@ -1,6 +1,9 @@
 import { isValidIndianMobile } from '@/utils/formatPhone';
 
-import type { ConsultationOnboardingFormState } from '../types/consultationOnboarding.types';
+import type {
+  ConsultationOnboardingFormState,
+  ConsultationTimeSlot,
+} from '../types/consultationOnboarding.types';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -25,23 +28,29 @@ export function validateContactStep(
 
 export function validateScheduleStep(
   preferredDate: Date | null,
-  selectedTimeSlotId: string | null,
+  selectedTimeSlot: ConsultationTimeSlot | null,
 ): string | null {
   if (preferredDate == null) {
     return 'Please select a preferred date.';
   }
-  if (selectedTimeSlotId == null || selectedTimeSlotId.trim().length === 0) {
+  if (selectedTimeSlot == null || selectedTimeSlot.id.trim().length === 0) {
     return 'Please select a preferred time slot.';
+  }
+  if (selectedTimeSlot.available === false) {
+    return 'Selected time slot is no longer available. Please choose another.';
   }
   return null;
 }
 
-export function validateBookingSubmit(form: ConsultationOnboardingFormState): string | null {
+export function validateBookingSubmit(
+  form: ConsultationOnboardingFormState,
+  selectedTimeSlot: ConsultationTimeSlot | null,
+): string | null {
   const contactError = validateContactStep(form.contact);
   if (contactError != null) {
     return contactError;
   }
-  const scheduleError = validateScheduleStep(form.preferredDate, form.selectedTimeSlotId);
+  const scheduleError = validateScheduleStep(form.preferredDate, selectedTimeSlot);
   if (scheduleError != null) {
     return scheduleError;
   }
