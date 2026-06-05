@@ -22,6 +22,14 @@ export const USER_HELP_SETTINGS_SECTIONS: SettingsSectionConfig[] = [
         subtitle: 'Personal information',
       },
       {
+        id: 'notifications',
+        icon: 'notifications-outline',
+        iconColor: '#0F172A',
+        iconBgColor: 'rgba(15,23,42,0.08)',
+        title: 'Notifications',
+        subtitle: 'Bookings, payments & alerts',
+      },
+      {
         id: 'wallet',
         icon: 'wallet-outline',
         iconColor: '#059669',

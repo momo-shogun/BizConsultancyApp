@@ -34,6 +34,10 @@ export function ConsultantHelpSettingsScreen(
       navigation.navigate(ROUTES.Account.EditProfile);
       return;
     }
+    if (rowId === 'notifications') {
+      navigation.navigate(ROUTES.Account.ConsultantNotifications);
+      return;
+    }
     if (rowId === 'wallet') {
       navigation.navigate(ROUTES.Account.ConsultantWallet);
       return;

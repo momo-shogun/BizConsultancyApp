@@ -24,6 +24,7 @@ import { ConsultantMyServicesScreen } from '@/features/MyServices/screens/Consul
 import { ConsultantDocumentVaultScreen } from '@/features/DocumentVault/screens/ConsultantDocumentVaultScreen';
 import { ConsultantExpertiseScreen } from '@/features/ConsultantExpertise/screens/ConsultantExpertiseScreen';
 import { ConsultantReviewsScreen } from '@/features/ConsultantReviews/screens/ConsultantReviewsScreen';
+import { ConsultantNotificationsScreen } from '@/features/Profile/screens/Consultant/ConsultantNotificationsScreen';
 
 const Stack = createNativeStackNavigator<AccountStackParamList>();
 
@@ -121,6 +122,11 @@ export function ConsultantAccountStackNavigator(): React.ReactElement {
       <Stack.Screen
         name={ROUTES.Account.ConsultantReviews}
         component={ConsultantReviewsScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name={ROUTES.Account.ConsultantNotifications}
+        component={ConsultantNotificationsScreen}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>

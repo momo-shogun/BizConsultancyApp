@@ -20,6 +20,7 @@ import { WorkshopBookingsScreen } from '@/features/WorkshopBookings/screens/Work
 import { MyServicesScreen } from '@/features/MyServices/screens/MyServicesScreen';
 import { UserAiCreditsScreen } from '@/features/Profile/screens/User/UserAiCreditsScreen';
 import { UserDocumentVaultScreen } from '@/features/DocumentVault/screens/UserDocumentVaultScreen';
+import { UserNotificationsScreen } from '@/features/Profile/screens/User/UserNotificationsScreen';
 
 const Stack = createNativeStackNavigator<AccountStackParamList>();
 
@@ -102,6 +103,11 @@ export function UserAccountStackNavigator(): React.ReactElement {
       <Stack.Screen
         name={ROUTES.Account.UserLockers}
         component={UserDocumentVaultScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name={ROUTES.Account.UserNotifications}
+        component={UserNotificationsScreen}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>

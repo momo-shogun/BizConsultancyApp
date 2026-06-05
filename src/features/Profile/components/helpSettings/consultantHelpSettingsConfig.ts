@@ -22,6 +22,14 @@ export const CONSULTANT_HELP_SETTINGS_SECTIONS: SettingsSectionConfig[] = [
         subtitle: 'Update your personal details',
       },
       {
+        id: 'notifications',
+        icon: 'notifications-outline',
+        iconColor: '#0F172A',
+        iconBgColor: 'rgba(15,23,42,0.08)',
+        title: 'Notifications',
+        subtitle: 'Bookings, payouts & alerts',
+      },
+      {
         id: 'wallet',
         icon: 'wallet-outline',
         iconColor: '#059669',

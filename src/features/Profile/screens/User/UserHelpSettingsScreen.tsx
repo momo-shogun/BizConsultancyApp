@@ -28,6 +28,9 @@ export function UserHelpSettingsScreen(props: UserHelpSettingsScreenProps): Reac
     if (rowId === 'profile') {
       navigation.navigate(ROUTES.Account.EditProfile);
     }
+    if (rowId === 'notifications') {
+      navigation.navigate(ROUTES.Account.UserNotifications);
+    }
     if (rowId === 'membership') {
       navigation.navigate(ROUTES.Account.Membership);
     }

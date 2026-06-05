@@ -15,7 +15,7 @@
     "prepare": "husky",
     "start": "react-native start",
     "test": "NODE_OPTIONS=--max-old-space-size=4096 jest",
-    "build": "cd android && ./gradlew assembleRelease && cd -",
+    "build": "cd android && gradlew.bat assembleRelease",
     "installApk": "adb install -r android/app/build/outputs/apk/release/app-release.apk"
   },
   "lint-staged": {
@@ -78,6 +78,8 @@
     "@react-native/jest-preset": "0.85.1",
     "@react-native/metro-config": "0.85.1",
     "@react-native/typescript-config": "0.85.1",
+    "@expo/cli": "^56.1.12",
+    "@expo/metro-config": "56.0.13",
     "@types/jest": "^29.5.13",
     "@types/react": "^19.2.0",
     "@types/react-native-vector-icons": "^6.4.18",
