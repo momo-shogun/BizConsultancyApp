@@ -113,11 +113,11 @@ export function DiagnosisPaymentModal(props: DiagnosisPaymentModalProps): React.
       presentationStyle="overFullScreen"
       onRequestClose={handleBackdropPress}
     >
-      <View style={styles.root}>
+      <View style={styles.overlay}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Close payment options"
-          style={styles.backdrop}
+          style={styles.backdropPressable}
           onPress={handleBackdropPress}
           disabled={isBusy}
         />
@@ -227,15 +227,16 @@ export function DiagnosisPaymentModal(props: DiagnosisPaymentModalProps): React.
 }
 
 const styles = StyleSheet.create({
-  root: {
+  overlay: {
     flex: 1,
     justifyContent: 'flex-end',
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(15, 23, 42, 0.58)',
   },
+  backdropPressable: {
+    ...StyleSheet.absoluteFillObject,
+  },
   sheetWrap: {
+    width: '100%',
     zIndex: 2,
   },
   sheet: {

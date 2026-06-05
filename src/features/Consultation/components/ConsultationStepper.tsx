@@ -2,6 +2,9 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
+import { DiagnosisPaymentModal } from '@/features/Diagnostics/components/DiagnosisPaymentModal';
+import { useGetMyWalletBalanceQuery } from '@/features/Home/api/userWalletsApi';
+import { baseApi } from '@/services/api/baseApi';
 import { showGlobalError, showGlobalToast } from '@/shared/components';
 
 import {
@@ -13,17 +16,32 @@ import { ContactDetailsStep } from './steps/ContactDetailsStep';
 import { PreviewStep } from './steps/PreviewStep';
 import { ScheduleStep } from './steps/ScheduleStep';
 import { useConsultationOnboarding } from '../context/ConsultationOnboardingContext';
+import { openConsultationRazorpayCheckout } from '../services/consultationRazorpayCheckout';
 import type { ConsultationStepConfig } from '../types/consultationOnboarding.types';
+import type {
+  ConsultantBookingResponse,
+  CreateConsultantBookingPayload,
+} from '../types/consultantBooking.types';
 import { buildCreateConsultantBookingPayload } from '../utils/consultationBooking';
-import {
-  isConsultationPaymentCancelled,
-  submitConsultationBooking,
-} from '../utils/consultationPaymentFlow';
+import { isConsultationPaymentCancelled } from '../utils/consultationPaymentFlow';
 import {
   validateBookingSubmit,
   validateContactStep,
   validateScheduleStep,
 } from '../utils/consultationValidation';
+
+const consultationStepperApi = baseApi.injectEndpoints({
+  endpoints: (build) => ({
+    payConsultantBookingWithWallet: build.mutation<ConsultantBookingResponse, number>({
+      query: (bookingId) => ({
+        url: `consultant-bookings/${bookingId}/pay-wallet`,
+        method: 'POST',
+      }),
+    }),
+  }),
+});
+
+const { usePayConsultantBookingWithWalletMutation } = consultationStepperApi;
 
 interface ConsultationStepperProps {
   onComplete: (bookingId: number) => void;
@@ -67,16 +85,56 @@ function bookingErrorMessage(error: unknown): string {
   return 'Could not create booking. Please try again.';
 }
 
+function bookingRequiresPayment(booking: ConsultantBookingResponse): boolean {
+  if (booking.paymentStatus === 'paid') {
+    return false;
+  }
+  const amount = booking.amount;
+  if (amount != null && amount < 1) {
+    return false;
+  }
+  return true;
+}
+
+function formatConsultationTypeLabel(type: string): string {
+  if (type === 'video') {
+    return 'Video consultation';
+  }
+  if (type === 'phone') {
+    return 'Audio consultation';
+  }
+  return 'Consultation';
+}
+
 export function ConsultationStepper(props: ConsultationStepperProps): React.ReactElement {
   const { onComplete, onStepChange } = props;
   const { form, selectedTimeSlot } = useConsultationOnboarding();
   const [createBooking, { isLoading: isCreatingBooking }] = useCreateConsultantBookingMutation();
-  const [createRazorpayOrder, { isLoading: isCreatingOrder }] =
-    useCreateConsultantBookingRazorpayOrderMutation();
-  const [verifyPayment, { isLoading: isVerifyingPayment }] =
-    useVerifyConsultantBookingPaymentMutation();
-  const isSubmitting = isCreatingBooking || isCreatingOrder || isVerifyingPayment;
+  const [createRazorpayOrder] = useCreateConsultantBookingRazorpayOrderMutation();
+  const [verifyPayment] = useVerifyConsultantBookingPaymentMutation();
+  const [payWithWalletMutation] = usePayConsultantBookingWithWalletMutation();
   const [activeStep, setActiveStep] = useState(0);
+  const [paymentModalVisible, setPaymentModalVisible] = useState(false);
+  const [pendingBookingId, setPendingBookingId] = useState<number | null>(null);
+  const [payingWith, setPayingWith] = useState<'razorpay' | 'wallet' | null>(null);
+  const [isPaymentBusy, setIsPaymentBusy] = useState(false);
+
+  const { data: walletBalance } = useGetMyWalletBalanceQuery(undefined, {
+    skip: !paymentModalVisible,
+  });
+
+  const walletBalanceRupees =
+    walletBalance != null && Number.isFinite(walletBalance) ? walletBalance : null;
+
+  const amountRupees = Math.max(0, Math.round(form.price));
+  const canPayWithWallet =
+    amountRupees > 0 &&
+    walletBalanceRupees != null &&
+    walletBalanceRupees >= amountRupees;
+
+  const consultantName = (form.consultantName ?? '').trim() || 'Consultant';
+  const paymentTitle = `${consultantName} · ${formatConsultationTypeLabel(form.consultationType)}`;
+  const isConfirmBusy = isCreatingBooking || isPaymentBusy;
 
   useEffect(() => {
     onStepChange?.(activeStep);
@@ -102,6 +160,147 @@ export function ConsultationStepper(props: ConsultationStepperProps): React.Reac
     return null;
   }, [activeStep, form.contact, form.preferredDate, selectedTimeSlot]);
 
+  const buildBookingPayload = useCallback((): CreateConsultantBookingPayload | null => {
+    const slotTime = selectedTimeSlot?.label ?? form.selectedTimeSlotId ?? '';
+    return buildCreateConsultantBookingPayload(form, slotTime);
+  }, [form, selectedTimeSlot]);
+
+  const handleBookingSuccess = useCallback(
+    (booking: ConsultantBookingResponse, paid: boolean): void => {
+      showGlobalToast({
+        variant: 'success',
+        message: paid
+          ? 'Payment successful! Your consultation is confirmed.'
+          : 'Consultation booked successfully.',
+      });
+      setPaymentModalVisible(false);
+      setPendingBookingId(null);
+      setPayingWith(null);
+      onComplete(booking.id);
+    },
+    [onComplete],
+  );
+
+  const closePaymentModal = useCallback((): void => {
+    if (isPaymentBusy) {
+      return;
+    }
+    setPaymentModalVisible(false);
+    setPayingWith(null);
+    if (pendingBookingId != null) {
+      showGlobalToast({
+        variant: 'info',
+        message: 'Payment cancelled. Your booking is saved — pay when ready.',
+      });
+    }
+    setPendingBookingId(null);
+  }, [isPaymentBusy, pendingBookingId]);
+
+  const payWithWallet = useCallback(async (): Promise<void> => {
+    if (pendingBookingId == null) {
+      return;
+    }
+    setIsPaymentBusy(true);
+    setPayingWith('wallet');
+    try {
+      const booking = await payWithWalletMutation(pendingBookingId).unwrap();
+      handleBookingSuccess(booking, true);
+    } catch (err: unknown) {
+      showGlobalError(bookingErrorMessage(err));
+    } finally {
+      setIsPaymentBusy(false);
+      setPayingWith(null);
+    }
+  }, [handleBookingSuccess, payWithWalletMutation, pendingBookingId]);
+
+  const payWithRazorpay = useCallback(async (): Promise<void> => {
+    if (pendingBookingId == null) {
+      return;
+    }
+    setIsPaymentBusy(true);
+    setPayingWith('razorpay');
+    try {
+      const order = await createRazorpayOrder(pendingBookingId).unwrap();
+      setPaymentModalVisible(false);
+
+      const payment = await openConsultationRazorpayCheckout({
+        order,
+        consultantName,
+        customerName: form.contact.fullName,
+        customerEmail: form.contact.email,
+        customerPhone: form.contact.phone,
+      });
+
+      const booking = await verifyPayment({
+        bookingId: pendingBookingId,
+        body: {
+          razorpayPaymentId: payment.razorpay_payment_id,
+          razorpayOrderId: payment.razorpay_order_id,
+          razorpaySignature: payment.razorpay_signature,
+        },
+      }).unwrap();
+
+      handleBookingSuccess(booking, true);
+    } catch (err: unknown) {
+      if (isConsultationPaymentCancelled(err)) {
+        showGlobalToast({
+          variant: 'info',
+          message: 'Payment cancelled. Your booking is saved — pay when ready.',
+        });
+        setPendingBookingId(null);
+        return;
+      }
+      showGlobalError(bookingErrorMessage(err));
+    } finally {
+      setIsPaymentBusy(false);
+      setPayingWith(null);
+    }
+  }, [
+    consultantName,
+    createRazorpayOrder,
+    form.contact.email,
+    form.contact.fullName,
+    form.contact.phone,
+    handleBookingSuccess,
+    pendingBookingId,
+    verifyPayment,
+  ]);
+
+  const startBookingCheckout = useCallback(async (): Promise<void> => {
+    const submitError = validateBookingSubmit(form, selectedTimeSlot);
+    if (submitError != null) {
+      showGlobalError(submitError);
+      return;
+    }
+
+    const payload = buildBookingPayload();
+    if (payload == null) {
+      showGlobalError('Booking details are incomplete.');
+      return;
+    }
+
+    try {
+      const booking = await createBooking(payload).unwrap();
+
+      if (!bookingRequiresPayment(booking) || amountRupees < 1) {
+        handleBookingSuccess(booking, false);
+        return;
+      }
+
+      setPendingBookingId(booking.id);
+      setPaymentModalVisible(true);
+    } catch (err: unknown) {
+      showGlobalError(bookingErrorMessage(err));
+    }
+  }, [
+    amountRupees,
+    buildBookingPayload,
+    createBooking,
+    form,
+    handleBookingSuccess,
+    selectedTimeSlot,
+  ]);
+
   const handleContinue = useCallback(() => {
     const error = validateCurrentStep();
     if (error != null) {
@@ -110,70 +309,19 @@ export function ConsultationStepper(props: ConsultationStepperProps): React.Reac
     }
 
     if (isLastStep) {
-      const submitError = validateBookingSubmit(form, selectedTimeSlot);
-      if (submitError != null) {
-        showGlobalError(submitError);
-        return;
-      }
-      const slotTime = selectedTimeSlot?.label ?? form.selectedTimeSlotId ?? '';
-      const payload = buildCreateConsultantBookingPayload(form, slotTime);
-      if (payload == null) {
-        showGlobalError('Booking details are incomplete.');
-        return;
-      }
-
-      const consultantName = (form.consultantName ?? '').trim() || 'Consultant';
-
-      void submitConsultationBooking({
-        payload,
-        form,
-        consultantName,
-        createBooking: (body) => createBooking(body).unwrap(),
-        createOrder: (bookingId) => createRazorpayOrder(bookingId).unwrap(),
-        verifyPayment: (bookingId, body) =>
-          verifyPayment({ bookingId, body }).unwrap(),
-      })
-        .then((booking) => {
-          showGlobalToast({
-            variant: 'success',
-            message:
-              form.price < 1
-                ? 'Consultation booked successfully.'
-                : 'Payment successful! Your consultation is confirmed.',
-          });
-          onComplete(booking.id);
-        })
-        .catch((err: unknown) => {
-          if (isConsultationPaymentCancelled(err)) {
-            showGlobalToast({
-              variant: 'info',
-              message: 'Payment cancelled. Your booking is saved — pay when ready.',
-            });
-            return;
-          }
-          showGlobalError(bookingErrorMessage(err));
-        });
+      void startBookingCheckout();
       return;
     }
 
     setActiveStep((prev) => Math.min(prev + 1, totalSteps - 1));
-  }, [
-    createBooking,
-    createRazorpayOrder,
-    form,
-    isLastStep,
-    onComplete,
-    selectedTimeSlot,
-    totalSteps,
-    validateCurrentStep,
-    verifyPayment,
-  ]);
+  }, [isLastStep, startBookingCheckout, totalSteps, validateCurrentStep]);
 
   const handleBack = useCallback(() => {
     setActiveStep((prev) => Math.max(prev - 1, 0));
   }, []);
 
   return (
+    <>
     <View style={styles.container}>
       <View style={styles.stepHeader}>
         <Text style={styles.stepTitle}>{currentStep.title}</Text>
@@ -203,11 +351,11 @@ export function ConsultationStepper(props: ConsultationStepperProps): React.Reac
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Confirm booking"
-            disabled={isSubmitting}
+            disabled={isConfirmBusy}
             onPress={handleContinue}
-            style={[styles.payBtn, isSubmitting ? styles.payBtnDisabled : null]}
+            style={[styles.payBtn, isConfirmBusy ? styles.payBtnDisabled : null]}
           >
-            {isSubmitting ? (
+            {isConfirmBusy && !paymentModalVisible ? (
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
               <>
@@ -245,6 +393,20 @@ export function ConsultationStepper(props: ConsultationStepperProps): React.Reac
         </View>
       )}
     </View>
+
+    <DiagnosisPaymentModal
+      visible={paymentModalVisible}
+      packTitle={paymentTitle}
+      amountRupees={amountRupees}
+      walletBalanceRupees={walletBalanceRupees}
+      canPayWithWallet={canPayWithWallet}
+      payingWith={payingWith}
+      isBusy={isPaymentBusy}
+      onClose={closePaymentModal}
+      onPayRazorpay={() => void payWithRazorpay()}
+      onPayWallet={() => void payWithWallet()}
+    />
+    </>
   );
 }
 
