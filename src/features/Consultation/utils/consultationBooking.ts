@@ -13,7 +13,25 @@ export function mapCallTypeToConsultationType(
 }
 
 export function consultationTypeLabel(type: 'video' | 'phone'): string {
-  return type === 'phone' ? 'Phone' : 'Video';
+  return type === 'phone' ? 'Audio call' : 'Video call';
+}
+
+export interface ConsultationTypeOption extends Record<string, unknown> {
+  label: string;
+  value: 'video' | 'phone';
+}
+
+export function buildConsultationTypeOptions(fees: ConsultationFeeRates): ConsultationTypeOption[] {
+  const types: Array<'video' | 'phone'> = ['video', 'phone'];
+  return types.map((type) => {
+    const fee = resolveConsultationFee(type, fees);
+    const baseLabel = consultationTypeLabel(type);
+    return {
+      value: type,
+      label:
+        fee > 0 ? `${baseLabel} — ₹${Math.round(fee).toLocaleString('en-IN')}/hr` : baseLabel,
+    };
+  });
 }
 
 export interface ConsultationFeeRates {

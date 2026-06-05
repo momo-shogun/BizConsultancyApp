@@ -62,6 +62,51 @@ const MENU_MIN_HEIGHT = 96;
 const VIEWPORT_EDGE = 8;
 const OPEN_BELOW_MIN_SPACE = 72;
 
+function renderMenuItems(
+  filteredData: AnchoredSelectOption[],
+  value: string | null,
+  theme: DropdownMenuTheme,
+  tokens: typeof dropdownTokens,
+  onSelect: (item: AnchoredSelectOption) => void,
+): React.ReactElement {
+  if (filteredData.length === 0) {
+    return (
+      <Text style={[styles.emptyText, { color: tokens.placeholder }]}>No options found</Text>
+    );
+  }
+
+  return (
+    <>
+      {filteredData.map((item) => {
+        const selected = item.value === value;
+        return (
+          <Pressable
+            key={item.value}
+            accessibilityRole="button"
+            onPress={() => onSelect(item)}
+            style={({ pressed }) => [
+              dropdownStyles.itemContainer,
+              selected ? { backgroundColor: tokens.activeItem } : null,
+              pressed ? styles.itemPressed : null,
+            ]}
+          >
+            <Text
+              style={[
+                dropdownStyles.itemText,
+                theme === 'consultant' && selected
+                  ? { color: consultantDropdownTokens.selectedText, fontWeight: '600' }
+                  : null,
+              ]}
+            >
+              {item.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </>
+  );
+}
+
 export function AnchoredSelectField({
   data,
   value,
@@ -73,6 +118,7 @@ export function AnchoredSelectField({
   containerStyle,
   menuContainerStyle,
   theme = 'default',
+  anchorMode = 'inline',
   onChange,
 }: AnchoredSelectFieldProps): React.ReactElement {
   const tokens = menuTokensFor(theme);
@@ -162,6 +208,26 @@ export function AnchoredSelectField({
     setTimeout(runMeasure, delayMs);
   }, [computeAnchor, disabled]);
 
+  const handleTriggerPress = useCallback((): void => {
+    if (disabled) {
+      return;
+    }
+
+    Keyboard.dismiss();
+
+    if (anchorMode === 'inline') {
+      setOpen((prev) => {
+        if (prev) {
+          setSearchText('');
+        }
+        return !prev;
+      });
+      return;
+    }
+
+    measureAndOpen();
+  }, [anchorMode, disabled, measureAndOpen]);
+
   const close = useCallback((): void => {
     setOpen(false);
     setSearchText('');
@@ -178,13 +244,25 @@ export function AnchoredSelectField({
   const listMaxHeight =
     anchor != null ? anchor.maxHeight - (search ? 50 : 0) : MENU_MAX_HEIGHT;
 
+  const searchField =
+    search && open ? (
+      <TextInput
+        value={searchText}
+        onChangeText={setSearchText}
+        placeholder={searchPlaceholder}
+        placeholderTextColor={tokens.placeholder}
+        style={[styles.searchInput, { borderColor: tokens.border, color: tokens.text }]}
+        autoCorrect={false}
+      />
+    ) : null;
+
   return (
-    <>
-      <View ref={triggerRef} collapsable={false} style={open ? styles.hostOpen : null}>
+    <View style={[styles.host, open ? styles.hostOpen : null]}>
+      <View ref={triggerRef} collapsable={false}>
         <Pressable
           accessibilityRole="button"
           disabled={disabled}
-          onPress={measureAndOpen}
+          onPress={handleTriggerPress}
           style={({ pressed }) => [
             dropdownStyles.trigger,
             styles.triggerInner,
@@ -219,91 +297,111 @@ export function AnchoredSelectField({
         </Pressable>
       </View>
 
-      <Modal
-        visible={open && anchor != null}
-        transparent
-        animationType="fade"
-        statusBarTranslucent
-        presentationStyle="overFullScreen"
-        onRequestClose={close}
-      >
-        <View style={[styles.overlay, { backgroundColor: tokens.overlay }]}>
-          <Pressable accessibilityRole="button" style={StyleSheet.absoluteFill} onPress={close} />
+      {open && anchorMode === 'inline' ? (
+        <View
+          style={[
+            styles.inlineMenu,
+            { borderColor: tokens.menuBorder, maxHeight: MENU_MAX_HEIGHT },
+            menuContainerStyle,
+          ]}
+        >
+          {searchField}
+          {renderMenuItems(filteredData, value, theme, tokens, handleSelect)}
+        </View>
+      ) : null}
 
-          {anchor != null ? (
-            <View
-              style={[
-                styles.menu,
-                {
-                  top: anchor.top,
-                  left: anchor.left,
-                  width: anchor.width,
-                  maxHeight: anchor.maxHeight,
-                  borderColor: tokens.menuBorder,
-                },
-                menuContainerStyle,
-              ]}
-            >
-              {search ? (
-                <TextInput
-                  value={searchText}
-                  onChangeText={setSearchText}
-                  placeholder={searchPlaceholder}
-                  placeholderTextColor={tokens.placeholder}
-                  style={[styles.searchInput, { borderColor: tokens.border, color: tokens.text }]}
-                  autoCorrect={false}
-                />
-              ) : null}
+      {anchorMode === 'overlay' ? (
+        <Modal
+          visible={open && anchor != null}
+          transparent
+          animationType="fade"
+          statusBarTranslucent
+          presentationStyle="overFullScreen"
+          onRequestClose={close}
+        >
+          <View style={[styles.overlay, { backgroundColor: tokens.overlay }]}>
+            <Pressable accessibilityRole="button" style={StyleSheet.absoluteFill} onPress={close} />
 
-              <FlatList
-                data={filteredData}
-                keyExtractor={(item) => item.value}
-                keyboardShouldPersistTaps="handled"
-                nestedScrollEnabled
-                showsVerticalScrollIndicator
-                style={{ maxHeight: listMaxHeight }}
-                ListEmptyComponent={
-                  <Text style={[styles.emptyText, { color: tokens.placeholder }]}>
-                    No options found
-                  </Text>
-                }
-                renderItem={({ item }) => {
-                  const selected = item.value === value;
-                  return (
-                    <Pressable
-                      accessibilityRole="button"
-                      onPress={() => handleSelect(item)}
-                      style={({ pressed }) => [
-                        dropdownStyles.itemContainer,
-                        selected ? { backgroundColor: tokens.activeItem } : null,
-                        pressed ? styles.itemPressed : null,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          dropdownStyles.itemText,
-                          theme === 'consultant' && selected
-                            ? { color: consultantDropdownTokens.selectedText, fontWeight: '600' }
-                            : null,
+            {anchor != null ? (
+              <View
+                style={[
+                  styles.menu,
+                  {
+                    top: anchor.top,
+                    left: anchor.left,
+                    width: anchor.width,
+                    maxHeight: anchor.maxHeight,
+                    borderColor: tokens.menuBorder,
+                  },
+                  menuContainerStyle,
+                ]}
+              >
+                {searchField}
+                <FlatList
+                  data={filteredData}
+                  keyExtractor={(item) => item.value}
+                  keyboardShouldPersistTaps="handled"
+                  nestedScrollEnabled
+                  showsVerticalScrollIndicator
+                  style={{ maxHeight: listMaxHeight }}
+                  ListEmptyComponent={
+                    <Text style={[styles.emptyText, { color: tokens.placeholder }]}>
+                      No options found
+                    </Text>
+                  }
+                  renderItem={({ item }) => {
+                    const selected = item.value === value;
+                    return (
+                      <Pressable
+                        accessibilityRole="button"
+                        onPress={() => handleSelect(item)}
+                        style={({ pressed }) => [
+                          dropdownStyles.itemContainer,
+                          selected ? { backgroundColor: tokens.activeItem } : null,
+                          pressed ? styles.itemPressed : null,
                         ]}
                       >
-                        {item.label}
-                      </Text>
-                    </Pressable>
-                  );
-                }}
-              />
-            </View>
-          ) : null}
-        </View>
-      </Modal>
-    </>
+                        <Text
+                          style={[
+                            dropdownStyles.itemText,
+                            theme === 'consultant' && selected
+                              ? { color: consultantDropdownTokens.selectedText, fontWeight: '600' }
+                              : null,
+                          ]}
+                        >
+                          {item.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  }}
+                />
+              </View>
+            ) : null}
+          </View>
+        </Modal>
+      ) : null}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  host: {
+    position: 'relative',
+  },
   hostOpen: {
-    zIndex: 1,
+    zIndex: 20,
+  },
+  inlineMenu: {
+    marginTop: MENU_GAP,
+    backgroundColor: dropdownTokens.background,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    overflow: 'hidden',
+    elevation: 16,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
   },
   triggerInner: {
     flexDirection: 'row',

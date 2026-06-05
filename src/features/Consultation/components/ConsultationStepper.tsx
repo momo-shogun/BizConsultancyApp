@@ -34,7 +34,7 @@ const STEP_CONFIGS: ConsultationStepConfig[] = [
   {
     key: 'contact-details',
     title: 'Your details',
-    description: 'Enter your name, email, and phone number.',
+    description: 'Choose audio or video call, then enter your contact details.',
     component: ContactDetailsStep,
   },
   {
@@ -164,6 +164,7 @@ export function ConsultationStepper(props: ConsultationStepperProps): React.Reac
     isLastStep,
     onComplete,
     selectedTimeSlot?.label,
+    totalSteps,
     validateCurrentStep,
     verifyPayment,
   ]);

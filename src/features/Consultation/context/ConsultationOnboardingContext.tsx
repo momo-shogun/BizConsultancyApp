@@ -16,7 +16,12 @@ import {
 import { useGetAvailableSlotsQuery, useGetPublicConsultantBySlugQuery } from '@/features/consultant/api/consultantApi';
 import { useAppSelector } from '@/store/typedHooks';
 
-import { mapCallTypeToConsultationType, resolveConsultationFee } from '../utils/consultationBooking';
+import type { ConsultationTypeApi } from '../types/consultantBooking.types';
+import {
+  mapCallTypeToConsultationType,
+  resolveConsultationFee,
+  type ConsultationFeeRates,
+} from '../utils/consultationBooking';
 import type {
   ConsultationOnboardingFormState,
   ConsultationOnboardingRouteParams,
@@ -31,6 +36,7 @@ import {
 
 interface ConsultationOnboardingContextValue {
   form: ConsultationOnboardingFormState;
+  feeRates: ConsultationFeeRates;
   slotGroups: ConsultationSlotGroup[];
   slotsLoading: boolean;
   slotsError: boolean;
@@ -38,6 +44,7 @@ interface ConsultationOnboardingContextValue {
     field: keyof ConsultationOnboardingFormState['contact'],
     value: string,
   ) => void;
+  setConsultationType: (type: ConsultationTypeApi) => void;
   setPreferredDate: (date: Date) => void;
   setSelectedTimeSlotId: (slotId: string) => void;
   selectedTimeSlot: ConsultationTimeSlot | null;
@@ -110,6 +117,12 @@ export function ConsultationOnboardingProvider(
     buildInitialForm(props.params, loggedInDefaults),
   );
 
+  const [feeRates, setFeeRates] = useState<ConsultationFeeRates>(() => ({
+    videoRate: 0,
+    audioRate: 0,
+    rate: props.params.price ?? 0,
+  }));
+
   const preferredDateParam = useMemo(
     () => (form.preferredDate != null ? formatConsultationApiDate(form.preferredDate) : ''),
     [form.preferredDate],
@@ -128,12 +141,16 @@ export function ConsultationOnboardingProvider(
     const parsedId = Number(consultantBySlug.id);
     const hasValidId = Number.isFinite(parsedId) && parsedId > 0;
 
+    const nextFeeRates: ConsultationFeeRates = {
+      videoRate: consultantBySlug.videoRate,
+      audioRate: consultantBySlug.audioRate,
+      rate: consultantBySlug.rate,
+    };
+
+    setFeeRates(nextFeeRates);
+
     setForm((prev) => {
-      const resolvedFee = resolveConsultationFee(prev.consultationType, {
-        videoRate: consultantBySlug.videoRate,
-        audioRate: consultantBySlug.audioRate,
-        rate: consultantBySlug.rate,
-      });
+      const resolvedFee = resolveConsultationFee(prev.consultationType, nextFeeRates);
       return {
         ...prev,
         consultantId: prev.consultantId ?? (hasValidId ? parsedId : null),
@@ -215,6 +232,14 @@ export function ConsultationOnboardingProvider(
     [],
   );
 
+  const setConsultationType = useCallback((type: ConsultationTypeApi) => {
+    setForm((prev) => ({
+      ...prev,
+      consultationType: type,
+      price: resolveConsultationFee(type, feeRates),
+    }));
+  }, [feeRates]);
+
   const setPreferredDate = useCallback((date: Date) => {
     setForm((prev) => ({
       ...prev,
@@ -235,19 +260,23 @@ export function ConsultationOnboardingProvider(
   const value = useMemo(
     (): ConsultationOnboardingContextValue => ({
       form,
+      feeRates,
       slotGroups,
       slotsLoading: canFetchSlots && slotsLoading,
       slotsError,
       setContactField,
+      setConsultationType,
       setPreferredDate,
       setSelectedTimeSlotId,
       selectedTimeSlot,
     }),
     [
       canFetchSlots,
+      feeRates,
       form,
       selectedTimeSlot,
       setContactField,
+      setConsultationType,
       setPreferredDate,
       setSelectedTimeSlotId,
       slotGroups,
