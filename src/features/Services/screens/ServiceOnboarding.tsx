@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   ActivityIndicator,
   ScrollView,
@@ -6,12 +6,15 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
+import { selectHasVerifiedLogin } from '@/features/Auth/store/authSelectors';
 import { SafeAreaWrapper } from '@/shared/components';
 import type { ServicesStackParamList } from '@/navigation/types';
 import { ROUTES } from '@/navigation/routeNames';
+import { useAppSelector } from '@/store/typedHooks';
 
 import {
   ServiceOnboardingPaymentDialog,
@@ -20,6 +23,7 @@ import {
 import { Stepper } from '@/features/Services/components/Stepper';
 import { OnboardingFormProvider } from '@/features/Services/context/OnboardingFormContext';
 import { useServiceOnboardingWizard } from '@/features/Services/hooks/useServiceOnboardingWizard';
+import { useServicePurchaseLoginGate } from '@/features/Services/hooks/useServicePurchaseLoginGate';
 import { radii, shadows, spacing } from '@/theme';
 
 type ServiceOnboardingRoute = RouteProp<
@@ -28,14 +32,26 @@ type ServiceOnboardingRoute = RouteProp<
 >;
 
 const ServiceOnboarding = (): React.ReactElement => {
+  const navigation = useNavigation<NativeStackNavigationProp<ServicesStackParamList>>();
   const route = useRoute<ServiceOnboardingRoute>();
   const slug = route.params.slug;
   const submissionId = route.params.submissionId;
+  const hasVerifiedLogin = useAppSelector(selectHasVerifiedLogin);
+  const { promptServiceLogin, servicePurchaseLoginDialog } = useServicePurchaseLoginGate({
+    onDismiss: () => navigation.goBack(),
+  });
+
+  useEffect(() => {
+    if (!hasVerifiedLogin) {
+      promptServiceLogin();
+    }
+  }, [hasVerifiedLogin, promptServiceLogin]);
 
   const wizard = useServiceOnboardingWizard({ slug, submissionIdParam: submissionId });
 
   return (
     <SafeAreaWrapper edges={['top', 'bottom']}>
+      {servicePurchaseLoginDialog}
       <ServiceOnboardingSuccessDialog
         visible={wizard.successDialog.visible}
         onDone={wizard.successDialog.onDone}
@@ -63,7 +79,7 @@ const ServiceOnboarding = (): React.ReactElement => {
             <Text style={styles.errorBanner}>{wizard.errorMessage}</Text>
           ) : null}
 
-          {wizard.isLoading || !wizard.isAuthenticated ? (
+          {wizard.isLoading || !wizard.hasVerifiedLogin ? (
             <View style={styles.loadingWrap}>
               <ActivityIndicator size="large" color="#0B3B66" />
               <Text style={styles.loadingText}>Loading your registration form…</Text>

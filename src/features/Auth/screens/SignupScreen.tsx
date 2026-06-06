@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { BackHandler, StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -18,16 +18,27 @@ export function SignupScreen(): React.ReactElement {
   const { state } = useAuth();
   const onBackToChooseRole = useNavigateToChooseRole('signup');
 
+  const onBackPress = useCallback((): void => {
+    const previousRoute = navigation.getState().routes[navigation.getState().index - 1];
+
+    if (previousRoute?.name === ROUTES.Auth.Login) {
+      navigation.goBack();
+      return;
+    }
+
+    onBackToChooseRole();
+  }, [navigation, onBackToChooseRole]);
+
   useEffect(() => {
     if (!state.userType) {
       return undefined;
     }
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-      onBackToChooseRole();
+      onBackPress();
       return true;
     });
     return () => subscription.remove();
-  }, [onBackToChooseRole, state.userType]);
+  }, [onBackPress, state.userType]);
 
   const onSendOtp = (contact: string): void => {
     navigation.navigate(ROUTES.Auth.OtpVerification, { contact });
@@ -51,9 +62,9 @@ export function SignupScreen(): React.ReactElement {
   }
 
   return state.userType === 'user' ? (
-    <UserSignupScreenContent onSendOtp={onSendOtp} onBackPress={onBackToChooseRole} />
+    <UserSignupScreenContent onSendOtp={onSendOtp} onBackPress={onBackPress} />
   ) : (
-    <ConsultantSignupScreenContent onSendOtp={onSendOtp} onBackPress={onBackToChooseRole} />
+    <ConsultantSignupScreenContent onSendOtp={onSendOtp} onBackPress={onBackPress} />
   );
 }
 

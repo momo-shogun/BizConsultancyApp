@@ -6,14 +6,16 @@ import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { THEME } from '@/constants/theme';
+import { selectIsAuthenticated } from '@/features/Auth/store/authSelectors';
 import { useGetEdpCoursesWithDocumentsQuery } from '@/features/Edp/api/edpLandingApi';
 import { useEdpModulesListProgress } from '@/features/Edp/hooks/useEdpModulesListProgress';
 import type { EdpFreeEdpModule } from '@/features/Edp/types/edpCourses.types';
 import { normalizeEdpModuleSlug } from '@/features/Edp/utils/edpCourseDetailsParsing';
+import { openEdpModuleForUser } from '@/features/Edp/utils/edpGuestVideoAccess';
 import { resolveIidAssetUrl } from '@/features/Edp/utils/edpMedia';
-import { ROUTES } from '@/navigation/routeNames';
 import type { EdpStackParamList } from '@/navigation/types';
 import { SafeAreaWrapper, ScreenHeader } from '@/shared/components';
+import { useAppSelector } from '@/store/typedHooks';
 
 import {
   EdpModulesListSkeleton,
@@ -27,6 +29,7 @@ interface ModuleCardItem {
   slug: string;
   titleEn: string;
   titleHi: string;
+  overviewVideoUrl: string | null;
   videos: number;
   pdfs: number;
   imageUrl: string | null;
@@ -54,11 +57,14 @@ function toModuleCardItems(modules: EdpFreeEdpModule[] | undefined): ModuleCardI
     const progressPercent = Number.isFinite(progressParsed)
       ? Math.max(0, Math.min(100, Math.round(progressParsed)))
       : 0;
+    const overviewVideoUrl = module.url?.trim();
     return {
       id: String(module.id),
       slug: module.slug?.trim() ?? '',
       titleEn: nameEn.length > 0 ? nameEn : 'Module',
       titleHi: nameHi.length > 0 ? nameHi : nameEn,
+      overviewVideoUrl:
+        overviewVideoUrl != null && overviewVideoUrl.length > 0 ? overviewVideoUrl : null,
       videos: module.e_videos_count ?? 0,
       pdfs: module.e_documents_count ?? 0,
       imageUrl: resolveIidAssetUrl(module.thumbnail),
@@ -139,6 +145,7 @@ const EDPModulesScreen = ({ onBack, onOpenModule }: EDPModulesScreenProps): Reac
   const [lang, setLang] = useState<'ENG' | 'HI'>('ENG');
   const [query, setQuery] = useState<string>('');
   const navigation = useNavigation<NavigationProp<EdpStackParamList>>();
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const { data, isLoading, isError } = useGetEdpCoursesWithDocumentsQuery();
   const { progressBySlug } = useEdpModulesListProgress(data?.freeEdps);
 
@@ -169,11 +176,15 @@ const EDPModulesScreen = ({ onBack, onOpenModule }: EDPModulesScreenProps): Reac
       onOpenModule(module.id);
       return;
     }
-    if (module.slug.length === 0) {
-      return;
-    }
-    navigation.navigate(ROUTES.Edp.ModuleDetail, {
-      slug: normalizeEdpModuleSlug(module.slug),
+
+    const moduleTitle =
+      lang === 'HI' && module.titleHi.length > 0 ? module.titleHi : module.titleEn;
+
+    openEdpModuleForUser(navigation, {
+      isAuthenticated,
+      moduleSlug: module.slug,
+      moduleTitle,
+      overviewVideoUrl: module.overviewVideoUrl,
       lang: lang === 'HI' ? 'hi' : 'en',
     });
   };

@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert } from 'react-native';
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -7,7 +6,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   selectAccountRole,
   selectDisplayName,
-  selectIsAuthenticated,
+  selectHasVerifiedLogin,
   selectLoggedInEmail,
   selectLoggedInMobile,
 } from '@/features/Auth/store/authSelectors';
@@ -15,7 +14,6 @@ import {
   useGetConsultantWalletBalanceQuery,
   useGetMyWalletBalanceQuery,
 } from '@/features/Home/api/userWalletsApi';
-import { ROUTES } from '@/navigation/routeNames';
 import type { ServicesStackParamList } from '@/navigation/types';
 import { useAppSelector } from '@/store/typedHooks';
 import { getApiErrorMessage } from '@/utils/apiError';
@@ -84,7 +82,7 @@ export interface UseServiceOnboardingWizardResult {
   isLoading: boolean;
   isProcessing: boolean;
   errorMessage: string | null;
-  isAuthenticated: boolean;
+  hasVerifiedLogin: boolean;
   setFormValues: (
     updater: (
       prev: Record<string, OnboardingFieldValue>,
@@ -114,7 +112,7 @@ export function useServiceOnboardingWizard({
 }: UseServiceOnboardingWizardParams): UseServiceOnboardingWizardResult {
   const navigation =
     useNavigation<NativeStackNavigationProp<ServicesStackParamList>>();
-  const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const hasVerifiedLogin = useAppSelector(selectHasVerifiedLogin);
   const displayName = useAppSelector(selectDisplayName);
   const email = useAppSelector(selectLoggedInEmail);
   const mobile = useAppSelector(selectLoggedInMobile);
@@ -167,13 +165,13 @@ export function useServiceOnboardingWizard({
     data: userWalletBalance,
     isFetching: isUserWalletFetching,
   } = useGetMyWalletBalanceQuery(undefined, {
-    skip: !isAuthenticated || !paymentModalActive || isConsultant,
+    skip: !hasVerifiedLogin || !paymentModalActive || isConsultant,
   });
   const {
     data: consultantWalletBalance,
     isFetching: isConsultantWalletFetching,
   } = useGetConsultantWalletBalanceQuery(undefined, {
-    skip: !isAuthenticated || !paymentModalActive || !isConsultant,
+    skip: !hasVerifiedLogin || !paymentModalActive || !isConsultant,
   });
 
   const allQuestions = useMemo((): OnboardingFormQuestion[] => {
@@ -213,21 +211,6 @@ export function useServiceOnboardingWizard({
   const serviceSlug = (activeForm?.serviceSlug?.trim() || slug).trim();
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      Alert.alert('Login required', 'Please sign in to continue with service registration.', [
-        {
-          text: 'Sign in',
-          onPress: () =>
-            navigation.getParent()?.navigate(ROUTES.Root.Auth, {
-              screen: ROUTES.Auth.Login,
-            }),
-        },
-        { text: 'Go back', style: 'cancel', onPress: () => navigation.goBack() },
-      ]);
-    }
-  }, [isAuthenticated, navigation]);
-
-  useEffect(() => {
     setFormReady(false);
     setResumeQuestions(null);
     setSubmissionId(
@@ -238,7 +221,7 @@ export function useServiceOnboardingWizard({
   }, [slug, submissionIdParam]);
 
   useEffect(() => {
-    if (!isAuthenticated || slug.length === 0 || servicePage == null) {
+    if (!hasVerifiedLogin || slug.length === 0 || servicePage == null) {
       return;
     }
     if (submissionIdParam != null && Number.isFinite(submissionIdParam)) {
@@ -270,7 +253,7 @@ export function useServiceOnboardingWizard({
       cancelled = true;
     };
   }, [
-    isAuthenticated,
+    hasVerifiedLogin,
     slug,
     servicePage,
     activeForm,
@@ -283,7 +266,7 @@ export function useServiceOnboardingWizard({
     if (
       submissionIdParam == null ||
       !Number.isFinite(submissionIdParam) ||
-      !isAuthenticated
+      !hasVerifiedLogin
     ) {
       return;
     }
@@ -307,7 +290,7 @@ export function useServiceOnboardingWizard({
     return () => {
       cancelled = true;
     };
-  }, [submissionIdParam, isAuthenticated, fetchSubmissionQuestions]);
+  }, [submissionIdParam, hasVerifiedLogin, fetchSubmissionQuestions]);
 
   useEffect(() => {
     if (!formReady && (pageLoading || (formLoading && !formConfigMissing))) {
@@ -323,7 +306,7 @@ export function useServiceOnboardingWizard({
       if (
         submissionIdParam != null &&
         Number.isFinite(submissionIdParam) &&
-        isAuthenticated
+        hasVerifiedLogin
       ) {
         try {
           const row = await fetchSubmission(submissionIdParam).unwrap();
@@ -365,12 +348,12 @@ export function useServiceOnboardingWizard({
     formConfigMissing,
     allQuestions,
     submissionIdParam,
-    isAuthenticated,
+    hasVerifiedLogin,
     fetchSubmission,
   ]);
 
   const persistDraft = useCallback(async (): Promise<boolean> => {
-    if (!isAuthenticated || servicePage == null) {
+    if (!hasVerifiedLogin || servicePage == null) {
       return true;
     }
     try {
@@ -396,7 +379,7 @@ export function useServiceOnboardingWizard({
       return false;
     }
   }, [
-    isAuthenticated,
+    hasVerifiedLogin,
     servicePage,
     submissionId,
     activeForm,
@@ -480,7 +463,6 @@ export function useServiceOnboardingWizard({
       formValues,
       pricingSummary,
       submitOnboarding,
-      navigation,
     ],
   );
 
@@ -626,7 +608,7 @@ export function useServiceOnboardingWizard({
     isLoading,
     isProcessing,
     errorMessage,
-    isAuthenticated,
+    hasVerifiedLogin,
     setFormValues,
     handleBeforeNext,
     handleComplete,
