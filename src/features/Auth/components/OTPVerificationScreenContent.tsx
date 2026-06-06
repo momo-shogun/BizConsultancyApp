@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Image,
   Linking,
@@ -30,8 +30,22 @@ export interface OTPVerificationScreenContentProps {
   onVerified: (otp: string) => void;
   onResendOtp?: () => void;
   onBackPress?: () => void;
+  onClearError?: () => void;
+  errorMessage?: string | null;
   isResending?: boolean;
-  resendCooldownSeconds?: number;
+  resendCooldownSeconds?: number; // used as the duration, default 30
+}
+
+const DEFAULT_COOLDOWN = 30;
+
+function handleOtpChange(
+  value: string,
+  setOtp: React.Dispatch<React.SetStateAction<string>>,
+  onClearError?: () => void,
+): void {
+  const cleaned = value.replace(/\D/g, '').slice(0, 6);
+  setOtp(cleaned);
+  onClearError?.();
 }
 
 export function OTPVerificationScreenContent(
@@ -43,6 +57,23 @@ export function OTPVerificationScreenContent(
 
   const [otp, setOtp] = useState<string>('');
 
+  // ✅ Cooldown is now internal state, initialized to duration so it starts counting immediately
+  const cooldownDuration = props.resendCooldownSeconds ?? DEFAULT_COOLDOWN;
+  const [cooldown, setCooldown] = useState<number>(cooldownDuration);
+
+  // Start countdown when cooldown is active (including on mount).
+  useEffect(() => {
+    if (cooldown <= 0) {
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setCooldown((prev) => Math.max(0, prev - 1));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [cooldown]);
+
   const masked = useMemo((): string => {
     const c = contact.trim();
     if (c.includes('@')) return c.replace(/(^.).*(@.*$)/, '$1***$2');
@@ -51,16 +82,18 @@ export function OTPVerificationScreenContent(
   }, [contact]);
 
   const canVerify = otp.length === 6;
-  const cooldown = props.resendCooldownSeconds ?? 0;
   const canResend = cooldown <= 0 && !props.isResending;
 
   const handleResend = (): void => {
-    if (!canResend || props.onResendOtp == null) {
-      return;
-    }
+    if (!canResend || props.onResendOtp == null) return;
+
     setOtp('');
+    props.onClearError?.();
     hiddenInputRef.current?.focus();
     props.onResendOtp();
+
+    // Restart the cooldown timer after resend
+    setCooldown(cooldownDuration);
   };
 
   return (
@@ -81,19 +114,25 @@ export function OTPVerificationScreenContent(
               </View>
             </View>
 
-            <Text style={styles.title}>We just texted you, what’s the code?</Text>
+            <Text style={styles.title}>We just texted you, what's the code?</Text>
 
             <OTPInput
               value={otp}
-              onChange={setOtp}
+              onChange={(value) => handleOtpChange(value, setOtp, props.onClearError)}
               accessibilityLabel="OTP input"
               onPress={() => hiddenInputRef.current?.focus()}
               activeIndex={Math.min(otp.length, 5)}
               containerStyle={styles.otpRow}
             />
 
+            {props.errorMessage != null && props.errorMessage.length > 0 ? (
+              <Text style={styles.errorText} accessibilityRole="alert">
+                {props.errorMessage}
+              </Text>
+            ) : null}
+
             <Text style={styles.help}>
-              We’ve sent a verification code to <Text style={styles.helpStrong}>{masked}</Text>
+              We've sent a verification code to <Text style={styles.helpStrong}>{masked}</Text>
             </Text>
 
             <Pressable
@@ -127,12 +166,7 @@ export function OTPVerificationScreenContent(
             <TextInput
               accessibilityLabel="Hidden OTP input"
               value={otp}
-              onChangeText={(t) => {
-                const cleaned = t.replace(/\D/g, '');
-                // Supports SMS strings like "Your code is 123456" as well as plain OTP.
-                const firstOtp = cleaned.slice(0, 6);
-                setOtp(firstOtp);
-              }}
+              onChangeText={(value) => handleOtpChange(value, setOtp, props.onClearError)}
               keyboardType="number-pad"
               textContentType="oneTimeCode"
               autoComplete={Platform.OS === 'android' ? 'sms-otp' : 'one-time-code'}
@@ -162,12 +196,8 @@ export function OTPVerificationScreenContent(
 
               <Text style={styles.footerHelp}>
                 Experiencing issues? Email our team:{'\n'}
-                <Pressable
-                  onPress={() => Linking.openURL('mailto:bizconsultancy@iid.org.in')}
-                >
-                  <Text style={styles.footerHelpStrong}>
-                    bizconsultancy@iid.org.in
-                  </Text>
+                <Pressable onPress={() => Linking.openURL('mailto:bizconsultancy@iid.org.in')}>
+                  <Text style={styles.footerHelpStrong}>bizconsultancy@iid.org.in</Text>
                 </Pressable>
               </Text>
 
@@ -230,6 +260,13 @@ const styles = StyleSheet.create({
   },
   otpRow: {
     marginTop: THEME.spacing[16],
+  },
+  errorText: {
+    marginTop: THEME.spacing[10],
+    fontSize: THEME.typography.size[12],
+    lineHeight: 18,
+    color: THEME.colors.danger,
+    fontWeight: THEME.typography.weight.medium as '500',
   },
   help: {
     marginTop: THEME.spacing[12],
@@ -309,7 +346,7 @@ const styles = StyleSheet.create({
     color: THEME.colors.textSecondary,
   },
   footerHelpStrong: {
-    color: "blue",
+    color: 'blue',
     fontWeight: THEME.typography.weight.semibold,
     fontSize: 12,
   },
@@ -319,4 +356,3 @@ const styles = StyleSheet.create({
     opacity: 0,
   },
 });
-

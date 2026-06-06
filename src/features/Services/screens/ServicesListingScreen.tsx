@@ -39,6 +39,7 @@ import {
 
 import { useBizAIScrollReporter } from '@/features/BizAI/hooks/useBizAIScrollReporter';
 import { useGetPublicServicesQuery } from '@/features/Services/api/servicesApi';
+import { useServicePurchaseLoginGate } from '@/features/Services/hooks/useServicePurchaseLoginGate';
 import { mapPublicServiceToCardItem } from '@/features/Services/utils/serviceMappers';
 import {
   buildPublicServicesListQuery,
@@ -67,6 +68,7 @@ const AnimatedPlaceholderFlatList = Animated.createAnimatedComponent(FlatList<st
 
 export function ServicesListingScreen(): React.ReactElement {
   const navigation = useNavigation<NativeStackNavigationProp<ServicesStackParamList>>();
+  const { handleGetStarted, servicePurchaseLoginDialog } = useServicePurchaseLoginGate();
   const onBizAiScroll = useBizAIScrollReporter();
   const searchInputRef = useRef<TextInput>(null);
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
@@ -271,12 +273,12 @@ export function ServicesListingScreen(): React.ReactElement {
             goToDetail(item.slug);
           }}
           onCtaPress={() => {
-            goToDetail(item.slug);
+            handleGetStarted(item.slug);
           }}
         />
       );
     },
-    [goToDetail],
+    [goToDetail, handleGetStarted],
   );
 
   const keyExtractor = useCallback((i: RecommendedServiceItem): string => i.id, []);
@@ -307,7 +309,9 @@ export function ServicesListingScreen(): React.ReactElement {
   }, [activeFilterCount, chipItems, isFetching, isLoading]);
 
   return (
-    <AccountHubScreenShell
+    <>
+      {servicePurchaseLoginDialog}
+      <AccountHubScreenShell
       title="Services"
       canvasColor={ACCOUNT_HUB_LIST_CANVAS}
       headerColor={ACCOUNT_HUB_GREEN_HEADER_STATUS_BAR}
@@ -389,6 +393,7 @@ export function ServicesListingScreen(): React.ReactElement {
         />
       </ScreenWrapper>
     </AccountHubScreenShell>
+    </>
   );
 }
 

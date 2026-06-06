@@ -13,6 +13,8 @@ import type { AuthStackParamList } from '@/navigation/types';
 import { Button, EmptyState, SafeAreaWrapper, ScreenWrapper } from '@/shared/components';
 import { showGlobalError, showGlobalToast } from '@/shared/components/toast';
 import { getApiErrorMessage } from '@/utils/apiError';
+
+const INVALID_OTP_MESSAGE = 'Invalid OTP, Please enter correct OTP';
 import { OTPVerificationScreenContent as UserOtpContent } from '@/features/Auth/User/screens/OTPVerificationScreenContent';
 import { OTPVerificationScreenContent as ConsultantOtpContent } from '@/features/Auth/Consultant/screens/OTPVerificationScreenContent';
 
@@ -26,7 +28,8 @@ export function OTPVerificationScreen(): React.ReactElement {
   const route = useRoute<Rt>();
   const dispatch = useAppDispatch();
   const { state, completeOnboarding } = useAuth();
-  const [isVerifying, setIsVerifying] = useState<boolean>(false);
+  const [, setIsVerifying] = useState<boolean>(false);
+  const [verificationError, setVerificationError] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState<number>(0);
   const [sendOtp, { isLoading: isResending }] = useSendOtpMutation();
 
@@ -70,6 +73,7 @@ export function OTPVerificationScreen(): React.ReactElement {
       }
 
       setIsVerifying(true);
+      setVerificationError(null);
       try {
         await dispatch(
           verifyOtpAndLogin({
@@ -92,8 +96,8 @@ export function OTPVerificationScreen(): React.ReactElement {
         }
 
         navigation.navigate(ROUTES.Auth.ProfileSetup);
-      } catch (error: unknown) {
-        showGlobalError(getApiErrorMessage(error, 'Could not verify OTP. Please try again.'));
+      } catch {
+        setVerificationError(INVALID_OTP_MESSAGE);
       } finally {
         setIsVerifying(false);
       }
@@ -124,6 +128,8 @@ export function OTPVerificationScreen(): React.ReactElement {
     onVerified: (otp: string) => void onVerified(otp),
     onResendOtp: () => void onResendOtp(),
     onBackPress: () => navigation.goBack(),
+    onClearError: () => setVerificationError(null),
+    errorMessage: verificationError,
     isResending,
     resendCooldownSeconds: resendCooldown,
   };
