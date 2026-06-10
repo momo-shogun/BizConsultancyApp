@@ -1,10 +1,12 @@
-import { StyleSheet } from 'react-native';
 import { THEME } from '@/constants/theme';
+import { StyleSheet } from 'react-native';
+
 
 const styles = StyleSheet.create({
-  // ── Main card ────────────────────────────────────────────────────────────
+
+  // ─── Main Membership Card ─────────────────────────────────────────────────
   card: {
-    backgroundColor: THEME.colors.surface,          // white / card bg
+    backgroundColor: THEME.colors.surface,
     borderRadius: THEME.radius[16],
     padding: THEME.spacing[16],
     gap: THEME.spacing[12],
@@ -15,7 +17,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
 
-  // ── Top row: star icon + ACTIVE badge ───────────────────────────────────
+  // ─── Top Row: Star Icon + Active Badge ───────────────────────────────────
   cardTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -55,7 +57,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
 
-  // ── Plan name / subtitle ─────────────────────────────────────────────────
+  // ─── Plan Name / Subtitle ─────────────────────────────────────────────────
   planName: {
     fontSize: THEME.typography.size[20],
     fontWeight: THEME.typography.weight.bold,
@@ -67,7 +69,7 @@ const styles = StyleSheet.create({
     marginTop: -THEME.spacing[8],
   },
 
-  // ── Info grid (Amount/Validity, Start/Expiry) ─────────────────────────────
+  // ─── Info Grid (Amount/Validity, Start/Expiry) ────────────────────────────
   infoGrid: {
     flexDirection: 'row',
     gap: THEME.spacing[24],
@@ -82,12 +84,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
   },
   infoValue: {
-    fontSize: THEME.typography.size[16],
+    fontSize: THEME.typography.size[12],
     fontWeight: THEME.typography.weight.semibold,
     color: THEME.colors.textPrimary,
   },
 
-  // ── Progress bar ─────────────────────────────────────────────────────────
+  // ─── Progress Bar ─────────────────────────────────────────────────────────
   progressSection: {
     gap: THEME.spacing[8],
   },
@@ -101,7 +103,7 @@ const styles = StyleSheet.create({
   },
   progressElapsed: {
     fontSize: THEME.typography.size[12],
-    color: THEME.colors.primary,           // green accent
+    color: THEME.colors.primary,
     fontWeight: THEME.typography.weight.medium,
   },
   progressTrack: {
@@ -113,10 +115,10 @@ const styles = StyleSheet.create({
   progressFill: {
     height: '100%',
     borderRadius: 3,
-    backgroundColor: THEME.colors.primary, // green
+    backgroundColor: THEME.colors.primary,
   },
 
-  // ── Payment card ──────────────────────────────────────────────────────────
+  // ─── Payment Card ─────────────────────────────────────────────────────────
   paymentCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -168,7 +170,7 @@ const styles = StyleSheet.create({
     color: '#2E7D32',
   },
 
-  // ── Service item ──────────────────────────────────────────────────────────
+  // ─── Service Item ─────────────────────────────────────────────────────────
   serviceItem: {
     flexDirection: 'row',
     backgroundColor: THEME.colors.surface,
@@ -185,17 +187,17 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 10,
-    backgroundColor: '#FFF8E7',
+    backgroundColor: '#ffedd8',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: THEME.spacing[4],
+    marginTop: THEME.spacing[8],
   },
   serviceIcon: {
     fontSize: 18,
   },
   serviceContent: {
     flex: 1,
-    gap: THEME.spacing[4],
+    gap: THEME.spacing[8],
   },
   serviceTitle: {
     fontSize: THEME.typography.size[14],
@@ -209,7 +211,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   serviceStatusPending: {
-    color: '#E65100',   // orange-ish for PENDING
+    color: '#E65100',
   },
   serviceStatusCompleted: {
     color: '#2E7D32',
@@ -222,13 +224,59 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: THEME.spacing[4],
   },
+  requestButtonDisabled: {
+    borderColor: '#CBD5E1',
+    backgroundColor: '#F8FAFC',
+  },
   requestButtonText: {
-    fontSize: THEME.typography.size[14],
+    fontSize: THEME.typography.size[12],
     fontWeight: THEME.typography.weight.medium,
     color: THEME.colors.primary,
   },
+  requestButtonTextDisabled: {
+    color: '#94A3B8',
+  },
 
-  // Legacy (kept for safety if referenced elsewhere)
+  // ─── Screen Level Styles ──────────────────────────────────────────────────
+  screen: {
+    flex: 1,
+    backgroundColor: '#F5F5F5',
+  },
+  scrollContent: {
+    padding: THEME.spacing[16],
+    paddingBottom: THEME.spacing[32],
+    gap: THEME.spacing[12],
+  },
+  centered: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: THEME.spacing[24],
+    gap: THEME.spacing[8],
+  },
+  emptyTitle: {
+    fontSize: THEME.typography.size[18],
+    fontWeight: THEME.typography.weight.bold,
+    color: THEME.colors.textPrimary,
+    textAlign: 'center',
+  },
+  emptyText: {
+    fontSize: THEME.typography.size[14],
+    color: THEME.colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  servicesSection: {
+    gap: THEME.spacing[12],
+  },
+  servicesTitle: {
+    fontSize: THEME.typography.size[18],
+    fontWeight: THEME.typography.weight.bold,
+    color: THEME.colors.textPrimary,
+    marginBottom: THEME.spacing[4],
+  },
+
+  // ─── Legacy (unused but kept safe) ───────────────────────────────────────
   statusBadge: { display: 'none' },
   statusBadgeText: { display: 'none' },
   cardShimmerEdge: { display: 'none' },

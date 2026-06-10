@@ -8,9 +8,12 @@ import { ROUTES } from '../../routeNames';
 import { PlanckBridgedTabBar } from '../../shared/PlanckBridgedTabBar';
 import { isTabBarHiddenFromOptions } from '../../tabBar/isTabBarHiddenFromOptions';
 import { accountTabListeners } from '../../tabBar/accountTabListeners';
+import { servicesTabListeners } from '../../tabBar/servicesTabListeners';
 import { getStackTabScreenOptions } from '../../tabBar/tabBarVisibility';
 
+import { selectEffectiveAccountRole } from '@/features/Auth/store/authSelectors';
 import { HomeDashboardScreen } from '@/features/Home/screens/HomeDashboardScreen';
+import { useAppSelector } from '@/store/typedHooks';
 
 import { AccountTabHost } from '../../account/AccountTabHost';
 import { ServicesStackNavigator } from '../../ServicesStackNavigator';
@@ -56,6 +59,9 @@ function PlankTabBar(props: BottomTabBarProps): React.ReactElement | null {
 }
 
 export function PlankBarV1TabNavigator(): React.ReactElement {
+  const accountRole = useAppSelector(selectEffectiveAccountRole);
+  const showEdpTab = accountRole !== 'consultant';
+
   return (
     <BizAITabOverlay>
     <PlankTab.Navigator
@@ -71,19 +77,22 @@ export function PlankBarV1TabNavigator(): React.ReactElement {
       <PlankTab.Screen
         name={ROUTES.App.Services}
         component={ServicesStackNavigator}
+        listeners={servicesTabListeners}
         options={({ route }) => ({
           title: 'Services',
           ...getStackTabScreenOptions(route),
         })}
       />
-      <PlankTab.Screen
-        name={ROUTES.App.Edp}
-        component={EdpStackNavigator}
-        options={({ route }) => ({
-          title: 'EDP',
-          ...getStackTabScreenOptions(route),
-        })}
-      />
+      {showEdpTab ? (
+        <PlankTab.Screen
+          name={ROUTES.App.Edp}
+          component={EdpStackNavigator}
+          options={({ route }) => ({
+            title: 'EDP',
+            ...getStackTabScreenOptions(route),
+          })}
+        />
+      ) : null}
       <PlankTab.Screen
         name={ROUTES.App.Account}
         component={AccountTabHost}

@@ -20,6 +20,7 @@ import type {
 } from '../screens/types';
 
 import { extractRecommendedServiceSlug } from './recommendedServiceLinks';
+import { isPublicServiceRecordActive } from './serviceApiParsing';
 import { resolveServiceAssetUrl } from './serviceMedia';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -507,6 +508,9 @@ export function mapPublicServiceToServicePage(raw: unknown): ServicePage | null 
 }
 
 function parseLooseService(raw: Record<string, unknown>): PublicServiceListItem | null {
+  if (!isPublicServiceRecordActive(raw)) {
+    return null;
+  }
   if (typeof raw.id !== 'number' || typeof raw.slug !== 'string' || typeof raw.title !== 'string') {
     return null;
   }

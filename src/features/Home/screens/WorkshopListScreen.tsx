@@ -6,7 +6,6 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  useWindowDimensions,
   View,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -45,16 +44,10 @@ const SESSION_FILTERS: { id: WorkshopSessionFilter; label: string }[] = [
 
 export function WorkshopListScreen(): React.ReactElement {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { width } = useWindowDimensions();
 
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [sessionFilter, setSessionFilter] = useState<WorkshopSessionFilter>('upcoming');
-
-  const cardWidth = useMemo((): number => {
-    const inner = width - H_PADDING * 2 - LIST_GAP;
-    return Math.max(140, Math.floor(inner / 2));
-  }, [width]);
 
   const { data: workshopsPage, isLoading, isError } = useGetPublicWorkshopsQuery(
     DEFAULT_HOME_WORKSHOPS_QUERY,
@@ -77,7 +70,6 @@ export function WorkshopListScreen(): React.ReactElement {
       <View style={styles.cardCell}>
         <EventSpotlightCard
           item={item}
-          cardWidth={cardWidth}
           variant="compact"
           onPress={() =>
             navigation.navigate(ROUTES.Root.WorkshopsDetail, { slug: item.slug })
@@ -85,7 +77,7 @@ export function WorkshopListScreen(): React.ReactElement {
         />
       </View>
     ),
-    [cardWidth],
+    [navigation],
   );
 
   const ListHeader = useCallback(
@@ -246,13 +238,13 @@ const styles = StyleSheet.create({
     fontWeight: THEME.typography.weight.bold as '700',
   },
   columnWrap: {
-    justifyContent: 'space-between',
+    alignItems: 'stretch',
     marginBottom: LIST_GAP,
     gap: LIST_GAP,
   },
   cardCell: {
     flex: 1,
     minWidth: 0,
-    maxWidth: '50%',
+    alignSelf: 'stretch',
   },
 });

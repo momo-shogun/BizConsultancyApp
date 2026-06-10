@@ -443,6 +443,8 @@ export function HomeDashboardScreen(): React.ReactElement {
           booking.id,
           booking.name,
           booking.consultationType,
+          booking.bookingDate,
+          booking.slotTime,
         );
         if (error != null) {
           showGlobalToast({ message: error, variant: 'error' });
@@ -465,20 +467,26 @@ export function HomeDashboardScreen(): React.ReactElement {
 
   const isUpcomingBookingJoinEnabled = useCallback(
     (item: UpcomingBookingItem): boolean => {
-      if (isConsultant) {
-        return true;
-      }
       const bookingId = item.bookingId;
       if (bookingId == null) {
         return false;
       }
+
+      if (isConsultant) {
+        const booking = (consultantBookings ?? []).find((row) => row.id === bookingId);
+        if (booking == null) {
+          return false;
+        }
+        return hasBookingStarted(booking.bookingDate, booking.slotTime);
+      }
+
       const booking = (myBookingsPage?.data ?? []).find((row) => row.id === bookingId);
       if (booking == null) {
         return false;
       }
       return hasBookingStarted(booking.bookingDate, booking.slotTime);
     },
-    [isConsultant, myBookingsPage?.data],
+    [consultantBookings, isConsultant, myBookingsPage?.data],
   );
 
   const zeptoHeader = useMemo(

@@ -128,7 +128,7 @@ export function ConsultantSlotTimeScreen(): React.ReactElement {
               onPreviewDateChange={screen.setPreviewDate}
               slots={screen.previewSlots}
               isLoading={screen.isPreviewLoading}
-              slugMissing={screen.slugMissing}
+              previewNeedsSchedule={screen.previewNeedsSchedule}
             />
 
             <ScheduleAvailabilitySummary

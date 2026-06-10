@@ -20,73 +20,14 @@ import { Card } from '@/shared/components/card';
 
 import { ProfileScreenHeaderChrome } from '@/features/Profile/components/ProfileScreenHeaderChrome';
 import { ProfileSignInGate } from '@/features/Profile/components/ProfileSignInGate';
-import { useGetConsultantMyProfileQuery } from '@/features/Profile/api/consultantProfileApi';
+import { useConsultantAccountProfile } from '@/features/Profile/hooks/useAccountProfileHydration';
+import { useConsultantBusinessOverview } from '@/features/Profile/hooks/useConsultantBusinessOverview';
+import type { ConsultantBusinessOverviewStat } from '@/features/Profile/hooks/useConsultantBusinessOverview';
 import { useNavigateToLogin } from '@/features/Profile/hooks/useNavigateToLogin';
 import { useProfileLoginPrompt } from '@/features/Profile/hooks/useProfileLoginPrompt';
 import { useUserProfileMembershipSection } from '@/features/Profile/hooks/useUserProfileMembershipSection';
 
 import { styles } from './ConsultantProfileScreen.styles';
-
-type StatIconName = React.ComponentProps<typeof Ionicons>['name'];
-
-interface ConsultantStatItem {
-  id: string;
-  label: string;
-  value: string;
-  subtitle: string;
-  icon: StatIconName;
-  iconColor: string;
-  iconBg: string;
-  accentBorder: string;
-  valueMuted?: boolean;
-}
-
-const CONSULTANT_STATS: ConsultantStatItem[] = [
-  {
-    id: 'earnings',
-    label: 'Total earnings',
-    value: '₹0.00',
-    subtitle: 'All paid bookings credited to your wallet.',
-    icon: 'wallet-outline',
-    iconColor: '#0D9488',
-    iconBg: 'rgba(13,148,136,0.10)',
-    accentBorder: '#0D9488',
-    valueMuted: true,
-  },
-  {
-    id: 'bookings',
-    label: 'Total bookings',
-    value: '0',
-    subtitle: 'Confirmed sessions across all time.',
-    icon: 'calendar-outline',
-    iconColor: '#2563EB',
-    iconBg: 'rgba(37,99,235,0.10)',
-    accentBorder: '#2563EB',
-    valueMuted: true,
-  },
-  {
-    id: 'upcoming',
-    label: 'Upcoming sessions',
-    value: '0',
-    subtitle: 'Next few bookings from your calendar.',
-    icon: 'time-outline',
-    iconColor: '#D97706',
-    iconBg: 'rgba(217,119,6,0.10)',
-    accentBorder: '#D97706',
-    valueMuted: true,
-  },
-  {
-    id: 'rating',
-    label: 'Rating & review',
-    value: '—',
-    subtitle: 'Public rating surface coming soon.',
-    icon: 'star-outline',
-    iconColor: '#7C3AED',
-    iconBg: 'rgba(124,58,237,0.10)',
-    accentBorder: '#7C3AED',
-    valueMuted: true,
-  },
-];
 
 type AccountNav = NativeStackNavigationProp<AccountStackParamList, typeof ROUTES.Account.Home>;
 
@@ -138,7 +79,7 @@ function SectionHeading(props: { title: string }): React.ReactElement {
 }
 
 interface StatCardProps {
-  item: ConsultantStatItem;
+  item: ConsultantBusinessOverviewStat;
   width: number;
 }
 
@@ -184,13 +125,12 @@ export function ConsultantProfileScreen(): React.ReactElement {
   const navigateToLogin = useNavigateToLogin();
   const { promptLogin, profileLoginDialog } = useProfileLoginPrompt();
 
-  const { data: profile } = useGetConsultantMyProfileQuery(undefined, {
-    skip: !hasVerifiedLogin,
-  });
+  const { profile } = useConsultantAccountProfile();
   const membership = useUserProfileMembershipSection({
     enabled: hasVerifiedLogin,
     membershipLine: 'experts',
   });
+  const { stats: businessOverviewStats } = useConsultantBusinessOverview(hasVerifiedLogin);
 
   const heroName = useMemo((): string => {
     if (!hasVerifiedLogin) {
@@ -287,7 +227,7 @@ export function ConsultantProfileScreen(): React.ReactElement {
               <View style={styles.section}>
                 <SectionHeading title="Business overview" />
                 <View style={styles.statsGrid}>
-                  {CONSULTANT_STATS.map((stat) => (
+                  {businessOverviewStats.map((stat) => (
                     <StatCard key={stat.id} item={stat} width={statCardWidth} />
                   ))}
                 </View>

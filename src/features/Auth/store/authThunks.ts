@@ -7,9 +7,9 @@ import { authApi } from '../api/authApi';
 import type { AuthRole, VerifyOtpDto } from '../types/authApi.types';
 import { isTokenExpired, parseAuthSessionPayload } from '../utils/authSessionParsing';
 import { loadPreferredAccountRole } from '../storage/accountRoleStorage';
+import { clearAppSession } from './clearAppSession';
 import {
   establishSession,
-  logout,
   setAuthSession,
   setPreferredAccountRole,
   setRestoringSession,
@@ -100,11 +100,11 @@ export const restoreSession = createAsyncThunk<boolean, void, { state: RootState
               const refreshed = await dispatch(refreshAuthToken()).unwrap();
               return refreshed;
             } catch {
-              dispatch(logout());
+              clearAppSession(dispatch);
               return false;
             }
           }
-          dispatch(logout());
+          clearAppSession(dispatch);
           return false;
         }
         return true;
@@ -118,7 +118,7 @@ export const restoreSession = createAsyncThunk<boolean, void, { state: RootState
         return true;
       }
 
-      dispatch(logout());
+      clearAppSession(dispatch);
       return false;
     } finally {
       dispatch(setRestoringSession(false));
@@ -195,7 +195,6 @@ export const establishProfileSession = createAsyncThunk<
 export const logoutSession = createAsyncThunk<void, void, { state: RootState }>(
   'auth/logoutSession',
   async (_arg, { dispatch }) => {
-    dispatch(logout());
-    dispatch(authApi.util.resetApiState());
+    clearAppSession(dispatch);
   },
 );

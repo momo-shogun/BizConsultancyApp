@@ -50,6 +50,8 @@ export const ROUTES = {
     Home: 'App/Account/Home',
     HelpSettings: 'App/Account/HelpSettings',
     Membership: 'App/Account/MembershipScreen',
+    ConsultantMyMembership: 'App/Account/ConsultantMyMembership',
+    UserMyMembership: 'App/Account/UserMyMembership',
     EditProfile: 'App/Account/EditProfile',
     ConsultantBankDetailsScreen: 'App/Account/ConsultantBankDetailsScreen',
     ExpertVideosScreen: 'App/Account/ExpertVideosScreen',

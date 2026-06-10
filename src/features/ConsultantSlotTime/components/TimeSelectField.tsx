@@ -12,6 +12,8 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { SCHEDULE_TIME_OPTIONS } from '@/features/ConsultantSlotTime/constants/scheduleConstants';
 import { THEME } from '@/constants/theme';
 
+export type TimeSelectFieldAppearance = 'compact' | 'field';
+
 export interface TimeSelectFieldProps {
   value: string;
   onChange: (value: string) => void;
@@ -19,6 +21,8 @@ export interface TimeSelectFieldProps {
   disabled?: boolean;
   /** Fill parent width in row layouts (weekly hours). */
   flexible?: boolean;
+  /** `field` matches shared form pickers (e.g. date field in day-off modal). */
+  appearance?: TimeSelectFieldAppearance;
 }
 
 export function TimeSelectField({
@@ -27,6 +31,7 @@ export function TimeSelectField({
   label,
   disabled = false,
   flexible = false,
+  appearance = 'compact',
 }: TimeSelectFieldProps): React.ReactElement {
   const [open, setOpen] = useState(false);
 
@@ -45,12 +50,17 @@ export function TimeSelectField({
         onPress={() => setOpen(true)}
         style={({ pressed }) => [
           styles.trigger,
+          appearance === 'field' ? styles.triggerField : null,
           flexible ? styles.triggerFlexible : null,
           disabled ? styles.triggerDisabled : null,
-          pressed && !disabled ? { opacity: 0.9 } : null,
+          pressed && !disabled && appearance === 'field' ? styles.triggerFieldPressed : null,
+          pressed && !disabled && appearance === 'compact' ? { opacity: 0.9 } : null,
         ]}
       >
-        <Text style={styles.triggerText} numberOfLines={1}>
+        <Text
+          style={[styles.triggerText, appearance === 'field' ? styles.triggerFieldText : null]}
+          numberOfLines={1}
+        >
           {displayLabel}
         </Text>
         <Ionicons name="chevron-down" size={16} color="#64748B" />
@@ -108,8 +118,25 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
     backgroundColor: '#F8FAFC',
   },
+  triggerField: {
+    minHeight: 48,
+    paddingHorizontal: THEME.spacing[16],
+    paddingVertical: THEME.spacing[12],
+    borderRadius: THEME.radius[12],
+    borderColor: THEME.colors.border,
+    backgroundColor: THEME.colors.white,
+  },
+  triggerFieldPressed: {
+    borderColor: THEME.colors.primary,
+    backgroundColor: '#F8FAFC',
+  },
+  triggerFieldText: {
+    fontSize: THEME.typography.size[16],
+    fontWeight: '600',
+  },
   triggerFlexible: {
     flex: 1,
+    alignSelf: 'stretch',
     minWidth: 0,
     width: '100%',
   },

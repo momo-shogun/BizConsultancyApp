@@ -5,11 +5,14 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import type { AppTabParamList } from '../types';
 import { ROUTES } from '../routeNames';
 
+import { selectEffectiveAccountRole } from '@/features/Auth/store/authSelectors';
 import { HomeDashboardScreen } from '@/features/Home/screens/HomeDashboardScreen';
 import { ServicesStackNavigator } from '../ServicesStackNavigator';
 import Edp from '@/features/Edp/screens/Edp';
+import { useAppSelector } from '@/store/typedHooks';
 import { AccountTabHost } from '../account/AccountTabHost';
 import { accountTabListeners } from '../tabBar/accountTabListeners';
+import { servicesTabListeners } from '../tabBar/servicesTabListeners';
 
 const Tab = createBottomTabNavigator<AppTabParamList>();
 
@@ -38,6 +41,9 @@ function getTabBarIcon(
 }
 
 export function BottomTabNavigator(): React.ReactElement {
+  const accountRole = useAppSelector(selectEffectiveAccountRole);
+  const showEdpTab = accountRole !== 'consultant';
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -50,13 +56,12 @@ export function BottomTabNavigator(): React.ReactElement {
       <Tab.Screen
         name={ROUTES.App.Services}
         component={ServicesStackNavigator}
+        listeners={servicesTabListeners}
         options={{ title: 'Services' }}
       />
-      <Tab.Screen
-        name={ROUTES.App.Edp}
-        component={Edp}
-        options={{ title: 'EDP' }}
-      />
+      {showEdpTab ? (
+        <Tab.Screen name={ROUTES.App.Edp} component={Edp} options={{ title: 'EDP' }} />
+      ) : null}
       <Tab.Screen
         name={ROUTES.App.Account}
         component={AccountTabHost}

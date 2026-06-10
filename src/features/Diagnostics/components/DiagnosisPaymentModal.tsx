@@ -12,6 +12,8 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { THEME } from '@/constants/theme';
+import { formatWalletBalanceInr } from '@/features/Home/api/userWalletsApi';
+
 import { DIAGNOSIS_THEME, hexToRgba } from '../constants/diagnosisTheme';
 
 export interface DiagnosisPaymentModalProps {
@@ -200,7 +202,7 @@ export function DiagnosisPaymentModal(props: DiagnosisPaymentModalProps): React.
                   <Text style={styles.walletInfoValue}>Loading…</Text>
                 ) : (
                   <Text style={styles.walletInfoValue}>
-                    ₹{walletBalanceRupees.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                    {formatWalletBalanceInr(walletBalanceRupees)}
                   </Text>
                 )}
               </Text>
@@ -232,8 +234,9 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     backgroundColor: 'rgba(15, 23, 42, 0.58)',
   },
-  backdropPressable: {
-    ...StyleSheet.absoluteFillObject,
+  backdrop: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(15, 23, 42, 0.58)',
   },
   sheetWrap: {
     width: '100%',
@@ -299,7 +302,7 @@ const styles = StyleSheet.create({
   amountCard: {
     borderRadius: 16,
     padding: THEME.spacing[16],
-    marginBottom: THEME.spacing[18],
+    marginBottom: THEME.spacing[12],
     borderWidth: 1,
     borderColor: hexToRgba(DIAGNOSIS_THEME.heroAccent, 0.2),
   },

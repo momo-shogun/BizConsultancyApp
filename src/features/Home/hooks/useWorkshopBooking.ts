@@ -1,15 +1,14 @@
-import { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import {
   selectAccountRole,
   selectDisplayName,
-  selectIsAuthenticated,
+  selectHasVerifiedLogin,
   selectLoggedInEmail,
   selectLoggedInMobile,
 } from '@/features/Auth/store/authSelectors';
+import { useProfileLoginPrompt } from '@/features/Profile/hooks/useProfileLoginPrompt';
 import {
   isPaidWorkshopBookingResult,
   useConfirmWorkshopBookingMutation,
@@ -31,8 +30,6 @@ import {
   resolveWorkshopBookAmount,
 } from '@/features/Home/utils/workshopDetailUtils';
 import { readWorkshopBookingErrorMessage } from '@/features/Home/utils/workshopBookingErrors';
-import { ROUTES } from '@/navigation/routeNames';
-import type { RootStackParamList } from '@/navigation/types';
 import { useAppSelector } from '@/store/typedHooks';
 
 export interface UseWorkshopBookingResult {
@@ -48,20 +45,21 @@ export interface UseWorkshopBookingResult {
   closePaymentModal: () => void;
   onPayRazorpay: () => void;
   onPayWallet: () => void;
+  workshopLoginDialog: React.ReactElement;
 }
 
 export function useWorkshopBooking(workshop: PublicWorkshopApiRow | null): UseWorkshopBookingResult {
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const hasVerifiedLogin = useAppSelector(selectHasVerifiedLogin);
   const accountRole = useAppSelector(selectAccountRole);
   const displayName = useAppSelector(selectDisplayName);
   const email = useAppSelector(selectLoggedInEmail);
   const mobile = useAppSelector(selectLoggedInMobile);
+  const { promptLogin, profileLoginDialog } = useProfileLoginPrompt();
 
   const isConsultant = accountRole === 'consultant';
 
   const { data: myBookings = [] } = useGetMyWorkshopBookingsQuery(undefined, {
-    skip: !isAuthenticated,
+    skip: !hasVerifiedLogin,
   });
   const [createBooking, { isLoading: creating }] = useCreateWorkshopBookingMutation();
   const [confirmBooking, { isLoading: confirming }] = useConfirmWorkshopBookingMutation();
@@ -69,25 +67,32 @@ export function useWorkshopBooking(workshop: PublicWorkshopApiRow | null): UseWo
   const [paymentModalVisible, setPaymentModalVisible] = useState(false);
   const [payingWith, setPayingWith] = useState<'razorpay' | 'wallet' | null>(null);
 
+  useEffect(() => {
+    if (!hasVerifiedLogin) {
+      setPaymentModalVisible(false);
+      setPayingWith(null);
+    }
+  }, [hasVerifiedLogin]);
+
   const { data: userWalletBalance } = useGetMyWalletBalanceQuery(undefined, {
-    skip: !isAuthenticated || !paymentModalVisible || isConsultant,
+    skip: !hasVerifiedLogin || !paymentModalVisible || isConsultant,
   });
   const { data: consultantWalletBalance } = useGetConsultantWalletBalanceQuery(undefined, {
-    skip: !isAuthenticated || !paymentModalVisible || !isConsultant,
+    skip: !hasVerifiedLogin || !paymentModalVisible || !isConsultant,
   });
 
   const bookAmountRupees = workshop != null ? resolveWorkshopBookAmount(workshop) : 0;
   const isFreeBooking = workshop != null ? isWorkshopBookingFree(workshop) : true;
 
   const walletBalanceRupees = useMemo((): number | null => {
-    if (!paymentModalVisible || !isAuthenticated) {
+    if (!paymentModalVisible || !hasVerifiedLogin) {
       return null;
     }
     const balance = isConsultant ? consultantWalletBalance : userWalletBalance;
     return typeof balance === 'number' && Number.isFinite(balance) ? balance : null;
   }, [
     paymentModalVisible,
-    isAuthenticated,
+    hasVerifiedLogin,
     isConsultant,
     consultantWalletBalance,
     userWalletBalance,
@@ -99,11 +104,11 @@ export function useWorkshopBooking(workshop: PublicWorkshopApiRow | null): UseWo
     walletBalanceRupees >= bookAmountRupees;
 
   const isBooked = useMemo((): boolean => {
-    if (workshop == null) {
+    if (workshop == null || !hasVerifiedLogin) {
       return false;
     }
     return myBookings.some((b) => b.workshopId === workshop.id);
-  }, [myBookings, workshop]);
+  }, [hasVerifiedLogin, myBookings, workshop]);
 
   const handleFreeBook = useCallback(async (): Promise<void> => {
     if (workshop == null) {
@@ -187,14 +192,11 @@ export function useWorkshopBooking(workshop: PublicWorkshopApiRow | null): UseWo
       return;
     }
 
-    if (!isAuthenticated) {
-      Alert.alert('Login required', 'Please sign in to book this workshop.', [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Sign in',
-          onPress: () => navigation.navigate(ROUTES.Root.Auth, { screen: ROUTES.Auth.Login }),
-        },
-      ]);
+    if (!hasVerifiedLogin) {
+      promptLogin({
+        title: 'Login required',
+        message: 'Please sign in to book this workshop.',
+      });
       return;
     }
 
@@ -219,10 +221,10 @@ export function useWorkshopBooking(workshop: PublicWorkshopApiRow | null): UseWo
     setPaymentModalVisible(true);
   }, [
     workshop,
-    isAuthenticated,
+    hasVerifiedLogin,
     isBooked,
     isFreeBooking,
-    navigation,
+    promptLogin,
     handleFreeBook,
   ]);
 
@@ -252,5 +254,6 @@ export function useWorkshopBooking(workshop: PublicWorkshopApiRow | null): UseWo
     onPayWallet: () => {
       void handleWalletBook();
     },
+    workshopLoginDialog: profileLoginDialog,
   };
 }

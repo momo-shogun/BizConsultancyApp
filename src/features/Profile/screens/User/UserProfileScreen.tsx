@@ -19,7 +19,7 @@ import { formatIndianMobile } from '@/utils/formatPhone';
 import { ProfileScreenHeaderChrome } from '@/features/Profile/components/ProfileScreenHeaderChrome';
 import { ProfileSignInGate } from '@/features/Profile/components/ProfileSignInGate';
 import { UserProfileMembershipSection } from '@/features/Profile/components/UserProfileMembershipSection';
-import { useGetUserMeQuery } from '@/features/Profile/api/userProfileApi';
+import { useUserAccountProfile } from '@/features/Profile/hooks/useAccountProfileHydration';
 import { useNavigateToLogin } from '@/features/Profile/hooks/useNavigateToLogin';
 import { useProfileLoginPrompt } from '@/features/Profile/hooks/useProfileLoginPrompt';
 import { useUserProfileMembershipSection } from '@/features/Profile/hooks/useUserProfileMembershipSection';
@@ -84,7 +84,7 @@ export function UserProfileScreen(): React.ReactElement {
   const navigateToLogin = useNavigateToLogin();
   const { promptLogin, profileLoginDialog } = useProfileLoginPrompt();
 
-  const { data: profile } = useGetUserMeQuery(undefined, { skip: !hasVerifiedLogin });
+  const { profile } = useUserAccountProfile();
   const membership = useUserProfileMembershipSection({
     enabled: hasVerifiedLogin,
     membershipLine: 'users',
