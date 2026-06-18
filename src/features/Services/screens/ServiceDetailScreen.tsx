@@ -147,7 +147,8 @@ export function ServiceDetailScreen(): React.ReactElement {
 
   const { service: item, isLoading, isError } = useServiceBySlug(slug);
   const { resolveRecommendedTargetSlug } = useServicePageSlugLookup();
-  const { handleGetStarted, servicePurchaseLoginDialog } = useServicePurchaseLoginGate();
+  const { handleGetStarted, handleViewPurchased, isServicePurchased, servicePurchaseLoginDialog } =
+    useServicePurchaseLoginGate();
 
   const [activeTab, setActiveTab] =
     useState<DetailTabKey>('about');
@@ -199,6 +200,7 @@ export function ServiceDetailScreen(): React.ReactElement {
   }, [navigation, item]);
 
   const aboutUi = useMemo(() => mapAboutToUiProps(item?.about), [item?.about]);
+  const isPurchased = isServicePurchased(slug);
 
   const tabPanel = useMemo((): React.ReactElement | null => {
     if (item == null) {
@@ -376,24 +378,40 @@ export function ServiceDetailScreen(): React.ReactElement {
                   </Text>
                 </View>
 
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`Get started with ${item.title}`}
-                  hitSlop={8}
-                  onPress={() => handleGetStarted(item.slug)}
-                  style={({ pressed }) => [
-                    styles.heroCta,
-                    pressed ? styles.heroCtaPressed : null,
-                  ]}
-                >
-                  <Text style={styles.heroCtaText}>Get started</Text>
+                {isPurchased ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`View purchased service ${item.title} in My Services`}
+                    hitSlop={8}
+                    onPress={() => handleViewPurchased(item.slug)}
+                    style={({ pressed }) => [
+                      styles.heroCtaPurchased,
+                      pressed ? styles.heroCtaPressed : null,
+                    ]}
+                  >
+                    <Ionicons name="checkmark-circle" size={16} color={THEME.colors.white} />
+                    <Text style={styles.heroCtaText}>Purchased</Text>
+                  </Pressable>
+                ) : (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Get started with ${item.title}`}
+                    hitSlop={8}
+                    onPress={() => handleGetStarted(item.slug)}
+                    style={({ pressed }) => [
+                      styles.heroCta,
+                      pressed ? styles.heroCtaPressed : null,
+                    ]}
+                  >
+                    <Text style={styles.heroCtaText}>Get started</Text>
 
-                  <Ionicons
-                    name="arrow-forward"
-                    size={16}
-                    color={THEME.colors.white}
-                  />
-                </Pressable>
+                    <Ionicons
+                      name="arrow-forward"
+                      size={16}
+                      color={THEME.colors.white}
+                    />
+                  </Pressable>
+                )}
               </View>
 
               {/* --------------------------- QUICK ACTIONS --------------------------- */}

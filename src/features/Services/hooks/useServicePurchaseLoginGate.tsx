@@ -3,12 +3,19 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-import { selectHasVerifiedLogin } from '@/features/Auth/store/authSelectors';
+import {
+  selectAccountRole,
+  selectHasVerifiedLogin,
+} from '@/features/Auth/store/authSelectors';
 import { useNavigateToLogin } from '@/features/Profile/hooks/useNavigateToLogin';
 import { ROUTES } from '@/navigation/routeNames';
 import type { ServicesStackParamList } from '@/navigation/types';
 import { Dialog } from '@/shared/components/dialog';
+import { showGlobalToast } from '@/shared/components/toast';
 import { useAppSelector } from '@/store/typedHooks';
+
+import { usePurchasedServicesLookup } from './usePurchasedServicesLookup';
+import { navigateToMyServices } from '../utils/navigateToMyServices';
 
 export const SERVICE_PURCHASE_LOGIN_MESSAGE =
   'To purchase this service, you have to Login first';
@@ -21,6 +28,8 @@ interface UseServicePurchaseLoginGateOptions {
 
 export interface UseServicePurchaseLoginGateResult {
   handleGetStarted: (slug: string) => void;
+  handleViewPurchased: (slug: string) => void;
+  isServicePurchased: (slug: string) => boolean;
   promptServiceLogin: () => void;
   servicePurchaseLoginDialog: React.ReactElement;
 }
@@ -30,6 +39,8 @@ export function useServicePurchaseLoginGate(
 ): UseServicePurchaseLoginGateResult {
   const navigation = useNavigation<NativeStackNavigationProp<ServicesStackParamList>>();
   const hasVerifiedLogin = useAppSelector(selectHasVerifiedLogin);
+  const accountRole = useAppSelector(selectAccountRole);
+  const { isServicePurchased } = usePurchasedServicesLookup();
   const navigateToLogin = useNavigateToLogin();
   const onDismiss = options.onDismiss;
   const [dialogVisible, setDialogVisible] = useState(false);
@@ -43,15 +54,34 @@ export function useServicePurchaseLoginGate(
     setDialogVisible(true);
   }, []);
 
+  const handleViewPurchased = useCallback(
+    (_slug: string): void => {
+      if (!hasVerifiedLogin) {
+        promptServiceLogin();
+        return;
+      }
+      showGlobalToast({
+        variant: 'info',
+        message: 'You have already purchased this service. Opening My Services.',
+      });
+      navigateToMyServices(accountRole === 'consultant');
+    },
+    [accountRole, hasVerifiedLogin, promptServiceLogin],
+  );
+
   const handleGetStarted = useCallback(
     (slug: string): void => {
       if (!hasVerifiedLogin) {
         promptServiceLogin();
         return;
       }
+      if (isServicePurchased(slug)) {
+        handleViewPurchased(slug);
+        return;
+      }
       navigation.navigate(ROUTES.Services.Onboarding, { slug });
     },
-    [hasVerifiedLogin, navigation, promptServiceLogin],
+    [handleViewPurchased, hasVerifiedLogin, isServicePurchased, navigation, promptServiceLogin],
   );
 
   const handleLogin = useCallback((): void => {
@@ -76,5 +106,11 @@ export function useServicePurchaseLoginGate(
     [closeDialog, dialogVisible, handleLogin],
   );
 
-  return { handleGetStarted, promptServiceLogin, servicePurchaseLoginDialog };
+  return {
+    handleGetStarted,
+    handleViewPurchased,
+    isServicePurchased,
+    promptServiceLogin,
+    servicePurchaseLoginDialog,
+  };
 }

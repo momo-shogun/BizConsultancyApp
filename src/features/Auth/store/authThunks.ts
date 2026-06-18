@@ -4,7 +4,7 @@ import type { RootState } from '@/store';
 import { isValidIndianMobile } from '@/utils/formatPhone';
 
 import { authApi } from '../api/authApi';
-import type { AuthRole, VerifyOtpDto } from '../types/authApi.types';
+import type { AuthRole, RegisterLoginDto, VerifyOtpDto } from '../types/authApi.types';
 import { isTokenExpired, parseAuthSessionPayload } from '../utils/authSessionParsing';
 import { loadPreferredAccountRole } from '../storage/accountRoleStorage';
 import { clearAppSession } from './clearAppSession';
@@ -133,6 +133,34 @@ function isVerifyOtpUnavailable(error: unknown): boolean {
   const status = (error as { status?: unknown }).status;
   return status === 404 || status === 'FETCH_ERROR' || status === 'PARSING_ERROR';
 }
+
+export const registerAndLogin = createAsyncThunk<void, RegisterLoginDto, { state: RootState }>(
+  'auth/registerAndLogin',
+  async (body, { dispatch }) => {
+    const response = await dispatch(authApi.endpoints.registerLogin.initiate(body)).unwrap();
+
+    if (response.valid === false) {
+      throw new Error(response.reason ?? 'Registration failed. Please try again.');
+    }
+
+    const parsed = parseAuthSessionPayload(response, {
+      mobile: body.mobile,
+      role: body.role,
+    });
+
+    if (parsed == null) {
+      throw new Error('Invalid registration response. Missing access token.');
+    }
+
+    await dispatch(
+      applyAuthSession({
+        ...parsed,
+        displayName: parsed.displayName ?? body.name,
+        email: parsed.email ?? body.email,
+      }),
+    );
+  },
+);
 
 export const verifyOtpAndLogin = createAsyncThunk<
   void,

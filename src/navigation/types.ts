@@ -10,7 +10,7 @@ export type AuthStackParamList = {
   [ROUTES.Auth.Landing]: undefined;
   [ROUTES.Auth.ChooseAccountType]: { next?: 'login' | 'signup'; skipAutoSelect?: boolean };
   [ROUTES.Auth.Login]: undefined;
-  [ROUTES.Auth.Signup]: undefined;
+  [ROUTES.Auth.Signup]: { mobile?: string } | undefined;
   [ROUTES.Auth.OtpVerification]: { contact: string };
   [ROUTES.Auth.ProfileSetup]: undefined;
 };

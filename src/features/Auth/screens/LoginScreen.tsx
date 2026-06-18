@@ -45,7 +45,7 @@ export function LoginScreen(): React.ReactElement {
   const onContinue = async (contact: string): Promise<void> => {
     const result = await submitMobile(contact);
     if (result === 'signup') {
-      navigation.navigate(ROUTES.Auth.Signup);
+      navigation.navigate(ROUTES.Auth.Signup, { mobile: contact });
       return;
     }
     if (result === 'otp') {
