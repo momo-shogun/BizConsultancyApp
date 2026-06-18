@@ -16,6 +16,7 @@ import { ContactDetailsStep } from './steps/ContactDetailsStep';
 import { PreviewStep } from './steps/PreviewStep';
 import { ScheduleStep } from './steps/ScheduleStep';
 import { useConsultationOnboarding } from '../context/ConsultationOnboardingContext';
+import { CONSULTANT_BOOKING_LOGIN_MESSAGE } from '../hooks/useConsultantBookingLoginGate';
 import { openConsultationRazorpayCheckout } from '../services/consultationRazorpayCheckout';
 import type { ConsultationStepConfig } from '../types/consultationOnboarding.types';
 import type {
@@ -46,6 +47,7 @@ const { usePayConsultantBookingWithWalletMutation } = consultationStepperApi;
 interface ConsultationStepperProps {
   onComplete: (bookingId: number) => void;
   onStepChange?: (step: number) => void;
+  ensureVerifiedLogin?: () => boolean;
 }
 
 const STEP_CONFIGS: ConsultationStepConfig[] = [
@@ -75,11 +77,24 @@ function bookingErrorMessage(error: unknown): string {
     if (data != null && typeof data === 'object' && 'message' in data) {
       const message = (data as { message?: unknown }).message;
       if (typeof message === 'string' && message.length > 0) {
+        if (message.toLowerCase().includes('unauthorized')) {
+          return CONSULTANT_BOOKING_LOGIN_MESSAGE;
+        }
         return message;
       }
       if (Array.isArray(message) && message.length > 0) {
-        return message.map(String).join(', ');
+        const joined = message.map(String).join(', ');
+        if (joined.toLowerCase().includes('unauthorized')) {
+          return CONSULTANT_BOOKING_LOGIN_MESSAGE;
+        }
+        return joined;
       }
+    }
+  }
+  if (error != null && typeof error === 'object' && 'status' in error) {
+    const status = (error as { status?: unknown }).status;
+    if (status === 401) {
+      return CONSULTANT_BOOKING_LOGIN_MESSAGE;
     }
   }
   return 'Could not create booking. Please try again.';
@@ -107,7 +122,7 @@ function formatConsultationTypeLabel(type: string): string {
 }
 
 export function ConsultationStepper(props: ConsultationStepperProps): React.ReactElement {
-  const { onComplete, onStepChange } = props;
+  const { onComplete, onStepChange, ensureVerifiedLogin } = props;
   const { form, selectedTimeSlot } = useConsultationOnboarding();
   const [createBooking, { isLoading: isCreatingBooking }] = useCreateConsultantBookingMutation();
   const [createRazorpayOrder] = useCreateConsultantBookingRazorpayOrderMutation();
@@ -267,6 +282,10 @@ export function ConsultationStepper(props: ConsultationStepperProps): React.Reac
   ]);
 
   const startBookingCheckout = useCallback(async (): Promise<void> => {
+    if (ensureVerifiedLogin != null && !ensureVerifiedLogin()) {
+      return;
+    }
+
     const submitError = validateBookingSubmit(form, selectedTimeSlot);
     if (submitError != null) {
       showGlobalError(submitError);
@@ -298,6 +317,7 @@ export function ConsultationStepper(props: ConsultationStepperProps): React.Reac
     createBooking,
     form,
     handleBookingSuccess,
+    ensureVerifiedLogin,
     selectedTimeSlot,
   ]);
 

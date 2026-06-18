@@ -25,8 +25,10 @@ function getErrorMessage(error: unknown): string {
   return 'Something went wrong. Please try again.';
 }
 
+export type LoginSubmitResult = 'otp' | 'signup' | false;
+
 export interface UseLoginFlowResult {
-  submitMobile: (mobile: string) => Promise<boolean>;
+  submitMobile: (mobile: string) => Promise<LoginSubmitResult>;
   isLoading: boolean;
   error: string | null;
 }
@@ -42,7 +44,7 @@ export function useLoginFlow(): UseLoginFlowResult {
   const isLoading = verifyState.isLoading || sendOtpState.isLoading;
 
   const submitMobile = useCallback(
-    async (mobile: string): Promise<boolean> => {
+    async (mobile: string): Promise<LoginSubmitResult> => {
       if (role == null) {
         setError('Please choose account type first.');
         return false;
@@ -52,6 +54,10 @@ export function useLoginFlow(): UseLoginFlowResult {
 
       try {
         const verifyResult = await verifyNumber({ mobile, role }).unwrap();
+
+        if (!verifyResult.verified) {
+          return 'signup';
+        }
 
         dispatch(
           setLoginSession({
@@ -76,7 +82,7 @@ export function useLoginFlow(): UseLoginFlowResult {
           return false;
         }
 
-        return true;
+        return 'otp';
       } catch (err: unknown) {
         console.log('[Login API] login flow failed', err);
         setError(getErrorMessage(err));

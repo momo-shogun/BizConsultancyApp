@@ -17,6 +17,7 @@ import { buildDirectVideoHtml } from '@/features/Edp/utils/edpOverviewVideoHtml'
 import { resolveEdpVideoEmbed, resolveYoutubeThumbnailUrl } from '@/features/Edp/utils/edpMedia';
 import { ROUTES } from '@/navigation/routeNames';
 import type { EdpStackParamList } from '@/navigation/types';
+import { useProfileLoginPrompt } from '@/features/Profile/hooks/useProfileLoginPrompt';
 import { SafeAreaWrapper, ScreenHeader } from '@/shared/components';
 
 import { EdpModuleDetailSkeleton } from '@/features/Edp/components/EdpModuleDetailSkeleton';
@@ -284,6 +285,13 @@ export default function EdpVideoScreen(): React.ReactElement {
   const insets = useSafeAreaInsets();
   const slug = normalizeEdpModuleSlug(route.params?.slug ?? '');
   const lang = route.params?.lang ?? 'en';
+  const { promptLogin, profileLoginDialog } = useProfileLoginPrompt();
+  const handleLoginRequired = useCallback((): void => {
+    promptLogin({
+      title: 'Sign in required',
+      message: 'Please log in to watch this video.',
+    });
+  }, [promptLogin]);
 
   const {
     isLoading,
@@ -308,7 +316,7 @@ export default function EdpVideoScreen(): React.ReactElement {
     openLessonPdf,
     refreshProgress,
     refetch,
-  } = useEdpModuleDetailScreen({ slug, lang });
+  } = useEdpModuleDetailScreen({ slug, lang, onLoginRequired: handleLoginRequired });
 
   const { reportReadingTime } = useEdpWatchTimeHeartbeat({
     enabled: true,
@@ -476,6 +484,7 @@ export default function EdpVideoScreen(): React.ReactElement {
           </View>
         </ScrollView>
       </View>
+      {profileLoginDialog}
     </SafeAreaWrapper>
   );
 }

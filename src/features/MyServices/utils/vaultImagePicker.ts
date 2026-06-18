@@ -27,6 +27,7 @@ const CAMERA_OPTIONS: CameraOptions = {
   saveToPhotos: false,
   cameraType: 'back',
   presentationStyle: 'fullScreen',
+  includeExtra: true,
 };
 
 const LIBRARY_OPTIONS: ImageLibraryOptions = {

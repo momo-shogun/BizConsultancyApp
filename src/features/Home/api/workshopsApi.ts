@@ -17,6 +17,13 @@ export const DEFAULT_HOME_WORKSHOPS_QUERY = {
   status: 1,
 } as const satisfies PublicWorkshopsQuery;
 
+/** Full workshops list — no `type` filter so past sessions (all types) are included. */
+export const WORKSHOP_LIST_QUERY = {
+  page: 1,
+  limit: 20,
+  status: 1,
+} as const satisfies PublicWorkshopsQuery;
+
 export const workshopsApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
     getPublicWorkshops: build.query<PublicWorkshopsListResult, PublicWorkshopsQuery | void>({
@@ -25,7 +32,7 @@ export const workshopsApi = baseApi.injectEndpoints({
         params: {
           page: params?.page ?? DEFAULT_HOME_WORKSHOPS_QUERY.page,
           limit: params?.limit ?? DEFAULT_HOME_WORKSHOPS_QUERY.limit,
-          ...(params?.type != null ? { type: params.type } : { type: DEFAULT_HOME_WORKSHOPS_QUERY.type }),
+          ...(params?.type != null ? { type: params.type } : {}),
           ...(params?.status != null
             ? { status: params.status }
             : { status: DEFAULT_HOME_WORKSHOPS_QUERY.status }),
@@ -58,4 +65,8 @@ export const workshopsApi = baseApi.injectEndpoints({
   }),
 });
 
-export const { useGetPublicWorkshopsQuery, useGetPublicWorkshopBySlugQuery } = workshopsApi;
+export const {
+  useGetPublicWorkshopsQuery,
+  useLazyGetPublicWorkshopsQuery,
+  useGetPublicWorkshopBySlugQuery,
+} = workshopsApi;

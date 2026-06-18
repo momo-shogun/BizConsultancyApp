@@ -10,9 +10,7 @@ import {
   type ImageLoadEventData,
   type NativeSyntheticEvent,
 } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
-import { THEME } from '@/constants/theme';
-import { ImagePlaceholder } from '@/shared/components/media/ImagePlaceholder';
+import { THEME } from '@/constants/theme';import { ImagePlaceholder } from '@/shared/components/media/ImagePlaceholder';
 import { resolveAwsImageUrl } from '@/utils/awsImageUrl';
 
 /** Accent used for pills on the image overlay. */
@@ -289,35 +287,6 @@ export function EventSpotlightCard({
                 setImageFailed(true);
               }}
             />
-            {tags.length > 0 ? (
-              <LinearGradient
-                colors={['transparent', 'rgba(15,23,42,0.45)']}
-                style={styles.imageGradient}
-                pointerEvents="none"
-              />
-            ) : null}
-            {tags.length > 0 ? (
-              <View style={styles.tagOverlay} pointerEvents="none">
-                <View style={styles.tagRow}>
-                  {tags.map((tag, index) => {
-                    const label = truncateTagLabel(
-                      tag,
-                      isCompact ? MAX_TAG_CHARS_COMPACT : MAX_TAG_CHARS_DEFAULT,
-                    );
-                    return (
-                      <View
-                        key={`${tag}-${index}`}
-                        style={[styles.tagPill, isCompact ? styles.tagPillCompact : null]}
-                      >
-                        <Text style={styles.tagText} numberOfLines={1} ellipsizeMode="tail">
-                          {label}
-                        </Text>
-                      </View>
-                    );
-                  })}
-                </View>
-              </View>
-            ) : null}
           </>
         ) : (
           <ImagePlaceholder
@@ -351,6 +320,27 @@ export function EventSpotlightCard({
             {scheduleLabel.length > 0 ? ` · ${scheduleLabel}` : ''}
           </Text>
         )}
+
+        {tags.length > 0 ? (
+          <View style={styles.tagRow}>
+            {tags.map((tag, index) => {
+              const label = truncateTagLabel(
+                tag,
+                isCompact ? MAX_TAG_CHARS_COMPACT : MAX_TAG_CHARS_DEFAULT,
+              );
+              return (
+                <View
+                  key={`${tag}-${index}`}
+                  style={[styles.tagPill, isCompact ? styles.tagPillCompact : null]}
+                >
+                  <Text style={styles.tagText} numberOfLines={1} ellipsizeMode="tail">
+                    {label}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+        ) : null}
 
         <View style={[styles.offerStrip, isCompact ? styles.offerStripCompact : null]}>
           <Text style={styles.offerCaption}>Registration fee</Text>
@@ -436,37 +426,23 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  imageGradient: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  tagOverlay: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingHorizontal: THEME.spacing[12],
-    paddingBottom: THEME.spacing[12],
-  },
   tagRow: {
     flexDirection: 'row',
-    flexWrap: 'nowrap',
+    flexWrap: 'wrap',
     gap: 6,
-    justifyContent: 'flex-end',
-    width: '100%',
-  },
-  tagPill: {
+    marginTop: THEME.spacing[4],
+  },  tagPill: {
     flexShrink: 1,
-    maxWidth: '48%',
+    maxWidth: '100%',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 4,
     backgroundColor: THEME.colors.primary,
   },
   tagPillCompact: {
-    maxWidth: '47%',
+    maxWidth: '100%',
     paddingHorizontal: 8,
-  },
-  tagText: {
+  },  tagText: {
     fontSize: 11,
     fontWeight: '700',
     color: 'white',

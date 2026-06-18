@@ -8,13 +8,15 @@ import { useSendOtpMutation } from '@/features/Auth/api/authApi';
 import { setAuthProfile } from '@/features/Auth/store/authSlice';
 import { verifyOtpAndLogin } from '@/features/Auth/store/authThunks';
 import { ROUTES } from '@/navigation/routeNames';
-import { useAppDispatch } from '@/store/typedHooks';
+import { useAppDispatch, useAppSelector } from '@/store/typedHooks';
+import { selectLoginSession } from '@/features/Auth/store/authSelectors';
 import type { AuthStackParamList } from '@/navigation/types';
 import { Button, EmptyState, SafeAreaWrapper, ScreenWrapper } from '@/shared/components';
 import { showGlobalError, showGlobalToast } from '@/shared/components/toast';
 import { getApiErrorMessage } from '@/utils/apiError';
 
 const INVALID_OTP_MESSAGE = 'Invalid OTP, Please enter correct OTP';
+const USER_NOT_FOUND_MESSAGE = 'User not found';
 import { OTPVerificationScreenContent as UserOtpContent } from '@/features/Auth/User/screens/OTPVerificationScreenContent';
 import { OTPVerificationScreenContent as ConsultantOtpContent } from '@/features/Auth/Consultant/screens/OTPVerificationScreenContent';
 
@@ -27,8 +29,9 @@ export function OTPVerificationScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Rt>();
   const dispatch = useAppDispatch();
+  const loginSession = useAppSelector(selectLoginSession);
   const { state, completeOnboarding } = useAuth();
-  const [, setIsVerifying] = useState<boolean>(false);
+  const [isVerifying, setIsVerifying] = useState<boolean>(false);
   const [verificationError, setVerificationError] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState<number>(0);
   const [sendOtp, { isLoading: isResending }] = useSendOtpMutation();
@@ -68,12 +71,18 @@ export function OTPVerificationScreen(): React.ReactElement {
 
   const onVerified = useCallback(
     async (otp: string): Promise<void> => {
-      if (state.userType == null) {
+      if (state.userType == null || isVerifying) {
+        return;
+      }
+
+      setVerificationError(null);
+
+      if (state.authIntent === 'login' && loginSession?.isRegistered === false) {
+        setVerificationError(USER_NOT_FOUND_MESSAGE);
         return;
       }
 
       setIsVerifying(true);
-      setVerificationError(null);
       try {
         await dispatch(
           verifyOtpAndLogin({
@@ -96,13 +105,21 @@ export function OTPVerificationScreen(): React.ReactElement {
         }
 
         navigation.navigate(ROUTES.Auth.ProfileSetup);
-      } catch {
-        setVerificationError(INVALID_OTP_MESSAGE);
+      } catch (error: unknown) {
+        if (
+          state.authIntent === 'login' &&
+          (loginSession?.isRegistered === false ||
+            getApiErrorMessage(error).toLowerCase().includes('user not found'))
+        ) {
+          setVerificationError(USER_NOT_FOUND_MESSAGE);
+          return;
+        }
+        setVerificationError(getApiErrorMessage(error, INVALID_OTP_MESSAGE));
       } finally {
         setIsVerifying(false);
       }
     },
-    [completeOnboarding, contact, dispatch, navigation, state.userType],
+    [completeOnboarding, contact, dispatch, isVerifying, loginSession, navigation, state.authIntent, state.userType],
   );
 
   if (!state.userType) {

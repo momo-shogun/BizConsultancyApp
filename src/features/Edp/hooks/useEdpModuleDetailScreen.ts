@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { selectIsAuthenticated } from '@/features/Auth/store/authSelectors';
+import { selectHasVerifiedLogin } from '@/features/Auth/store/authSelectors';
 import { useGetEdpCourseDetailsQuery } from '@/features/Edp/api/edpModuleApi';
 import { useGetEdpCoursesWithDocumentsQuery } from '@/features/Edp/api/edpLandingApi';
 import { useAppSelector } from '@/store/typedHooks';
@@ -24,6 +24,7 @@ import type { EdpWatchProgressContext } from './useEdpWatchTimeHeartbeat';
 export interface UseEdpModuleDetailScreenParams {
   slug: string;
   lang: EdpModuleLang;
+  onLoginRequired?: () => void;
 }
 
 export interface UseEdpModuleDetailScreenResult {
@@ -65,9 +66,9 @@ export interface UseEdpModuleDetailScreenResult {
 export function useEdpModuleDetailScreen(
   params: UseEdpModuleDetailScreenParams,
 ): UseEdpModuleDetailScreenResult {
-  const { slug, lang } = params;
+  const { slug, lang, onLoginRequired } = params;
   const moduleSlug = normalizeEdpModuleSlug(slug);
-  const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const hasVerifiedLogin = useAppSelector(selectHasVerifiedLogin);
   const {
     data: detail,
     isLoading,
@@ -136,7 +137,7 @@ export function useEdpModuleDetailScreen(
   }, [subs]);
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!hasVerifiedLogin) {
       if (guestOverviewVideoUrl != null) {
         setMainVideoUrl(guestOverviewVideoUrl);
         setPlaying(true);
@@ -162,7 +163,7 @@ export function useEdpModuleDetailScreen(
     }
     setMainVideoUrl(null);
     setPlaying(false);
-  }, [course?.url, course?.id, guestOverviewVideoUrl, isAuthenticated, subs, lang]);
+  }, [course?.url, course?.id, guestOverviewVideoUrl, hasVerifiedLogin, subs, lang]);
 
   const lessons = useMemo(
     () => mapEdpModuleLessons(subs, lang, mainVideoUrl),
@@ -202,21 +203,22 @@ export function useEdpModuleDetailScreen(
 
   const playLessonVideo = useCallback(
     (lesson: EdpModuleLessonRow): void => {
-      if (!isAuthenticated) {
+      if (!hasVerifiedLogin) {
+        onLoginRequired?.();
         return;
       }
       const next = lesson.videoUrl?.trim();
       if (next == null || next.length === 0) {
         return;
       }
-    setWatchProgressContext({
-      categoryId: lesson.categoryId,
-      subCategoryId: lesson.topicId,
-    });
+      setWatchProgressContext({
+        categoryId: lesson.categoryId,
+        subCategoryId: lesson.topicId,
+      });
       setMainVideoUrl(next);
       setPlaying(true);
     },
-    [isAuthenticated],
+    [hasVerifiedLogin, onLoginRequired],
   );
 
   const openLessonPdf = useCallback((lesson: EdpModuleLessonRow): void => {
@@ -261,7 +263,7 @@ export function useEdpModuleDetailScreen(
     playing,
     setPlaying,
     watchProgressContext,
-    canPlayLessonVideos: isAuthenticated,
+    canPlayLessonVideos: hasVerifiedLogin,
     playLessonVideo,
     openLessonPdf,
     openSupportingPdf,

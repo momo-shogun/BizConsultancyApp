@@ -1,5 +1,6 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   FlatList,
   ListRenderItem,
   Pressable,
@@ -15,15 +16,14 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { THEME } from '@/constants/theme';
 import type { RootStackParamList } from '@/navigation/types';
 import {
-  DEFAULT_HOME_WORKSHOPS_QUERY,
-  useGetPublicWorkshopsQuery,
-} from '@/features/Home/api/workshopsApi';
+  getWorkshopSessionFilterLabel,
+  useWorkshopListScreen,
+} from '@/features/Home/hooks/useWorkshopListScreen';
 import {
   filterWorkshopsBySession,
   matchesWorkshopSearch,
   type WorkshopSessionFilter,
 } from '@/features/Home/utils/workshopFilters';
-import { mapPublicWorkshopsToEventSpotlightItems } from '@/features/Home/utils/workshopMappers';
 import {
   EmptyState,
   EventSpotlightCard,
@@ -42,6 +42,23 @@ const SESSION_FILTERS: { id: WorkshopSessionFilter; label: string }[] = [
   { id: 'past', label: 'Past sessions' },
 ];
 
+type WorkshopGridCell =
+  | { kind: 'workshop'; item: EventSpotlightItem }
+  | { kind: 'spacer'; id: string };
+
+function buildWorkshopGridCells(items: EventSpotlightItem[]): WorkshopGridCell[] {
+  const cells: WorkshopGridCell[] = items.map((item) => ({
+    kind: 'workshop',
+    item,
+  }));
+
+  if (cells.length % 2 !== 0) {
+    cells.push({ kind: 'spacer', id: 'workshop-grid-spacer' });
+  }
+
+  return cells;
+}
+
 export function WorkshopListScreen(): React.ReactElement {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
@@ -49,35 +66,67 @@ export function WorkshopListScreen(): React.ReactElement {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [sessionFilter, setSessionFilter] = useState<WorkshopSessionFilter>('upcoming');
 
-  const { data: workshopsPage, isLoading, isError } = useGetPublicWorkshopsQuery(
-    DEFAULT_HOME_WORKSHOPS_QUERY,
-  );
+  const {
+    allWorkshopItems,
+    upcomingCount,
+    pastCount,
+    isLoading,
+    isLoadingMore,
+    isError,
+    hasMore,
+    loadMore,
+  } = useWorkshopListScreen();
 
-  const allWorkshopItems = useMemo((): EventSpotlightItem[] => {
-    const rows = workshopsPage?.items ?? [];
-    return mapPublicWorkshopsToEventSpotlightItems(rows);
-  }, [workshopsPage?.items]);
+  const isFullyLoaded = !hasMore && !isLoading && !isLoadingMore;
+
+  useEffect(() => {
+    if (!hasMore || isLoading || isLoadingMore || isError) {
+      return;
+    }
+    loadMore();
+  }, [hasMore, isError, isLoading, isLoadingMore, loadMore, sessionFilter]);
 
   const filteredItems = useMemo((): EventSpotlightItem[] => {
     const bySession = filterWorkshopsBySession(allWorkshopItems, sessionFilter);
     return bySession.filter((item) => matchesWorkshopSearch(item, searchQuery));
   }, [allWorkshopItems, searchQuery, sessionFilter]);
 
-  const keyExtractor = useCallback((item: EventSpotlightItem): string => String(item.id), []);
+  const gridCells = useMemo(
+    (): WorkshopGridCell[] => buildWorkshopGridCells(filteredItems),
+    [filteredItems],
+  );
 
-  const renderItem = useCallback<ListRenderItem<EventSpotlightItem>>(
-    ({ item }) => (
-      <View style={styles.cardCell}>
-        <EventSpotlightCard
-          item={item}
-          variant="compact"
-          onPress={() =>
-            navigation.navigate(ROUTES.Root.WorkshopsDetail, { slug: item.slug })
-          }
-        />
-      </View>
-    ),
+  const keyExtractor = useCallback((cell: WorkshopGridCell): string => {
+    return cell.kind === 'workshop' ? String(cell.item.id) : cell.id;
+  }, []);
+
+  const renderItem = useCallback<ListRenderItem<WorkshopGridCell>>(
+    ({ item: cell }) => {
+      if (cell.kind === 'spacer') {
+        return <View style={styles.cardCell} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />;
+      }
+
+      return (
+        <View style={styles.cardCell}>
+          <EventSpotlightCard
+            item={cell.item}
+            variant="compact"
+            onPress={() =>
+              navigation.navigate(ROUTES.Root.WorkshopsDetail, { slug: cell.item.slug })
+            }
+          />
+        </View>
+      );
+    },
     [navigation],
+  );
+
+  const sessionCounts = useMemo(
+    (): Record<WorkshopSessionFilter, number> => ({
+      upcoming: upcomingCount,
+      past: pastCount,
+    }),
+    [pastCount, upcomingCount],
   );
 
   const ListHeader = useCallback(
@@ -85,12 +134,17 @@ export function WorkshopListScreen(): React.ReactElement {
       <View style={styles.sessionRow}>
         {SESSION_FILTERS.map((filter) => {
           const selected = sessionFilter === filter.id;
+          const label = getWorkshopSessionFilterLabel(
+            filter.id,
+            sessionCounts[filter.id],
+            isFullyLoaded,
+          );
           return (
             <Pressable
               key={filter.id}
               accessibilityRole="button"
               accessibilityState={{ selected }}
-              accessibilityLabel={filter.label}
+              accessibilityLabel={label}
               onPress={() => setSessionFilter(filter.id)}
               style={({ pressed }) => [
                 styles.sessionChip,
@@ -99,15 +153,31 @@ export function WorkshopListScreen(): React.ReactElement {
               ]}
             >
               <Text style={[styles.sessionChipText, selected ? styles.sessionChipTextSelected : null]}>
-                {filter.label}
+                {label}
               </Text>
             </Pressable>
           );
         })}
       </View>
     ),
-    [sessionFilter],
+    [isFullyLoaded, sessionCounts, sessionFilter],
   );
+
+  const ListFooter = useCallback((): React.ReactElement | null => {
+    if (!isLoadingMore) {
+      return null;
+    }
+    return (
+      <View style={styles.footerLoader}>
+        <ActivityIndicator color={THEME.colors.primary} size="small" />
+        <Text style={styles.footerLoaderText}>Loading more workshops…</Text>
+      </View>
+    );
+  }, [isLoadingMore]);
+
+  const handleEndReached = useCallback((): void => {
+    loadMore();
+  }, [loadMore]);
 
   return (
     <SafeAreaWrapper edges={['top', 'bottom']}>
@@ -149,11 +219,14 @@ export function WorkshopListScreen(): React.ReactElement {
 
       <ScreenWrapper>
         <FlatList
-          data={filteredItems}
+          data={gridCells}
           keyExtractor={keyExtractor}
           numColumns={2}
           renderItem={renderItem}
           ListHeaderComponent={ListHeader}
+          ListFooterComponent={ListFooter}
+          onEndReached={handleEndReached}
+          onEndReachedThreshold={0.35}
           columnWrapperStyle={styles.columnWrap}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
@@ -172,7 +245,9 @@ export function WorkshopListScreen(): React.ReactElement {
               description={
                 isError
                   ? 'Check your connection and try again.'
-                  : 'Try another filter or adjust your search.'
+                  : isLoadingMore
+                    ? 'Fetching more workshops from the server…'
+                    : 'Try another filter or adjust your search.'
               }
             />
           }
@@ -232,19 +307,31 @@ const styles = StyleSheet.create({
     fontSize: THEME.typography.size[14],
     fontWeight: THEME.typography.weight.semibold as '600',
     color: THEME.colors.textSecondary,
+    textAlign: 'center',
   },
   sessionChipTextSelected: {
     color: THEME.colors.primary,
     fontWeight: THEME.typography.weight.bold as '700',
   },
   columnWrap: {
-    alignItems: 'stretch',
+    justifyContent: 'space-between',
     marginBottom: LIST_GAP,
     gap: LIST_GAP,
   },
   cardCell: {
     flex: 1,
     minWidth: 0,
-    alignSelf: 'stretch',
+    maxWidth: '50%',
+  },
+  footerLoader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: THEME.spacing[8],
+    paddingVertical: THEME.spacing[16],
+  },
+  footerLoaderText: {
+    fontSize: THEME.typography.size[12],
+    color: THEME.colors.textSecondary,
   },
 });

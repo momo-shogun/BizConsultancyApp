@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import type { Asset } from 'react-native-image-picker';
+import * as FileSystem from 'expo-file-system/legacy';
 
 import { API_BASE_URL } from '@/constants/api';
 
@@ -23,8 +24,19 @@ function joinApiUrl(path: string): string {
   return `${base}${normalizedPath}`;
 }
 
-/** Prefer cache/file paths so RN can attach the file to multipart requests. */
+/** Prefer the picker `uri`; `originalPath` is not always readable for uploads (camera). */
 export function resolveUploadFileUri(asset: Asset): string {
+  const uri = asset.uri?.trim() ?? '';
+  if (uri.length > 0) {
+    if (uri.startsWith('content://') || uri.startsWith('file://')) {
+      return uri;
+    }
+    if (uri.startsWith('/')) {
+      return `file://${uri}`;
+    }
+    return uri;
+  }
+
   if (Platform.OS === 'android') {
     const originalPath = asset.originalPath?.trim();
     if (originalPath != null && originalPath.length > 0) {
@@ -38,23 +50,93 @@ export function resolveUploadFileUri(asset: Asset): string {
     }
   }
 
-  const uri = asset.uri?.trim() ?? '';
-  if (uri.length === 0) {
-    return uri;
-  }
-
-  if (Platform.OS === 'ios') {
-    if (
-      uri.startsWith('file://') ||
-      uri.startsWith('ph://') ||
-      uri.startsWith('assets-library://')
-    ) {
-      return uri;
-    }
-    return uri.startsWith('/') ? `file://${uri}` : uri;
-  }
-
   return uri;
+}
+
+function normalizeMultipartUri(uri: string): string {
+  const trimmed = uri.trim();
+  if (trimmed.length === 0) {
+    return trimmed;
+  }
+  if (trimmed.startsWith('file://')) {
+    return trimmed;
+  }
+  if (trimmed.startsWith('/')) {
+    return `file://${trimmed}`;
+  }
+  return trimmed;
+}
+
+function shouldCopyUriToCache(uri: string): boolean {
+  return (
+    uri.startsWith('content://') ||
+    uri.startsWith('ph://') ||
+    uri.startsWith('assets-library://')
+  );
+}
+
+function resolveUploadExtension(name: string, type: string): string {
+  const dotIndex = name.lastIndexOf('.');
+  if (dotIndex > 0 && dotIndex < name.length - 1) {
+    const ext = name.slice(dotIndex).toLowerCase().replace(/[^a-z0-9.]/g, '');
+    if (ext.length > 1) {
+      return ext;
+    }
+  }
+  if (type === 'image/png') {
+    return '.png';
+  }
+  if (type === 'image/webp') {
+    return '.webp';
+  }
+  if (type === 'application/pdf') {
+    return '.pdf';
+  }
+  return '.jpg';
+}
+
+/**
+ * Camera/gallery URIs (especially `content://` on Android) cannot be attached to XHR
+ * multipart bodies reliably. Copy to app cache as `file://` before upload.
+ */
+export async function prepareMultipartFile(
+  file: MultipartFilePayload,
+): Promise<MultipartFilePayload> {
+  const sourceUri = normalizeMultipartUri(file.uri);
+  if (sourceUri.length === 0) {
+    return { ...file, uri: sourceUri };
+  }
+
+  const cacheDir = FileSystem.cacheDirectory;
+  const mustCopy =
+    Platform.OS === 'android' ||
+    shouldCopyUriToCache(sourceUri) ||
+    !sourceUri.startsWith('file://');
+
+  if (!mustCopy) {
+    return { ...file, uri: sourceUri };
+  }
+
+  if (cacheDir == null || cacheDir.length === 0) {
+    throw new Error('Could not prepare file for upload.');
+  }
+
+  const extension = resolveUploadExtension(file.name, file.type);
+  const destination = `${cacheDir}upload_${Date.now()}${extension}`;
+
+  try {
+    await FileSystem.copyAsync({
+      from: sourceUri.startsWith('content://') ? file.uri.trim() : sourceUri,
+      to: destination,
+    });
+  } catch {
+    throw new Error('Could not read the selected photo. Please try again.');
+  }
+
+  return {
+    ...file,
+    uri: normalizeMultipartUri(destination),
+  };
 }
 
 export function assetToMultipartFile(
@@ -120,7 +202,8 @@ export async function postMultipartForm(
   file: MultipartFilePayload,
   token: string | null,
 ): Promise<MultipartUploadResult> {
-  const formData = buildFormData(fields, fileFieldName, file);
+  const preparedFile = await prepareMultipartFile(file);
+  const formData = buildFormData(fields, fileFieldName, preparedFile);
   const url = joinApiUrl(path);
   return postMultipartFormWithXhr(url, formData, token);
 }
@@ -203,10 +286,11 @@ export async function patchMultipartJsonPayload(
   const formData = new FormData();
   formData.append(payloadFieldName, JSON.stringify(payload));
   if (file != null && fileFieldName != null) {
+    const preparedFile = await prepareMultipartFile(file);
     formData.append(fileFieldName, {
-      uri: file.uri,
-      name: file.name,
-      type: file.type,
+      uri: preparedFile.uri,
+      name: preparedFile.name,
+      type: preparedFile.type,
     } as unknown as Blob);
   }
   const url = joinApiUrl(path);
@@ -223,10 +307,11 @@ export async function postMultipartFields(
 ): Promise<MultipartUploadResult> {
   const formData = buildFieldsFormData(fields);
   if (file != null && fileFieldName != null) {
+    const preparedFile = await prepareMultipartFile(file);
     formData.append(fileFieldName, {
-      uri: file.uri,
-      name: file.name,
-      type: file.type,
+      uri: preparedFile.uri,
+      name: preparedFile.name,
+      type: preparedFile.type,
     } as unknown as Blob);
   }
   const url = joinApiUrl(path);
@@ -243,10 +328,11 @@ export async function patchMultipartForm(
 ): Promise<MultipartUploadResult> {
   const formData = buildFieldsFormData(fields);
   if (file != null && fileFieldName != null) {
+    const preparedFile = await prepareMultipartFile(file);
     formData.append(fileFieldName, {
-      uri: file.uri,
-      name: file.name,
-      type: file.type,
+      uri: preparedFile.uri,
+      name: preparedFile.name,
+      type: preparedFile.type,
     } as unknown as Blob);
   }
   const url = joinApiUrl(path);

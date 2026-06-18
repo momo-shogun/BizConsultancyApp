@@ -21,26 +21,41 @@ export function OTPInput(props: OTPInputProps): React.ReactElement {
   const digits = Array.from({ length }, (_, idx) => safeValue[idx] ?? '');
   const activeIndex = Math.min(Math.max(props.activeIndex ?? safeValue.length, 0), length - 1);
 
+  const cells = digits.map((d, idx) => (
+    <View
+      key={idx}
+      style={[
+        styles.cell,
+        idx === activeIndex ? styles.cellActive : null,
+        d ? styles.cellFilled : null,
+      ]}
+    >
+      <Text style={styles.digit}>{d}</Text>
+    </View>
+  ));
+
+  if (props.onPress != null) {
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={props.accessibilityLabel}
+        onPress={props.onPress}
+        style={[styles.row, props.containerStyle]}
+      >
+        {cells}
+      </Pressable>
+    );
+  }
+
   return (
-    <Pressable
-      accessibilityRole="keyboardkey"
+    <View
       accessibilityLabel={props.accessibilityLabel}
-      onPress={props.onPress}
+      importantForAccessibility="no-hide-descendants"
+      pointerEvents="none"
       style={[styles.row, props.containerStyle]}
     >
-      {digits.map((d, idx) => (
-        <View
-          key={idx}
-          style={[
-            styles.cell,
-            idx === activeIndex ? styles.cellActive : null,
-            d ? styles.cellFilled : null,
-          ]}
-        >
-          <Text style={styles.digit}>{d}</Text>
-        </View>
-      ))}
-    </Pressable>
+      {cells}
+    </View>
   );
 }
 

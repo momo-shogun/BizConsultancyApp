@@ -138,7 +138,7 @@ export const verifyOtpAndLogin = createAsyncThunk<
   void,
   VerifyOtpDto,
   { state: RootState }
->('auth/verifyOtpAndLogin', async (body, { dispatch }) => {
+>('auth/verifyOtpAndLogin', async (body, { dispatch, getState }) => {
   try {
     const response = await dispatch(authApi.endpoints.verifyOtp.initiate(body)).unwrap();
 
@@ -154,6 +154,11 @@ export const verifyOtpAndLogin = createAsyncThunk<
     await dispatch(applyAuthSession(parsed));
   } catch (error: unknown) {
     if (isVerifyOtpUnavailable(error)) {
+      const { loginSession } = getState().auth;
+      if (loginSession != null && !loginSession.isRegistered) {
+        throw new Error('User not found');
+      }
+
       await dispatch(
         establishProfileSession({
           mobile: body.mobile,
