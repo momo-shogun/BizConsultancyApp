@@ -25,6 +25,13 @@ import {
 import { Input } from '@/shared/components/ui/Input/Input';
 
 import heroIllustration from '../../../assets/tuxpi.com.1776427891.jpg';
+import { ROUTES } from '@/navigation/routeNames';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+
+import type { AuthStackParamList } from '@/navigation/types';
+
+type LoginNav = NativeStackNavigationProp<AuthStackParamList>;
 
 export interface LoginScreenContentProps {
   roleLabel: string;
@@ -44,7 +51,7 @@ export function LoginScreenContent(
     () => phoneNumber.replace(/[^0-9]/g, '').slice(0, 10),
     [phoneNumber],
   );
-
+  const navigation = useNavigation<LoginNav>();
   const canContinue = cleanedPhone.length === 10;
 
   return (
@@ -169,8 +176,15 @@ export function LoginScreenContent(
                         <Text style={styles.skipText}>Skip for now</Text>
                       </Pressable>
                     ) : null}
+
                   </View>
-                </ScrollWrapper>
+                  <Text
+                    style={styles.bottomText}
+                    onPress={() => navigation.navigate(ROUTES.Auth.Signup)}
+                  >
+                    Not registered yet? Create account
+                  </Text>
+  </ScrollWrapper>
               </ScreenWrapper>
             </KeyboardWrapper>
           </View>
@@ -330,6 +344,16 @@ const styles = StyleSheet.create({
     color: THEME.colors.textSecondary,
     textDecorationLine: 'underline',
   },
+
+bottomText: {
+  paddingTop: 10,
+  paddingLeft: 20,
+  fontSize: 14,
+  fontWeight: '700',
+  paddingVertical: 10,
+  color: THEME.colors.textSecondary,
+  textDecorationLine: 'underline',
+},
 
   clearButton: {
     marginLeft: 10,

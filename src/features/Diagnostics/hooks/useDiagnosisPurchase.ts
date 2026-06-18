@@ -1,12 +1,21 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import type React from 'react';
 
-import { selectAuth, selectIsAuthenticated } from '@/features/Auth/store/authSelectors';
+import {
+  selectAccountRole,
+  selectAuth,
+  selectHasVerifiedLogin,
+} from '@/features/Auth/store/authSelectors';
 import {
   useCreateDiagnosisRegistrationMutation,
   useVerifyDiagnosisPaymentMutation,
 } from '@/features/Diagnostics/api/diagnosticsApi';
+import { useDiagnosisPurchaseLoginGate } from '@/features/Diagnostics/hooks/useDiagnosisPurchaseLoginGate';
 import type { DiagnosisPlanViewModel } from '@/features/Diagnostics/types/diagnostics.types';
-import { useGetMyWalletBalanceQuery } from '@/features/Home/api/userWalletsApi';
+import {
+  useGetConsultantWalletBalanceQuery,
+  useGetMyWalletBalanceQuery,
+} from '@/features/Home/api/userWalletsApi';
 import {
   WalletPaymentCancelledError,
   openWalletTopupRazorpayCheckout,
@@ -26,6 +35,7 @@ export interface UseDiagnosisPurchaseResult {
   closePaymentModal: () => void;
   payWithWallet: () => Promise<void>;
   payWithRazorpay: () => Promise<void>;
+  diagnosisPurchaseLoginDialog: React.ReactElement;
 }
 
 function extractApiMessage(error: unknown): string {
@@ -47,23 +57,76 @@ function extractApiMessage(error: unknown): string {
 }
 
 export function useDiagnosisPurchase(): UseDiagnosisPurchaseResult {
-  const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const hasVerifiedLogin = useAppSelector(selectHasVerifiedLogin);
+  const accountRole = useAppSelector(selectAccountRole);
+  const isConsultant = accountRole === 'consultant';
   const auth = useAppSelector(selectAuth);
+  const { promptDiagnosisLogin, diagnosisPurchaseLoginDialog } = useDiagnosisPurchaseLoginGate();
   const [paymentModalVisible, setPaymentModalVisible] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<DiagnosisPlanViewModel | null>(null);
   const [amountRupees, setAmountRupees] = useState(0);
   const [payingWith, setPayingWith] = useState<'razorpay' | 'wallet' | null>(null);
   const [isBusy, setIsBusy] = useState(false);
 
-  const { data: walletBalance } = useGetMyWalletBalanceQuery(undefined, {
-    skip: !paymentModalVisible || !isAuthenticated,
+  useEffect(() => {
+    if (!hasVerifiedLogin) {
+      setPaymentModalVisible(false);
+      setSelectedPlan(null);
+      setAmountRupees(0);
+      setPayingWith(null);
+    }
+  }, [hasVerifiedLogin]);
+
+  const {
+    data: userWalletBalance,
+    isLoading: isUserWalletLoading,
+    isFetching: isUserWalletFetching,
+    refetch: refetchUserWalletBalance,
+  } = useGetMyWalletBalanceQuery(undefined, {
+    skip: !hasVerifiedLogin || isConsultant,
+    refetchOnMountOrArgChange: true,
   });
+
+  const {
+    data: consultantWalletBalance,
+    isLoading: isConsultantWalletLoading,
+    isFetching: isConsultantWalletFetching,
+    refetch: refetchConsultantWalletBalance,
+  } = useGetConsultantWalletBalanceQuery(undefined, {
+    skip: !hasVerifiedLogin || !isConsultant,
+    refetchOnMountOrArgChange: true,
+  });
+
+  const walletBalance = isConsultant ? consultantWalletBalance : userWalletBalance;
+  const isWalletLoading = isConsultant ? isConsultantWalletLoading : isUserWalletLoading;
+  const isWalletFetching = isConsultant ? isConsultantWalletFetching : isUserWalletFetching;
+
+  const refetchWalletBalance = useCallback((): void => {
+    if (isConsultant) {
+      void refetchConsultantWalletBalance();
+      return;
+    }
+    void refetchUserWalletBalance();
+  }, [isConsultant, refetchConsultantWalletBalance, refetchUserWalletBalance]);
 
   const [createRegistration] = useCreateDiagnosisRegistrationMutation();
   const [verifyPayment] = useVerifyDiagnosisPaymentMutation();
 
-  const walletBalanceRupees =
-    walletBalance != null && Number.isFinite(walletBalance) ? walletBalance : null;
+  const walletBalanceRupees = useMemo((): number | null => {
+    if (!paymentModalVisible || !hasVerifiedLogin) {
+      return null;
+    }
+    if (walletBalance == null && (isWalletLoading || isWalletFetching)) {
+      return null;
+    }
+    return walletBalance != null && Number.isFinite(walletBalance) ? walletBalance : null;
+  }, [
+    hasVerifiedLogin,
+    isWalletFetching,
+    isWalletLoading,
+    paymentModalVisible,
+    walletBalance,
+  ]);
 
   const canPayWithWallet =
     amountRupees > 0 &&
@@ -72,8 +135,8 @@ export function useDiagnosisPurchase(): UseDiagnosisPurchaseResult {
 
   const openPaymentForPlan = useCallback(
     (plan: DiagnosisPlanViewModel, priceRupees: number): void => {
-      if (!isAuthenticated) {
-        showGlobalError('Please log in to purchase a diagnostic pack.');
+      if (!hasVerifiedLogin) {
+        promptDiagnosisLogin();
         return;
       }
       if (plan.ctaMode === 'active' || plan.ctaMode === 'disabled_lower') {
@@ -82,8 +145,9 @@ export function useDiagnosisPurchase(): UseDiagnosisPurchaseResult {
       setSelectedPlan(plan);
       setAmountRupees(priceRupees);
       setPaymentModalVisible(true);
+      void refetchWalletBalance();
     },
-    [isAuthenticated],
+    [hasVerifiedLogin, promptDiagnosisLogin, refetchWalletBalance],
   );
 
   const closePaymentModal = useCallback((): void => {
@@ -208,11 +272,13 @@ export function useDiagnosisPurchase(): UseDiagnosisPurchaseResult {
       closePaymentModal,
       payWithWallet,
       payWithRazorpay,
+      diagnosisPurchaseLoginDialog,
     }),
     [
       amountRupees,
       canPayWithWallet,
       closePaymentModal,
+      diagnosisPurchaseLoginDialog,
       isBusy,
       openPaymentForPlan,
       payWithRazorpay,

@@ -2,6 +2,8 @@ import type {
   ConsultantBookingsFilter,
   ConsultantSelfBooking,
 } from '../types/consultantSelfBooking.types';
+import { hasBookingStarted } from './bookingDateTime';
+import { isBookingConfirmed, isCallableConsultation } from './bookingDisplay';
 
 export function getConsultantBookingPaymentLabel(booking: ConsultantSelfBooking): string {
   if (booking.paymentStatus !== 'paid') {
@@ -23,11 +25,13 @@ export function canConsultantStartCall(
   booking: ConsultantSelfBooking,
   filter: ConsultantBookingsFilter,
 ): boolean {
-  if (filter !== 'upcoming' || booking.status !== 'confirmed') {
+  if (filter !== 'upcoming' || !isBookingConfirmed(booking.status)) {
     return false;
   }
-  const type = booking.consultationType.toLowerCase();
-  return type === 'video' || type === 'phone';
+  if (!isCallableConsultation(booking.consultationType)) {
+    return false;
+  }
+  return hasBookingStarted(booking.bookingDate, booking.slotTime);
 }
 
 export function getCustomerInitial(name: string): string {

@@ -27,6 +27,7 @@ import {
   isRenderableConsultantCard,
   mapConsultantDetailToCardItem,
 } from '@/features/consultant/utils/consultantMappers';
+import { useConsultantBookingLoginGate } from '@/features/Consultation/hooks/useConsultantBookingLoginGate';
 import {
   buildConsultantFilterSections,
   buildConsultantListFiltersFromMasterIds,
@@ -104,6 +105,7 @@ export function ConsultantViewAllScreen(): React.ReactElement {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<ConsultantsListRouteProp>();
   const { width } = useWindowDimensions();
+  const { ensureVerifiedLogin, consultantBookingLoginDialog } = useConsultantBookingLoginGate();
 
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -129,7 +131,7 @@ export function ConsultantViewAllScreen(): React.ReactElement {
     }
     setFilters(nextFilters);
     setPage(1);
-  }, [route.params?.categoryId, route.params?.segmentId]);
+  }, [route.params]);
 
   useEffect(() => {
     setPage(1);
@@ -398,6 +400,9 @@ export function ConsultantViewAllScreen(): React.ReactElement {
             })
           }
           onBookPress={() => {
+            if (!ensureVerifiedLogin()) {
+              return;
+            }
             const parsedId = Number(item.id);
             const consultationType = 'video' as const;
             navigation.navigate(ROUTES.Root.ConsultationOnboarding, {
@@ -411,7 +416,7 @@ export function ConsultantViewAllScreen(): React.ReactElement {
         />
       </View>
     ),
-    [cardWidth, navigation],
+    [cardWidth, ensureVerifiedLogin, navigation],
   );
 
   const renderPlaceholderItem = useCallback<ListRenderItem<string>>(
@@ -461,6 +466,7 @@ export function ConsultantViewAllScreen(): React.ReactElement {
 
   return (
     <SafeAreaWrapper edges={['top', 'bottom']}>
+      {consultantBookingLoginDialog}
       <ScreenHeader
         title="Consultants"
         onBackPress={handleBackPress}

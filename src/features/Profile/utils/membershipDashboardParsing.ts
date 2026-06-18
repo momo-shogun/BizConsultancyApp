@@ -1,4 +1,5 @@
 import type {
+  MembershipFeatureRequestResult,
   MyMembershipCurrentDto,
   MyMembershipDashboardDto,
   MyMembershipFeatureDto,
@@ -51,6 +52,24 @@ function parseCurrent(raw: unknown): MyMembershipCurrentDto | null {
   };
 }
 
+function parseMembershipFeatureScope(raw: unknown): MyMembershipFeatureDto['membershipScope'] {
+  if (raw == null || typeof raw !== 'object') {
+    return null;
+  }
+  const scope = raw as Record<string, unknown>;
+  return {
+    id: readNumber(scope.id),
+    status: readNumber(scope.status),
+    isDeleted: readNumber(scope.isDeleted),
+    isActive:
+      scope.isActive === true || scope.isActive === 1
+        ? true
+        : scope.isActive === false || scope.isActive === 0
+          ? false
+          : null,
+  };
+}
+
 function parseFeature(raw: unknown): MyMembershipFeatureDto | null {
   if (raw == null || typeof raw !== 'object') {
     return null;
@@ -61,11 +80,7 @@ function parseFeature(raw: unknown): MyMembershipFeatureDto | null {
   if (id == null || title == null) {
     return null;
   }
-  const scopeRaw = row.membershipScope;
-  const membershipScope =
-    scopeRaw != null && typeof scopeRaw === 'object'
-      ? { status: readNumber((scopeRaw as Record<string, unknown>).status) }
-      : null;
+  const scopeRaw = row.membershipScope ?? row.scope;
 
   return {
     id,
@@ -74,19 +89,90 @@ function parseFeature(raw: unknown): MyMembershipFeatureDto | null {
     userStatus: readString(row.userStatus) ?? 'pending',
     remarks: readString(row.remarks),
     updatedAt: readString(row.updatedAt) ?? '',
+    featureStatus: readNumber(row.status),
+    isDeleted: readNumber(row.isDeleted),
     scopeStatus: readNumber(row.scopeStatus),
     membershipScopeStatus: readNumber(row.membershipScopeStatus),
-    membershipScope,
+    membershipScope: parseMembershipFeatureScope(scopeRaw),
   };
 }
 
+function isActiveNumericStatus(status: number): boolean {
+  return status === 1;
+}
+
 export function isMembershipFeatureScopeActive(feature: MyMembershipFeatureDto): boolean {
-  const raw =
-    feature.membershipScopeStatus ?? feature.scopeStatus ?? feature.membershipScope?.status;
-  if (raw == null) {
-    return true;
+  if ((feature.isDeleted ?? 0) !== 0) {
+    return false;
   }
-  return Number(raw) === 1;
+
+  const scope = feature.membershipScope;
+  if (scope != null && (scope.isDeleted ?? 0) !== 0) {
+    return false;
+  }
+  if (scope?.isActive === false) {
+    return false;
+  }
+
+  const statusValues = [
+    scope?.status,
+    feature.scopeStatus,
+    feature.membershipScopeStatus,
+    feature.featureStatus,
+  ].filter((value): value is number => value != null);
+
+  if (statusValues.length > 0) {
+    return statusValues.every(isActiveNumericStatus);
+  }
+
+  return true;
+}
+
+export function isMembershipFeatureRequestDisabled(userStatus: string | null): boolean {
+  const status = userStatus?.toLowerCase() ?? '';
+  return (
+    status === 'requested' ||
+    status === 'delivered' ||
+    status === 'not_available' ||
+    status === 'used' ||
+    status === 'active'
+  );
+}
+
+export function membershipFeatureRequestLabel(userStatus: string | null): string {
+  if (userStatus?.toLowerCase() === 'requested') {
+    return 'Requested';
+  }
+  return 'Request Service';
+}
+
+function unwrapMembershipFeatureRequestPayload(data: unknown): Record<string, unknown> | null {
+  if (data == null || typeof data !== 'object') {
+    return null;
+  }
+  const row = data as Record<string, unknown>;
+  const nested = row.data;
+  if (nested != null && typeof nested === 'object') {
+    return nested as Record<string, unknown>;
+  }
+  return row;
+}
+
+export function parseMembershipFeatureRequestResult(data: unknown): MembershipFeatureRequestResult {
+  const row = unwrapMembershipFeatureRequestPayload(data);
+  if (row == null) {
+    throw new Error('Invalid membership feature request response');
+  }
+  const id = readNumber(row.id);
+  const status = readString(row.status);
+  if (id == null || status == null) {
+    throw new Error('Invalid membership feature request response');
+  }
+  return {
+    id,
+    status,
+    title: readString(row.title) ?? '',
+  };
 }
 
 export function membershipFeatureStatusLabel(userStatus: string): string {

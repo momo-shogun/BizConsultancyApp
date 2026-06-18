@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -8,9 +8,13 @@ import type { RootStackParamList } from '@/navigation/types';
 import { SafeAreaWrapper, ScreenHeader } from '@/shared/components';
 import { radii, shadows, spacing } from '@/theme';
 
+import { selectHasVerifiedLogin } from '@/features/Auth/store/authSelectors';
+import { useAppSelector } from '@/store/typedHooks';
+
 import { ConsultationStepper } from '../components/ConsultationStepper';
 import { ProgressSegments } from '../components/ProgressSegments';
 import { ConsultationOnboardingProvider } from '../context/ConsultationOnboardingContext';
+import { useConsultantBookingLoginGate } from '../hooks/useConsultantBookingLoginGate';
 import type { ConsultationOnboardingRouteParams } from '../types/consultationOnboarding.types';
 
 type NavigationProp = NativeStackNavigationProp<
@@ -22,6 +26,14 @@ type ScreenRoute = RouteProp<RootStackParamList, typeof ROUTES.Root.Consultation
 function ConsultationOnboardingContent(): React.ReactElement {
   const navigation = useNavigation<NavigationProp>();
   const [activeStep, setActiveStep] = useState(0);
+  const hasVerifiedLogin = useAppSelector(selectHasVerifiedLogin);
+  const { ensureVerifiedLogin, consultantBookingLoginDialog } = useConsultantBookingLoginGate();
+
+  useEffect(() => {
+    if (!hasVerifiedLogin) {
+      ensureVerifiedLogin();
+    }
+  }, [ensureVerifiedLogin, hasVerifiedLogin]);
 
   const handleComplete = useCallback(
     (_bookingId: number) => {
@@ -31,20 +43,27 @@ function ConsultationOnboardingContent(): React.ReactElement {
   );
 
   return (
-    <SafeAreaWrapper edges={['top', 'bottom']}>
-      <ScreenHeader title="Consult Expert" onBackPress={() => navigation.goBack()} />
-      <ProgressSegments totalSteps={3} activeStep={activeStep} />
+    <>
+      {consultantBookingLoginDialog}
+      <SafeAreaWrapper edges={['top', 'bottom']}>
+        <ScreenHeader title="Consult Expert" onBackPress={() => navigation.goBack()} />
+        <ProgressSegments totalSteps={3} activeStep={activeStep} />
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContainer}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={[styles.card, shadows.sm]}>
-          <ConsultationStepper onComplete={handleComplete} onStepChange={setActiveStep} />
-        </View>
-      </ScrollView>
-    </SafeAreaWrapper>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={[styles.card, shadows.sm]}>
+            <ConsultationStepper
+              onComplete={handleComplete}
+              onStepChange={setActiveStep}
+              ensureVerifiedLogin={ensureVerifiedLogin}
+            />
+          </View>
+        </ScrollView>
+      </SafeAreaWrapper>
+    </>
   );
 }
 

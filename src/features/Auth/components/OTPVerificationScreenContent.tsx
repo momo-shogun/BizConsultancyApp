@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Image,
   Linking,
@@ -23,6 +23,7 @@ import {
 } from '@/shared/components';
 
 import lightLogo from '@/assets/lightlogo.png';
+import { useOtpAutofill } from '@/features/Auth/hooks/useOtpAutofill';
 
 export interface OTPVerificationScreenContentProps {
   roleLabel: string;
@@ -30,8 +31,22 @@ export interface OTPVerificationScreenContentProps {
   onVerified: (otp: string) => void;
   onResendOtp?: () => void;
   onBackPress?: () => void;
+  onClearError?: () => void;
+  errorMessage?: string | null;
   isResending?: boolean;
-  resendCooldownSeconds?: number;
+  resendCooldownSeconds?: number; // used as the duration, default 30
+}
+
+const DEFAULT_COOLDOWN = 30;
+
+function handleOtpChange(
+  value: string,
+  setOtp: React.Dispatch<React.SetStateAction<string>>,
+  onClearError?: () => void,
+): void {
+  const cleaned = value.replace(/\D/g, '').slice(0, 6);
+  setOtp(cleaned);
+  onClearError?.();
 }
 
 export function OTPVerificationScreenContent(
@@ -39,9 +54,52 @@ export function OTPVerificationScreenContent(
 ): React.ReactElement {
   const { contact } = props;
   const insets = useSafeAreaInsets();
-  const hiddenInputRef = useRef<TextInput>(null);
+  const otpInputRef = useRef<TextInput>(null);
 
   const [otp, setOtp] = useState<string>('');
+
+  const applyOtp = useCallback(
+    (value: string): void => {
+      handleOtpChange(value, setOtp, props.onClearError);
+    },
+    [props.onClearError],
+  );
+
+  const { restartSmsListener } = useOtpAutofill({
+    otp,
+    onOtpFilled: applyOtp,
+    onOtpComplete: props.onVerified,
+  });
+
+  const focusOtpInput = useCallback((): void => {
+    requestAnimationFrame(() => {
+      otpInputRef.current?.focus();
+    });
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      focusOtpInput();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [focusOtpInput]);
+
+  // ✅ Cooldown is now internal state, initialized to duration so it starts counting immediately
+  const cooldownDuration = props.resendCooldownSeconds ?? DEFAULT_COOLDOWN;
+  const [cooldown, setCooldown] = useState<number>(cooldownDuration);
+
+  // Start countdown when cooldown is active (including on mount).
+  useEffect(() => {
+    if (cooldown <= 0) {
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setCooldown((prev) => Math.max(0, prev - 1));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [cooldown]);
 
   const masked = useMemo((): string => {
     const c = contact.trim();
@@ -51,16 +109,19 @@ export function OTPVerificationScreenContent(
   }, [contact]);
 
   const canVerify = otp.length === 6;
-  const cooldown = props.resendCooldownSeconds ?? 0;
   const canResend = cooldown <= 0 && !props.isResending;
 
   const handleResend = (): void => {
-    if (!canResend || props.onResendOtp == null) {
-      return;
-    }
+    if (!canResend || props.onResendOtp == null) return;
+
     setOtp('');
-    hiddenInputRef.current?.focus();
+    props.onClearError?.();
+    focusOtpInput();
+    restartSmsListener();
     props.onResendOtp();
+
+    // Restart the cooldown timer after resend
+    setCooldown(cooldownDuration);
   };
 
   return (
@@ -81,19 +142,43 @@ export function OTPVerificationScreenContent(
               </View>
             </View>
 
-            <Text style={styles.title}>We just texted you, what’s the code?</Text>
+            <Text style={styles.title}>We just texted you, what's the code?</Text>
 
-            <OTPInput
-              value={otp}
-              onChange={setOtp}
-              accessibilityLabel="OTP input"
-              onPress={() => hiddenInputRef.current?.focus()}
-              activeIndex={Math.min(otp.length, 5)}
-              containerStyle={styles.otpRow}
-            />
+            <View style={[styles.otpInputContainer, styles.otpRow]}>
+              <OTPInput
+                value={otp}
+                onChange={applyOtp}
+                accessibilityLabel="OTP input"
+                activeIndex={Math.min(otp.length, 5)}
+              />
+              <TextInput
+                ref={otpInputRef}
+                accessibilityLabel="OTP input field"
+                value={otp}
+                onChangeText={applyOtp}
+                keyboardType={Platform.OS === 'android' ? 'number-pad' : 'default'}
+                inputMode="numeric"
+                textContentType="oneTimeCode"
+                autoComplete={Platform.OS === 'android' ? 'sms-otp' : 'one-time-code'}
+                importantForAutofill="yes"
+                autoCorrect={false}
+                autoCapitalize="none"
+                spellCheck={false}
+                caretHidden
+                maxLength={6}
+                showSoftInputOnFocus
+                style={styles.otpOverlayInput}
+              />
+            </View>
+
+            {props.errorMessage != null && props.errorMessage.length > 0 ? (
+              <Text style={styles.errorText} accessibilityRole="alert">
+                {props.errorMessage}
+              </Text>
+            ) : null}
 
             <Text style={styles.help}>
-              We’ve sent a verification code to <Text style={styles.helpStrong}>{masked}</Text>
+              We've sent a verification code to <Text style={styles.helpStrong}>{masked}</Text>
             </Text>
 
             <Pressable
@@ -124,25 +209,6 @@ export function OTPVerificationScreenContent(
               </Text>
             </Pressable>
 
-            <TextInput
-              accessibilityLabel="Hidden OTP input"
-              value={otp}
-              onChangeText={(t) => {
-                const cleaned = t.replace(/\D/g, '');
-                // Supports SMS strings like "Your code is 123456" as well as plain OTP.
-                const firstOtp = cleaned.slice(0, 6);
-                setOtp(firstOtp);
-              }}
-              keyboardType="number-pad"
-              textContentType="oneTimeCode"
-              autoComplete={Platform.OS === 'android' ? 'sms-otp' : 'one-time-code'}
-              importantForAutofill="yes"
-              autoCorrect={false}
-              style={styles.hiddenInput}
-              autoFocus
-              ref={hiddenInputRef}
-            />
-
             <View style={styles.flexSpacer} />
 
             <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 12) }]}>
@@ -162,12 +228,8 @@ export function OTPVerificationScreenContent(
 
               <Text style={styles.footerHelp}>
                 Experiencing issues? Email our team:{'\n'}
-                <Pressable
-                  onPress={() => Linking.openURL('mailto:bizconsultancy@iid.org.in')}
-                >
-                  <Text style={styles.footerHelpStrong}>
-                    bizconsultancy@iid.org.in
-                  </Text>
+                <Pressable onPress={() => Linking.openURL('mailto:bizconsultancy@iid.org.in')}>
+                  <Text style={styles.footerHelpStrong}>bizconsultancy@iid.org.in</Text>
                 </Pressable>
               </Text>
 
@@ -230,6 +292,27 @@ const styles = StyleSheet.create({
   },
   otpRow: {
     marginTop: THEME.spacing[16],
+  },
+  otpInputContainer: {
+    position: 'relative',
+    minHeight: 48,
+  },
+  otpOverlayInput: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    opacity: 0,
+    fontSize: 16,
+    color: 'transparent',
+  },
+  errorText: {
+    marginTop: THEME.spacing[10],
+    fontSize: THEME.typography.size[12],
+    lineHeight: 18,
+    color: THEME.colors.danger,
+    fontWeight: THEME.typography.weight.medium as '500',
   },
   help: {
     marginTop: THEME.spacing[12],
@@ -309,14 +392,8 @@ const styles = StyleSheet.create({
     color: THEME.colors.textSecondary,
   },
   footerHelpStrong: {
-    color: "blue",
+    color: 'blue',
     fontWeight: THEME.typography.weight.semibold,
     fontSize: 12,
   },
-  hiddenInput: {
-    height: 0,
-    width: 0,
-    opacity: 0,
-  },
 });
-

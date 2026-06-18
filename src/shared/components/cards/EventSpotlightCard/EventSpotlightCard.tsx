@@ -10,18 +10,18 @@ import {
   type ImageLoadEventData,
   type NativeSyntheticEvent,
 } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
-import { THEME } from '@/constants/theme';
-import { ImagePlaceholder } from '@/shared/components/media/ImagePlaceholder';
+import { THEME } from '@/constants/theme';import { ImagePlaceholder } from '@/shared/components/media/ImagePlaceholder';
 import { resolveAwsImageUrl } from '@/utils/awsImageUrl';
 
 /** Accent used for pills on the image overlay. */
 export const EVENT_SPOTLIGHT_ACCENT = '#FFD60A';
-const TAG_TEXT = '#0A0A0A';
 const MAX_TAG_COUNT = 2;
 const MAX_TAG_CHARS_DEFAULT = 34;
 const MAX_TAG_CHARS_COMPACT = 22;
 const DEFAULT_IMAGE_ASPECT = 16 / 9;
+const COMPACT_IMAGE_ASPECT = 4 / 3;
+const COMPACT_TITLE_LINE_HEIGHT = 17;
+const COMPACT_META_LINE_HEIGHT = 15;
 
 function resolveImageAspectRatio(width: number, height: number): number {
   if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
@@ -121,11 +121,36 @@ function formatDateRange(start?: string, end?: string): string {
   return `${s.d} ${sMonth} – ${e.d} ${eMonth}`;
 }
 
+function formatTime12h(value?: string): string {
+  const raw = value?.slice(0, 5);
+  if (raw == null || raw.length < 4) {
+    return '';
+  }
+  const [hourRaw, minuteRaw] = raw.split(':');
+  const hour = Number(hourRaw);
+  const minute = minuteRaw ?? '00';
+  if (!Number.isFinite(hour)) {
+    return raw;
+  }
+  const period = hour >= 12 ? 'PM' : 'AM';
+  const hour12 = hour % 12 || 12;
+  return `${hour12}:${minute} ${period}`;
+}
+
 function formatTimeRange(startTime?: string, endTime?: string): string {
   const st = startTime?.slice(0, 5);
   const et = endTime?.slice(0, 5);
   if (st && et) return `${st}–${et}`;
   return st || et || '';
+}
+
+function formatCompactTimeRange(startTime?: string, endTime?: string): string {
+  const start = formatTime12h(startTime);
+  const end = formatTime12h(endTime);
+  if (start.length > 0 && end.length > 0) {
+    return `${start} – ${end}`;
+  }
+  return start || end || '';
 }
 
 function resolveThumbnailUri(thumbnail: string | undefined): string | null {
@@ -174,7 +199,7 @@ export function EventSpotlightCard({
   }, [resolvedThumbUri]);
 
   useEffect(() => {
-    if (thumbUri == null || thumbUri.length === 0) {
+    if (isCompact || thumbUri == null || thumbUri.length === 0) {
       return undefined;
     }
 
@@ -192,7 +217,7 @@ export function EventSpotlightCard({
     return () => {
       cancelled = true;
     };
-  }, [thumbUri]);
+  }, [isCompact, thumbUri]);
 
   const handleImageLoad = (event: NativeSyntheticEvent<ImageLoadEventData>): void => {
     const { width, height } = event.nativeEvent.source;
@@ -207,14 +232,19 @@ export function EventSpotlightCard({
   );
 
   const timeLabel = useMemo(
-    () => formatTimeRange(item.startTime, item.endTime),
-    [item.endTime, item.startTime],
+    () =>
+      isCompact
+        ? formatCompactTimeRange(item.startTime, item.endTime)
+        : formatTimeRange(item.startTime, item.endTime),
+    [isCompact, item.endTime, item.startTime],
   );
 
   const scheduleLabel = useMemo(() => {
     const parts = [dateLabel, timeLabel].filter(Boolean);
     return parts.length ? parts.join(' • ') : 'Schedule TBA';
   }, [dateLabel, timeLabel]);
+
+  const resolvedImageAspect = isCompact ? COMPACT_IMAGE_ASPECT : imageAspectRatio;
 
   const { feeLabel, isFree } = useMemo(() => {
     const online = Number(item.onlineFee ?? '0');
@@ -240,52 +270,23 @@ export function EventSpotlightCard({
       style={({ pressed }) => [
         styles.root,
         isCompact ? styles.rootCompact : null,
-        { width: cardWidth },
+        isCompact ? styles.rootCompactSizing : { width: cardWidth },
         pressed && onPress != null ? styles.cardPressed : null,
       ]}
     >
-      <View style={[styles.imageWrap, { aspectRatio: imageAspectRatio }]}>
+      <View style={[styles.imageWrap, isCompact ? styles.imageWrapCompact : null, { aspectRatio: resolvedImageAspect }]}>
         {showImage ? (
           <>
             <Image
               source={{ uri: thumbUri }}
               style={styles.image}
-              resizeMode="contain"
+              resizeMode={isCompact ? 'cover' : 'contain'}
               accessibilityIgnoresInvertColors
               onLoad={handleImageLoad}
               onError={() => {
                 setImageFailed(true);
               }}
             />
-            {tags.length > 0 ? (
-              <LinearGradient
-                colors={['transparent', 'rgba(15,23,42,0.45)']}
-                style={styles.imageGradient}
-                pointerEvents="none"
-              />
-            ) : null}
-            {tags.length > 0 ? (
-              <View style={styles.tagOverlay} pointerEvents="none">
-                <View style={styles.tagRow}>
-                  {tags.map((tag, index) => {
-                    const label = truncateTagLabel(
-                      tag,
-                      isCompact ? MAX_TAG_CHARS_COMPACT : MAX_TAG_CHARS_DEFAULT,
-                    );
-                    return (
-                      <View
-                        key={`${tag}-${index}`}
-                        style={[styles.tagPill, isCompact ? styles.tagPillCompact : null]}
-                      >
-                        <Text style={styles.tagText} numberOfLines={1} ellipsizeMode="tail">
-                          {label}
-                        </Text>
-                      </View>
-                    );
-                  })}
-                </View>
-              </View>
-            ) : null}
           </>
         ) : (
           <ImagePlaceholder
@@ -301,10 +302,45 @@ export function EventSpotlightCard({
         <Text style={[styles.title, isCompact ? styles.titleCompact : null]} numberOfLines={2}>
           {item.name}
         </Text>
-        <Text style={styles.metaLine} numberOfLines={2}>
-          {placeLabel}
-          {scheduleLabel.length > 0 ? ` · ${scheduleLabel}` : ''}
-        </Text>
+        {isCompact ? (
+          <View style={styles.compactMetaBlock}>
+            <Text style={styles.compactMetaLine} numberOfLines={1} ellipsizeMode="tail">
+              {placeLabel}
+            </Text>
+            <Text style={styles.compactMetaLine} numberOfLines={1} ellipsizeMode="tail">
+              {dateLabel.length > 0 ? dateLabel : 'Date TBA'}
+            </Text>
+            <Text style={styles.compactMetaLine} numberOfLines={1} ellipsizeMode="tail">
+              {timeLabel.length > 0 ? timeLabel : 'Time TBA'}
+            </Text>
+          </View>
+        ) : (
+          <Text style={styles.metaLine} numberOfLines={2}>
+            {placeLabel}
+            {scheduleLabel.length > 0 ? ` · ${scheduleLabel}` : ''}
+          </Text>
+        )}
+
+        {tags.length > 0 ? (
+          <View style={styles.tagRow}>
+            {tags.map((tag, index) => {
+              const label = truncateTagLabel(
+                tag,
+                isCompact ? MAX_TAG_CHARS_COMPACT : MAX_TAG_CHARS_DEFAULT,
+              );
+              return (
+                <View
+                  key={`${tag}-${index}`}
+                  style={[styles.tagPill, isCompact ? styles.tagPillCompact : null]}
+                >
+                  <Text style={styles.tagText} numberOfLines={1} ellipsizeMode="tail">
+                    {label}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+        ) : null}
 
         <View style={[styles.offerStrip, isCompact ? styles.offerStripCompact : null]}>
           <Text style={styles.offerCaption}>Registration fee</Text>
@@ -359,6 +395,15 @@ const styles = StyleSheet.create({
       },
     }),
   },
+  rootCompactSizing: {
+    flex: 1,
+    alignSelf: 'stretch',
+    width: '100%',
+  },
+  imageWrapCompact: {
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+  },
   cardPressed: {
     opacity: 0.94,
     transform: [{ scale: 0.99 }],
@@ -381,37 +426,23 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  imageGradient: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  tagOverlay: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingHorizontal: THEME.spacing[12],
-    paddingBottom: THEME.spacing[12],
-  },
   tagRow: {
     flexDirection: 'row',
-    flexWrap: 'nowrap',
+    flexWrap: 'wrap',
     gap: 6,
-    justifyContent: 'flex-end',
-    width: '100%',
-  },
-  tagPill: {
+    marginTop: THEME.spacing[4],
+  },  tagPill: {
     flexShrink: 1,
-    maxWidth: '48%',
+    maxWidth: '100%',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 4,
     backgroundColor: THEME.colors.primary,
   },
   tagPillCompact: {
-    maxWidth: '47%',
+    maxWidth: '100%',
     paddingHorizontal: 8,
-  },
-  tagText: {
+  },  tagText: {
     fontSize: 11,
     fontWeight: '700',
     color: 'white',
@@ -425,10 +456,21 @@ const styles = StyleSheet.create({
     backgroundColor: THEME.colors.white,
   },
   bodyCompact: {
+    flex: 1,
     paddingHorizontal: THEME.spacing[12],
     paddingTop: THEME.spacing[10],
     paddingBottom: THEME.spacing[10],
-    gap: THEME.spacing[6],
+    gap: THEME.spacing[4],
+  },
+  compactMetaBlock: {
+    gap: 2,
+    minHeight: COMPACT_META_LINE_HEIGHT * 3 + 4,
+  },
+  compactMetaLine: {
+    fontSize: 11,
+    color: '#757575',
+    lineHeight: COMPACT_META_LINE_HEIGHT,
+    fontWeight: THEME.typography.weight.regular as '400',
   },
   title: {
     fontSize: THEME.typography.size[14],
@@ -439,7 +481,8 @@ const styles = StyleSheet.create({
   },
   titleCompact: {
     fontSize: 13,
-    lineHeight: 17,
+    lineHeight: COMPACT_TITLE_LINE_HEIGHT,
+    minHeight: COMPACT_TITLE_LINE_HEIGHT * 2,
   },
   metaLine: {
     fontSize: 11,
@@ -458,8 +501,9 @@ const styles = StyleSheet.create({
     gap: THEME.spacing[8],
   },
   offerStripCompact: {
-    marginTop: THEME.spacing[2],
+    marginTop: 'auto',
     paddingTop: THEME.spacing[8],
+    minHeight: 34,
   },
   offerCaption: {
     flex: 1,

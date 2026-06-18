@@ -40,6 +40,9 @@ export interface PublicServiceListItem {
   about?: unknown;
   featurepoint?: string[] | null;
   position?: number;
+  /** `1` = active, `0` = inactive (when provided by API). */
+  status?: number;
+  isDeleted?: number;
   category: PublicServiceCategoryRef;
   subCategory?: PublicServiceCategoryRef | null;
 }

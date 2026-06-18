@@ -1,12 +1,17 @@
 import { baseApi } from '@/services/api/baseApi';
 
-import type { MyMembershipDashboardDto, MyMembershipPurchaseStateDto } from '../types/membershipDashboard.types';
+import type {
+  MembershipFeatureRequestResult,
+  MyMembershipDashboardDto,
+  MyMembershipPurchaseStateDto,
+} from '../types/membershipDashboard.types';
 import type {
   CreateMembershipRegistrationPayload,
   CreateMembershipRegistrationResult,
   VerifyMembershipPaymentPayload,
 } from '../types/membershipRegistration.types';
 import {
+  parseMembershipFeatureRequestResult,
   parseMyMembershipDashboardDto,
   parseMyMembershipPurchaseStateDto,
 } from '../utils/membershipDashboardParsing';
@@ -41,6 +46,14 @@ export const membershipRegistrationApi = baseApi.injectEndpoints({
         'Wallet',
       ],
     }),
+    requestMembershipFeature: build.mutation<MembershipFeatureRequestResult, number>({
+      query: (featureId) => ({
+        url: `member-ship-registrations/my/features/${featureId}/request`,
+        method: 'POST',
+      }),
+      transformResponse: (response: unknown) => parseMembershipFeatureRequestResult(response),
+      invalidatesTags: [{ type: 'UserMembership', id: 'DASHBOARD' }],
+    }),
     verifyMembershipPayment: build.mutation<
       { paymentStatus: string },
       VerifyMembershipPaymentPayload
@@ -64,5 +77,6 @@ export const {
   useGetMyMembershipDashboardQuery,
   useGetMyMembershipPurchaseStateQuery,
   useCreateMembershipRegistrationMutation,
+  useRequestMembershipFeatureMutation,
   useVerifyMembershipPaymentMutation,
 } = membershipRegistrationApi;

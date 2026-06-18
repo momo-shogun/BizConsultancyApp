@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
@@ -12,9 +12,16 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
+import { useVaultDocumentPreviewModal } from '@/features/DocumentVault/hooks/useVaultDocumentPreviewModal';
+import { showGlobalToast } from '@/shared/components';
+
 import { useGetMyOnboardingSubmissionFullDetailQuery } from '../api/myServicesApi';
-import type { MyOnboardingSubmission } from '../types/myServices.types';
+import type { MyOnboardingSubmission, SubmissionDocumentRow } from '../types/myServices.types';
 import { formatDisplayDate, formatInrAmount } from '../utils/myServicesStatus';
+import {
+  resolveSubmissionDocumentUrl,
+  toVaultPreviewDocument,
+} from '../utils/submissionDocumentPreview';
 import { MyServiceStatusBadge } from './MyServiceStatusBadge';
 
 const WINDOW_HEIGHT = Dimensions.get('window').height;
@@ -63,9 +70,25 @@ export function MyServiceDetailSheet({
     submissionId,
     { skip: !visible || submissionId <= 0 },
   );
+  const { openPreview, previewModal } = useVaultDocumentPreviewModal();
 
   const title =
     item?.serviceName || item?.serviceSlug || (item != null ? `Submission #${item.id}` : '');
+
+  const handleOpenDocument = useCallback(
+    (doc: SubmissionDocumentRow): void => {
+      const previewDocument = toVaultPreviewDocument(doc);
+      if (previewDocument == null) {
+        showGlobalToast({
+          variant: 'error',
+          message: 'Could not open this file. The document link is missing.',
+        });
+        return;
+      }
+      openPreview(previewDocument);
+    },
+    [openPreview],
+  );
 
   return (
     <Modal
@@ -153,17 +176,42 @@ export function MyServiceDetailSheet({
               {data?.documents.length ? (
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>Documents</Text>
-                  {data.documents.map((doc) => (
-                    <View key={`doc-${doc.selectionId}`} style={styles.docRow}>
-                      <Ionicons name="document-text-outline" size={18} color="#0B3B66" />
-                      <View style={styles.docText}>
-                        <Text style={styles.question}>{doc.requirementDocumentType}</Text>
-                        <Text style={styles.answer}>
-                          {doc.originalFilename ?? 'Attached file'}
-                        </Text>
-                      </View>
-                    </View>
-                  ))}
+                  {data.documents.map((doc) => {
+                    const canOpen = resolveSubmissionDocumentUrl(doc.documentUrl) != null;
+                    return (
+                      <Pressable
+                        key={`doc-${doc.selectionId}`}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Open ${doc.originalFilename ?? 'document'}`}
+                        disabled={!canOpen}
+                        onPress={() => handleOpenDocument(doc)}
+                        style={({ pressed }) => [
+                          styles.docRow,
+                          canOpen ? styles.docRowTappable : null,
+                          pressed && canOpen ? styles.docRowPressed : null,
+                        ]}
+                      >
+                        <Ionicons name="document-text-outline" size={18} color="#0B3B66" />
+                        <View style={styles.docText}>
+                          <Text style={styles.question}>{doc.requirementDocumentType}</Text>
+                          <Text style={styles.answer}>
+                            {doc.originalFilename ?? 'Attached file'}
+                          </Text>
+                          {canOpen ? (
+                            <View style={styles.openFileRow}>
+                              <Text style={styles.openFileText}>Open file</Text>
+                              <Ionicons name="open-outline" size={14} color="#2563EB" />
+                            </View>
+                          ) : (
+                            <Text style={styles.openFileUnavailable}>File unavailable</Text>
+                          )}
+                        </View>
+                        {canOpen ? (
+                          <Ionicons name="chevron-forward" size={16} color="#94A3B8" />
+                        ) : null}
+                      </Pressable>
+                    );
+                  })}
                 </View>
               ) : null}
 
@@ -176,6 +224,7 @@ export function MyServiceDetailSheet({
           )}
         </View>
       </View>
+      {previewModal}
     </Modal>
   );
 }
@@ -294,7 +343,7 @@ const styles = StyleSheet.create({
   },
   docRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: 10,
     padding: 12,
     borderRadius: 12,
@@ -302,9 +351,32 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#EEF2F6',
   },
+  docRowTappable: {
+    borderColor: '#DBEAFE',
+  },
+  docRowPressed: {
+    opacity: 0.9,
+    backgroundColor: '#F1F5F9',
+  },
   docText: {
     flex: 1,
     gap: 2,
+  },
+  openFileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 4,
+  },
+  openFileText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#2563EB',
+  },
+  openFileUnavailable: {
+    marginTop: 4,
+    fontSize: 12,
+    color: '#94A3B8',
   },
   emptySection: {
     fontSize: 14,

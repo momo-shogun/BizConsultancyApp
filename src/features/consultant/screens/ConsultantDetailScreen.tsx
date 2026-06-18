@@ -21,6 +21,7 @@ import { THEME } from '@/constants/theme';
 import { usePublicConsultantDetail } from '@/features/consultant/hooks/usePublicConsultantDetail';
 import type { ConsultantDetail, ConsultantExpertTalk } from '@/features/consultant/types/consultantDetail.types';
 import { resolveConsultationFee } from '@/features/Consultation/utils/consultationBooking';
+import { useConsultantBookingLoginGate } from '@/features/Consultation/hooks/useConsultantBookingLoginGate';
 import { ROUTES } from '@/navigation/routeNames';
 import type { RootStackParamList } from '@/navigation/types';
 import { CallController } from '@/features/Calls/controllers/CallController';
@@ -31,6 +32,7 @@ const H_PADDING = THEME.spacing[16];
 const SCREEN_CANVAS = '#F1F5F3';
 const SLATE_LINE = '#E2E8F0';
 const SLATE_MUTED = '#64748B';
+const CONSULTANT_WHATSAPP_NUMBER = '919625921019';
 
 const METRIC_PALETTES = {
   green: {
@@ -285,6 +287,7 @@ export function ConsultantDetailScreen(): React.ReactElement {
   const slug = route.params.slug;
   const { detail, isLoading } = usePublicConsultantDetail(slug);
   const [callStarting, setCallStarting] = useState(false);
+  const { ensureVerifiedLogin, consultantBookingLoginDialog } = useConsultantBookingLoginGate();
 
   const talkCardWidth = useMemo((): number => Math.min(252, Math.round(width * 0.66)), [width]);
 
@@ -312,7 +315,7 @@ export function ConsultantDetailScreen(): React.ReactElement {
   }, [detail]);
 
   const onBookConsultation = useCallback((): void => {
-    if (detail == null) {
+    if (detail == null || !ensureVerifiedLogin()) {
       return;
     }
     const parsedId = Number(detail.id);
@@ -328,7 +331,7 @@ export function ConsultantDetailScreen(): React.ReactElement {
         rate: detail.rate,
       }),
     });
-  }, [detail, navigation, slug]);
+  }, [detail, ensureVerifiedLogin, navigation, slug]);
 
   const onOpenTalk = useCallback((talk: ConsultantExpertTalk): void => {
     openExternalUrl(youtubeEmbedToWatchUrl(talk.url));
@@ -361,6 +364,10 @@ export function ConsultantDetailScreen(): React.ReactElement {
       });
   }, [callStarting, detail]);
 
+  const onWhatsAppPress = useCallback((): void => {
+    openExternalUrl(`https://wa.me/${CONSULTANT_WHATSAPP_NUMBER}`);
+  }, []);
+
   const onlyGenericRate =
     detail != null && detail.rate > 0 && detail.audioRate <= 0 && detail.videoRate <= 0;
   const audioRateDisplay =
@@ -383,8 +390,9 @@ export function ConsultantDetailScreen(): React.ReactElement {
 
   if (isLoading || detail == null) {
     return (
-      <SafeAreaWrapper edges={['top']}>
-        <ScreenHeader title="Consultant" onBackPress={() => navigation.goBack()} />
+    <SafeAreaWrapper edges={['top']}>
+      {consultantBookingLoginDialog}
+      <ScreenHeader title="Consultant" onBackPress={() => navigation.goBack()} />
         <View style={styles.loadingWrap}>
           <ActivityIndicator size="large" color={THEME.colors.primary} />
         </View>
@@ -394,12 +402,13 @@ export function ConsultantDetailScreen(): React.ReactElement {
 
   return (
     <SafeAreaWrapper edges={['top']}>
+      {consultantBookingLoginDialog}
       <ScreenHeader
         title="Consultant"
         onBackPress={() => navigation.goBack()}
         showConsultantActions
         onCallPress={onCallPress}
-        onMessagePress={() => {}}
+        onMessagePress={onWhatsAppPress}
       />
 
       <ScreenWrapper style={styles.screenBg}>

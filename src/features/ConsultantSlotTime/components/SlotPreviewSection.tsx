@@ -11,7 +11,7 @@ export interface SlotPreviewSectionProps {
   onPreviewDateChange: (date: Date) => void;
   slots: string[];
   isLoading: boolean;
-  slugMissing: boolean;
+  previewNeedsSchedule: boolean;
 }
 
 export function SlotPreviewSection({
@@ -19,7 +19,7 @@ export function SlotPreviewSection({
   onPreviewDateChange,
   slots,
   isLoading,
-  slugMissing,
+  previewNeedsSchedule,
 }: SlotPreviewSectionProps): React.ReactElement {
   const chips = useMemo(() => {
     const now = new Date();
@@ -57,8 +57,10 @@ export function SlotPreviewSection({
         placeholder="Choose date"
       />
 
-      {slugMissing ? (
-        <Text style={styles.muted}>Finish your profile setup to see times here.</Text>
+      {previewNeedsSchedule ? (
+        <Text style={styles.muted}>
+          Set your weekly hours below, then pick a day to preview open times.
+        </Text>
       ) : isLoading ? (
         <View style={styles.loadingRow}>
           <ActivityIndicator color="#059669" />

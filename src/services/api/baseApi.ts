@@ -66,6 +66,7 @@ const baseQueryWithReauth: BaseQueryFn<
   }
   if (state.auth.refreshToken == null || state.auth.refreshToken.length === 0) {
     api.dispatch(logout());
+    api.dispatch(baseApi.util.resetApiState());
     return result;
   }
 
@@ -123,6 +124,7 @@ const baseQueryWithReauth: BaseQueryFn<
   const refreshed = await refreshPromise;
   if (!refreshed) {
     api.dispatch(logout());
+    api.dispatch(baseApi.util.resetApiState());
     return result;
   }
 

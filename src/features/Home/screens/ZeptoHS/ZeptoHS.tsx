@@ -215,7 +215,7 @@ export function ZeptoHS(props: ZeptoHSProps): React.ReactElement {
         scrollEventThrottle={16}
       >
         <Animated.View style={collapsingHeaderOpacityStyle} onLayout={onHeaderLayout} collapsable={false}>
-          <ZeptoHeaderV1 {...header} backgroundColor={headerBackgroundColor}  onWalletPress={()=> navigationRef.navigate(ROUTES.Root.Wallet)} />
+          <ZeptoHeaderV1 {...header} backgroundColor={headerBackgroundColor} />
         </Animated.View>
 
         <Animated.View style={collapsingHeaderOpacityStyle} onLayout={onTabsLayout} collapsable={false}>

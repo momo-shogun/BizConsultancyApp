@@ -33,6 +33,11 @@ export function UserHelpSettingsScreen(props: UserHelpSettingsScreenProps): Reac
     }
     if (rowId === 'membership') {
       navigation.navigate(ROUTES.Account.Membership);
+      return;
+    }
+    if (rowId === 'myMembership') {
+      navigation.navigate(ROUTES.Account.UserMyMembership);
+      return;
     }
     if (rowId === 'feedback') {
       navigation.navigate(ROUTES.Account.addReview);

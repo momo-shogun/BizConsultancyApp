@@ -31,6 +31,7 @@ import { SERVICE_DETAIL_TABS, type DetailTabKey } from './serviceTabs';
 
 import { useServiceBySlug } from '../hooks/useServiceBySlug';
 import { useServicePageSlugLookup } from '../hooks/useServicePageSlugLookup';
+import { useServicePurchaseLoginGate } from '../hooks/useServicePurchaseLoginGate';
 import type { RecommendedServiceCard } from './types';
 import { mapAboutToUiProps } from '../utils/serviceAboutUi';
 
@@ -146,6 +147,7 @@ export function ServiceDetailScreen(): React.ReactElement {
 
   const { service: item, isLoading, isError } = useServiceBySlug(slug);
   const { resolveRecommendedTargetSlug } = useServicePageSlugLookup();
+  const { handleGetStarted, servicePurchaseLoginDialog } = useServicePurchaseLoginGate();
 
   const [activeTab, setActiveTab] =
     useState<DetailTabKey>('about');
@@ -270,6 +272,7 @@ export function ServiceDetailScreen(): React.ReactElement {
 
   return (
     <SafeAreaWrapper edges={['bottom', 'top']}  bgColor='#0F5132' isLight={true}>
+      {servicePurchaseLoginDialog}
       {/* <ScreenHeader title="title" headerColor="#0F5132" onSearchPress={() => {}} /> */}
       <ScreenWrapper style={styles.flex}>
         <ScrollWrapper
@@ -377,7 +380,7 @@ export function ServiceDetailScreen(): React.ReactElement {
                   accessibilityRole="button"
                   accessibilityLabel={`Get started with ${item.title}`}
                   hitSlop={8}
-                  onPress={() => navigation.navigate(ROUTES.Services.Onboarding, { slug: item.slug })}
+                  onPress={() => handleGetStarted(item.slug)}
                   style={({ pressed }) => [
                     styles.heroCta,
                     pressed ? styles.heroCtaPressed : null,

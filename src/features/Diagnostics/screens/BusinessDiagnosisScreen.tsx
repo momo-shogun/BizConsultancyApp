@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Pressable,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   View,
@@ -24,10 +23,12 @@ import { DiagnosisSectionHeader } from '@/features/Diagnostics/components/Diagno
 import { DIAGNOSIS_THEME } from '@/features/Diagnostics/constants/diagnosisTheme';
 import { useDiagnosisPurchase } from '@/features/Diagnostics/hooks/useDiagnosisPurchase';
 import { mapToDiagnosisPlanViewModels } from '@/features/Diagnostics/utils/diagnosticsMappers';
+import { selectHasVerifiedLogin } from '@/features/Auth/store/authSelectors';
 import { THEME } from '@/constants/theme';
 import { navigationRef } from '@/navigation/RootNavigator';
 import { ROUTES } from '@/navigation/routeNames';
 import { SafeAreaWrapper } from '@/shared/components';
+import { useAppSelector } from '@/store/typedHooks';
 
 const FEATURES = [
   {
@@ -67,6 +68,7 @@ const TRUST_ITEMS = [
 export function BusinessDiagnosisScreen(): React.ReactElement {
   const scrollRef = useRef<ScrollView>(null);
   const [packsScrollY, setPacksScrollY] = useState(0);
+  const hasVerifiedLogin = useAppSelector(selectHasVerifiedLogin);
 
   const {
     data: packs = [],
@@ -75,7 +77,9 @@ export function BusinessDiagnosisScreen(): React.ReactElement {
     refetch: refetchPacks,
   } = useGetPublicDiagnosticsMembershipsQuery();
 
-  const { data: purchaseState } = useGetMyDiagnosisPurchaseStateQuery();
+  const { data: purchaseState } = useGetMyDiagnosisPurchaseStateQuery(undefined, {
+    skip: !hasVerifiedLogin,
+  });
 
   const purchase = useDiagnosisPurchase();
 
@@ -120,6 +124,7 @@ export function BusinessDiagnosisScreen(): React.ReactElement {
 
   return (
     <SafeAreaWrapper edges={['top', 'bottom']} bgColor={DIAGNOSIS_THEME.heroBg}>
+      {purchase.diagnosisPurchaseLoginDialog}
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Go back"

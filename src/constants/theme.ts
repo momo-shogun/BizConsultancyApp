@@ -7,7 +7,8 @@ export const THEME = {
   spacing: SPACING,
   typography: TYPOGRAPHY,
   radius: {
-    8: 8,
+     8: 8,
+     2: 2,
     12: 12,
     16: 16,
   },

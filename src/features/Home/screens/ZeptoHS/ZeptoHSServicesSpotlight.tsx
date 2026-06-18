@@ -5,7 +5,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
 import Animated, {
@@ -25,12 +24,16 @@ import { THEME } from '@/constants/theme';
 import { ROUTES } from '@/navigation/routeNames';
 import type { AppTabParamList } from '@/navigation/types';
 
+import { useGetPublicServicesQuery } from '@/features/Services/api/servicesApi';
+
 import { ServiceSpotlightCard } from './components/ServiceSpotlightCard';
 import {
   SERVICES_CATEGORY_TREE,
   type ServicePageRef,
   type ServicesTopCategory,
 } from './data/servicesCategoryTree.static';
+
+const ACTIVE_SERVICES_BOOTSTRAP_LIMIT = 500;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Spring / timing configs
@@ -269,6 +272,12 @@ export function ZeptoHSServicesSpotlight({
 }: ZeptoHSServicesSpotlightProps): React.ReactElement {
   const navigation = useNavigation<BottomTabNavigationProp<AppTabParamList>>();
   const categories = SERVICES_CATEGORY_TREE.categories;
+  const { data: activeServicesPage } = useGetPublicServicesQuery({
+    page: 1,
+    limit: ACTIVE_SERVICES_BOOTSTRAP_LIMIT,
+    sortBy: 'position',
+    sortOrder: 'desc',
+  });
 
   const [activeCategoryIndex, setActiveCategoryIndex] = useState(0);
 
@@ -311,10 +320,20 @@ export function ZeptoHSServicesSpotlight({
   const activeCategory: ServicesTopCategory | undefined =
     categories[activeCategoryIndex] ?? categories[0];
 
+  const activeServiceSlugs = useMemo((): Set<string> => {
+    return new Set((activeServicesPage?.items ?? []).map((item) => item.slug));
+  }, [activeServicesPage?.items]);
+
   const combinedSpotlightPages = useMemo((): ServicePageRef[] => {
-    if (activeCategory == null) return [];
-    return activeCategory.subCategories.flatMap((sub) => sub.pages);
-  }, [activeCategory]);
+    if (activeCategory == null) {
+      return [];
+    }
+    const pages = activeCategory.subCategories.flatMap((sub) => sub.pages);
+    if (activeServiceSlugs.size === 0) {
+      return pages;
+    }
+    return pages.filter((page) => activeServiceSlugs.has(page.slug));
+  }, [activeCategory, activeServiceSlugs]);
 
   const goToService = useCallback(
     (slug: string): void => {

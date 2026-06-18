@@ -1,12 +1,19 @@
 import { useCallback, useMemo, useState } from 'react';
 
-import { selectAuth, selectIsAuthenticated } from '@/features/Auth/store/authSelectors';
+import {
+  selectAccountRole,
+  selectAuth,
+  selectIsAuthenticated,
+} from '@/features/Auth/store/authSelectors';
 import {
   useCreateEdpPurchaseMutation,
   useGetEdpProgramAmountQuery,
   useVerifyEdpPurchasePaymentMutation,
 } from '@/features/Edp/api/edpPurchasesApi';
-import { useGetMyWalletBalanceQuery } from '@/features/Home/api/userWalletsApi';
+import {
+  useGetConsultantWalletBalanceQuery,
+  useGetMyWalletBalanceQuery,
+} from '@/features/Home/api/userWalletsApi';
 import {
   WalletPaymentCancelledError,
   openWalletTopupRazorpayCheckout,
@@ -30,6 +37,8 @@ export interface UseEdpEnrollmentPurchaseResult {
 
 export function useEdpEnrollmentPurchase(): UseEdpEnrollmentPurchaseResult {
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const accountRole = useAppSelector(selectAccountRole);
+  const isConsultant = accountRole === 'consultant';
   const auth = useAppSelector(selectAuth);
   const [paymentModalVisible, setPaymentModalVisible] = useState(false);
   const [payingWith, setPayingWith] = useState<'razorpay' | 'wallet' | null>(null);
@@ -38,8 +47,11 @@ export function useEdpEnrollmentPurchase(): UseEdpEnrollmentPurchaseResult {
   const { data: amountData } = useGetEdpProgramAmountQuery(undefined, {
     skip: !isAuthenticated,
   });
-  const { data: walletBalance } = useGetMyWalletBalanceQuery(undefined, {
-    skip: !paymentModalVisible || !isAuthenticated,
+  const { data: userWalletBalance } = useGetMyWalletBalanceQuery(undefined, {
+    skip: !paymentModalVisible || !isAuthenticated || isConsultant,
+  });
+  const { data: consultantWalletBalance } = useGetConsultantWalletBalanceQuery(undefined, {
+    skip: !paymentModalVisible || !isAuthenticated || !isConsultant,
   });
 
   const [createPurchase] = useCreateEdpPurchaseMutation();
@@ -48,6 +60,7 @@ export function useEdpEnrollmentPurchase(): UseEdpEnrollmentPurchaseResult {
   const programAmountRupees =
     amountData != null && Number.isFinite(amountData.amount) ? Math.round(amountData.amount) : 0;
 
+  const walletBalance = isConsultant ? consultantWalletBalance : userWalletBalance;
   const walletBalanceRupees =
     walletBalance != null && Number.isFinite(walletBalance) ? walletBalance : null;
 

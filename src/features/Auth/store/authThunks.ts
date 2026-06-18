@@ -7,9 +7,9 @@ import { authApi } from '../api/authApi';
 import type { AuthRole, VerifyOtpDto } from '../types/authApi.types';
 import { isTokenExpired, parseAuthSessionPayload } from '../utils/authSessionParsing';
 import { loadPreferredAccountRole } from '../storage/accountRoleStorage';
+import { clearAppSession } from './clearAppSession';
 import {
   establishSession,
-  logout,
   setAuthSession,
   setPreferredAccountRole,
   setRestoringSession,
@@ -100,11 +100,11 @@ export const restoreSession = createAsyncThunk<boolean, void, { state: RootState
               const refreshed = await dispatch(refreshAuthToken()).unwrap();
               return refreshed;
             } catch {
-              dispatch(logout());
+              clearAppSession(dispatch);
               return false;
             }
           }
-          dispatch(logout());
+          clearAppSession(dispatch);
           return false;
         }
         return true;
@@ -118,7 +118,7 @@ export const restoreSession = createAsyncThunk<boolean, void, { state: RootState
         return true;
       }
 
-      dispatch(logout());
+      clearAppSession(dispatch);
       return false;
     } finally {
       dispatch(setRestoringSession(false));
@@ -138,7 +138,7 @@ export const verifyOtpAndLogin = createAsyncThunk<
   void,
   VerifyOtpDto,
   { state: RootState }
->('auth/verifyOtpAndLogin', async (body, { dispatch }) => {
+>('auth/verifyOtpAndLogin', async (body, { dispatch, getState }) => {
   try {
     const response = await dispatch(authApi.endpoints.verifyOtp.initiate(body)).unwrap();
 
@@ -154,6 +154,11 @@ export const verifyOtpAndLogin = createAsyncThunk<
     await dispatch(applyAuthSession(parsed));
   } catch (error: unknown) {
     if (isVerifyOtpUnavailable(error)) {
+      const { loginSession } = getState().auth;
+      if (loginSession != null && !loginSession.isRegistered) {
+        throw new Error('User not found');
+      }
+
       await dispatch(
         establishProfileSession({
           mobile: body.mobile,
@@ -195,7 +200,6 @@ export const establishProfileSession = createAsyncThunk<
 export const logoutSession = createAsyncThunk<void, void, { state: RootState }>(
   'auth/logoutSession',
   async (_arg, { dispatch }) => {
-    dispatch(logout());
-    dispatch(authApi.util.resetApiState());
+    clearAppSession(dispatch);
   },
 );

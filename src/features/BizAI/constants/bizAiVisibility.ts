@@ -18,6 +18,8 @@ export const BIZ_AI_HIDDEN_NESTED_ROUTES: Readonly<Record<string, readonly strin
   [ROUTES.App.Account]: [
     ROUTES.Account.HelpSettings,
     ROUTES.Account.Membership,
+    ROUTES.Account.ConsultantMyMembership,
+    ROUTES.Account.UserMyMembership,
     ROUTES.Account.EditProfile,
     ROUTES.Account.ConsultantBankDetailsScreen,
     ROUTES.Account.ExpertVideosScreen,

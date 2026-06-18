@@ -69,7 +69,7 @@ export function ConsultantWalletTransactionCard({
         ) : null}
         {item.commissionAmount > 0 ? (
           <Text style={styles.commissionText}>
-            Commission {formatConsultantTransactionAmount(item.commissionAmount, false)}
+            Platform Fee {formatConsultantTransactionAmount(item.commissionAmount, false)}
           </Text>
         ) : null}
       </View>

@@ -1,9 +1,8 @@
 import React, { createContext, useCallback, useContext, useMemo, useReducer } from 'react';
 
-import { authApi } from '@/features/Auth/api/authApi';
+import { clearAppSession } from '@/features/Auth/store/clearAppSession';
 import {
   establishSession,
-  logout as logoutAuth,
   setPreferredAccountRole,
 } from '@/features/Auth/store/authSlice';
 import {
@@ -66,8 +65,7 @@ export function AuthProvider(props: React.PropsWithChildren): React.ReactElement
 
   const logout = useCallback((): void => {
     dispatchFlow({ type: 'AUTH/CLEAR_FLOW' });
-    dispatch(logoutAuth());
-    dispatch(authApi.util.resetApiState());
+    clearAppSession(dispatch);
   }, [dispatch]);
 
   const selectAccountContext = useCallback(

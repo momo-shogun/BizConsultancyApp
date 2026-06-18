@@ -1,10 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import {
-  useGetAvailableSlotsQuery,
-  useGetPublicConsultantsQuery,
-} from '@/features/consultant/api/consultantApi';
-import {
   useCreateConsultantOverrideMutation,
   useDeleteConsultantOverrideMutation,
   useGetConsultantOverridesQuery,
@@ -21,12 +17,12 @@ import type {
   OverrideFormState,
   ScheduleDayConfig,
 } from '@/features/ConsultantSlotTime/types/consultantSchedule.types';
-import { formatDateToApi, readApiErrorMessage } from '@/features/ConsultantSlotTime/utils/scheduleDisplay';
+import { readApiErrorMessage } from '@/features/ConsultantSlotTime/utils/scheduleDisplay';
+import { buildSchedulePreviewSlots } from '@/features/ConsultantSlotTime/utils/schedulePreviewSlots';
 import {
   nextDefaultRangeAfterExisting,
   rangesOverlap,
 } from '@/features/ConsultantSlotTime/utils/scheduleValidation';
-import { useAppSelector } from '@/store/typedHooks';
 import { showGlobalToast } from '@/shared/components/toast';
 
 export interface UseConsultantSlotTimeScreenResult {
@@ -61,7 +57,7 @@ export interface UseConsultantSlotTimeScreenResult {
   setPreviewDate: (date: Date) => void;
   previewSlots: string[];
   isPreviewLoading: boolean;
-  slugMissing: boolean;
+  previewNeedsSchedule: boolean;
   refreshAll: () => void;
   isRefreshing: boolean;
 }
@@ -73,9 +69,6 @@ const EMPTY_OVERRIDE_FORM: OverrideFormState = {
 };
 
 export function useConsultantSlotTimeScreen(): UseConsultantSlotTimeScreenResult {
-  const authUserId = useAppSelector((state) => state.auth.user?.id ?? '');
-  const consultantId = Number(authUserId);
-
   const {
     data: scheduleData,
     isLoading: isScheduleQueryLoading,
@@ -95,29 +88,10 @@ export function useConsultantSlotTimeScreen(): UseConsultantSlotTimeScreenResult
     useUpdateConsultantOverrideMutation();
   const [deleteOverrideMutation] = useDeleteConsultantOverrideMutation();
 
-  const { data: consultantsPage } = useGetPublicConsultantsQuery(
-    { limit: '100' },
-    { skip: !Number.isFinite(consultantId) || consultantId <= 0 },
-  );
-
-  const consultantSlug = useMemo((): string => {
-    if (!Number.isFinite(consultantId) || consultantId <= 0) {
-      return '';
-    }
-    const match = consultantsPage?.items.find((item) => Number(item.id) === consultantId);
-    return match?.slug?.trim() ?? '';
-  }, [consultantId, consultantsPage?.items]);
-
   const [scheduleDays, setScheduleDays] = useState<ScheduleDayConfig[]>([]);
   const [scheduleExists, setScheduleExists] = useState(false);
 
   const [previewDate, setPreviewDate] = useState<Date>(() => new Date());
-  const previewDateApi = formatDateToApi(previewDate);
-
-  const { data: previewResponse, isFetching: isPreviewFetching } = useGetAvailableSlotsQuery(
-    { slug: consultantSlug, date: previewDateApi },
-    { skip: consultantSlug.length === 0 },
-  );
 
   const [overrideModalVisible, setOverrideModalVisible] = useState(false);
   const [overrideForm, setOverrideForm] = useState<OverrideFormState>(EMPTY_OVERRIDE_FORM);
@@ -146,9 +120,13 @@ export function useConsultantSlotTimeScreen(): UseConsultantSlotTimeScreenResult
   );
 
   const previewSlots = useMemo((): string[] => {
-    const slots = previewResponse?.slots ?? [];
-    return slots.map((slot) => slot.label ?? slot.startTime).filter((label) => label.length > 0);
-  }, [previewResponse?.slots]);
+    if (scheduleDays.length === 0) {
+      return [];
+    }
+    return buildSchedulePreviewSlots(scheduleDays, overrides, previewDate);
+  }, [overrides, previewDate, scheduleDays]);
+
+  const previewNeedsSchedule = !scheduleExists && scheduleDays.length === 0;
 
   const createSchedule = useCallback((): void => {
     setScheduleExists(true);
@@ -339,8 +317,8 @@ export function useConsultantSlotTimeScreen(): UseConsultantSlotTimeScreenResult
     previewDate,
     setPreviewDate,
     previewSlots,
-    isPreviewLoading: isPreviewFetching,
-    slugMissing: consultantSlug.length === 0,
+    isPreviewLoading: isScheduleQueryLoading && scheduleData === undefined,
+    previewNeedsSchedule,
     refreshAll,
     isRefreshing: isScheduleFetching || isOverridesFetching,
   };
