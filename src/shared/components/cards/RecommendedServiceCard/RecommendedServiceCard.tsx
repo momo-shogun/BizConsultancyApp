@@ -30,6 +30,8 @@ export interface RecommendedServiceCardProps {
   cardWidth?: DimensionValue;
   onPress?: () => void;
   onCtaPress?: () => void;
+  /** When true, shows a purchased badge and replaces the purchase CTA */
+  isPurchased?: boolean;
   /** Carousel/list position — cycles header presets 0–4 when set */
   listIndex?: number;
   /** Removes carousel trailing gutter when the card spans the full content width */
@@ -79,6 +81,7 @@ export function RecommendedServiceCard({
   cardWidth = 320,
   onPress,
   onCtaPress,
+  isPurchased = false,
   listIndex,
   fullWidth = false,
   upperPressableAccessibilityHint,
@@ -128,7 +131,13 @@ export function RecommendedServiceCard({
                 {item.title}
               </Text>
             </View>
-            {item.badgeLabel ? (
+            {isPurchased ? (
+              <View style={styles.purchasedBadge}>
+                <Text style={styles.purchasedBadgeText} numberOfLines={1}>
+                  Purchased
+                </Text>
+              </View>
+            ) : item.badgeLabel ? (
               <View style={styles.badge}>
                 <Text style={styles.badgeText} numberOfLines={1}>
                   {item.badgeLabel}
@@ -151,17 +160,22 @@ export function RecommendedServiceCard({
         </Text>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`Get started with ${item.title}`}
+          accessibilityLabel={
+            isPurchased ? `View purchased service ${item.title}` : `Get started with ${item.title}`
+          }
           onPress={handleCta}
           disabled={onCtaPress == null && onPress == null}
           hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
           style={({ pressed }) => [
             styles.cta,
+            isPurchased ? styles.ctaPurchased : null,
             pressed ? styles.ctaPressed : null,
             onCtaPress == null && onPress == null ? styles.ctaDisabled : null,
           ]}
         >
-          <Text style={styles.ctaText}>Get started</Text>
+          <Text style={[styles.ctaText, isPurchased ? styles.ctaTextPurchased : null]}>
+            {isPurchased ? 'Purchased' : 'Get started'}
+          </Text>
         </Pressable>
       </View>
     </View>
@@ -265,6 +279,23 @@ const styles = StyleSheet.create({
     color: '#2563EB',
     textTransform: 'uppercase',
   },
+  purchasedBadge: {
+    flexShrink: 0,
+    marginTop: 0,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(15, 81, 50, 0.12)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(15, 81, 50, 0.28)',
+  },
+  purchasedBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    color: '#0F5132',
+    textTransform: 'uppercase',
+  },
   summary: {
     fontSize: THEME.typography.size[12],
     color: THEME.colors.textSecondary,
@@ -310,6 +341,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  ctaPurchased: {
+    backgroundColor: 'rgba(15, 81, 50, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(15, 81, 50, 0.28)',
+  },
   ctaPressed: {
     opacity: 0.9,
   },
@@ -320,5 +356,8 @@ const styles = StyleSheet.create({
     color: THEME.colors.white,
     fontSize: THEME.typography.size[12],
     fontWeight: THEME.typography.weight.semibold as '600',
+  },
+  ctaTextPurchased: {
+    color: '#0F5132',
   },
 });

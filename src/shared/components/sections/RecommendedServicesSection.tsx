@@ -20,6 +20,7 @@ export interface RecommendedServicesSectionProps {
   variant?: 'default' | 'accentPanel';
   onItemPress?: (item: RecommendedServiceItem) => void;
   onCtaPress?: (item: RecommendedServiceItem) => void;
+  isItemPurchased?: (item: RecommendedServiceItem) => boolean;
 }
 
 export function RecommendedServicesSection(props: RecommendedServicesSectionProps): React.ReactElement {
@@ -33,6 +34,7 @@ export function RecommendedServicesSection(props: RecommendedServicesSectionProp
     variant = 'default',
     onItemPress,
     onCtaPress,
+    isItemPurchased,
   } = props;
 
   const isAccentPanel = variant === 'accentPanel';
@@ -81,6 +83,7 @@ export function RecommendedServicesSection(props: RecommendedServicesSectionProp
               item={item}
               listIndex={index}
               cardWidth={cardWidth}
+              isPurchased={isItemPurchased?.(item) ?? false}
               onPress={() => onItemPress?.(item)}
               onCtaPress={onCtaPress ? () => onCtaPress(item) : undefined}
             />

@@ -1,13 +1,5 @@
-import React from 'react';
-
-import {
-  SignupScreenContent as SignupScreenContentBase,
+export {
+  SignupScreenContent,
   type SignupScreenContentProps,
+  type SignupStep,
 } from '@/features/Auth/components/SignupScreenContent';
-
-type Props = Omit<SignupScreenContentProps, 'roleLabel'>;
-
-export function SignupScreenContent(props: Props): React.ReactElement {
-  return <SignupScreenContentBase {...props} roleLabel="User" />;
-}
-

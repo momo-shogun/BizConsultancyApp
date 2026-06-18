@@ -254,7 +254,7 @@ export function ZeptoHS(props: ZeptoHSProps): React.ReactElement {
         <View style={{ paddingTop: STICKY_SEARCH_TOP_PAD, backgroundColor: activeShell.topTabsBackground }}>
           <ZeptoTabsSearchBand
             backgroundColor={activeShell.topTabsBackground}
-            searchPlaceholder="Search for services, experts..."
+            searchPlaceholder="Search for services"
             onPress={onOpenSearch}
             testID="zepto_hs_sticky_search"
           />

@@ -68,7 +68,8 @@ const AnimatedPlaceholderFlatList = Animated.createAnimatedComponent(FlatList<st
 
 export function ServicesListingScreen(): React.ReactElement {
   const navigation = useNavigation<NativeStackNavigationProp<ServicesStackParamList>>();
-  const { handleGetStarted, servicePurchaseLoginDialog } = useServicePurchaseLoginGate();
+  const { handleGetStarted, handleViewPurchased, isServicePurchased, servicePurchaseLoginDialog } =
+    useServicePurchaseLoginGate();
   const onBizAiScroll = useBizAIScrollReporter();
   const searchInputRef = useRef<TextInput>(null);
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
@@ -263,22 +264,28 @@ export function ServicesListingScreen(): React.ReactElement {
 
   const renderItem = useCallback<ListRenderItem<RecommendedServiceItem>>(
     ({ item, index }) => {
+      const purchased = isServicePurchased(item.slug);
       return (
         <RecommendedServiceCard
           item={item}
           listIndex={index}
           cardWidth="100%"
           fullWidth
+          isPurchased={purchased}
           onPress={() => {
             goToDetail(item.slug);
           }}
           onCtaPress={() => {
+            if (purchased) {
+              handleViewPurchased(item.slug);
+              return;
+            }
             handleGetStarted(item.slug);
           }}
         />
       );
     },
-    [goToDetail, handleGetStarted],
+    [goToDetail, handleGetStarted, handleViewPurchased, isServicePurchased],
   );
 
   const keyExtractor = useCallback((i: RecommendedServiceItem): string => i.id, []);

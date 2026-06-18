@@ -180,7 +180,11 @@ export function LoginScreenContent(
                   </View>
                   <Text
                     style={styles.bottomText}
-                    onPress={() => navigation.navigate(ROUTES.Auth.Signup)}
+                    onPress={() =>
+                      navigation.navigate(ROUTES.Auth.Signup, {
+                        mobile: cleanedPhone.length > 0 ? cleanedPhone : undefined,
+                      })
+                    }
                   >
                     Not registered yet? Create account
                   </Text>
