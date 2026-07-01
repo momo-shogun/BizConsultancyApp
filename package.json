@@ -16,6 +16,7 @@
     "start": "react-native start",
     "test": "NODE_OPTIONS=--max-old-space-size=4096 jest",
     "build": "cd android && gradlew.bat assembleRelease",
+    "build:android": "npx react-native build-android --mode=release",
     "installApk": "adb install -r android/app/build/outputs/apk/release/app-release.apk"
   },
   "lint-staged": {
