@@ -36,9 +36,8 @@ export function AccountHubScreenShell(props: AccountHubScreenShellProps): React.
       ? gradientColors[0]
       : solidHeaderColor;
   const screenHeaderColor = hasGradientHeader ? 'transparent' : solidHeaderColor;
-  const safeAreaEdges: Edge[] = hasGradientHeader
-    ? ['bottom']
-    : (props.edges ?? ['top', 'bottom']);
+  const safeAreaEdges: Edge[] =
+    props.edges ?? (hasGradientHeader ? ['bottom'] : ['top', 'bottom']);
 
   const headerChrome = (
     <ScreenHeader

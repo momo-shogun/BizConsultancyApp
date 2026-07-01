@@ -158,6 +158,7 @@ export function UserProfileScreen(): React.ReactElement {
     <>
       <ProfileScreenHeaderChrome
         title="My Profile"
+        safeAreaEdges={[]}
         avatarUri={avatarUri}
         avatarInitial={avatarInitial}
         displayName={heroName}

@@ -320,6 +320,7 @@ export function ServicesListingScreen(): React.ReactElement {
       {servicePurchaseLoginDialog}
       <AccountHubScreenShell
       title="Services"
+      edges={[]}
       canvasColor={ACCOUNT_HUB_LIST_CANVAS}
       headerColor={ACCOUNT_HUB_GREEN_HEADER_STATUS_BAR}
       headerGradientColors={ACCOUNT_HUB_GREEN_HEADER_GRADIENT}
