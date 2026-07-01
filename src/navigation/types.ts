@@ -32,6 +32,10 @@ export type EdpStackParamList = {
     title: string;
     videoUrl: string;
   };
+  [ROUTES.Edp.ModulePdf]: {
+    title: string;
+    pdfUrl: string;
+  };
   [ROUTES.Edp.AskQuestions]: undefined;
 };
 

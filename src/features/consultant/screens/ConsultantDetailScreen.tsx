@@ -85,6 +85,11 @@ function openExternalUrl(url: string): void {
   Linking.openURL(trimmed).catch(() => undefined);
 }
 
+function buildConsultantWhatsAppUrl(consultantName: string): string {
+  const message = `I want consultation from ${consultantName.trim()}`;
+  return `https://wa.me/${CONSULTANT_WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+}
+
 type ConsultantDetailRoute = RouteProp<RootStackParamList, typeof ROUTES.Root.ConsultantDetail>;
 
 type ProfileFactItem =
@@ -365,8 +370,11 @@ export function ConsultantDetailScreen(): React.ReactElement {
   }, [callStarting, detail]);
 
   const onWhatsAppPress = useCallback((): void => {
-    openExternalUrl(`https://wa.me/${CONSULTANT_WHATSAPP_NUMBER}`);
-  }, []);
+    if (detail == null) {
+      return;
+    }
+    openExternalUrl(buildConsultantWhatsAppUrl(detail.name));
+  }, [detail]);
 
   const onlyGenericRate =
     detail != null && detail.rate > 0 && detail.audioRate <= 0 && detail.videoRate <= 0;

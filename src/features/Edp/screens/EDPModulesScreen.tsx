@@ -6,8 +6,10 @@ import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { THEME } from '@/constants/theme';
-import { selectIsAuthenticated } from '@/features/Auth/store/authSelectors';
 import { useGetEdpCoursesWithDocumentsQuery } from '@/features/Edp/api/edpLandingApi';
+import { EdpEnrollmentRequiredView } from '@/features/Edp/components/EdpEnrollmentRequiredView';
+import { useEdpAccess } from '@/features/Edp/hooks/useEdpAccess';
+import { useEdpEnrollmentPurchase } from '@/features/Edp/hooks/useEdpEnrollmentPurchase';
 import { useEdpModulesListProgress } from '@/features/Edp/hooks/useEdpModulesListProgress';
 import type { EdpFreeEdpModule } from '@/features/Edp/types/edpCourses.types';
 import { normalizeEdpModuleSlug } from '@/features/Edp/utils/edpCourseDetailsParsing';
@@ -15,12 +17,12 @@ import { openEdpModuleForUser } from '@/features/Edp/utils/edpGuestVideoAccess';
 import { resolveIidAssetUrl } from '@/features/Edp/utils/edpMedia';
 import type { EdpStackParamList } from '@/navigation/types';
 import { SafeAreaWrapper, ScreenHeader } from '@/shared/components';
-import { useAppSelector } from '@/store/typedHooks';
 
 import {
   EdpModulesListSkeleton,
   EdpModulesSearchSkeleton,
 } from '@/features/Edp/components/EdpModuleCardSkeleton';
+import { DiagnosisPaymentModal } from '@/features/Diagnostics/components/DiagnosisPaymentModal';
 
 import { styles } from './EDPModulesScreen.styles';
 
@@ -145,7 +147,13 @@ const EDPModulesScreen = ({ onBack, onOpenModule }: EDPModulesScreenProps): Reac
   const [lang, setLang] = useState<'ENG' | 'HI'>('ENG');
   const [query, setQuery] = useState<string>('');
   const navigation = useNavigation<NavigationProp<EdpStackParamList>>();
-  const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const {
+    canAccessFullEdp,
+    isLoggedInUser,
+    isConsultant,
+    isEnrollmentLoading,
+  } = useEdpAccess();
+  const purchaseFlow = useEdpEnrollmentPurchase();
   const { data, isLoading, isError } = useGetEdpCoursesWithDocumentsQuery();
   const { progressBySlug } = useEdpModulesListProgress(data?.freeEdps);
 
@@ -181,13 +189,17 @@ const EDPModulesScreen = ({ onBack, onOpenModule }: EDPModulesScreenProps): Reac
       lang === 'HI' && module.titleHi.length > 0 ? module.titleHi : module.titleEn;
 
     openEdpModuleForUser(navigation, {
-      isAuthenticated,
+      canAccessFullEdp,
+      isLoggedInUser,
+      isConsultant,
       moduleSlug: module.slug,
       moduleTitle,
       overviewVideoUrl: module.overviewVideoUrl,
       lang: lang === 'HI' ? 'hi' : 'en',
     });
   };
+
+  const showEnrollmentGate = isLoggedInUser && !isEnrollmentLoading && !canAccessFullEdp;
 
   return (
     <SafeAreaWrapper
@@ -210,6 +222,13 @@ const EDPModulesScreen = ({ onBack, onOpenModule }: EDPModulesScreenProps): Reac
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
+          {showEnrollmentGate ? (
+            <EdpEnrollmentRequiredView
+              isConsultant={isConsultant}
+              onEnrollPress={isConsultant ? undefined : () => purchaseFlow.openPaymentModal()}
+            />
+          ) : (
+            <>
           {isLoading ? (
             <EdpModulesSearchSkeleton />
           ) : (
@@ -255,7 +274,21 @@ const EDPModulesScreen = ({ onBack, onOpenModule }: EDPModulesScreenProps): Reac
               <Text style={styles.messageBody}>Try a different search keyword.</Text>
             </View>
           ) : null}
+            </>
+          )}
         </ScrollView>
+        <DiagnosisPaymentModal
+          visible={purchaseFlow.paymentModalVisible}
+          packTitle="EDP programme enrollment"
+          amountRupees={purchaseFlow.programAmountRupees}
+          walletBalanceRupees={purchaseFlow.walletBalanceRupees}
+          canPayWithWallet={purchaseFlow.canPayWithWallet}
+          payingWith={purchaseFlow.payingWith}
+          isBusy={purchaseFlow.isBusy}
+          onClose={purchaseFlow.closePaymentModal}
+          onPayRazorpay={() => void purchaseFlow.payWithRazorpay()}
+          onPayWallet={() => void purchaseFlow.payWithWallet()}
+        />
       </View>
     </SafeAreaWrapper>
   );

@@ -39,6 +39,7 @@ export const ROUTES = {
     Modules: 'Edp/Modules',
     ModuleDetail: 'Edp/ModuleDetail',
     OverviewVideo: 'Edp/OverviewVideo',
+    ModulePdf: 'Edp/ModulePdf',
     AskQuestions: 'Edp/AskQuestions',
   },
   Services: {
