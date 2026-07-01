@@ -546,7 +546,7 @@ export function HomeDashboardScreen(): React.ReactElement {
 
   return (
     <SafeAreaWrapper
-      edges={['top', 'bottom']}
+      edges={['top']}
       bgColor={safeAreaBgColor}
       contentBgColor={THEME.colors.background}
       statusBarStyle="dark-content"
