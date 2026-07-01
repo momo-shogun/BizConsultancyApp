@@ -13,6 +13,7 @@ export const TAB_BAR_HIDDEN_ROUTES: Readonly<Record<string, readonly string[]>> 
   [ROUTES.App.Edp]: [
     ROUTES.Edp.Modules,
     ROUTES.Edp.OverviewVideo,
+    ROUTES.Edp.ModulePdf,
     ROUTES.Edp.ModuleDetail,
     ROUTES.Edp.AskQuestions,
   ],

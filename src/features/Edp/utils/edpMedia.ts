@@ -1,8 +1,8 @@
-import { AWS_S3_PUBLIC_BASE_URL } from '@/constants/api';
+import { EDP_S3_PUBLIC_BASE_URL } from '@/constants/api';
 
 /** Module overview PDF on IID S3 (`edp/M-1.pdf`, …) — matches web `/edp` landing. */
 export function resolveEdpOverviewModulePdfUrl(moduleIndex: number): string {
-  return `${AWS_S3_PUBLIC_BASE_URL}/edp/M-${moduleIndex + 1}.pdf`;
+  return `${EDP_S3_PUBLIC_BASE_URL}/edp/M-${moduleIndex + 1}.pdf`;
 }
 
 export function resolveIidAssetUrl(path: string | undefined | null): string | null {
@@ -16,7 +16,16 @@ export function resolveIidAssetUrl(path: string | undefined | null): string | nu
   if (/^https?:\/\//i.test(trimmed)) {
     return trimmed;
   }
-  return `${AWS_S3_PUBLIC_BASE_URL}/${trimmed.replace(/^\/+/, '')}`;
+  return `${EDP_S3_PUBLIC_BASE_URL}/${trimmed.replace(/^\/+/, '')}`;
+}
+
+/** Google Docs viewer — reliable in-app PDF preview on Android/iOS WebViews. */
+export function buildEdpPdfWebViewUri(pdfUrl: string): string {
+  const trimmed = pdfUrl.trim();
+  if (trimmed.length === 0) {
+    return trimmed;
+  }
+  return `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(trimmed)}`;
 }
 
 export function extractYoutubeVideoId(url: string): string | null {

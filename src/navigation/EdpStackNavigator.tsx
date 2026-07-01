@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import Edp from '@/features/Edp/screens/Edp';
 import EDPModulesScreen from '@/features/Edp/screens/EDPModulesScreen';
+import EdpModulePdfScreen from '@/features/Edp/screens/EdpModulePdfScreen';
 import EdpOverviewVideoScreen from '@/features/Edp/screens/EdpOverviewVideoScreen';
 import FdpAskQuestionsScreen from '@/features/Edp/screens/FdpAskQuestions';
 import { ROUTES } from './routeNames';
@@ -22,6 +23,7 @@ export function EdpStackNavigator(): React.ReactElement {
         component={EdpOverviewVideoScreen}
         options={{ gestureEnabled: false, animation: 'fade' }}
       />
+      <Stack.Screen name={ROUTES.Edp.ModulePdf} component={EdpModulePdfScreen} />
       <Stack.Screen name={ROUTES.Edp.AskQuestions} component={FdpAskQuestionsScreen} />
     </Stack.Navigator>
   );

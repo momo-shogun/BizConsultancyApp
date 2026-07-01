@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { selectHasVerifiedLogin } from '@/features/Auth/store/authSelectors';
+import { useEdpAccess } from '@/features/Edp/hooks/useEdpAccess';
 import { useGetEdpCourseDetailsQuery } from '@/features/Edp/api/edpModuleApi';
 import { useGetEdpCoursesWithDocumentsQuery } from '@/features/Edp/api/edpLandingApi';
-import { useAppSelector } from '@/store/typedHooks';
 import type { EdpModuleLang, EdpModuleLessonRow } from '@/features/Edp/types/edpCourseDetails.types';
 import {
   mapEdpModuleLessons,
@@ -68,7 +67,7 @@ export function useEdpModuleDetailScreen(
 ): UseEdpModuleDetailScreenResult {
   const { slug, lang, onLoginRequired } = params;
   const moduleSlug = normalizeEdpModuleSlug(slug);
-  const hasVerifiedLogin = useAppSelector(selectHasVerifiedLogin);
+  const { canAccessFullEdp, isLoggedInUser, promptEnroll } = useEdpAccess();
   const {
     data: detail,
     isLoading,
@@ -137,8 +136,8 @@ export function useEdpModuleDetailScreen(
   }, [subs]);
 
   useEffect(() => {
-    if (!hasVerifiedLogin) {
-      if (guestOverviewVideoUrl != null) {
+    if (!canAccessFullEdp) {
+      if (!isLoggedInUser && guestOverviewVideoUrl != null) {
         setMainVideoUrl(guestOverviewVideoUrl);
         setPlaying(true);
       } else {
@@ -163,7 +162,7 @@ export function useEdpModuleDetailScreen(
     }
     setMainVideoUrl(null);
     setPlaying(false);
-  }, [course?.url, course?.id, guestOverviewVideoUrl, hasVerifiedLogin, subs, lang]);
+  }, [course?.url, course?.id, guestOverviewVideoUrl, canAccessFullEdp, isLoggedInUser, subs, lang]);
 
   const lessons = useMemo(
     () => mapEdpModuleLessons(subs, lang, mainVideoUrl),
@@ -203,8 +202,12 @@ export function useEdpModuleDetailScreen(
 
   const playLessonVideo = useCallback(
     (lesson: EdpModuleLessonRow): void => {
-      if (!hasVerifiedLogin) {
-        onLoginRequired?.();
+      if (!canAccessFullEdp) {
+        if (isLoggedInUser) {
+          promptEnroll();
+        } else {
+          onLoginRequired?.();
+        }
         return;
       }
       const next = lesson.videoUrl?.trim();
@@ -218,26 +221,39 @@ export function useEdpModuleDetailScreen(
       setMainVideoUrl(next);
       setPlaying(true);
     },
-    [hasVerifiedLogin, onLoginRequired],
+    [canAccessFullEdp, isLoggedInUser, onLoginRequired, promptEnroll],
   );
 
-  const openLessonPdf = useCallback((lesson: EdpModuleLessonRow): void => {
-    if (lesson.pdfUrl == null) {
-      return;
-    }
+  const openLessonPdf = useCallback(
+    (lesson: EdpModuleLessonRow): void => {
+      if (!canAccessFullEdp) {
+        if (isLoggedInUser) {
+          promptEnroll();
+        }
+        return;
+      }
+      if (lesson.pdfUrl == null) {
+        return;
+      }
     setWatchProgressContext({
       categoryId: lesson.categoryId,
       subCategoryId: lesson.topicId,
     });
     void openEdpModulePdf(lesson.pdfUrl, lesson.title);
-  }, []);
+  }, [canAccessFullEdp, isLoggedInUser, promptEnroll]);
 
   const openSupportingPdf = useCallback((): void => {
+    if (!canAccessFullEdp) {
+      if (isLoggedInUser) {
+        promptEnroll();
+      }
+      return;
+    }
     if (overviewPdfUrl == null || moduleTitle.length === 0) {
       return;
     }
     void openEdpModulePdf(overviewPdfUrl, moduleTitle);
-  }, [moduleTitle, overviewPdfUrl]);
+  }, [canAccessFullEdp, isLoggedInUser, moduleTitle, overviewPdfUrl, promptEnroll]);
 
   const isNotFound = !isLoading && !isFetching && isError;
 
@@ -263,7 +279,7 @@ export function useEdpModuleDetailScreen(
     playing,
     setPlaying,
     watchProgressContext,
-    canPlayLessonVideos: hasVerifiedLogin,
+    canPlayLessonVideos: canAccessFullEdp,
     playLessonVideo,
     openLessonPdf,
     openSupportingPdf,

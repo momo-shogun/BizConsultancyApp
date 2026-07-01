@@ -15,3 +15,7 @@ export const AWS_BUCKET_NAME = 'consultancy-iid-new';
 
 /** Virtual-hosted S3 base — prepend object key from API (`consultant/...`, etc.). */
 export const AWS_S3_PUBLIC_BASE_URL = `https://${AWS_BUCKET_NAME}.s3.${AWS_REGION}.amazonaws.com`;
+
+/** EDP programme assets (`edp/M-*.pdf`, thumbnails) — matches web portal bucket. */
+export const EDP_AWS_BUCKET_NAME = 'iid-bucket-s3-new';
+export const EDP_S3_PUBLIC_BASE_URL = `https://${EDP_AWS_BUCKET_NAME}.s3.${AWS_REGION}.amazonaws.com`;
