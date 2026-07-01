@@ -1,17 +1,10 @@
-jest.mock('@avasapp/react-native-otp-autofill', () => ({
-  useOtpListener: jest.fn(() => ({
-    isListening: false,
-    loading: false,
-    receivedOtp: null,
-    receivedMessage: null,
-    error: null,
-    startListener: jest.fn(() => Promise.resolve()),
-    stopListener: jest.fn(),
-  })),
-  useGetHash: jest.fn(() => ({
-    hash: null,
-    loading: false,
-    error: null,
-    refetch: jest.fn(() => Promise.resolve()),
-  })),
+jest.mock('@pushpendersingh/react-native-otp-verify', () => ({
+  startSmsRetriever: jest.fn(() => Promise.resolve('started')),
+  getAppSignature: jest.fn(() => Promise.resolve('TEST_HASH123')),
+  removeSmsListener: jest.fn(() => Promise.resolve('removed')),
+  addSmsListener: jest.fn(() => ({ remove: jest.fn() })),
+  extractOtp: jest.fn((message: string) => {
+    const match = message.match(/\b\d{6}\b/);
+    return match ? match[0] : null;
+  }),
 }));
