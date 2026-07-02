@@ -1,4 +1,4 @@
-package com.bizconsultancyapp
+package com.consultancy
 import expo.modules.ReactActivityDelegateWrapper
 
 import android.os.Build
