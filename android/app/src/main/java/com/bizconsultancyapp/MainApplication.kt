@@ -1,4 +1,4 @@
-package com.bizconsultancyapp
+package com.consultancy
 import android.content.res.Configuration
 import expo.modules.ApplicationLifecycleDispatcher
 import expo.modules.ExpoReactHostFactory
