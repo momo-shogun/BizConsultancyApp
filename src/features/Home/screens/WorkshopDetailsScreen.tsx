@@ -169,6 +169,7 @@ export default function WorkshopDetailsScreen(): React.ReactElement {
     closePaymentModal,
     onPayRazorpay,
     onPayWallet,
+    workshopLoginDialog,
   } = useWorkshopBooking(workshop);
 
   const isUpcoming = workshop != null ? isWorkshopUpcoming(workshop) : true;
@@ -257,6 +258,7 @@ export default function WorkshopDetailsScreen(): React.ReactElement {
 
   return (
     <SafeAreaWrapper edges={['top']} bgColor='transparent'>
+      {workshopLoginDialog}
       <ScreenWrapper style={styles.screenBg}>
         <ScrollView
           showsVerticalScrollIndicator={false}

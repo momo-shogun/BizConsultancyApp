@@ -11,13 +11,18 @@ import { WebView, type WebViewProps } from 'react-native-webview';
 
 import { useEdpModuleDetailScreen } from '@/features/Edp/hooks/useEdpModuleDetailScreen';
 import { useEdpWatchTimeHeartbeat } from '@/features/Edp/hooks/useEdpWatchTimeHeartbeat';
+import { EdpEnrollmentRequiredView } from '@/features/Edp/components/EdpEnrollmentRequiredView';
+import { useEdpAccess } from '@/features/Edp/hooks/useEdpAccess';
+import { useEdpEnrollmentPurchase } from '@/features/Edp/hooks/useEdpEnrollmentPurchase';
 import { normalizeEdpModuleSlug } from '@/features/Edp/utils/edpCourseDetailsParsing';
 import type { EdpModuleLessonRow } from '@/features/Edp/types/edpCourseDetails.types';
 import { buildDirectVideoHtml } from '@/features/Edp/utils/edpOverviewVideoHtml';
 import { resolveEdpVideoEmbed, resolveYoutubeThumbnailUrl } from '@/features/Edp/utils/edpMedia';
 import { ROUTES } from '@/navigation/routeNames';
 import type { EdpStackParamList } from '@/navigation/types';
+import { useProfileLoginPrompt } from '@/features/Profile/hooks/useProfileLoginPrompt';
 import { SafeAreaWrapper, ScreenHeader } from '@/shared/components';
+import { DiagnosisPaymentModal } from '@/features/Diagnostics/components/DiagnosisPaymentModal';
 
 import { EdpModuleDetailSkeleton } from '@/features/Edp/components/EdpModuleDetailSkeleton';
 
@@ -284,6 +289,20 @@ export default function EdpVideoScreen(): React.ReactElement {
   const insets = useSafeAreaInsets();
   const slug = normalizeEdpModuleSlug(route.params?.slug ?? '');
   const lang = route.params?.lang ?? 'en';
+  const { promptLogin, profileLoginDialog } = useProfileLoginPrompt();
+  const handleLoginRequired = useCallback((): void => {
+    promptLogin({
+      title: 'Sign in required',
+      message: 'Please log in to watch this video.',
+    });
+  }, [promptLogin]);
+  const {
+    canAccessFullEdp,
+    isLoggedInUser,
+    isConsultant,
+    isEnrollmentLoading,
+  } = useEdpAccess();
+  const purchaseFlow = useEdpEnrollmentPurchase();
 
   const {
     isLoading,
@@ -308,7 +327,7 @@ export default function EdpVideoScreen(): React.ReactElement {
     openLessonPdf,
     refreshProgress,
     refetch,
-  } = useEdpModuleDetailScreen({ slug, lang });
+  } = useEdpModuleDetailScreen({ slug, lang, onLoginRequired: handleLoginRequired });
 
   const { reportReadingTime } = useEdpWatchTimeHeartbeat({
     enabled: true,
@@ -348,6 +367,30 @@ export default function EdpVideoScreen(): React.ReactElement {
           <Text style={styles.centerStateTitle}>Module unavailable</Text>
           <Text style={styles.centerStateSub}>Open this screen from the modules list.</Text>
         </View>
+      </SafeAreaWrapper>
+    );
+  }
+
+  if (isLoggedInUser && !isEnrollmentLoading && !canAccessFullEdp) {
+    return (
+      <SafeAreaWrapper edges={['top', 'bottom']} bgColor={YT.bg} isLight>
+        <ScreenHeader title="EDP Programme" headerColor={EDP_HERO_BG} onBackPress={handleBack} />
+        <EdpEnrollmentRequiredView
+          isConsultant={isConsultant}
+          onEnrollPress={isConsultant ? undefined : () => purchaseFlow.openPaymentModal()}
+        />
+        <DiagnosisPaymentModal
+          visible={purchaseFlow.paymentModalVisible}
+          packTitle="EDP programme enrollment"
+          amountRupees={purchaseFlow.programAmountRupees}
+          walletBalanceRupees={purchaseFlow.walletBalanceRupees}
+          canPayWithWallet={purchaseFlow.canPayWithWallet}
+          payingWith={purchaseFlow.payingWith}
+          isBusy={purchaseFlow.isBusy}
+          onClose={purchaseFlow.closePaymentModal}
+          onPayRazorpay={() => void purchaseFlow.payWithRazorpay()}
+          onPayWallet={() => void purchaseFlow.payWithWallet()}
+        />
       </SafeAreaWrapper>
     );
   }
@@ -476,6 +519,7 @@ export default function EdpVideoScreen(): React.ReactElement {
           </View>
         </ScrollView>
       </View>
+      {profileLoginDialog}
     </SafeAreaWrapper>
   );
 }

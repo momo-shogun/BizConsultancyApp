@@ -183,11 +183,7 @@ export const SERVICES_CATEGORY_TREE: ServicesCategoryTree = {
               slug: 'capital-modification-package',
               showInSuggestions: false,
             },
-            {
-              title: 'Changes In Directorship',
-              slug: 'changes-in-directorship',
-              showInSuggestions: false,
-            },
+           
             {
               title: 'Compnay MOA & AOA Changes',
               slug: 'compnay-moa-aoa-changes',

@@ -11,6 +11,13 @@ export interface MyMembershipCurrentDto {
   upgradedFromLower?: boolean;
 }
 
+export interface MyMembershipFeatureScopeDto {
+  id?: number | null;
+  status?: number | null;
+  isDeleted?: number | null;
+  isActive?: boolean | null;
+}
+
 export interface MyMembershipFeatureDto {
   id: number;
   title: string;
@@ -18,9 +25,11 @@ export interface MyMembershipFeatureDto {
   userStatus: string;
   remarks: string | null;
   updatedAt: string;
+  featureStatus?: number | null;
+  isDeleted?: number | null;
   scopeStatus?: number | null;
   membershipScopeStatus?: number | null;
-  membershipScope?: { status?: number | null } | null;
+  membershipScope?: MyMembershipFeatureScopeDto | null;
 }
 
 export interface MyMembershipPurchaseStateDto {
@@ -47,4 +56,11 @@ export interface UserProfileMembershipBenefit {
   id: string;
   title: string;
   statusLabel: string | null;
+  userStatus: string | null;
+}
+
+export interface MembershipFeatureRequestResult {
+  id: number;
+  status: string;
+  title: string;
 }

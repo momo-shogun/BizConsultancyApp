@@ -72,3 +72,19 @@ export interface RefreshTokenResponseDto {
   expires_in?: number;
   auth?: VerifyOtpAuthDto;
 }
+
+export interface RegisterLoginDto {
+  mobile: string;
+  otp: string;
+  role: AuthRole;
+  name: string;
+  email: string;
+  password: string;
+}
+
+export interface RegisterLoginResponseDto {
+  valid: boolean;
+  reason?: string;
+  created?: boolean;
+  auth?: VerifyOtpAuthDto;
+}

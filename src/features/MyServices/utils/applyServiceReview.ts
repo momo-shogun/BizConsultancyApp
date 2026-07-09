@@ -15,13 +15,17 @@ export function mergeDocumentSelections(
   items: Array<{
     serviceDocumentId: number;
     selectedUserDocumentIds: number[];
+    availableDocuments?: Array<{ id: number }>;
   }>,
   draftSelections: Record<number, number[]>,
 ): Record<number, number[]> {
   const merged: Record<number, number[]> = {};
   for (const it of items) {
-    const local = draftSelections[it.serviceDocumentId] ?? [];
-    const server = it.selectedUserDocumentIds ?? [];
+    const validIds = new Set((it.availableDocuments ?? []).map((doc) => doc.id));
+    const filterValid = (ids: number[]): number[] =>
+      validIds.size === 0 ? ids : ids.filter((id) => validIds.has(id));
+    const local = filterValid(draftSelections[it.serviceDocumentId] ?? []);
+    const server = filterValid(it.selectedUserDocumentIds ?? []);
     merged[it.serviceDocumentId] = [...new Set([...local, ...server])];
   }
   return merged;

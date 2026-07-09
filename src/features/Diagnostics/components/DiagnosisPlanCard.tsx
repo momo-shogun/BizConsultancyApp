@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
-    gap: THEME.spacing[6],
+    gap: 5,
     marginBottom: THEME.spacing[8],
   },
   badge: {
@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   badgeText: {
-    fontSize: THEME.typography.size[11],
+    fontSize: THEME.typography.size[12],
     fontWeight: '700',
     letterSpacing: 0.6,
     textTransform: 'uppercase',
@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   popularBadgeText: {
-    fontSize: THEME.typography.size[11],
+    fontSize: THEME.typography.size[12],
     fontWeight: '700',
     textTransform: 'uppercase',
   },
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   activeBadgeText: {
-    fontSize: THEME.typography.size[11],
+    fontSize: THEME.typography.size[12],
     fontWeight: '700',
     color: '#FFFFFF',
     textTransform: 'uppercase',
@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
   },
   planDescription: {
     marginTop: 4,
-    fontSize: THEME.typography.size[13],
+    fontSize: THEME.typography.size[12],
     color: DIAGNOSIS_THEME.textSecondary,
     lineHeight: 18,
   },
@@ -279,8 +279,8 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   metaText: {
-    marginTop: THEME.spacing[6],
-    fontSize: THEME.typography.size[13],
+    marginTop: 6,
+    fontSize: THEME.typography.size[12],
     color: DIAGNOSIS_THEME.textSecondary,
     lineHeight: 18,
   },
@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
     marginVertical: THEME.spacing[16],
   },
   sectionTitle: {
-    fontSize: THEME.typography.size[13],
+    fontSize: THEME.typography.size[12],
     fontWeight: '700',
     marginBottom: THEME.spacing[10],
     textTransform: 'uppercase',
@@ -325,7 +325,7 @@ const styles = StyleSheet.create({
     opacity: 0.65,
   },
   upgradeCtaText: {
-    fontSize: THEME.typography.size[15],
+    fontSize: THEME.typography.size[16],
     fontWeight: '700',
     color: THEME.colors.white,
   },

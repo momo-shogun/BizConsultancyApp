@@ -10,7 +10,7 @@ export type AuthStackParamList = {
   [ROUTES.Auth.Landing]: undefined;
   [ROUTES.Auth.ChooseAccountType]: { next?: 'login' | 'signup'; skipAutoSelect?: boolean };
   [ROUTES.Auth.Login]: undefined;
-  [ROUTES.Auth.Signup]: undefined;
+  [ROUTES.Auth.Signup]: { mobile?: string } | undefined;
   [ROUTES.Auth.OtpVerification]: { contact: string };
   [ROUTES.Auth.ProfileSetup]: undefined;
 };
@@ -32,6 +32,10 @@ export type EdpStackParamList = {
     title: string;
     videoUrl: string;
   };
+  [ROUTES.Edp.ModulePdf]: {
+    title: string;
+    pdfUrl: string;
+  };
   [ROUTES.Edp.AskQuestions]: undefined;
 };
 
@@ -39,6 +43,8 @@ export type AccountStackParamList = {
   [ROUTES.Account.Home]: undefined;
   [ROUTES.Account.HelpSettings]: undefined;
   [ROUTES.Account.Membership]: undefined;
+  [ROUTES.Account.ConsultantMyMembership]: undefined;
+  [ROUTES.Account.UserMyMembership]: undefined;
   [ROUTES.Account.EditProfile]: undefined;
   [ROUTES.Account.ConsultantBankDetailsScreen]: undefined;
   [ROUTES.Account.ExpertVideosScreen]: undefined;

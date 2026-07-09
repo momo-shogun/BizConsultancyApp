@@ -132,7 +132,7 @@ function isSlotTimeLabel(value: unknown): value is string {
 
 function labelToAvailableSlot(label: string): AvailableSlot {
   const trimmed = label.trim();
-  return { startTime: trimmed, label: trimmed };
+  return { startTime: trimmed, label: trimmed, available: true };
 }
 
 export function parseAvailableSlotsResponse(raw: unknown): AvailableSlotsResponse {

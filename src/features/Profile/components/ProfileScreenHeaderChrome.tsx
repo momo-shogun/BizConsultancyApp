@@ -1,7 +1,7 @@
 import React from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets, type Edge } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { THEME } from '@/constants/theme';
@@ -24,6 +24,8 @@ export interface ProfileScreenHeaderChromeProps {
   membershipLabel?: string;
   onMembershipPress?: () => void;
   rightAction?: React.ReactNode;
+  /** Omit bottom inset on main tab profile; nested stacks should keep the default. */
+  safeAreaEdges?: Edge[];
   children: React.ReactNode;
 }
 
@@ -39,7 +41,7 @@ export function ProfileScreenHeaderChrome(
 
   return (
     <SafeAreaWrapper
-      edges={['bottom']}
+      edges={props.safeAreaEdges ?? ['bottom']}
       bgColor={PROFILE_HEADER_STATUS_BAR}
       statusBarStyle="light-content"
       style={chromeStyles.flex}

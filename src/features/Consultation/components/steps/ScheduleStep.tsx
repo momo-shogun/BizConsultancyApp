@@ -71,7 +71,11 @@ export function ScheduleStep(_props: ConsultationStepComponentProps): React.Reac
                     key={slot.id}
                     slot={slot}
                     selected={form.selectedTimeSlotId === slot.id}
-                    onPress={() => setSelectedTimeSlotId(slot.id)}
+                    onPress={() => {
+                      if (slot.available !== false) {
+                        setSelectedTimeSlotId(slot.id);
+                      }
+                    }}
                   />
                 ))}
               </View>
@@ -90,15 +94,29 @@ interface TimeSlotChipProps {
 }
 
 function TimeSlotChip(props: TimeSlotChipProps): React.ReactElement {
+  const isDisabled = props.slot.available === false;
+  const shouldShowSelected = props.selected && !isDisabled;
+
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={props.slot.label}
-      accessibilityState={{ selected: props.selected }}
+      accessibilityState={{ selected: shouldShowSelected, disabled: isDisabled }}
+      disabled={isDisabled}
       onPress={props.onPress}
-      style={[styles.timeChip, props.selected ? styles.timeChipSelected : null]}
+      style={[
+        styles.timeChip,
+        shouldShowSelected ? styles.timeChipSelected : null,
+        isDisabled ? styles.timeChipDisabled : null,
+      ]}
     >
-      <Text style={[styles.timeChipText, props.selected ? styles.timeChipTextSelected : null]}>
+      <Text
+        style={[
+          styles.timeChipText,
+          shouldShowSelected ? styles.timeChipTextSelected : null,
+          isDisabled ? styles.timeChipTextDisabled : null,
+        ]}
+      >
         {props.slot.label}
       </Text>
     </Pressable>
@@ -161,6 +179,10 @@ const styles = StyleSheet.create({
     borderColor: '#0B3B66',
     backgroundColor: '#EEF4FA',
   },
+  timeChipDisabled: {
+    borderColor: '#E5E7EB',
+    backgroundColor: '#F3F4F6',
+  },
   timeChipText: {
     fontSize: 14,
     fontWeight: '600',
@@ -168,5 +190,8 @@ const styles = StyleSheet.create({
   },
   timeChipTextSelected: {
     color: '#0B3B66',
+  },
+  timeChipTextDisabled: {
+    color: '#9CA3AF',
   },
 });

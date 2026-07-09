@@ -7,6 +7,7 @@ import { ROUTES } from '@/navigation/routeNames';
 import type { EdpStackParamList } from '@/navigation/types';
 
 import type { EdpCurriculumModule } from '../types/edpCurriculum.types';
+import { useEdpAccess } from './useEdpAccess';
 import { isYoutubeUrl, resolveEdpVideoEmbed } from '../utils/edpMedia';
 import { openEdpModulePdf } from '../utils/edpPdfActions';
 
@@ -17,11 +18,17 @@ export interface UseEdpCurriculumActionsResult {
 
 export function useEdpCurriculumActions(): UseEdpCurriculumActionsResult {
   const navigation = useNavigation<NavigationProp<EdpStackParamList>>();
+  const { canAccessFullEdp, isLoggedInUser, promptEnroll } = useEdpAccess();
 
   const onKnowMore = useCallback(
     (module: EdpCurriculumModule): void => {
+      if (isLoggedInUser && !canAccessFullEdp) {
+        promptEnroll();
+        return;
+      }
+
       const slug = module.slug.trim();
-      if (slug.length > 0 && !slug.startsWith('id-')) {
+      if (canAccessFullEdp && slug.length > 0 && !slug.startsWith('id-')) {
         navigation.navigate(ROUTES.Edp.ModuleDetail, { slug, lang: 'en' });
         return;
       }
@@ -48,12 +55,26 @@ export function useEdpCurriculumActions(): UseEdpCurriculumActionsResult {
         videoUrl: url,
       });
     },
-    [navigation],
+    [canAccessFullEdp, isLoggedInUser, navigation, promptEnroll],
   );
 
-  const onViewModulePdf = useCallback((module: EdpCurriculumModule): void => {
-    void openEdpModulePdf(module.modulePdfUrl, module.name);
-  }, []);
+  const onViewModulePdf = useCallback(
+    (module: EdpCurriculumModule): void => {
+      if (!canAccessFullEdp) {
+        if (isLoggedInUser) {
+          promptEnroll();
+        } else {
+          showGlobalToast({
+            variant: 'info',
+            message: 'Enroll in the EDP programme to download module PDFs.',
+          });
+        }
+        return;
+      }
+      void openEdpModulePdf(module.modulePdfUrl, module.name);
+    },
+    [canAccessFullEdp, isLoggedInUser, promptEnroll],
+  );
 
   return {
     onKnowMore,

@@ -8,17 +8,77 @@ export interface WalletBalanceResponse {
   balance: number;
 }
 
-function parseWalletBalance(raw: unknown): number {
-  if (typeof raw === 'number' && Number.isFinite(raw)) {
-    return raw;
+function readWalletNumeric(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
   }
-  if (isRecord(raw)) {
-    const balance = raw.balance ?? raw.amount;
-    if (typeof balance === 'number' && Number.isFinite(balance)) {
-      return balance;
+  if (typeof value === 'string' && value.trim().length > 0) {
+    const parsed = Number.parseFloat(value.trim());
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+const WALLET_BALANCE_KEYS = [
+  'balance',
+  'amount',
+  'walletBalance',
+  'availableBalance',
+  'currentBalance',
+  'totalBalance',
+  'walletAmount',
+  'available_amount',
+  'wallet_balance',
+  'current_balance',
+] as const;
+
+function pickWalletBalanceFromRecord(record: Record<string, unknown>): number | null {
+  for (const key of WALLET_BALANCE_KEYS) {
+    const value = readWalletNumeric(record[key]);
+    if (value != null) {
+      return value;
     }
   }
-  return 0;
+
+  const nestedWallet = record.wallet ?? record.userWallet ?? record.user_wallet;
+  if (isRecord(nestedWallet)) {
+    return pickWalletBalanceFromRecord(nestedWallet);
+  }
+
+  return null;
+}
+
+/** Parses INR wallet balance from `GET /user-wallets/me/balance` (and consultant variant). */
+export function parseWalletBalance(raw: unknown): number | null {
+  const direct = readWalletNumeric(raw);
+  if (direct != null) {
+    return direct;
+  }
+
+  if (!isRecord(raw)) {
+    return null;
+  }
+
+  const fromRoot = pickWalletBalanceFromRecord(raw);
+  if (fromRoot != null) {
+    return fromRoot;
+  }
+
+  const nested = raw.data ?? raw.result ?? raw.payload;
+  if (nested != null) {
+    const fromNestedDirect = readWalletNumeric(nested);
+    if (fromNestedDirect != null) {
+      return fromNestedDirect;
+    }
+    if (isRecord(nested)) {
+      const fromNested = pickWalletBalanceFromRecord(nested);
+      if (fromNested != null) {
+        return fromNested;
+      }
+    }
+  }
+
+  return null;
 }
 
 /** INR rupees from `GET /user-wallets/me/balance` → `₹87,020`. */
@@ -47,12 +107,12 @@ export function formatWalletBalanceLabel(
 
 export const userWalletsApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
-    getMyWalletBalance: build.query<number, void>({
+    getMyWalletBalance: build.query<number | null, void>({
       query: () => ({ url: 'user-wallets/me/balance' }),
       transformResponse: (response: unknown) => parseWalletBalance(response),
       providesTags: ['Wallet'],
     }),
-    getConsultantWalletBalance: build.query<number, void>({
+    getConsultantWalletBalance: build.query<number | null, void>({
       query: () => ({ url: 'frontend/consultant/wallet-balance' }),
       transformResponse: (response: unknown) => parseWalletBalance(response),
       providesTags: ['Wallet'],

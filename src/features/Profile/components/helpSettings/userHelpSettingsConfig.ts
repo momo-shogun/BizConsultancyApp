@@ -10,8 +10,16 @@ export const USER_HELP_SETTINGS_SECTIONS: SettingsSectionConfig[] = [
         icon: 'ribbon-outline',
         iconColor: '#D97706',
         iconBgColor: 'rgba(245,158,11,0.12)',
+        title: 'Buy Membership',
+        subtitle: 'Browse and purchase plans',
+      },
+      {
+        id: 'myMembership',
+        icon: 'card-outline',
+        iconColor: '#B45309',
+        iconBgColor: 'rgba(180,83,9,0.10)',
         title: 'My Membership',
-        subtitle: 'Manage your subscription',
+        subtitle: 'View your active membership plan',
       },
       {
         id: 'profile',

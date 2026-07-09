@@ -3,7 +3,7 @@ import type { ScheduleDayConfig } from '../types/consultantSchedule.types';
 /** Always sent on schedule save; not shown in the app UI. */
 export const DEFAULT_SCHEDULE_NAME = 'Default';
 
-export const SCHEDULE_DAY_ORDER = [1, 2, 3, 4, 5, 6, 0, 7] as const;
+export const SCHEDULE_DAY_ORDER = [1, 2, 3, 4, 5, 6, 0] as const;
 
 export const SCHEDULE_DAY_LABELS: Record<number, string> = {
   0: 'Sunday',
@@ -13,7 +13,7 @@ export const SCHEDULE_DAY_LABELS: Record<number, string> = {
   4: 'Thursday',
   5: 'Friday',
   6: 'Saturday',
-  7: 'Everyday',
+  // 7: 'Everyday',
 };
 
 export interface TimeOption {

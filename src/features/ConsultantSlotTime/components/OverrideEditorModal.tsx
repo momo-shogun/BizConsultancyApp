@@ -164,24 +164,32 @@ export function OverrideEditorModal({
               placeholder="Choose date"
             />
 
-            <View style={styles.timeRow}>
-              <View style={styles.timeCol}>
-                <Text style={styles.fieldLabel}>From</Text>
-                <TimeSelectField
-                  label="From time"
-                  value={form.startTime}
-                  onChange={(startTime) => onChange({ startTime })}
-                  flexible
-                />
-              </View>
-              <View style={styles.timeCol}>
-                <Text style={styles.fieldLabel}>To</Text>
-                <TimeSelectField
-                  label="To time"
-                  value={form.endTime}
-                  onChange={(endTime) => onChange({ endTime })}
-                  flexible
-                />
+            <View style={styles.timeSection}>
+              <Text style={styles.timeSectionLabel}>Blocked time</Text>
+              <View style={styles.timeRow}>
+                <View style={styles.timeCol}>
+                  <Text style={styles.fieldLabel}>From</Text>
+                  <TimeSelectField
+                    label="From time"
+                    value={form.startTime}
+                    onChange={(startTime) => onChange({ startTime })}
+                    appearance="field"
+                    flexible
+                  />
+                </View>
+                <View style={styles.timeDivider} accessibilityElementsHidden>
+                  <Ionicons name="arrow-forward" size={18} color="#94A3B8" />
+                </View>
+                <View style={styles.timeCol}>
+                  <Text style={styles.fieldLabel}>To</Text>
+                  <TimeSelectField
+                    label="To time"
+                    value={form.endTime}
+                    onChange={(endTime) => onChange({ endTime })}
+                    appearance="field"
+                    flexible
+                  />
+                </View>
               </View>
             </View>
 
@@ -257,21 +265,36 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginTop: -6,
   },
+  timeSection: {
+    gap: THEME.spacing[8],
+  },
+  timeSectionLabel: {
+    fontSize: THEME.typography.size[14],
+    fontWeight: THEME.typography.weight.medium,
+    color: THEME.colors.textPrimary,
+    marginBottom: THEME.spacing[12],
+  },
   timeRow: {
     flexDirection: 'row',
-    gap: THEME.spacing[12],
+    alignItems: 'flex-end',
+    gap: THEME.spacing[8],
   },
   timeCol: {
     flex: 1,
     minWidth: 0,
-    gap: 6,
+    gap: THEME.spacing[8],
+  },
+  timeDivider: {
+    width: 24,
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 0,
   },
   fieldLabel: {
     fontSize: THEME.typography.size[12],
     fontWeight: '600',
     color: '#64748B',
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
   },
   actions: {
     flexDirection: 'row',

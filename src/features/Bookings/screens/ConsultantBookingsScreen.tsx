@@ -77,6 +77,8 @@ export function ConsultantBookingsScreen(): React.ReactElement {
         booking.id,
         booking.name,
         booking.consultationType,
+        booking.bookingDate,
+        booking.slotTime,
       );
       screen.setCallingBookingId(null);
       if (error != null) {

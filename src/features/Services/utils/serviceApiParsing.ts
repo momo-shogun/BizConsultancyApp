@@ -145,6 +145,41 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value != null && typeof value === 'object' && !Array.isArray(value);
 }
 
+function readNumber(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === 'string' && value.trim().length > 0) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+export function isPublicServiceRecordActive(raw: unknown): boolean {
+  if (!isRecord(raw)) {
+    return false;
+  }
+  const isDeleted = readNumber(raw.isDeleted) ?? 0;
+  if (isDeleted !== 0) {
+    return false;
+  }
+  const status = readNumber(raw.status);
+  if (status == null) {
+    return true;
+  }
+  return status === 1;
+}
+
+function readServiceStatusFields(raw: Record<string, unknown>): Pick<PublicServiceListItem, 'status' | 'isDeleted'> {
+  const status = readNumber(raw.status);
+  const isDeleted = readNumber(raw.isDeleted);
+  return {
+    ...(status != null ? { status } : {}),
+    ...(isDeleted != null ? { isDeleted } : {}),
+  };
+}
+
 function isPublicServiceListItem(value: unknown): value is PublicServiceListItem {
   if (!isRecord(value)) {
     return false;
@@ -174,8 +209,14 @@ function parseMeta(raw: unknown): PublicServiceListMeta {
 function tryList(items: unknown[]): PublicServiceListItem[] {
   const result: PublicServiceListItem[] = [];
   for (const item of items) {
+    if (!isPublicServiceRecordActive(item)) {
+      continue;
+    }
     if (isPublicServiceListItem(item)) {
-      result.push(item);
+      result.push({
+        ...item,
+        ...readServiceStatusFields(item),
+      });
     }
   }
   return result;
@@ -244,6 +285,10 @@ function normalizeListItemFromPage(raw: Record<string, unknown>): PublicServiceL
       ? String(raw.price)
       : null;
 
+  if (!isPublicServiceRecordActive(raw)) {
+    return null;
+  }
+
   return {
     id: raw.id,
     slug: raw.slug,
@@ -266,6 +311,7 @@ function normalizeListItemFromPage(raw: Record<string, unknown>): PublicServiceL
       ? raw.featurepoint.filter((p): p is string => typeof p === 'string')
       : null,
     position: typeof raw.position === 'number' ? raw.position : undefined,
+    ...readServiceStatusFields(raw),
     category,
     subCategory,
   };
@@ -290,6 +336,9 @@ export function parsePublicServicePageResponse(raw: unknown): PublicServiceListI
   const page = unwrapPublicServicePageRecord(raw);
   if (page != null) {
     return normalizeListItemFromPage(page);
+  }
+  if (!isPublicServiceRecordActive(raw)) {
+    return null;
   }
   return isPublicServiceListItem(raw) ? raw : null;
 }

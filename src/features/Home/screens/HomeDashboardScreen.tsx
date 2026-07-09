@@ -46,6 +46,7 @@ import { mapPublicWorkshopsToEventSpotlightItems } from '@/features/Home/utils/w
 import { applyHomeStatusBar, applyHomeStatusBarSoon } from '@/features/Home/utils/homeStatusBar';
 import { darkenHex, ZEPTO_TABS_TRACK_DARKEN } from '@/utils/darkenHex';
 import { useGetPublicServicesQuery } from '@/features/Services/api/servicesApi';
+import { useServicePurchaseLoginGate } from '@/features/Services/hooks/useServicePurchaseLoginGate';
 import { mapPublicServiceToCardItem } from '@/features/Services/utils/serviceMappers';
 import { ROUTES } from '@/navigation/routeNames';
 import { navigationRef } from '@/navigation/RootNavigator';
@@ -191,6 +192,11 @@ export function HomeDashboardScreen(): React.ReactElement {
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const accountRole = useAppSelector(selectAccountRole);
   const isConsultant = accountRole === 'consultant';
+  const {
+    handleViewPurchased,
+    isServicePurchased,
+    servicePurchaseLoginDialog,
+  } = useServicePurchaseLoginGate();
   const [activeShell, setActiveShell] = useState<ZeptoHSShellColors | null>(null);
   const [consultantsPageNumber, setConsultantsPageNumber] = useState(1);
 
@@ -396,6 +402,17 @@ export function HomeDashboardScreen(): React.ReactElement {
     [navigation],
   );
 
+  const onServiceCtaPress = useCallback(
+    (item: RecommendedServiceItem): void => {
+      if (isServicePurchased(item.slug)) {
+        handleViewPurchased(item.slug);
+        return;
+      }
+      onServicePress(item);
+    },
+    [handleViewPurchased, isServicePurchased, onServicePress],
+  );
+
   const onMembershipViewAll = useCallback((): void => {
     navigation.navigate(ROUTES.App.Account, { screen: ROUTES.Account.Membership });
   }, [navigation]);
@@ -443,6 +460,8 @@ export function HomeDashboardScreen(): React.ReactElement {
           booking.id,
           booking.name,
           booking.consultationType,
+          booking.bookingDate,
+          booking.slotTime,
         );
         if (error != null) {
           showGlobalToast({ message: error, variant: 'error' });
@@ -465,20 +484,26 @@ export function HomeDashboardScreen(): React.ReactElement {
 
   const isUpcomingBookingJoinEnabled = useCallback(
     (item: UpcomingBookingItem): boolean => {
-      if (isConsultant) {
-        return true;
-      }
       const bookingId = item.bookingId;
       if (bookingId == null) {
         return false;
       }
+
+      if (isConsultant) {
+        const booking = (consultantBookings ?? []).find((row) => row.id === bookingId);
+        if (booking == null) {
+          return false;
+        }
+        return hasBookingStarted(booking.bookingDate, booking.slotTime);
+      }
+
       const booking = (myBookingsPage?.data ?? []).find((row) => row.id === bookingId);
       if (booking == null) {
         return false;
       }
       return hasBookingStarted(booking.bookingDate, booking.slotTime);
     },
-    [isConsultant, myBookingsPage?.data],
+    [consultantBookings, isConsultant, myBookingsPage?.data],
   );
 
   const zeptoHeader = useMemo(
@@ -521,11 +546,12 @@ export function HomeDashboardScreen(): React.ReactElement {
 
   return (
     <SafeAreaWrapper
-      edges={['top', 'bottom']}
+      edges={['top']}
       bgColor={safeAreaBgColor}
       contentBgColor={THEME.colors.background}
       statusBarStyle="dark-content"
     >
+      {servicePurchaseLoginDialog}
       <ZeptoHS header={zeptoHeader} onShellColorsChange={onShellColorsChange}>
         {(_categoryId: HomeCategoryId) => (
           <View style={styles.sheet}>
@@ -585,7 +611,8 @@ export function HomeDashboardScreen(): React.ReactElement {
                 variant="accentPanel"
                 onViewAllPress={onRecommendedServicesViewAll}
                 onItemPress={onServicePress}
-                onCtaPress={onServicePress}
+                onCtaPress={onServiceCtaPress}
+                isItemPurchased={(item) => isServicePurchased(item.slug)}
               />
             ) : null}
             {testimonialItems.length > 0 ? (

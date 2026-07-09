@@ -8,7 +8,10 @@ import {
   selectLoggedInMobile,
 } from '@/features/Auth/store/authSelectors';
 import { useGetMasterCategoriesQuery, useGetMasterSegmentsQuery } from '@/features/consultant/api/consultantApi';
-import { useGetMyWalletBalanceQuery } from '@/features/Home/api/userWalletsApi';
+import {
+  useGetConsultantWalletBalanceQuery,
+  useGetMyWalletBalanceQuery,
+} from '@/features/Home/api/userWalletsApi';
 import { showGlobalError, showGlobalToast } from '@/shared/components';
 import { useAppSelector } from '@/store/typedHooks';
 
@@ -75,14 +78,21 @@ export function useMembershipPurchase(): UseMembershipPurchaseResult {
     { skip: categoryId.length === 0 },
   );
 
-  const { data: walletBalance } = useGetMyWalletBalanceQuery(undefined, {
-    skip: !checkoutVisible || !paymentStepVisible || !isAuthenticated,
+  const isConsultant = accountRole === 'consultant';
+  const shouldFetchWallet = checkoutVisible && paymentStepVisible && isAuthenticated;
+
+  const { data: userWalletBalance } = useGetMyWalletBalanceQuery(undefined, {
+    skip: !shouldFetchWallet || isConsultant,
+  });
+  const { data: consultantWalletBalance } = useGetConsultantWalletBalanceQuery(undefined, {
+    skip: !shouldFetchWallet || !isConsultant,
   });
 
   const [createRegistration] = useCreateMembershipRegistrationMutation();
   const [verifyPayment] = useVerifyMembershipPaymentMutation();
 
   const amountRupees = selectedPlan?.amount ?? 0;
+  const walletBalance = isConsultant ? consultantWalletBalance : userWalletBalance;
   const walletBalanceRupees =
     walletBalance != null && Number.isFinite(walletBalance) ? walletBalance : null;
   const canPayWithWallet =

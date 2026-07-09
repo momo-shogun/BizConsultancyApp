@@ -2,6 +2,7 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { UserHelpSettingsScreen } from '@/features/Profile/screens/User/UserHelpSettingsScreen';
+import { UserMyMembershipScreen } from '@/features/Profile/screens/User/UserMyMembershipScreen';
 import { UserMembershipScreen } from '@/features/Profile/screens/User/UserMembershipScreen';
 import { UserEditProfileScreen } from '@/features/Profile/screens/User/UserEditProfileScreen';
 import { UserProfileScreen } from '@/features/Profile/screens/User/UserProfileScreen';
@@ -48,6 +49,11 @@ export function UserAccountStackNavigator(): React.ReactElement {
       <Stack.Screen
         name={ROUTES.Account.Membership}
         component={UserMembershipScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name={ROUTES.Account.UserMyMembership}
+        component={UserMyMembershipScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen

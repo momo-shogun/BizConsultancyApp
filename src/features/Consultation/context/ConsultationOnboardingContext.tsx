@@ -16,7 +16,12 @@ import {
 import { useGetAvailableSlotsQuery, useGetPublicConsultantBySlugQuery } from '@/features/consultant/api/consultantApi';
 import { useAppSelector } from '@/store/typedHooks';
 
-import { mapCallTypeToConsultationType, resolveConsultationFee } from '../utils/consultationBooking';
+import type { ConsultationTypeApi } from '../types/consultantBooking.types';
+import {
+  mapCallTypeToConsultationType,
+  resolveConsultationFee,
+  type ConsultationFeeRates,
+} from '../utils/consultationBooking';
 import type {
   ConsultationOnboardingFormState,
   ConsultationOnboardingRouteParams,
@@ -25,12 +30,13 @@ import type {
 } from '../types/consultationOnboarding.types';
 import {
   formatConsultationApiDate,
-  mapSlotLabelsToConsultationGroups,
+  mapAvailableSlotsToConsultationGroups,
   todayStart,
 } from '../utils/consultationSlots';
 
 interface ConsultationOnboardingContextValue {
   form: ConsultationOnboardingFormState;
+  feeRates: ConsultationFeeRates;
   slotGroups: ConsultationSlotGroup[];
   slotsLoading: boolean;
   slotsError: boolean;
@@ -38,6 +44,7 @@ interface ConsultationOnboardingContextValue {
     field: keyof ConsultationOnboardingFormState['contact'],
     value: string,
   ) => void;
+  setConsultationType: (type: ConsultationTypeApi) => void;
   setPreferredDate: (date: Date) => void;
   setSelectedTimeSlotId: (slotId: string) => void;
   selectedTimeSlot: ConsultationTimeSlot | null;
@@ -80,11 +87,6 @@ function buildInitialForm(
   };
 }
 
-function slotLabelFromApi(slot: { label?: string; startTime: string }): string {
-  const label = slot.label?.trim();
-  return label != null && label.length > 0 ? label : slot.startTime.trim();
-}
-
 interface ConsultationOnboardingProviderProps {
   params: ConsultationOnboardingRouteParams;
   children: React.ReactNode;
@@ -110,6 +112,12 @@ export function ConsultationOnboardingProvider(
     buildInitialForm(props.params, loggedInDefaults),
   );
 
+  const [feeRates, setFeeRates] = useState<ConsultationFeeRates>(() => ({
+    videoRate: 0,
+    audioRate: 0,
+    rate: props.params.price ?? 0,
+  }));
+
   const preferredDateParam = useMemo(
     () => (form.preferredDate != null ? formatConsultationApiDate(form.preferredDate) : ''),
     [form.preferredDate],
@@ -128,12 +136,16 @@ export function ConsultationOnboardingProvider(
     const parsedId = Number(consultantBySlug.id);
     const hasValidId = Number.isFinite(parsedId) && parsedId > 0;
 
+    const nextFeeRates: ConsultationFeeRates = {
+      videoRate: consultantBySlug.videoRate,
+      audioRate: consultantBySlug.audioRate,
+      rate: consultantBySlug.rate,
+    };
+
+    setFeeRates(nextFeeRates);
+
     setForm((prev) => {
-      const resolvedFee = resolveConsultationFee(prev.consultationType, {
-        videoRate: consultantBySlug.videoRate,
-        audioRate: consultantBySlug.audioRate,
-        rate: consultantBySlug.rate,
-      });
+      const resolvedFee = resolveConsultationFee(prev.consultationType, nextFeeRates);
       return {
         ...prev,
         consultantId: prev.consultantId ?? (hasValidId ? parsedId : null),
@@ -158,14 +170,27 @@ export function ConsultationOnboardingProvider(
     if (slotsData == null) {
       return [];
     }
-    const labels = slotsData.slots.map(slotLabelFromApi).filter((label) => label.length > 0);
-    return mapSlotLabelsToConsultationGroups(labels);
-  }, [slotsData]);
+    return mapAvailableSlotsToConsultationGroups(slotsData.slots, form.preferredDate);
+  }, [slotsData, form.preferredDate]);
 
   const allTimeSlots = useMemo(
     () => slotGroups.flatMap((group) => group.slots),
     [slotGroups],
   );
+
+  /** Drop selection when the slot is booked, past, or no longer returned by the API. */
+  useEffect(() => {
+    setForm((prev) => {
+      if (prev.selectedTimeSlotId == null) {
+        return prev;
+      }
+      const selected = allTimeSlots.find((slot) => slot.id === prev.selectedTimeSlotId);
+      if (selected != null && selected.available !== false) {
+        return prev;
+      }
+      return { ...prev, selectedTimeSlotId: null };
+    });
+  }, [allTimeSlots]);
 
   /** If Redux auth hydrates after first paint, merge stored name / phone / email into empty fields once. */
   const mergedAuthDefaultsRef = useRef<boolean>(false);
@@ -215,6 +240,14 @@ export function ConsultationOnboardingProvider(
     [],
   );
 
+  const setConsultationType = useCallback((type: ConsultationTypeApi) => {
+    setForm((prev) => ({
+      ...prev,
+      consultationType: type,
+      price: resolveConsultationFee(type, feeRates),
+    }));
+  }, [feeRates]);
+
   const setPreferredDate = useCallback((date: Date) => {
     setForm((prev) => ({
       ...prev,
@@ -235,19 +268,23 @@ export function ConsultationOnboardingProvider(
   const value = useMemo(
     (): ConsultationOnboardingContextValue => ({
       form,
+      feeRates,
       slotGroups,
       slotsLoading: canFetchSlots && slotsLoading,
       slotsError,
       setContactField,
+      setConsultationType,
       setPreferredDate,
       setSelectedTimeSlotId,
       selectedTimeSlot,
     }),
     [
       canFetchSlots,
+      feeRates,
       form,
       selectedTimeSlot,
       setContactField,
+      setConsultationType,
       setPreferredDate,
       setSelectedTimeSlotId,
       slotGroups,

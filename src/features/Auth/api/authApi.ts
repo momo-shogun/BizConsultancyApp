@@ -1,6 +1,8 @@
 import { baseApi } from '@/services/api/baseApi';
 
 import type {
+  RegisterLoginDto,
+  RegisterLoginResponseDto,
   RefreshTokenDto,
   RefreshTokenResponseDto,
   SendOtpDto,
@@ -74,6 +76,25 @@ export const authApi = baseApi.injectEndpoints({
         }
       },
     }),
+    registerLogin: build.mutation<RegisterLoginResponseDto, RegisterLoginDto>({
+      query: (body) => ({
+        url: 'frontend/register-login',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Auth'],
+      async onQueryStarted(arg, { queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          logLoginApi('POST frontend/register-login', {
+            request: { ...arg, password: '[redacted]', otp: '[redacted]' },
+            response: data,
+          });
+        } catch (error: unknown) {
+          logLoginApi('POST frontend/register-login', { error });
+        }
+      },
+    }),
     refreshToken: build.mutation<RefreshTokenResponseDto, RefreshTokenDto>({
       query: (body) => ({
         url: 'frontend/refresh-token',
@@ -99,5 +120,6 @@ export const {
   useVerifyNumberMutation,
   useSendOtpMutation,
   useVerifyOtpMutation,
+  useRegisterLoginMutation,
   useRefreshTokenMutation,
 } = authApi;

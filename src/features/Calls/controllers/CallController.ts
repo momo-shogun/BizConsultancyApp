@@ -82,6 +82,8 @@ export const CallController = {
     bookingId: number,
     remoteName: string,
     consultationType: string,
+    bookingDate: string,
+    slotTime: string,
   ): Promise<string | null> {
     const auth = requireAuthUser();
     if (auth == null) {
@@ -94,6 +96,10 @@ export const CallController = {
     const callType = consultationTypeToCallType(consultationType);
     if (callType == null) {
       return 'Call is not available for this booking type';
+    }
+
+    if (!hasBookingStarted(bookingDate, slotTime)) {
+      return 'Please wait for the scheduled time';
     }
 
     callEngine.bindSocketHandlers();

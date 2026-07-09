@@ -30,6 +30,10 @@ export function ConsultantHelpSettingsScreen(
       navigation.navigate(ROUTES.Account.Membership);
       return;
     }
+    if (rowId === 'myMembership') {
+      navigation.navigate(ROUTES.Account.ConsultantMyMembership);
+      return;
+    }
     if (rowId === 'profile') {
       navigation.navigate(ROUTES.Account.EditProfile);
       return;

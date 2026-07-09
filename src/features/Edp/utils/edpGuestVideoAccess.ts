@@ -7,6 +7,7 @@ import { showGlobalToast } from '@/shared/components';
 import type { EdpModuleLang } from '../types/edpCourseDetails.types';
 import type { EdpFreeEdpModule } from '../types/edpCourses.types';
 import { normalizeEdpModuleSlug } from './edpCourseDetailsParsing';
+import { promptEdpEnrollment } from './edpEnrollPrompt';
 import { isYoutubeUrl, resolveEdpVideoEmbed } from './edpMedia';
 
 export function findEdpFreeEdpModuleBySlug(
@@ -70,17 +71,32 @@ export function openEdpModuleOverviewVideo(
 export function openEdpModuleForUser(
   navigation: NavigationProp<EdpStackParamList>,
   params: {
-    isAuthenticated: boolean;
+    canAccessFullEdp: boolean;
+    isLoggedInUser: boolean;
+    isConsultant?: boolean;
     moduleSlug: string;
     moduleTitle: string;
     overviewVideoUrl: string | null | undefined;
     lang?: EdpModuleLang;
   },
 ): void {
-  const { isAuthenticated, moduleSlug, moduleTitle, overviewVideoUrl, lang = 'en' } = params;
+  const {
+    canAccessFullEdp,
+    isLoggedInUser,
+    isConsultant,
+    moduleSlug,
+    moduleTitle,
+    overviewVideoUrl,
+    lang = 'en',
+  } = params;
   const slug = normalizeEdpModuleSlug(moduleSlug);
 
-  if (!isAuthenticated) {
+  if (isLoggedInUser && !canAccessFullEdp) {
+    promptEdpEnrollment({ isConsultant });
+    return;
+  }
+
+  if (!isLoggedInUser) {
     const url = overviewVideoUrl?.trim();
     if (url == null || url.length === 0) {
       showGlobalToast({

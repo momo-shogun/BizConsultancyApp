@@ -1,5 +1,34 @@
 export const UPCOMING_GRACE_MINUTES = 30;
 
+/** Normalizes API `bookingDate` values to `YYYY-MM-DD` for display and comparison. */
+export function normalizeBookingDateString(value: unknown): string | null {
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (trimmed.length === 0) {
+      return null;
+    }
+    const isoDay = /^(\d{4})-(\d{2})-(\d{2})/.exec(trimmed);
+    if (isoDay != null) {
+      return `${isoDay[1]}-${isoDay[2]}-${isoDay[3]}`;
+    }
+    const parsed = new Date(trimmed);
+    if (Number.isNaN(parsed.getTime())) {
+      return null;
+    }
+    const y = parsed.getFullYear();
+    const m = String(parsed.getMonth() + 1).padStart(2, '0');
+    const d = String(parsed.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    const y = value.getFullYear();
+    const m = String(value.getMonth() + 1).padStart(2, '0');
+    const d = String(value.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+  return null;
+}
+
 export function parseBookingDate(dateStr: string): Date | null {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
   if (match) {
@@ -66,6 +95,25 @@ export function hasBookingStarted(bookingDate: string, slotTime: string, now = n
   return now.getTime() >= bookingDateTime.getTime();
 }
 
+/** Upcoming tab: appointment is today or in the future (matches web bookings page). */
+export function isBookingUpcomingTab(
+  bookingDate: string,
+  slotTime: string,
+  now = new Date(),
+): boolean {
+  const bookingDateTime = buildBookingDateTime(bookingDate, slotTime);
+  if (bookingDateTime != null) {
+    return bookingDateTime.getTime() >= now.getTime();
+  }
+  const dateOnly = parseBookingDate(bookingDate);
+  if (dateOnly == null) {
+    return false;
+  }
+  const today = new Date(now);
+  today.setHours(0, 0, 0, 0);
+  return dateOnly.getTime() >= today.getTime();
+}
+
 export function isBookingUpcoming(bookingDate: string, slotTime: string, now = new Date()): boolean {
   const bookingDateTime = buildBookingDateTime(bookingDate, slotTime);
   if (bookingDateTime != null) {
@@ -79,6 +127,34 @@ export function isBookingUpcoming(bookingDate: string, slotTime: string, now = n
   const today = new Date(now);
   today.setHours(0, 0, 0, 0);
   return dateOnly.getTime() >= today.getTime();
+}
+
+export function getBookingScheduleTimestamp(
+  bookingDate: string,
+  slotTime: string,
+): number {
+  const bookingDateTime = buildBookingDateTime(bookingDate, slotTime);
+  if (bookingDateTime != null) {
+    return bookingDateTime.getTime();
+  }
+  const dateOnly = parseBookingDate(bookingDate);
+  return dateOnly?.getTime() ?? 0;
+}
+
+export function sortBookingsBySchedule<T extends { bookingDate: string; slotTime: string; id: number }>(
+  bookings: T[],
+  direction: 'asc' | 'desc',
+): T[] {
+  const factor = direction === 'asc' ? 1 : -1;
+  return [...bookings].sort((a, b) => {
+    const diff =
+      getBookingScheduleTimestamp(a.bookingDate, a.slotTime) -
+      getBookingScheduleTimestamp(b.bookingDate, b.slotTime);
+    if (diff !== 0) {
+      return diff * factor;
+    }
+    return (a.id - b.id) * factor;
+  });
 }
 
 export function formatBookingDate(dateStr: string): string {

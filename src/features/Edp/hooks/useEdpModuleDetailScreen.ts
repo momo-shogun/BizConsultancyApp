@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { selectIsAuthenticated } from '@/features/Auth/store/authSelectors';
+import { useEdpAccess } from '@/features/Edp/hooks/useEdpAccess';
 import { useGetEdpCourseDetailsQuery } from '@/features/Edp/api/edpModuleApi';
 import { useGetEdpCoursesWithDocumentsQuery } from '@/features/Edp/api/edpLandingApi';
-import { useAppSelector } from '@/store/typedHooks';
+
 import type { EdpModuleLang, EdpModuleLessonRow } from '@/features/Edp/types/edpCourseDetails.types';
 import {
   mapEdpModuleLessons,
@@ -24,6 +24,7 @@ import type { EdpWatchProgressContext } from './useEdpWatchTimeHeartbeat';
 export interface UseEdpModuleDetailScreenParams {
   slug: string;
   lang: EdpModuleLang;
+  onLoginRequired?: () => void;
 }
 
 export interface UseEdpModuleDetailScreenResult {
@@ -65,9 +66,9 @@ export interface UseEdpModuleDetailScreenResult {
 export function useEdpModuleDetailScreen(
   params: UseEdpModuleDetailScreenParams,
 ): UseEdpModuleDetailScreenResult {
-  const { slug, lang } = params;
+  const { slug, lang, onLoginRequired } = params;
   const moduleSlug = normalizeEdpModuleSlug(slug);
-  const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const { canAccessFullEdp, isLoggedInUser, promptEnroll } = useEdpAccess();
   const {
     data: detail,
     isLoading,
@@ -136,8 +137,8 @@ export function useEdpModuleDetailScreen(
   }, [subs]);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      if (guestOverviewVideoUrl != null) {
+    if (!canAccessFullEdp) {
+      if (!isLoggedInUser && guestOverviewVideoUrl != null) {
         setMainVideoUrl(guestOverviewVideoUrl);
         setPlaying(true);
       } else {
@@ -162,7 +163,7 @@ export function useEdpModuleDetailScreen(
     }
     setMainVideoUrl(null);
     setPlaying(false);
-  }, [course?.url, course?.id, guestOverviewVideoUrl, isAuthenticated, subs, lang]);
+  }, [course?.url, course?.id, guestOverviewVideoUrl, canAccessFullEdp, isLoggedInUser, subs, lang]);
 
   const lessons = useMemo(
     () => mapEdpModuleLessons(subs, lang, mainVideoUrl),
@@ -202,40 +203,58 @@ export function useEdpModuleDetailScreen(
 
   const playLessonVideo = useCallback(
     (lesson: EdpModuleLessonRow): void => {
-      if (!isAuthenticated) {
+      if (!canAccessFullEdp) {
+        if (isLoggedInUser) {
+          promptEnroll();
+        } else {
+          onLoginRequired?.();
+        }
         return;
       }
       const next = lesson.videoUrl?.trim();
       if (next == null || next.length === 0) {
         return;
       }
-    setWatchProgressContext({
-      categoryId: lesson.categoryId,
-      subCategoryId: lesson.topicId,
-    });
+      setWatchProgressContext({
+        categoryId: lesson.categoryId,
+        subCategoryId: lesson.topicId,
+      });
       setMainVideoUrl(next);
       setPlaying(true);
     },
-    [isAuthenticated],
+    [canAccessFullEdp, isLoggedInUser, onLoginRequired, promptEnroll],
   );
 
-  const openLessonPdf = useCallback((lesson: EdpModuleLessonRow): void => {
-    if (lesson.pdfUrl == null) {
-      return;
-    }
+  const openLessonPdf = useCallback(
+    (lesson: EdpModuleLessonRow): void => {
+      if (!canAccessFullEdp) {
+        if (isLoggedInUser) {
+          promptEnroll();
+        }
+        return;
+      }
+      if (lesson.pdfUrl == null) {
+        return;
+      }
     setWatchProgressContext({
       categoryId: lesson.categoryId,
       subCategoryId: lesson.topicId,
     });
     void openEdpModulePdf(lesson.pdfUrl, lesson.title);
-  }, []);
+  }, [canAccessFullEdp, isLoggedInUser, promptEnroll]);
 
   const openSupportingPdf = useCallback((): void => {
+    if (!canAccessFullEdp) {
+      if (isLoggedInUser) {
+        promptEnroll();
+      }
+      return;
+    }
     if (overviewPdfUrl == null || moduleTitle.length === 0) {
       return;
     }
     void openEdpModulePdf(overviewPdfUrl, moduleTitle);
-  }, [moduleTitle, overviewPdfUrl]);
+  }, [canAccessFullEdp, isLoggedInUser, moduleTitle, overviewPdfUrl, promptEnroll]);
 
   const isNotFound = !isLoading && !isFetching && isError;
 
@@ -261,7 +280,7 @@ export function useEdpModuleDetailScreen(
     playing,
     setPlaying,
     watchProgressContext,
-    canPlayLessonVideos: isAuthenticated,
+    canPlayLessonVideos: canAccessFullEdp,
     playLessonVideo,
     openLessonPdf,
     openSupportingPdf,

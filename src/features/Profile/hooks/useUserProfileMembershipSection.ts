@@ -3,12 +3,18 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { useGetPublicMembershipsQuery } from '@/features/Home/api/homePublicApi';
-import type { PublicMembershipApiRow } from '@/features/Home/types/publicMembershipApi.types';
+import type {
+  PublicMembershipApiRow,
+  PublicMembershipScopeApiRow,
+} from '@/features/Home/types/publicMembershipApi.types';
 import { ROUTES } from '@/navigation/routeNames';
 import type { AccountStackParamList } from '@/navigation/types';
 
 import { useGetMyMembershipDashboardQuery } from '../api/membershipRegistrationApi';
-import type { UserProfileMembershipBenefit } from '../types/membershipDashboard.types';
+import type {
+  MyMembershipFeatureDto,
+  UserProfileMembershipBenefit,
+} from '../types/membershipDashboard.types';
 import {
   formatMembershipDateLabel,
   isMembershipFeatureScopeActive,
@@ -116,24 +122,64 @@ function planThemeIndexForRow(
   return index >= 0 ? index : 0;
 }
 
+function isCatalogScopeActive(scope: PublicMembershipScopeApiRow): boolean {
+  return scope.status !== 0 && (scope.isDeleted ?? 0) === 0;
+}
+
+function findCatalogScopeForFeature(
+  feature: MyMembershipFeatureDto,
+  membershipId: number,
+  plans: PublicMembershipApiRow[] | undefined,
+): PublicMembershipScopeApiRow | null {
+  const plan = plans?.find((row) => row.id === membershipId);
+  if (plan?.scopes == null) {
+    return null;
+  }
+  const normalizedTitle = feature.title.trim().toLowerCase();
+  return (
+    plan.scopes.find(
+      (scope) =>
+        scope.id === feature.id ||
+        scope.title.trim().toLowerCase() === normalizedTitle,
+    ) ?? null
+  );
+}
+
+function isMembershipDashboardFeatureVisible(
+  feature: MyMembershipFeatureDto,
+  membershipId: number | null,
+  plans: PublicMembershipApiRow[] | undefined,
+): boolean {
+  if (!isMembershipFeatureScopeActive(feature)) {
+    return false;
+  }
+  if (membershipId == null) {
+    return true;
+  }
+  const catalogScope = findCatalogScopeForFeature(feature, membershipId, plans);
+  if (catalogScope == null) {
+    return true;
+  }
+  return isCatalogScopeActive(catalogScope);
+}
+
 function benefitsFromCatalog(
   membershipId: number,
-  plans: ReturnType<typeof useGetPublicMembershipsQuery>['data'],
+  plans: PublicMembershipApiRow[] | undefined,
 ): UserProfileMembershipBenefit[] {
   const plan = plans?.find((row) => row.id === membershipId);
   if (plan == null) {
     return [];
   }
-  const scopeTitles =
-    plan.scopes
-      ?.filter((scope) => scope.status !== 0 && (scope.isDeleted ?? 0) === 0)
-      .map((scope) => scope.title.trim())
-      .filter((title) => title.length > 0) ?? [];
-  if (scopeTitles.length > 0) {
-    return scopeTitles.map((title, index) => ({
-      id: `scope-${plan.id}-${index}`,
-      title,
+  const activeScopes =
+    plan.scopes?.filter(isCatalogScopeActive).filter((scope) => scope.title.trim().length > 0) ??
+    [];
+  if (activeScopes.length > 0) {
+    return activeScopes.map((scope) => ({
+      id: String(scope.id),
+      title: scope.title.trim(),
       statusLabel: null,
+      userStatus: null,
     }));
   }
   const features =
@@ -142,6 +188,7 @@ function benefitsFromCatalog(
     id: `feature-${plan.id}-${index}`,
     title,
     statusLabel: null,
+    userStatus: null,
   }));
 }
 
@@ -150,12 +197,13 @@ export type ProfileMembershipLine = 'users' | 'experts';
 export interface UseUserProfileMembershipSectionOptions {
   enabled: boolean;
   membershipLine: ProfileMembershipLine;
+  maxBenefits?: number;
 }
 
 export function useUserProfileMembershipSection(
   options: UseUserProfileMembershipSectionOptions,
 ): UserProfileMembershipSectionModel {
-  const { enabled, membershipLine } = options;
+  const { enabled, membershipLine, maxBenefits = MAX_BENEFITS } = options;
   const navigation = useNavigation<AccountNav>();
 
   const {
@@ -206,11 +254,18 @@ export function useUserProfileMembershipSection(
 
     const dashboardBenefits: UserProfileMembershipBenefit[] =
       dashboard?.features
-        .filter(isMembershipFeatureScopeActive)
+        .filter((feature) =>
+          isMembershipDashboardFeatureVisible(
+            feature,
+            current?.membershipId ?? null,
+            publicPlans,
+          ),
+        )
         .map((feature) => ({
           id: String(feature.id),
           title: feature.title,
           statusLabel: membershipFeatureStatusLabel(feature.userStatus),
+          userStatus: feature.userStatus,
         })) ?? [];
 
     const catalogBenefits =
@@ -218,7 +273,7 @@ export function useUserProfileMembershipSection(
 
     const benefits = (dashboardBenefits.length > 0 ? dashboardBenefits : catalogBenefits).slice(
       0,
-      MAX_BENEFITS,
+      maxBenefits,
     );
 
     const currentTier = current?.tierRank ?? 0;
@@ -296,6 +351,7 @@ export function useUserProfileMembershipSection(
     publicPlans,
     refetchDashboard,
     membershipLine,
+    maxBenefits,
     onMembershipPress,
   ]);
 }

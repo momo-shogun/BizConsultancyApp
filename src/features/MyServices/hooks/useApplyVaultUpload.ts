@@ -1,5 +1,4 @@
 import { useCallback, useState, type Dispatch, type SetStateAction } from 'react';
-import { Platform } from 'react-native';
 
 import { showGlobalToast } from '@/shared/components';
 import { getApiErrorMessage } from '@/utils/apiError';
@@ -99,12 +98,6 @@ export function useApplyVaultUpload({
 
       if (file.uri.length === 0) {
         showGlobalToast('Could not read the selected file. Please try another photo.');
-        return;
-      }
-      if (Platform.OS === 'android' && file.uri.startsWith('content://')) {
-        showGlobalToast(
-          'Could not access this file. Take a photo with the camera or try again.',
-        );
         return;
       }
 

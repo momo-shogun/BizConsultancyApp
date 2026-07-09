@@ -5,7 +5,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
 import Animated, {
@@ -25,12 +24,21 @@ import { THEME } from '@/constants/theme';
 import { ROUTES } from '@/navigation/routeNames';
 import type { AppTabParamList } from '@/navigation/types';
 
+import { useGetPublicServicesQuery } from '@/features/Services/api/servicesApi';
+import { buildServicesCategoryTreeFromApi } from '@/features/Services/utils/buildServicesCategoryTreeFromApi';
+
 import { ServiceSpotlightCard } from './components/ServiceSpotlightCard';
 import {
   SERVICES_CATEGORY_TREE,
   type ServicePageRef,
   type ServicesTopCategory,
 } from './data/servicesCategoryTree.static';
+
+interface ServiceSpotlightPage extends ServicePageRef {
+  subCategoryLabel: string;
+}
+
+const ACTIVE_SERVICES_BOOTSTRAP_LIMIT = 500;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Spring / timing configs
@@ -90,18 +98,6 @@ function hexToRgba(hex: string, alpha: number): string {
 
   if ([r, g, b].some((n) => Number.isNaN(n))) return `rgba(16, 163, 74, ${alpha})`;
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
-
-function resolveSubCategoryLabel(
-  page: ServicePageRef,
-  category: ServicesTopCategory,
-): string {
-  for (const sub of category.subCategories) {
-    if (sub.pages.some((p) => p.slug === page.slug)) {
-      return sub.name;
-    }
-  }
-  return category.name;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -268,9 +264,32 @@ export function ZeptoHSServicesSpotlight({
   accentColor,
 }: ZeptoHSServicesSpotlightProps): React.ReactElement {
   const navigation = useNavigation<BottomTabNavigationProp<AppTabParamList>>();
-  const categories = SERVICES_CATEGORY_TREE.categories;
+  const { data: activeServicesPage } = useGetPublicServicesQuery({
+    page: 1,
+    limit: ACTIVE_SERVICES_BOOTSTRAP_LIMIT,
+    sortBy: 'position',
+    sortOrder: 'desc',
+  });
+
+  const categories = useMemo((): ServicesTopCategory[] => {
+    const apiItems = activeServicesPage?.items ?? [];
+    const fromApi = buildServicesCategoryTreeFromApi(apiItems).categories;
+    if (fromApi.length > 0) {
+      return fromApi;
+    }
+    return SERVICES_CATEGORY_TREE.categories;
+  }, [activeServicesPage?.items]);
 
   const [activeCategoryIndex, setActiveCategoryIndex] = useState(0);
+
+  React.useEffect(() => {
+    setActiveCategoryIndex((prev) => {
+      if (categories.length === 0) {
+        return 0;
+      }
+      return Math.min(prev, categories.length - 1);
+    });
+  }, [categories.length]);
 
   // Stores measured x + width for each tab so the indicator knows where to go.
   // WHY useRef (not useState): layout measurements don't need to trigger
@@ -311,9 +330,16 @@ export function ZeptoHSServicesSpotlight({
   const activeCategory: ServicesTopCategory | undefined =
     categories[activeCategoryIndex] ?? categories[0];
 
-  const combinedSpotlightPages = useMemo((): ServicePageRef[] => {
-    if (activeCategory == null) return [];
-    return activeCategory.subCategories.flatMap((sub) => sub.pages);
+  const combinedSpotlightPages = useMemo((): ServiceSpotlightPage[] => {
+    if (activeCategory == null) {
+      return [];
+    }
+    return activeCategory.subCategories.flatMap((sub) =>
+      sub.pages.map((page) => ({
+        ...page,
+        subCategoryLabel: sub.name.trim(),
+      })),
+    );
   }, [activeCategory]);
 
   const goToService = useCallback(
@@ -326,20 +352,20 @@ export function ZeptoHSServicesSpotlight({
     [navigation],
   );
 
-  const renderPageItem = useCallback<ListRenderItem<ServicePageRef>>(
+  const renderPageItem = useCallback<ListRenderItem<ServiceSpotlightPage>>(
     ({ item }) => (
       <ServiceSpotlightCard
         title={item.title}
         slug={item.slug}
         accentColor={accentColor}
-        categoryLabel={resolveSubCategoryLabel(item, activeCategory!)}
+        categoryLabel={item.subCategoryLabel}
         onPress={() => goToService(item.slug)}
       />
     ),
-    [accentColor, activeCategory, goToService],
+    [accentColor, goToService],
   );
 
-  const pageKeyExtractor = useCallback((p: ServicePageRef): string => p.slug, []);
+  const pageKeyExtractor = useCallback((p: ServiceSpotlightPage): string => p.slug, []);
 
   if (activeCategory == null) {
     return <View style={[styles.wrap, { backgroundColor }]} />;

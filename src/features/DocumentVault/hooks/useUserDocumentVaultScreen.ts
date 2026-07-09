@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, Platform } from 'react-native';
+import { Alert } from 'react-native';
 
 import { selectIsAuthenticated } from '@/features/Auth/store/authSelectors';
 import { assetToMultipartFile } from '@/services/api/multipartFetch';
@@ -233,10 +233,6 @@ export function useUserDocumentVaultScreen(): UseUserDocumentVaultScreenResult {
 
       if (file.uri.length === 0) {
         showGlobalToast('Could not read the selected file. Please try again.');
-        return;
-      }
-      if (Platform.OS === 'android' && file.uri.startsWith('content://')) {
-        showGlobalToast('Could not access this file. Try the camera or another photo.');
         return;
       }
 

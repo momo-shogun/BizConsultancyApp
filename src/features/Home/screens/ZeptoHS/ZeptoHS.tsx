@@ -215,7 +215,7 @@ export function ZeptoHS(props: ZeptoHSProps): React.ReactElement {
         scrollEventThrottle={16}
       >
         <Animated.View style={collapsingHeaderOpacityStyle} onLayout={onHeaderLayout} collapsable={false}>
-          <ZeptoHeaderV1 {...header} backgroundColor={headerBackgroundColor}  onWalletPress={()=> navigationRef.navigate(ROUTES.Root.Wallet)} />
+          <ZeptoHeaderV1 {...header} backgroundColor={headerBackgroundColor} />
         </Animated.View>
 
         <Animated.View style={collapsingHeaderOpacityStyle} onLayout={onTabsLayout} collapsable={false}>
@@ -254,7 +254,7 @@ export function ZeptoHS(props: ZeptoHSProps): React.ReactElement {
         <View style={{ paddingTop: STICKY_SEARCH_TOP_PAD, backgroundColor: activeShell.topTabsBackground }}>
           <ZeptoTabsSearchBand
             backgroundColor={activeShell.topTabsBackground}
-            searchPlaceholder="Search for services, experts..."
+            searchPlaceholder="Search for services"
             onPress={onOpenSearch}
             testID="zepto_hs_sticky_search"
           />
