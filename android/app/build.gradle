@@ -65,7 +65,7 @@ react {
 def enableProguardInReleaseBuilds = true
 
 /**
- * The preferred build flavor of JavaScriptCore (JSC)
+ * The preferred build flavor of JavaScriptCore (JSC)F
  *
  * For example, to use the international variant, you can use:
  * `def jscFlavor = io.github.react-native-community:jsc-android-intl:2026004.+`
@@ -87,8 +87,8 @@ android {
         applicationId "com.consultancy"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 202
-        versionName "2.0.2"
+        versionCode 205
+        versionName "2.0.5"
         externalNativeBuild {
             cmake {
                 arguments "-DANDROID_STL=c++_shared"
@@ -98,6 +98,9 @@ android {
             debugSymbolLevel 'SYMBOL_TABLE'
         }
     }
+    configurations.configureEach {
+    exclude group: "io.agora.rtc", module: "full-screen-sharing"
+}
     signingConfigs {
         debug {
             storeFile file('debug.keystore')
