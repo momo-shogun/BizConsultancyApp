@@ -2,6 +2,10 @@ apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 
+repositories {
+    maven { url "$rootDir/../node_modules/@notifee/react-native/android/libs" }
+}
+
 /**
  * This is the configuration block to customize your React Native Android app.
  * By default you don't need to apply any configuration, just uncomment the lines you need.
@@ -87,8 +91,8 @@ android {
         applicationId "com.consultancy"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 205
-        versionName "2.0.5"
+        versionCode 206
+        versionName "2.0.6"
         externalNativeBuild {
             cmake {
                 arguments "-DANDROID_STL=c++_shared"
