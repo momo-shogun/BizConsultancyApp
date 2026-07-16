@@ -51,6 +51,8 @@ type PendingCallNavigation =
 class CallEngineImpl {
   private reliability = new CallReliabilityManager();
   private pendingNavigation: PendingCallNavigation | null = null;
+  /** Notifee Answer while JS was headless / auth not ready — retry after CallProvider boots. */
+  private pendingAcceptSessionId: number | null = null;
   private ringTimeout: ReturnType<typeof setTimeout> | null = null;
   private syncTimer: ReturnType<typeof setInterval> | null = null;
   private teardownTimer: ReturnType<typeof setTimeout> | null = null;
@@ -70,6 +72,37 @@ class CallEngineImpl {
     } else {
       navigationRef.navigate(route as never, params as never);
     }
+  }
+
+  /**
+   * Retry Answer after cold start when the first accept raced ahead of auth / native Agora.
+   * Call from CallProvider once the user session is authenticated.
+   */
+  flushPendingAccept(): void {
+    const sessionId = this.pendingAcceptSessionId;
+    if (sessionId == null) {
+      return;
+    }
+    const state = this.getCallState();
+    if (state.sessionId !== sessionId) {
+      return;
+    }
+    if (state.phase === 'in_call' || state.connectedAtMs != null) {
+      this.pendingAcceptSessionId = null;
+      return;
+    }
+    if (state.phase === 'connecting_media') {
+      return;
+    }
+    if (state.phase !== 'incoming_ringing') {
+      return;
+    }
+    void this.acceptIncoming();
+  }
+
+  /** Mark that the user answered from a notification (may need a post-boot retry). */
+  requestAcceptFromNotification(sessionId: number): void {
+    this.pendingAcceptSessionId = sessionId;
   }
 
   bindSocketHandlers(): void {
@@ -484,6 +517,7 @@ class CallEngineImpl {
     agoraMediaService.setSpeakerphone(true);
     this.applyPhase('ACCEPT_OK');
     this.applyPhase('AGORA_JOINED');
+    this.pendingAcceptSessionId = null;
     this.replaceCallScreen('InCall', sessionId);
     this.startSyncTimer(sessionId);
   }
@@ -654,6 +688,7 @@ class CallEngineImpl {
 
   teardown(): void {
     const sessionId = this.getCallState().sessionId;
+    this.pendingAcceptSessionId = null;
     callRingtoneService.stop();
     void cancelIncomingCallNotification(sessionId);
     this.clearRingTimeout();
