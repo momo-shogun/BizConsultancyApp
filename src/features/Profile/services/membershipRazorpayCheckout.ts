@@ -41,6 +41,7 @@ export interface OpenMembershipRazorpayParams {
 export interface MembershipRazorpaySuccess {
   razorpay_payment_id: string;
   razorpay_order_id: string;
+  razorpay_signature: string;
 }
 
 export function openMembershipRazorpayCheckout(
@@ -74,10 +75,22 @@ export function openMembershipRazorpayCheckout(
         'razorpay_order_id' in data
           ? (data as { razorpay_order_id?: unknown }).razorpay_order_id
           : undefined;
-      if (typeof paymentId !== 'string' || typeof orderId !== 'string') {
+      const signature =
+        'razorpay_signature' in data
+          ? (data as { razorpay_signature?: unknown }).razorpay_signature
+          : undefined;
+      if (
+        typeof paymentId !== 'string' ||
+        typeof orderId !== 'string' ||
+        typeof signature !== 'string'
+      ) {
         throw new Error('Payment response incomplete');
       }
-      return { razorpay_payment_id: paymentId, razorpay_order_id: orderId };
+      return {
+        razorpay_payment_id: paymentId,
+        razorpay_order_id: orderId,
+        razorpay_signature: signature,
+      };
     })
     .catch((error: unknown) => {
       if (isPaymentCancelledError(error)) {

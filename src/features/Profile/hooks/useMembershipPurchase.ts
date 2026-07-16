@@ -317,6 +317,7 @@ export function useMembershipPurchase(): UseMembershipPurchaseResult {
       await verifyPayment({
         orderId: payment.razorpay_order_id,
         paymentId: payment.razorpay_payment_id,
+        signature: payment.razorpay_signature,
       }).unwrap();
 
       onPurchaseSuccess();

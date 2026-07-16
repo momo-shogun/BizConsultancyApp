@@ -23,4 +23,5 @@ export interface CreateMembershipRegistrationResult {
 export interface VerifyMembershipPaymentPayload {
   orderId: string;
   paymentId: string;
+  signature?: string;
 }
