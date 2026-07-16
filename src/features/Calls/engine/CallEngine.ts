@@ -299,6 +299,7 @@ class CallEngineImpl {
     );
     this.applyPhase('INITIATE_OK');
     callSocketService.setActiveCallId(data.sessionId);
+    callRingtoneService.startOutgoing();
 
     this.ringTimeout = setTimeout(() => {
       void this.endCall('missed_timeout');
@@ -352,6 +353,7 @@ class CallEngineImpl {
     );
     this.applyPhase('INITIATE_OK');
     callSocketService.setActiveCallId(data.sessionId);
+    callRingtoneService.startOutgoing();
 
     this.ringTimeout = setTimeout(() => {
       void this.endCall('missed_timeout');
@@ -411,6 +413,7 @@ class CallEngineImpl {
     }
 
     this.clearRingTimeout();
+    callRingtoneService.stop();
     store.dispatch(setCallPhase('connecting_media'));
 
     const joined = await this.joinAgoraFromCredentials(credentials);
