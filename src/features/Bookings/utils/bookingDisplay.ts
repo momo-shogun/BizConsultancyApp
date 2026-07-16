@@ -65,6 +65,11 @@ export function isBookingConfirmed(status: string): boolean {
   return normalizeBookingStatus(status) === 'confirmed';
 }
 
+/** True when payment has not completed — hide from home upcoming sessions. */
+export function isBookingPaymentPending(paymentStatus: string): boolean {
+  return paymentStatus.trim().toLowerCase() === 'pending';
+}
+
 export function canShowCallAction(
   booking: MyConsultantBooking,
   filter: 'upcoming' | 'past',

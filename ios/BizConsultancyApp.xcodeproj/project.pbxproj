@@ -12,6 +12,8 @@
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		DD336F6ABA88831C2148E959 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
+		C4A1E2F31B2D4E5A9F8C7D01 /* incallmanager_ringtone.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = C4A1E2F01B2D4E5A9F8C7D01 /* incallmanager_ringtone.mp3 */; };
+		C4A1E2F41B2D4E5A9F8C7D01 /* incallmanager_ringback.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = C4A1E2F11B2D4E5A9F8C7D01 /* incallmanager_ringback.mp3 */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -44,6 +46,8 @@
 		F2FB35DCEC2F47A8A55034E2 /* Foundation.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = Foundation.ttf; path = "../node_modules/react-native-vector-icons/Fonts/Foundation.ttf"; sourceTree = "<group>"; };
 		FEBD7141B68D4CB59E65A3D3 /* Feather.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = Feather.ttf; path = "../node_modules/react-native-vector-icons/Fonts/Feather.ttf"; sourceTree = "<group>"; };
 		FF74C5378BD94337951350D3 /* FontAwesome6_Brands.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = FontAwesome6_Brands.ttf; path = "../node_modules/react-native-vector-icons/Fonts/FontAwesome6_Brands.ttf"; sourceTree = "<group>"; };
+		C4A1E2F01B2D4E5A9F8C7D01 /* incallmanager_ringtone.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; name = incallmanager_ringtone.mp3; path = BizConsultancyApp/incallmanager_ringtone.mp3; sourceTree = "<group>"; };
+		C4A1E2F11B2D4E5A9F8C7D01 /* incallmanager_ringback.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; name = incallmanager_ringback.mp3; path = BizConsultancyApp/incallmanager_ringback.mp3; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -66,6 +70,8 @@
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */,
 				13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */,
+				C4A1E2F01B2D4E5A9F8C7D01 /* incallmanager_ringtone.mp3 */,
+				C4A1E2F11B2D4E5A9F8C7D01 /* incallmanager_ringback.mp3 */,
 			);
 			name = BizConsultancyApp;
 			sourceTree = "<group>";
@@ -207,6 +213,8 @@
 				81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				DD336F6ABA88831C2148E959 /* PrivacyInfo.xcprivacy in Resources */,
+				C4A1E2F31B2D4E5A9F8C7D01 /* incallmanager_ringtone.mp3 in Resources */,
+				C4A1E2F41B2D4E5A9F8C7D01 /* incallmanager_ringback.mp3 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

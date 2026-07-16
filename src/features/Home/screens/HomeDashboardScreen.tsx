@@ -20,7 +20,10 @@ import {
   hasBookingStarted,
   isBookingUpcoming,
 } from '@/features/Bookings/utils/bookingDateTime';
-import { getBookingConsultationKind } from '@/features/Bookings/utils/bookingDisplay';
+import {
+  getBookingConsultationKind,
+  isBookingPaymentPending,
+} from '@/features/Bookings/utils/bookingDisplay';
 import { CallController } from '@/features/Calls/controllers/CallController';
 import { useGetPublicConsultantsQuery } from '@/features/consultant/api/consultantApi';
 import { mapConsultantDetailToCardItem } from '@/features/consultant/utils/consultantMappers';
@@ -318,6 +321,7 @@ export function HomeDashboardScreen(): React.ReactElement {
     const now = new Date();
     if (isConsultant) {
       const rows = (consultantBookings ?? [])
+        .filter((booking) => !isBookingPaymentPending(booking.paymentStatus))
         .filter((booking) =>
           isStatusVisibleForHomeUpcoming(booking.status, booking.bookingDate, booking.slotTime, now),
         )
@@ -328,6 +332,7 @@ export function HomeDashboardScreen(): React.ReactElement {
     }
 
     const rows = (myBookingsPage?.data ?? [])
+      .filter((booking) => !isBookingPaymentPending(booking.paymentStatus))
       .filter((booking) =>
         isStatusVisibleForHomeUpcoming(booking.status, booking.bookingDate, booking.slotTime, now),
       )
