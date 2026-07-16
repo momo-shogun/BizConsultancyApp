@@ -7,6 +7,7 @@ import {
 } from '@reduxjs/toolkit/query/react';
 
 import { API_BASE_URL } from '@/constants/api';
+import { readPersistedAuthTokenSync } from '@/features/Auth/store/readPersistedAuthToken';
 import { establishSession, logout, setAuthSession } from '@/features/Auth/store/authSlice';
 import { parseAuthSessionPayload } from '@/features/Auth/utils/authSessionParsing';
 import type { RootState } from '@/store';
@@ -16,7 +17,11 @@ import { logApiResponse } from './logApiResponse';
 const rawBaseQuery = fetchBaseQuery({
   baseUrl: API_BASE_URL,
   prepareHeaders: (headers, { getState }) => {
-    const token = (getState() as RootState).auth?.token;
+    const stateToken = (getState() as RootState).auth?.token;
+    const token =
+      stateToken != null && stateToken.length > 0
+        ? stateToken
+        : readPersistedAuthTokenSync();
     if (token != null && token.length > 0) {
       headers.set('Authorization', `Bearer ${token}`);
     }

@@ -27,6 +27,8 @@ export function CallProvider(props: React.PropsWithChildren): React.ReactElement
 
     callWarmupCoordinator.onAuthenticated(token);
     callEngine.bindSocketHandlers();
+    callEngine.flushPendingCallNavigation();
+    callEngine.flushPendingAccept();
     const stopPushListeners = startCallPushListeners();
 
     startNetworkTransitionHandler({

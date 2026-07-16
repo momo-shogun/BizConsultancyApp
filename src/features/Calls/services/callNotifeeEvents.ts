@@ -40,17 +40,17 @@ export async function handleCallNotifeeEvent(event: Event): Promise<void> {
   }
 
   callEngine.bindSocketHandlers();
+  callEngine.handleIncoming(payload);
 
   if (pressId === 'decline') {
-    callEngine.handleIncoming(payload);
     await callEngine.declineIncoming();
     await cancelIncomingCallNotification(payload.sessionId);
     return;
   }
 
-  callEngine.handleIncoming(payload);
-
   if (pressId === 'answer') {
+    /** Queue retry for cold start — first accept may race auth / Agora native init. */
+    callEngine.requestAcceptFromNotification(payload.sessionId);
     await callEngine.acceptIncoming();
     await cancelIncomingCallNotification(payload.sessionId);
   }

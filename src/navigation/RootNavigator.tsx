@@ -47,6 +47,7 @@ export function RootNavigator(): React.ReactElement {
       onReady={() => {
         tracking.onReady();
         callEngine.flushPendingCallNavigation();
+        callEngine.flushPendingAccept();
       }}
       onStateChange={tracking.onStateChange}
     >
