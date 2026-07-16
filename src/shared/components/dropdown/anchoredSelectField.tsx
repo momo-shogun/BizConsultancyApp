@@ -62,51 +62,6 @@ const MENU_MIN_HEIGHT = 96;
 const VIEWPORT_EDGE = 8;
 const OPEN_BELOW_MIN_SPACE = 72;
 
-function renderMenuItems(
-  filteredData: AnchoredSelectOption[],
-  value: string | null,
-  theme: DropdownMenuTheme,
-  tokens: typeof dropdownTokens,
-  onSelect: (item: AnchoredSelectOption) => void,
-): React.ReactElement {
-  if (filteredData.length === 0) {
-    return (
-      <Text style={[styles.emptyText, { color: tokens.placeholder }]}>No options found</Text>
-    );
-  }
-
-  return (
-    <>
-      {filteredData.map((item) => {
-        const selected = item.value === value;
-        return (
-          <Pressable
-            key={item.value}
-            accessibilityRole="button"
-            onPress={() => onSelect(item)}
-            style={({ pressed }) => [
-              dropdownStyles.itemContainer,
-              selected ? { backgroundColor: tokens.activeItem } : null,
-              pressed ? styles.itemPressed : null,
-            ]}
-          >
-            <Text
-              style={[
-                dropdownStyles.itemText,
-                theme === 'consultant' && selected
-                  ? { color: consultantDropdownTokens.selectedText, fontWeight: '600' }
-                  : null,
-              ]}
-            >
-              {item.label}
-            </Text>
-          </Pressable>
-        );
-      })}
-    </>
-  );
-}
-
 export function AnchoredSelectField({
   data,
   value,
@@ -242,7 +197,53 @@ export function AnchoredSelectField({
   );
 
   const listMaxHeight =
-    anchor != null ? anchor.maxHeight - (search ? 50 : 0) : MENU_MAX_HEIGHT;
+    anchor != null
+      ? anchor.maxHeight - (search ? 50 : 0)
+      : MENU_MAX_HEIGHT - (search ? 50 : 0);
+
+  const renderMenuListItem = useCallback(
+    ({ item }: { item: AnchoredSelectOption }) => {
+      const selected = item.value === value;
+      return (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => handleSelect(item)}
+          style={({ pressed }) => [
+            dropdownStyles.itemContainer,
+            selected ? { backgroundColor: tokens.activeItem } : null,
+            pressed ? styles.itemPressed : null,
+          ]}
+        >
+          <Text
+            style={[
+              dropdownStyles.itemText,
+              theme === 'consultant' && selected
+                ? { color: consultantDropdownTokens.selectedText, fontWeight: '600' }
+                : null,
+            ]}
+          >
+            {item.label}
+          </Text>
+        </Pressable>
+      );
+    },
+    [handleSelect, theme, tokens.activeItem, value],
+  );
+
+  const menuList = (
+    <FlatList
+      data={filteredData}
+      keyExtractor={(item) => item.value}
+      keyboardShouldPersistTaps="handled"
+      nestedScrollEnabled
+      showsVerticalScrollIndicator
+      style={{ maxHeight: listMaxHeight }}
+      ListEmptyComponent={
+        <Text style={[styles.emptyText, { color: tokens.placeholder }]}>No options found</Text>
+      }
+      renderItem={renderMenuListItem}
+    />
+  );
 
   const searchField =
     search && open ? (
@@ -306,7 +307,7 @@ export function AnchoredSelectField({
           ]}
         >
           {searchField}
-          {renderMenuItems(filteredData, value, theme, tokens, handleSelect)}
+          {menuList}
         </View>
       ) : null}
 
@@ -337,44 +338,7 @@ export function AnchoredSelectField({
                 ]}
               >
                 {searchField}
-                <FlatList
-                  data={filteredData}
-                  keyExtractor={(item) => item.value}
-                  keyboardShouldPersistTaps="handled"
-                  nestedScrollEnabled
-                  showsVerticalScrollIndicator
-                  style={{ maxHeight: listMaxHeight }}
-                  ListEmptyComponent={
-                    <Text style={[styles.emptyText, { color: tokens.placeholder }]}>
-                      No options found
-                    </Text>
-                  }
-                  renderItem={({ item }) => {
-                    const selected = item.value === value;
-                    return (
-                      <Pressable
-                        accessibilityRole="button"
-                        onPress={() => handleSelect(item)}
-                        style={({ pressed }) => [
-                          dropdownStyles.itemContainer,
-                          selected ? { backgroundColor: tokens.activeItem } : null,
-                          pressed ? styles.itemPressed : null,
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            dropdownStyles.itemText,
-                            theme === 'consultant' && selected
-                              ? { color: consultantDropdownTokens.selectedText, fontWeight: '600' }
-                              : null,
-                          ]}
-                        >
-                          {item.label}
-                        </Text>
-                      </Pressable>
-                    );
-                  }}
-                />
+                {menuList}
               </View>
             ) : null}
           </View>
