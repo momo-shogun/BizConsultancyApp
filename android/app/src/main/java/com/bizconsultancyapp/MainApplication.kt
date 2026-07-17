@@ -53,7 +53,6 @@ class MainApplication : Application(), ReactApplication {
               /** Ringtone + haptics come from JS `react-native-incall-manager` only (avoids double ring). */
               enableVibration(false)
               lockscreenVisibility = Notification.VISIBILITY_PUBLIC
-              setBypassDnd(true)
               setSound(null, null)
             }
     val manager = getSystemService(NotificationManager::class.java)

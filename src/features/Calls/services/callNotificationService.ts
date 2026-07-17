@@ -26,7 +26,6 @@ async function ensureIncomingCallChannel(): Promise<void> {
     importance: AndroidImportance.HIGH,
     visibility: AndroidVisibility.PUBLIC,
     /** No channel sound/vibration — `callRingtoneService` (InCallManager) is the only ringer. */
-    bypassDnd: true,
   });
   channelReady = true;
 }
