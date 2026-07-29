@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { BackHandler, Pressable, StyleSheet, Text, View } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -58,6 +58,19 @@ export function InCallScreen({ navigation }: Props): React.ReactElement {
       navigation.goBack();
     }
   }, [isMinimized, navigation, phase]);
+
+  /** Hardware/system back on an active call minimizes (isMinimized=true) instead of dropping
+   *  the call, so the ongoing-call notification stays and tapping it reopens this screen. */
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (phase === 'in_call') {
+        CallController.minimizeCall();
+        return true;
+      }
+      return false;
+    });
+    return () => subscription.remove();
+  }, [phase]);
 
   const statusText = reconnecting
     ? 'Reconnecting…'

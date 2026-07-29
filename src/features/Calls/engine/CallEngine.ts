@@ -10,6 +10,7 @@ import { callsApi } from '../api/callsApi';
 import { callSocketService } from '../services/callSocketService';
 import { agoraMediaService } from '../services/agoraMediaService';
 import { cancelIncomingCallNotification, displayIncomingCallNotification } from '../services/callNotificationService';
+import { callForegroundService } from '../services/callForegroundService';
 import { callRingtoneService } from '../services/callRingtoneService';
 import { resolveCallPartyImageUrl } from '../utils/callPartyMedia';
 import {
@@ -221,6 +222,20 @@ class CallEngineImpl {
       clearInterval(this.syncTimer);
       this.syncTimer = null;
     }
+  }
+
+  /** Start the mic foreground service once media is live, so the call survives backgrounding. */
+  private startCallForegroundService(): void {
+    const state = this.getCallState();
+    if (state.sessionId == null) {
+      return;
+    }
+    void callForegroundService.start(
+      state.remoteDisplayName,
+      state.callType === 'video',
+      state.connectedAtMs ?? Date.now(),
+      state.sessionId,
+    );
   }
 
   private showOutcomeThenEnd(outcome: CallOutcome, delayMs = 2200): void {
@@ -459,6 +474,7 @@ class CallEngineImpl {
     store.dispatch(setSpeakerOn(true));
     store.dispatch(setCallMinimized(false));
     agoraMediaService.setSpeakerphone(true);
+    this.startCallForegroundService();
     this.applyPhase('ACCEPT_OK');
     this.applyPhase('AGORA_JOINED');
     this.replaceCallScreen('InCall', sessionId);
@@ -515,6 +531,7 @@ class CallEngineImpl {
     store.dispatch(setSpeakerOn(true));
     store.dispatch(setCallMinimized(false));
     agoraMediaService.setSpeakerphone(true);
+    this.startCallForegroundService();
     this.applyPhase('ACCEPT_OK');
     this.applyPhase('AGORA_JOINED');
     this.pendingAcceptSessionId = null;
@@ -690,6 +707,7 @@ class CallEngineImpl {
     const sessionId = this.getCallState().sessionId;
     this.pendingAcceptSessionId = null;
     callRingtoneService.stop();
+    void callForegroundService.stop();
     void cancelIncomingCallNotification(sessionId);
     this.clearRingTimeout();
     this.clearTeardownTimer();

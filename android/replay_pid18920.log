@@ -1,0 +1,6 @@
+JvmtiExport can_access_local_variables 0
+JvmtiExport can_hotswap_or_post_breakpoint 0
+JvmtiExport can_post_on_exceptions 0
+# 798 ciObject found
+ciMethod org/gradle/internal/snapshot/SnapshottingFilter$DirectoryWalkerPredicate test (Ljava/nio/file/Path;Ljava/lang/String;ZLjava/lang/Iterable;)Z 0 0 1 0 -1
+ciMethodData org/gradle/cache/internal/DefaultCacheCoordinator releaseOwnership ()V 2 1504 orig 80 0 0 0 0 0 0 0 0 0 0 0 0 103 17 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 data 34 0x40005 0x0 0x0 0x25202a3cbb0 0x4e0 0x0 0x0 0xb0005 0x0 0x0 0x25202a3cbb0 0x4e0 0x0 0x0 0xe0007 0x25a 0x58 0x286 0x1a0005 0x0 0x0 0x25202a3d400 0x286 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x0 0x9 0x1 0x300 oops 3

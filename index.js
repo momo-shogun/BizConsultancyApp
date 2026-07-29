@@ -18,6 +18,12 @@ notifee.onBackgroundEvent(async (event) => {
   await handleCallNotifeeEvent(event);
 });
 
+// Ongoing-call microphone foreground service runner. The task stays pending for the
+// service lifetime; `callForegroundService.stop()` (notifee.stopForegroundService) ends it.
+notifee.registerForegroundService(() => {
+  return new Promise(() => {});
+});
+
 messaging().setBackgroundMessageHandler(async (remoteMessage) => {
   await handleIncomingCallRemoteMessage(remoteMessage, { delivery: 'background' });
 });

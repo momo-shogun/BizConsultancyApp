@@ -3,6 +3,7 @@ import notifee, { EventType, type Event } from '@notifee/react-native';
 import { callEngine } from '../engine/CallEngine';
 import { parseIncomingCallPushData } from './callPushPayload';
 import { cancelIncomingCallNotification } from './callNotificationService';
+import { ONGOING_CALL_NOTIFICATION_TYPE } from './callForegroundService';
 
 function dataFromEvent(event: Event): Record<string, string | undefined> | undefined {
   const raw = event.detail.notification?.data;
@@ -34,7 +35,17 @@ export async function handleCallNotifeeEvent(event: Event): Promise<void> {
     return;
   }
 
-  const payload = parseIncomingCallPushData(dataFromEvent(event));
+  const eventData = dataFromEvent(event);
+
+  /** Tap on the ongoing-call foreground-service notification → reopen the in-call screen. */
+  if (eventData?.type === ONGOING_CALL_NOTIFICATION_TYPE) {
+    if (type === EventType.PRESS) {
+      callEngine.expandCall();
+    }
+    return;
+  }
+
+  const payload = parseIncomingCallPushData(eventData);
   if (payload == null) {
     return;
   }
