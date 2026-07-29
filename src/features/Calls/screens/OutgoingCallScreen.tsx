@@ -54,7 +54,9 @@ export function OutgoingCallScreen({ navigation }: Props): React.ReactElement {
       ? 'Connected'
       : phase === 'outgoing_initiating'
         ? 'Starting call…'
-        : 'Calling…';
+        : phase === 'in_call'
+          ? 'Connected'
+          : 'Calling…';
 
   return (
     <View style={[styles.root, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }]}>

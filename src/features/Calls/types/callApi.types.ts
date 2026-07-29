@@ -113,6 +113,8 @@ export interface CallEndedPayload {
 export interface CallMutePayload {
   sessionId: number;
   fromUserId: number;
+  /** Present on server Phase-4+ mute relays; optional for older peers. */
+  fromRole?: CallRole;
   kind: 'audio';
   muted: boolean;
 }

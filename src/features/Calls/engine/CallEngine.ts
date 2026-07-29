@@ -2,7 +2,11 @@ import { StackActions } from '@react-navigation/native';
 import { AppState } from 'react-native';
 
 import { readPersistedAuthTokenSync } from '@/features/Auth/store/readPersistedAuthToken';
-import { OUTGOING_RING_TIMEOUT_MS } from '@/constants/calls';
+import {
+  CALL_STATE_SYNC_INTERVAL_MS,
+  OUTGOING_RING_STATUS_POLL_MS,
+  OUTGOING_RING_TIMEOUT_MS,
+} from '@/constants/calls';
 import { navigationRef } from '@/navigation/navigationContainerRef';
 import { ROUTES } from '@/navigation/routeNames';
 import { store } from '@/store';
@@ -38,6 +42,7 @@ import type {
   CallType,
   PersistedCallCredentials,
 } from '../types/callApi.types';
+import type { CallAnsweredSignal } from './callLifecycle';
 import { CallReliabilityManager } from './CallReliabilityManager';
 import { syncCallSession } from './CallStateSyncService';
 import { transitionCallPhase, type CallPhase } from './callStateMachine';
@@ -55,9 +60,12 @@ class CallEngineImpl {
   /** Notifee Answer while JS was headless / auth not ready — retry after CallProvider boots. */
   private pendingAcceptSessionId: number | null = null;
   private ringTimeout: ReturnType<typeof setTimeout> | null = null;
+  private ringStatusPollTimer: ReturnType<typeof setInterval> | null = null;
   private syncTimer: ReturnType<typeof setInterval> | null = null;
   private teardownTimer: ReturnType<typeof setTimeout> | null = null;
   private handlersBound = false;
+  /** Idempotent guard: caller already transitioned RINGING → ANSWERED. */
+  private outgoingAnswered = false;
 
   /** Apply navigation requested before `NavigationContainer` mounted (cold start via FCM). */
   flushPendingCallNavigation(): void {
@@ -157,10 +165,77 @@ class CallEngineImpl {
     }
   }
 
+  private stopRingStatusPoll(): void {
+    if (this.ringStatusPollTimer != null) {
+      clearInterval(this.ringStatusPollTimer);
+      this.ringStatusPollTimer = null;
+    }
+  }
+
   private clearTeardownTimer(): void {
     if (this.teardownTimer != null) {
       clearTimeout(this.teardownTimer);
       this.teardownTimer = null;
+    }
+  }
+
+  /**
+   * Missed timer runs only while callee is RINGING.
+   * Cancelled immediately on any answered signal (not on remote media alone).
+   */
+  private startOutgoingRingTimeout(sessionId: number): void {
+    this.clearRingTimeout();
+    this.ringTimeout = setTimeout(() => {
+      const state = this.getCallState();
+      if (state.sessionId !== sessionId || this.outgoingAnswered) {
+        return;
+      }
+      if (state.phase !== 'outgoing_ringing' && state.phase !== 'outgoing_initiating') {
+        return;
+      }
+      void this.endCall('missed_timeout');
+    }, OUTGOING_RING_TIMEOUT_MS);
+  }
+
+  /** HTTP fallback while RINGING if sockets miss call.accepted. */
+  private startRingStatusPoll(sessionId: number): void {
+    this.stopRingStatusPoll();
+    this.ringStatusPollTimer = setInterval(() => {
+      void this.pollOutgoingRingStatus(sessionId);
+    }, OUTGOING_RING_STATUS_POLL_MS);
+  }
+
+  private async pollOutgoingRingStatus(sessionId: number): Promise<void> {
+    const state = this.getCallState();
+    if (state.sessionId !== sessionId || this.outgoingAnswered) {
+      return;
+    }
+    if (state.phase !== 'outgoing_ringing') {
+      return;
+    }
+
+    const result = await store.dispatch(callsApi.endpoints.getCallStatus.initiate(sessionId));
+    if ('error' in result || result.data == null) {
+      return;
+    }
+
+    const status = result.data.status;
+    if (status === 'connected') {
+      await this.markOutgoingAnswered(sessionId, 'status.connected');
+      return;
+    }
+
+    if (status === 'declined' || status === 'missed' || status === 'ended' || status === 'failed') {
+      this.handleRemoteEnd(
+        {
+          sessionId,
+          status,
+          durationSeconds: result.data.durationSeconds,
+          endReason: result.data.endReason,
+          endedAt: result.data.endedAt,
+        },
+        status === 'declined' ? 'declined' : 'ended',
+      );
     }
   }
 
@@ -214,7 +289,7 @@ class CallEngineImpl {
     this.stopSyncTimer();
     this.syncTimer = setInterval(() => {
       void syncCallSession(sessionId, this.reliability.getLastEventVersion());
-    }, 20_000);
+    }, CALL_STATE_SYNC_INTERVAL_MS);
   }
 
   private stopSyncTimer(): void {
@@ -240,6 +315,8 @@ class CallEngineImpl {
 
   private showOutcomeThenEnd(outcome: CallOutcome, delayMs = 2200): void {
     callRingtoneService.stop();
+    this.clearRingTimeout();
+    this.stopRingStatusPoll();
     store.dispatch(setCallOutcome(outcome));
     store.dispatch(setCallPhase('ended'));
     this.scheduleTeardown(delayMs);
@@ -268,6 +345,14 @@ class CallEngineImpl {
       onRemoteUserJoined: (uid) => {
         store.dispatch(setRemoteVideoUid(uid));
         store.dispatch(setRemoteVideoEnabled(true));
+        const state = this.getCallState();
+        if (
+          state.credentials?.mode === 'outgoing' &&
+          state.phase === 'outgoing_ringing' &&
+          state.sessionId != null
+        ) {
+          void this.markOutgoingAnswered(state.sessionId, 'user-joined');
+        }
       },
       onRemoteUserLeft: () => {
         store.dispatch(setRemoteVideoUid(null));
@@ -308,7 +393,9 @@ class CallEngineImpl {
   async startOutgoing(calleeUserId: number, callType: CallType, remoteName: string): Promise<void> {
     store.dispatch(resetCallState());
     this.reliability.reset();
+    this.outgoingAnswered = false;
     this.clearTeardownTimer();
+    this.stopRingStatusPoll();
     store.dispatch(setCallPhase('outgoing_initiating'));
     store.dispatch(setCallError(null));
 
@@ -326,34 +413,7 @@ class CallEngineImpl {
       return;
     }
 
-    const data = result.data;
-    const credentials: PersistedCallCredentials = {
-      sessionId: data.sessionId,
-      channelName: data.channelName,
-      callType: data.callType,
-      appId: data.appId,
-      uid: data.uid,
-      rtcToken: data.rtcToken,
-      mode: 'outgoing',
-    };
-
-    store.dispatch(
-      setCallSession({
-        sessionId: data.sessionId,
-        callType: data.callType,
-        credentials,
-        remoteDisplayName: remoteName,
-      }),
-    );
-    this.applyPhase('INITIATE_OK');
-    callSocketService.setActiveCallId(data.sessionId);
-    callRingtoneService.startOutgoing();
-
-    this.ringTimeout = setTimeout(() => {
-      void this.endCall('missed_timeout');
-    }, OUTGOING_RING_TIMEOUT_MS);
-
-    this.navigateToCallScreen('OutgoingCall', data.sessionId);
+    await this.beginOutgoingAfterInitiate(result.data, remoteName);
   }
 
   async startOutgoingFromBooking(
@@ -363,7 +423,9 @@ class CallEngineImpl {
   ): Promise<void> {
     store.dispatch(resetCallState());
     this.reliability.reset();
+    this.outgoingAnswered = false;
     this.clearTeardownTimer();
+    this.stopRingStatusPoll();
     store.dispatch(setCallPhase('outgoing_initiating'));
 
     if (!(await this.ensureCallPermissionsOrAbort(callType))) {
@@ -380,7 +442,24 @@ class CallEngineImpl {
       return;
     }
 
-    const data = result.data;
+    await this.beginOutgoingAfterInitiate(result.data, remoteName);
+  }
+
+  /**
+   * Shared caller path (matches web):
+   * INITIATE → JOIN_AGORA → RINGING → (wait for answered signal) → CONNECTED
+   */
+  private async beginOutgoingAfterInitiate(
+    data: {
+      sessionId: number;
+      channelName: string;
+      callType: CallType;
+      appId: string;
+      uid: number;
+      rtcToken: string;
+    },
+    remoteName: string,
+  ): Promise<void> {
     const credentials: PersistedCallCredentials = {
       sessionId: data.sessionId,
       channelName: data.channelName,
@@ -402,16 +481,28 @@ class CallEngineImpl {
     this.applyPhase('INITIATE_OK');
     callSocketService.setActiveCallId(data.sessionId);
     callRingtoneService.startOutgoing();
-
-    this.ringTimeout = setTimeout(() => {
-      void this.endCall('missed_timeout');
-    }, OUTGOING_RING_TIMEOUT_MS);
-
     this.navigateToCallScreen('OutgoingCall', data.sessionId);
+
+    // Missed timer tracks callee RINGING from initiate (not from local join).
+    this.startOutgoingRingTimeout(data.sessionId);
+    this.startRingStatusPoll(data.sessionId);
+
+    // JOIN_AGORA immediately (do not wait for call.accepted).
+    const joined = await this.joinAgoraFromCredentials(credentials);
+    if (!joined) {
+      await this.endCall('missed_timeout');
+      return;
+    }
   }
 
   handleIncoming(payload: CallIncomingPayload): void {
     if (payload.status !== 'initiated' && payload.status !== 'ringing') {
+      return;
+    }
+
+    const accountRole = store.getState().auth?.accountRole;
+    const selfRole = accountRole === 'consultant' ? 'consultant' : 'user';
+    if (payload.calleeRole !== selfRole) {
       return;
     }
 
@@ -447,38 +538,42 @@ class CallEngineImpl {
     }
   }
 
-  private async handleAccepted(sessionId: number): Promise<void> {
+  /**
+   * RINGING → ANSWERED/CONNECTED for the outgoing caller.
+   * Triggered by call.accepted | user-joined | status.connected (idempotent).
+   */
+  private async markOutgoingAnswered(
+    sessionId: number,
+    _signal: CallAnsweredSignal,
+  ): Promise<void> {
     const state = this.getCallState();
     if (state.sessionId !== sessionId) {
       return;
     }
-    if (state.phase === 'in_call' && state.connectedAtMs != null) {
+    if (this.outgoingAnswered || state.connectedAtMs != null || state.phase === 'in_call') {
       return;
     }
-    const credentials = state.credentials;
-    if (credentials == null) {
+    if (state.phase !== 'outgoing_ringing' && state.phase !== 'outgoing_initiating') {
       return;
     }
 
+    this.outgoingAnswered = true;
     this.clearRingTimeout();
+    this.stopRingStatusPoll();
     callRingtoneService.stop();
-    store.dispatch(setCallPhase('connecting_media'));
-
-    const joined = await this.joinAgoraFromCredentials(credentials);
-    if (!joined) {
-      store.dispatch(setCallPhase('outgoing_ringing'));
-      return;
-    }
 
     store.dispatch(startConnectedTimer());
     store.dispatch(setSpeakerOn(true));
     store.dispatch(setCallMinimized(false));
     agoraMediaService.setSpeakerphone(true);
     this.startCallForegroundService();
-    this.applyPhase('ACCEPT_OK');
-    this.applyPhase('AGORA_JOINED');
+    this.applyPhase('PEER_ANSWERED');
     this.replaceCallScreen('InCall', sessionId);
     this.startSyncTimer(sessionId);
+  }
+
+  private async handleAccepted(sessionId: number): Promise<void> {
+    await this.markOutgoingAnswered(sessionId, 'call.accepted');
   }
 
   async acceptIncoming(): Promise<void> {
@@ -561,6 +656,7 @@ class CallEngineImpl {
     }
     store.dispatch(setCallPhase('ending'));
     this.clearRingTimeout();
+    this.stopRingStatusPoll();
     await store.dispatch(
       callsApi.endpoints.endCall.initiate({ sessionId, body: { endReason } }),
     );
@@ -706,10 +802,12 @@ class CallEngineImpl {
   teardown(): void {
     const sessionId = this.getCallState().sessionId;
     this.pendingAcceptSessionId = null;
+    this.outgoingAnswered = false;
     callRingtoneService.stop();
     void callForegroundService.stop();
     void cancelIncomingCallNotification(sessionId);
     this.clearRingTimeout();
+    this.stopRingStatusPoll();
     this.clearTeardownTimer();
     this.stopSyncTimer();
     callSocketService.setActiveCallId(null);

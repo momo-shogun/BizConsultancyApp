@@ -1,4 +1,4 @@
-import { AppState, type AppStateStatus } from 'react-native';
+import { AppState, Platform, type AppStateStatus } from 'react-native';
 import { io, type Socket } from 'socket.io-client';
 
 import { CALL_SOCKET_PATH, PRESENCE_PING_INTERVAL_MS, SOCKET_BASE_URL } from '@/constants/calls';
@@ -33,6 +33,10 @@ function deviceStateFromAppState(state: AppStateStatus): DeviceState {
   return state === 'active' ? 'foreground' : 'background';
 }
 
+function presencePlatform(): 'ios' | 'android' {
+  return Platform.OS === 'ios' ? 'ios' : 'android';
+}
+
 function startPing(): void {
   stopPing();
   pingTimer = setInterval(() => {
@@ -42,6 +46,7 @@ function startPing(): void {
     socket.emit(CALL_SOCKET_EVENTS.PRESENCE_PING, {
       deviceState: deviceStateFromAppState(AppState.currentState),
       activeCallId,
+      platform: presencePlatform(),
     });
   }, PRESENCE_PING_INTERVAL_MS);
 }

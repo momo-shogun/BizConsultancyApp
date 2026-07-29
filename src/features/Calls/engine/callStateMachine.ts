@@ -1,3 +1,16 @@
+/**
+ * UI/engine phases mapped onto the shared lifecycle
+ * (see callLifecycle.ts):
+ *
+ *   idle                 → IDLE
+ *   outgoing_initiating  → INITIATE
+ *   connecting_media     → JOIN_AGORA (callee accept path; brief)
+ *   outgoing_ringing     → RINGING (caller already in Agora, waiting for answer)
+ *   incoming_ringing     → RINGING (callee)
+ *   in_call              → ANSWERED / CONNECTED
+ *   reconnecting         → CONNECTED (recovering)
+ *   ending / ended       → ENDED
+ */
 export type CallPhase =
   | 'idle'
   | 'outgoing_initiating'
@@ -13,6 +26,7 @@ export type CallEvent =
   | 'INITIATE_OK'
   | 'INCOMING'
   | 'ACCEPT_OK'
+  | 'PEER_ANSWERED'
   | 'DECLINED'
   | 'ENDED'
   | 'AGORA_JOINED'
@@ -31,9 +45,13 @@ const transitions: Record<CallPhase, Partial<Record<CallEvent, CallPhase>>> = {
     ENDED: 'ended',
     RESET: 'idle',
   },
+  /**
+   * Caller is (or will be) in Agora while still RINGING.
+   * AGORA_JOINED alone must NOT move to in_call — wait for an answered signal.
+   */
   outgoing_ringing: {
-    ACCEPT_OK: 'connecting_media',
-    AGORA_JOINED: 'in_call',
+    ACCEPT_OK: 'in_call',
+    PEER_ANSWERED: 'in_call',
     DECLINED: 'ended',
     ENDED: 'ended',
     TIMEOUT: 'ended',
@@ -47,6 +65,8 @@ const transitions: Record<CallPhase, Partial<Record<CallEvent, CallPhase>>> = {
   },
   connecting_media: {
     AGORA_JOINED: 'in_call',
+    ACCEPT_OK: 'in_call',
+    PEER_ANSWERED: 'in_call',
     AGORA_LOST: 'reconnecting',
     ENDED: 'ended',
     RESET: 'idle',
