@@ -28,7 +28,16 @@ export async function handleIncomingCallRemoteMessage(
   }
   const payload = parseIncomingCallPushData(normalizeFcmData(message.data));
   if (payload == null) {
+    if (__DEV__) {
+      console.warn('[calls] FCM ignored: not a call.incoming payload', message.data);
+    }
     return;
+  }
+
+  if (__DEV__) {
+    console.log(
+      `[calls] FCM call.incoming delivery=${opts?.delivery ?? '?'} session=${payload.sessionId}`,
+    );
   }
 
   await displayIncomingCallNotification(payload, { delivery: opts?.delivery });

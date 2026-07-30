@@ -25,25 +25,47 @@ async function requestNotificationPermission(): Promise<boolean> {
 async function registerTokenWithServer(token: string): Promise<void> {
   const authToken = store.getState().auth?.token;
   if (authToken == null || authToken.length === 0) {
+    if (__DEV__) {
+      console.warn('[calls] FCM token not registered: missing auth token');
+    }
     return;
   }
-  await store.dispatch(
+  const result = await store.dispatch(
     callsApi.endpoints.registerDeviceToken.initiate({
       token,
       platform: Platform.OS === 'ios' ? 'ios' : 'android',
     }),
   );
+  if (__DEV__) {
+    if ('error' in result) {
+      console.warn('[calls] FCM device-token API failed', result.error);
+    } else {
+      console.log(`[calls] FCM device-token synced …${token.slice(-8)}`);
+    }
+  }
 }
 
 export async function syncFcmDeviceToken(): Promise<void> {
   await ensureCallNotificationsReady();
-  await requestNotificationPermission();
-
-  const token = await messaging().getToken();
-  if (token.length === 0) {
-    return;
+  const granted = await requestNotificationPermission();
+  if (!granted && __DEV__) {
+    console.warn('[calls] Notification permission not granted — tray may stay empty');
   }
-  await registerTokenWithServer(token);
+
+  try {
+    const token = await messaging().getToken();
+    if (token.length === 0) {
+      if (__DEV__) {
+        console.warn('[calls] messaging().getToken() returned empty');
+      }
+      return;
+    }
+    await registerTokenWithServer(token);
+  } catch (err) {
+    if (__DEV__) {
+      console.warn('[calls] syncFcmDeviceToken failed', err);
+    }
+  }
 }
 
 export function startCallPushListeners(): () => void {
