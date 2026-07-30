@@ -49,6 +49,16 @@
         android:foregroundServiceType="microphone"
         tools:replace="android:foregroundServiceType" />
 
+      <!-- Killed-state incoming calls: show native CALL notification before Headless JS. -->
+      <receiver
+        android:name=".IncomingCallFcmReceiver"
+        android:exported="true"
+        android:permission="com.google.android.c2dm.permission.SEND">
+        <intent-filter android:priority="999">
+          <action android:name="com.google.android.c2dm.intent.RECEIVE" />
+        </intent-filter>
+      </receiver>
+
       <activity
         android:name=".MainActivity"
         android:label="@string/app_name"
@@ -61,6 +71,12 @@
         <intent-filter>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
+        </intent-filter>
+        <intent-filter>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="bizconsultancy" />
         </intent-filter>
       </activity>
     </application>

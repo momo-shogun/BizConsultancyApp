@@ -24,8 +24,16 @@ notifee.registerForegroundService(() => {
   return new Promise(() => {});
 });
 
+/**
+ * Background / quit FCM. Display Notifee first; never let CallEngine errors drop the tray UI.
+ * Killed-state Android also uses native `IncomingCallFcmReceiver` when the process is dead.
+ */
 messaging().setBackgroundMessageHandler(async (remoteMessage) => {
-  await handleIncomingCallRemoteMessage(remoteMessage, { delivery: 'background' });
+  try {
+    await handleIncomingCallRemoteMessage(remoteMessage, { delivery: 'background' });
+  } catch (error) {
+    console.warn('[calls] background FCM handler failed', error);
+  }
 });
 
 AppRegistry.registerComponent(appName, () => App);

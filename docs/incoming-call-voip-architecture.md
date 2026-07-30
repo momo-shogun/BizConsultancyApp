@@ -91,8 +91,22 @@ Populate these from notifications or marketing surfaces when you attach `Linking
 | Battery optimisation soft-prompt | Notifee `isBatteryOptimizationEnabled` + one-time Dialog |
 | Wake + lock screen Activity | Manifest + runtime flags in `MainActivity` |
 | Headless consultant role race | Fixed via `resolveLocalCallRole` + notification seed |
+| **Killed-state native FCM receiver** | `IncomingCallFcmReceiver` paints CALL + FSI when JS headless cannot run |
 | Foreground Service for ongoing call | Implemented (`callForegroundService` from CallEngine on connect) |
 | Telecom `ConnectionService` | **TODO** for OS-level dialer parity / Bluetooth routing |
+
+### Debugging killed vs background (Android)
+
+| How you “close” the app | What it means | Expect incoming UI? |
+| --- | --- | --- |
+| Home button (still in Recents) | **Background** — JS process often alive | Yes (Notifee / headless) |
+| Swipe away from Recents | **Killed** — process gone | Yes via **native** `IncomingCallFcmReceiver` (release APK most reliable) |
+| Settings → Force stop | FCM **blocked** until user opens app | **No** — not a valid test |
+| `adb shell am force-stop …` | Same as Force stop | **No** |
+
+**Debug builds:** swiping away often fails to run Headless JS (Metro/bundle). Prefer **`assembleRelease` / release APK** to validate killed-state. Debug is fine for **background** tests.
+
+**Logcat filters while testing:** `IncomingCallFcm`, `RNFirebaseMsgReceiver`, `CallPushService`.
 
 ---
 

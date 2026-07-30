@@ -4,12 +4,24 @@ import notifee, {
   AndroidVisibility,
   AuthorizationStatus,
 } from '@notifee/react-native';
-import { AppState, Platform } from 'react-native';
+import { AppState, NativeModules, Platform } from 'react-native';
 
 import { INCOMING_CALLS_CHANNEL_ID } from '../constants/callNotifications';
 import type { CallIncomingPayload } from '../types/callApi.types';
 import { resolveCallPartyImageUrl } from '../utils/callPartyMedia';
 
+function cancelNativeIncomingOverlay(sessionId: number): void {
+  if (Platform.OS !== 'android') {
+    return;
+  }
+  const mod = NativeModules.CallAndroidPermissions as
+    | { cancelIncomingCallNotification?: (id: string) => Promise<void> }
+    | undefined;
+  if (mod?.cancelIncomingCallNotification == null) {
+    return;
+  }
+  void mod.cancelIncomingCallNotification(String(sessionId));
+}
 let channelReady = false;
 let iosCategoriesReady = false;
 
@@ -178,6 +190,8 @@ export async function displayIncomingCallNotification(
         ],
       },
     });
+    /** Replace/cancel the killed-state native overlay if headless JS also painted Notifee. */
+    cancelNativeIncomingOverlay(payload.sessionId);
     return;
   }
 

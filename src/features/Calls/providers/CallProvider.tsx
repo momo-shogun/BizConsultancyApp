@@ -17,6 +17,7 @@ import {
   openFullScreenIntentSettings,
   type AndroidCallDisplayPrompt,
 } from '../services/androidCallDisplayPermissions';
+import { consumeNativePendingIncomingCall } from '../services/consumeNativePendingIncomingCall';
 import { startCallPushListeners } from '../services/callFirebaseMessaging';
 
 function promptCopy(kind: AndroidCallDisplayPrompt): { title: string; description: string } {
@@ -62,6 +63,11 @@ export function CallProvider(props: React.PropsWithChildren): React.ReactElement
     callEngine.bindSocketHandlers();
     callEngine.flushPendingCallNavigation();
     callEngine.flushPendingAccept();
+    void consumeNativePendingIncomingCall().then((handled) => {
+      if (handled) {
+        callEngine.flushPendingAccept();
+      }
+    });
     const stopPushListeners = startCallPushListeners();
     refreshDisplayPrompt();
 
