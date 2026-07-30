@@ -66,6 +66,8 @@ class CallEngineImpl {
   private handlersBound = false;
   /** Idempotent guard: caller already transitioned RINGING → ANSWERED. */
   private outgoingAnswered = false;
+  /** Prevent overlapping leave/rejoin that peers treat as a hang-up. */
+  private reconnectInFlight = false;
 
   /** Apply navigation requested before `NavigationContainer` mounted (cold start via FCM). */
   flushPendingCallNavigation(): void {
@@ -364,6 +366,16 @@ class CallEngineImpl {
       onRemoteVideoState: (uid, active) => {
         store.dispatch(setRemoteVideoUid(uid));
         store.dispatch(setRemoteVideoEnabled(active));
+      },
+      onConnectionState: (state) => {
+        // `disconnected` also fires on intentional leave — only recover from hard failures.
+        if (state !== 'failed') {
+          return;
+        }
+        const phase = this.getCallState().phase;
+        if (phase === 'in_call' || phase === 'connecting_media' || phase === 'reconnecting') {
+          void this.reconnectMedia({ force: true });
+        }
       },
     });
   }
@@ -710,9 +722,12 @@ class CallEngineImpl {
     }
   }
 
-  async reconnectMedia(): Promise<void> {
+  async reconnectMedia(opts?: { force?: boolean }): Promise<void> {
     const callState = this.getCallState();
     if (callState.phase !== 'in_call' && callState.phase !== 'connecting_media') {
+      return;
+    }
+    if (this.reconnectInFlight) {
       return;
     }
     const sessionId = callState.sessionId;
@@ -720,38 +735,54 @@ class CallEngineImpl {
     if (sessionId == null) {
       return;
     }
-    store.dispatch(setReconnecting(true));
-    this.applyPhase('AGORA_LOST');
 
-    const result = await store.dispatch(callsApi.endpoints.rejoinCall.initiate(sessionId));
-    if ('error' in result || result.data == null) {
-      store.dispatch(setReconnecting(false));
+    // Still in the Agora channel — SDK already recovered. Never leave()+join here:
+    // peer web treats deliberate leave as Quit and ends the call with network_drop.
+    if (!opts?.force && agoraMediaService.isInChannel()) {
+      agoraMediaService.refreshVoiceAudio();
+      await syncCallSession(sessionId, this.reliability.getLastEventVersion());
       return;
     }
 
-    const data = result.data;
-    const nextCreds: PersistedCallCredentials = {
-      sessionId: data.sessionId,
-      channelName: data.channelName,
-      callType: data.callType,
-      appId: data.appId,
-      uid: data.uid,
-      rtcToken: data.rtcToken,
-      mode: creds?.mode ?? 'outgoing',
-    };
-    store.dispatch(updateCredentials(nextCreds));
-    await agoraMediaService.leave();
-    this.bindAgoraMediaListeners();
-    await agoraMediaService.join({
-      appId: data.appId,
-      channelName: data.channelName,
-      token: data.rtcToken,
-      uid: data.uid,
-      callType: data.callType,
-    });
-    await syncCallSession(sessionId, this.reliability.getLastEventVersion());
-    store.dispatch(setReconnecting(false));
-    this.applyPhase('REJOIN_OK');
+    this.reconnectInFlight = true;
+    store.dispatch(setReconnecting(true));
+    this.applyPhase('AGORA_LOST');
+
+    try {
+      const result = await store.dispatch(callsApi.endpoints.rejoinCall.initiate(sessionId));
+      if ('error' in result || result.data == null) {
+        store.dispatch(setReconnecting(false));
+        return;
+      }
+
+      const data = result.data;
+      const nextCreds: PersistedCallCredentials = {
+        sessionId: data.sessionId,
+        channelName: data.channelName,
+        callType: data.callType,
+        appId: data.appId,
+        uid: data.uid,
+        rtcToken: data.rtcToken,
+        mode: creds?.mode ?? 'outgoing',
+      };
+      store.dispatch(updateCredentials(nextCreds));
+      await agoraMediaService.leave();
+      this.bindAgoraMediaListeners();
+      await agoraMediaService.join({
+        appId: data.appId,
+        channelName: data.channelName,
+        token: data.rtcToken,
+        uid: data.uid,
+        callType: data.callType,
+      });
+      await syncCallSession(sessionId, this.reliability.getLastEventVersion());
+      store.dispatch(setReconnecting(false));
+      this.applyPhase('REJOIN_OK');
+    } catch {
+      store.dispatch(setReconnecting(false));
+    } finally {
+      this.reconnectInFlight = false;
+    }
   }
 
   setMuted(muted: boolean): void {

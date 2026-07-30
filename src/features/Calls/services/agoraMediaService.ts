@@ -407,6 +407,11 @@ export const agoraMediaService = {
     return activeCallType === 'video';
   },
 
+  /** True while the native engine reports we are still in the RTC channel. */
+  isInChannel(): boolean {
+    return inChannel;
+  },
+
   getJoinedLocalUid(): number {
     return joinedLocalUid;
   },

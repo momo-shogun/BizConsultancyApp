@@ -11,8 +11,6 @@ import { useAppSelector } from '@/store/typedHooks';
 import { CallAvatar } from '../components/CallAvatar';
 import { CallVideoLayout } from '../components/CallVideoLayout';
 import { CallController } from '../controllers/CallController';
-import { callEngine } from '../engine/CallEngine';
-import { startNetworkTransitionHandler, stopNetworkTransitionHandler } from '../engine/NetworkTransitionHandler';
 import { useCallTimer } from '../hooks/useCallTimer';
 import { audioSessionService } from '../services/audioSessionService';
 import { formatCallDuration } from '../utils/formatCallDuration';
@@ -42,16 +40,9 @@ export function InCallScreen({ navigation }: Props): React.ReactElement {
     CallController.setSpeaker(true);
   }, []);
 
-  useEffect(() => {
-    startNetworkTransitionHandler({
-      onNetworkChange: () => {
-        void callEngine.reconnectMedia();
-      },
-    });
-    return () => {
-      stopNetworkTransitionHandler();
-    };
-  }, []);
+  // Network reconnect is owned by CallProvider — do not restart/stop it here.
+  // Remounting the handler on InCall open reset NetInfo baseline and false-triggered
+  // leave()+rejoin ~2s after connect → peer Quit → network_drop.
 
   useEffect(() => {
     if (phase === 'idle' && !isMinimized) {
