@@ -6,6 +6,7 @@ import {
   CALL_STATE_SYNC_INTERVAL_MS,
   OUTGOING_RING_STATUS_POLL_MS,
   OUTGOING_RING_TIMEOUT_MS,
+  REMOTE_REJOIN_GRACE_MS,
 } from '@/constants/calls';
 import { navigationRef } from '@/navigation/navigationContainerRef';
 import { ROUTES } from '@/navigation/routeNames';
@@ -63,6 +64,7 @@ class CallEngineImpl {
   private ringStatusPollTimer: ReturnType<typeof setInterval> | null = null;
   private syncTimer: ReturnType<typeof setInterval> | null = null;
   private teardownTimer: ReturnType<typeof setTimeout> | null = null;
+  private remoteLeftGraceTimer: ReturnType<typeof setTimeout> | null = null;
   private handlersBound = false;
   /** Idempotent guard: caller already transitioned RINGING → ANSWERED. */
   private outgoingAnswered = false;
@@ -289,9 +291,11 @@ class CallEngineImpl {
 
   private startSyncTimer(sessionId: number): void {
     this.stopSyncTimer();
-    this.syncTimer = setInterval(() => {
-      void syncCallSession(sessionId, this.reliability.getLastEventVersion());
-    }, CALL_STATE_SYNC_INTERVAL_MS);
+    const tick = (): void => {
+      void this.pollInCallStatus(sessionId);
+    };
+    tick();
+    this.syncTimer = setInterval(tick, CALL_STATE_SYNC_INTERVAL_MS);
   }
 
   private stopSyncTimer(): void {
@@ -299,6 +303,105 @@ class CallEngineImpl {
       clearInterval(this.syncTimer);
       this.syncTimer = null;
     }
+  }
+
+  private clearRemoteLeftGrace(): void {
+    if (this.remoteLeftGraceTimer != null) {
+      clearTimeout(this.remoteLeftGraceTimer);
+      this.remoteLeftGraceTimer = null;
+    }
+  }
+
+  /** HTTP fallback while in-call if sockets miss call.ended. */
+  private async pollInCallStatus(sessionId: number): Promise<void> {
+    const state = this.getCallState();
+    if (state.sessionId !== sessionId) {
+      return;
+    }
+    if (state.phase !== 'in_call' && state.phase !== 'reconnecting' && state.phase !== 'connecting_media') {
+      return;
+    }
+
+    const result = await store.dispatch(
+      callsApi.endpoints.getCallStatus.initiate(sessionId, { forceRefetch: true }),
+    );
+    if ('error' in result || result.data == null) {
+      await syncCallSession(sessionId, this.reliability.getLastEventVersion());
+      return;
+    }
+
+    await syncCallSession(sessionId, this.reliability.getLastEventVersion());
+
+    const status = result.data.status;
+    if (status === 'declined' || status === 'missed' || status === 'ended' || status === 'failed') {
+      this.clearRemoteLeftGrace();
+      this.handleRemoteEnd(
+        {
+          sessionId,
+          status,
+          durationSeconds: result.data.durationSeconds,
+          endReason: result.data.endReason,
+          endedAt: result.data.endedAt,
+        },
+        status === 'declined' ? 'declined' : 'ended',
+      );
+    }
+  }
+
+  /**
+   * Peer left Agora. If server already ended (deliberate hang-up), close UI now.
+   * Otherwise wait briefly for soft reconnect before ending.
+   */
+  private async onRemoteUserLeftFromRtc(): Promise<void> {
+    store.dispatch(setRemoteVideoUid(null));
+    store.dispatch(setRemoteVideoEnabled(false));
+
+    const state = this.getCallState();
+    const sessionId = state.sessionId;
+    if (sessionId == null) {
+      return;
+    }
+    if (state.phase !== 'in_call' && state.phase !== 'reconnecting' && state.phase !== 'connecting_media') {
+      return;
+    }
+
+    const result = await store.dispatch(
+      callsApi.endpoints.getCallStatus.initiate(sessionId, { forceRefetch: true }),
+    );
+    if (!('error' in result) && result.data != null) {
+      const status = result.data.status;
+      if (status === 'declined' || status === 'missed' || status === 'ended' || status === 'failed') {
+        this.clearRemoteLeftGrace();
+        this.handleRemoteEnd(
+          {
+            sessionId,
+            status,
+            durationSeconds: result.data.durationSeconds,
+            endReason: result.data.endReason,
+            endedAt: result.data.endedAt,
+          },
+          status === 'declined' ? 'declined' : 'ended',
+        );
+        return;
+      }
+    }
+
+    if (this.remoteLeftGraceTimer != null) {
+      return;
+    }
+    store.dispatch(setReconnecting(true));
+    this.remoteLeftGraceTimer = setTimeout(() => {
+      this.remoteLeftGraceTimer = null;
+      const latest = this.getCallState();
+      if (latest.sessionId !== sessionId) {
+        return;
+      }
+      if (latest.phase !== 'in_call' && latest.phase !== 'reconnecting' && latest.phase !== 'connecting_media') {
+        return;
+      }
+      // Peer never returned — close from our side.
+      void this.endCall('network_drop');
+    }, REMOTE_REJOIN_GRACE_MS);
   }
 
   /** Start the mic foreground service once media is live, so the call survives backgrounding. */
@@ -345,6 +448,8 @@ class CallEngineImpl {
   private bindAgoraMediaListeners(): void {
     agoraMediaService.setListeners({
       onRemoteUserJoined: (uid) => {
+        this.clearRemoteLeftGrace();
+        store.dispatch(setReconnecting(false));
         store.dispatch(setRemoteVideoUid(uid));
         store.dispatch(setRemoteVideoEnabled(true));
         const state = this.getCallState();
@@ -357,8 +462,7 @@ class CallEngineImpl {
         }
       },
       onRemoteUserLeft: () => {
-        store.dispatch(setRemoteVideoUid(null));
-        store.dispatch(setRemoteVideoEnabled(false));
+        void this.onRemoteUserLeftFromRtc();
       },
       onRemoteVideoMuted: (_uid, muted) => {
         store.dispatch(setRemoteVideoEnabled(!muted));
@@ -658,7 +762,12 @@ class CallEngineImpl {
   }
 
   async endCall(
-    endReason: 'ended_by_user' | 'ended_by_consultant' | 'caller_cancelled' | 'missed_timeout' = 'ended_by_user',
+    endReason:
+      | 'ended_by_user'
+      | 'ended_by_consultant'
+      | 'caller_cancelled'
+      | 'missed_timeout'
+      | 'network_drop' = 'ended_by_user',
   ): Promise<void> {
     const state = this.getCallState();
     const sessionId = state.sessionId;
@@ -669,8 +778,16 @@ class CallEngineImpl {
     store.dispatch(setCallPhase('ending'));
     this.clearRingTimeout();
     this.stopRingStatusPoll();
+    this.clearRemoteLeftGrace();
+
+    const accountRole = store.getState().auth?.accountRole;
+    const reason =
+      endReason === 'ended_by_user' && accountRole === 'consultant'
+        ? 'ended_by_consultant'
+        : endReason;
+
     await store.dispatch(
-      callsApi.endpoints.endCall.initiate({ sessionId, body: { endReason } }),
+      callsApi.endpoints.endCall.initiate({ sessionId, body: { endReason: reason } }),
     );
 
     if (state.phase === 'outgoing_ringing' || state.phase === 'outgoing_initiating') {
@@ -682,7 +799,7 @@ class CallEngineImpl {
 
   private handleRemoteEnd(payload: CallEndedPayload, kind: 'declined' | 'ended'): void {
     const state = this.getCallState();
-    if (state.sessionId == null || payload.sessionId !== state.sessionId) {
+    if (state.sessionId == null || Number(payload.sessionId) !== Number(state.sessionId)) {
       return;
     }
 
@@ -695,6 +812,7 @@ class CallEngineImpl {
       return;
     }
 
+    this.clearRemoteLeftGrace();
     const mode = state.credentials?.mode;
 
     if (
@@ -714,7 +832,7 @@ class CallEngineImpl {
       return;
     }
 
-    if (state.phase === 'in_call' || state.phase === 'reconnecting') {
+    if (state.phase === 'in_call' || state.phase === 'reconnecting' || state.phase === 'ending') {
       this.teardown();
       if (navigationRef.isReady()) {
         navigationRef.goBack();
@@ -834,12 +952,14 @@ class CallEngineImpl {
     const sessionId = this.getCallState().sessionId;
     this.pendingAcceptSessionId = null;
     this.outgoingAnswered = false;
+    this.reconnectInFlight = false;
     callRingtoneService.stop();
     void callForegroundService.stop();
     void cancelIncomingCallNotification(sessionId);
     this.clearRingTimeout();
     this.stopRingStatusPoll();
     this.clearTeardownTimer();
+    this.clearRemoteLeftGrace();
     this.stopSyncTimer();
     callSocketService.setActiveCallId(null);
     void agoraMediaService.leave();

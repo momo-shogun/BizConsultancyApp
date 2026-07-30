@@ -11,8 +11,8 @@ export const AGORA_APP_ID_FALLBACK = '';
 /** Client heartbeat interval (ms). */
 export const PRESENCE_PING_INTERVAL_MS = 10_000;
 
-/** In-call state sync interval (ms). */
-export const CALL_STATE_SYNC_INTERVAL_MS = 20_000;
+/** In-call state sync interval (ms). Keep short so peer hang-up ends UI if socket misses. */
+export const CALL_STATE_SYNC_INTERVAL_MS = 3_000;
 
 /**
  * Outgoing ring timeout before auto-end (ms).
@@ -22,3 +22,6 @@ export const OUTGOING_RING_TIMEOUT_MS = 30_000;
 
 /** HTTP status poll while caller is RINGING (socket miss fallback). */
 export const OUTGOING_RING_STATUS_POLL_MS = 2_500;
+
+/** Wait for peer Agora rejoin before treating remote leave as hang-up (ms). */
+export const REMOTE_REJOIN_GRACE_MS = 12_000;
