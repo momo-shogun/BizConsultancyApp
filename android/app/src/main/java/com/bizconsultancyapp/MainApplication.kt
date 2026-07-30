@@ -23,7 +23,7 @@ class MainApplication : Application(), ReactApplication {
       packageList =
         PackageList(this).packages.apply {
           // Packages that cannot be autolinked yet can be added manually here, for example:
-          // add(MyReactNativePackage())
+          add(CallAndroidPermissionsPackage())
         },
       // Use the standard RN entry when running `react-native start` (not `expo start`).
       jsMainModulePath = "index",

@@ -33,9 +33,11 @@ If Socket.IO reconnects quickly while the JS runtime is alive, **`handleIncoming
 
 ### 5. Persist race (headless FCM handler)
 
-Auth is stored via `redux-persist` → async MMKV adapter. Fresh isolates may run **before REHYDRATE**. `bindSocketHandlers()` resolves:
+Auth is stored via `redux-persist` → async MMKV adapter. Fresh isolates may run **before REHYDRATE**.
 
-`store.auth.token ?? readPersistedAuthTokenSync()` (sync read of `persist:root`).
+- `bindSocketHandlers()` resolves: `store.auth.token ?? readPersistedAuthTokenSync()` (sync read of `persist:root`).
+- `handleIncoming()` resolves role via `resolveLocalCallRole()`: Redux `accountRole` / `preferredAccountRole` → sync MMKV preferred role / persisted auth → if still unknown, **trust `payload.calleeRole`** (device was already targeted by FCM).
+- Notifee Answer / Decline uses `seedIncomingFromNotification()` so session state is always seeded from notification data before accept/decline.
 
 ### 6. Idempotency
 
@@ -85,8 +87,11 @@ Populate these from notifications or marketing surfaces when you attach `Linking
 | `POST_NOTIFICATIONS` (API 33+) | Requested via `PermissionsAndroid` + token sync |
 | High-importance incoming channel | Native `MainApplication` + Notifee |
 | Full-screen incoming intent | Notifee `fullScreenAction` + `USE_FULL_SCREEN_INTENT` |
+| Android 14+ FSI permission check | `CallAndroidPermissions` native module + one-time Dialog → settings |
+| Battery optimisation soft-prompt | Notifee `isBatteryOptimizationEnabled` + one-time Dialog |
 | Wake + lock screen Activity | Manifest + runtime flags in `MainActivity` |
-| Foreground Service for ongoing call | **TODO** (`FOREGROUND_SERVICE_MICROPHONE` present; bind to active Agora session) |
+| Headless consultant role race | Fixed via `resolveLocalCallRole` + notification seed |
+| Foreground Service for ongoing call | Implemented (`callForegroundService` from CallEngine on connect) |
 | Telecom `ConnectionService` | **TODO** for OS-level dialer parity / Bluetooth routing |
 
 ---
@@ -115,9 +120,8 @@ Production reference (Apple): Incoming VoIP pushes must be delivered through **P
 
 ## Next implementation passes (recommended order)
 
-1. **Android Foreground Service** bound to `in_call` phase (ongoing notification, mic type, stop on teardown).
-2. **`react-native-callkeep` + PushKit** on iOS; route answer / end events into `CallEngine.acceptIncoming` / `declineIncoming`.
-3. **Telecom `ConnectionService`** on Android + `ConnectionRequest` from FCM / full-screen flow.
-4. **Ring timeout + missed-call** push from API when callee never ACKs (align with consult SLA).
+1. **iOS PushKit + CallKit** (production VoIP wake) with maintained libraries only; route answer / end into `CallEngine`.
+2. **Telecom `ConnectionService`** on Android + `ConnectionRequest` from FCM / full-screen flow (dialer-grade UX).
+3. **Ring timeout + missed-call** push from API when callee never ACKs (align with consult SLA).
 
 This ordering maximises user-visible reliability before investing in full OS telephony integration.

@@ -30,6 +30,42 @@ export async function loadPreferredAccountRole(): Promise<AuthRole | null> {
   return parseRole(raw ?? undefined);
 }
 
+/**
+ * Sync preferred-role read for headless FCM / Notifee wakes before Redux rehydrate.
+ * Mirrors `readPersistedAuthTokenSync` — prefer this over defaulting to `'user'`.
+ */
+export function readPersistedAccountRoleSync(): AuthRole | null {
+  try {
+    const fromPreferred = parseRole(getStorage().getString(STORAGE_KEY) ?? undefined);
+    if (fromPreferred != null) {
+      return fromPreferred;
+    }
+    const rawRoot = getStorage().getString('persist:root');
+    if (rawRoot == null || rawRoot.length === 0) {
+      return null;
+    }
+    const outer = JSON.parse(rawRoot) as Record<string, unknown>;
+    const authChunk = outer.auth;
+    if (typeof authChunk !== 'string' || authChunk.length === 0) {
+      return null;
+    }
+    const authState = JSON.parse(authChunk) as {
+      accountRole?: unknown;
+      preferredAccountRole?: unknown;
+    };
+    return (
+      parseRole(typeof authState.accountRole === 'string' ? authState.accountRole : undefined) ??
+      parseRole(
+        typeof authState.preferredAccountRole === 'string'
+          ? authState.preferredAccountRole
+          : undefined,
+      )
+    );
+  } catch {
+    return null;
+  }
+}
+
 export async function clearPreferredAccountRole(): Promise<void> {
   await getStorage().removeItem(STORAGE_KEY);
 }

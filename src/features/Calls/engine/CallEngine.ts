@@ -48,6 +48,7 @@ import { CallReliabilityManager } from './CallReliabilityManager';
 import { syncCallSession } from './CallStateSyncService';
 import { transitionCallPhase, type CallPhase } from './callStateMachine';
 import { ensureCallPermissions } from '../utils/callPermissions';
+import { resolveLocalCallRole } from '../utils/resolveLocalCallRole';
 
 type CallScreen = 'IncomingCall' | 'OutgoingCall' | 'InCall';
 
@@ -616,9 +617,12 @@ class CallEngineImpl {
       return;
     }
 
-    const accountRole = store.getState().auth?.accountRole;
-    const selfRole = accountRole === 'consultant' ? 'consultant' : 'user';
-    if (payload.calleeRole !== selfRole) {
+    const localRole = resolveLocalCallRole();
+    /**
+     * When role is known, require match. When unknown (headless pre-rehydrate), trust the push —
+     * FCM was already addressed to this device as `payload.calleeRole`.
+     */
+    if (localRole != null && payload.calleeRole !== localRole) {
       return;
     }
 
@@ -627,6 +631,36 @@ class CallEngineImpl {
     }
     this.reliability.markApplied(payload.eventId, payload.eventVersion);
 
+    this.applyIncomingRinging(payload);
+  }
+
+  /**
+   * Notifee Answer / Decline / tap: always seed session from notification data.
+   * Notification payload is authoritative even if an earlier headless `handleIncoming` no-op'd.
+   */
+  seedIncomingFromNotification(payload: CallIncomingPayload): void {
+    if (payload.status !== 'initiated' && payload.status !== 'ringing') {
+      return;
+    }
+    const state = this.getCallState();
+    if (
+      state.sessionId === payload.sessionId &&
+      (state.phase === 'incoming_ringing' ||
+        state.phase === 'connecting_media' ||
+        state.phase === 'in_call')
+    ) {
+      return;
+    }
+    if (this.reliability.shouldApply(payload.eventId, payload.eventVersion)) {
+      this.reliability.markApplied(payload.eventId, payload.eventVersion);
+    }
+    this.applyIncomingRinging(payload, { paintNotification: false });
+  }
+
+  private applyIncomingRinging(
+    payload: CallIncomingPayload,
+    opts?: { paintNotification?: boolean },
+  ): void {
     const state = this.getCallState();
     if (state.phase === 'incoming_ringing' && state.sessionId === payload.sessionId) {
       return;
@@ -648,8 +682,9 @@ class CallEngineImpl {
     callSocketService.setActiveCallId(payload.sessionId);
     callRingtoneService.start();
     this.navigateToCallScreen('IncomingCall', payload.sessionId);
+    const shouldPaint = opts?.paintNotification !== false;
     /** Socket path when app is backgrounded: still paint a native call-style notification. */
-    if (AppState.currentState !== 'active') {
+    if (shouldPaint && AppState.currentState !== 'active') {
       void displayIncomingCallNotification(payload, { delivery: 'foreground' });
     }
   }

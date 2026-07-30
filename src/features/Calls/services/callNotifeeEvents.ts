@@ -51,7 +51,7 @@ export async function handleCallNotifeeEvent(event: Event): Promise<void> {
   }
 
   callEngine.bindSocketHandlers();
-  callEngine.handleIncoming(payload);
+  callEngine.seedIncomingFromNotification(payload);
 
   if (pressId === 'decline') {
     await callEngine.declineIncoming();
