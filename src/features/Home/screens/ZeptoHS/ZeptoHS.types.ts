@@ -19,6 +19,11 @@ export interface ZeptoHSProps {
   /** Emits active shell colors when top category tab changes. */
   onShellColorsChange?: (colors: ZeptoHSShellColors) => void;
   /**
+   * Pull-to-refresh handler. When provided, enables Zepto-style PTR on the
+   * home scroll shell. May return a Promise — the indicator stays until it settles.
+   */
+  onRefresh?: () => void | Promise<void>;
+  /**
    * Render prop — receives the active top category ID so the parent can swap
    * section content. Also accepts plain ReactNode.
    *

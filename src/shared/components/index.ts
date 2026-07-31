@@ -40,6 +40,8 @@ export { ImagePlaceholder, type ImagePlaceholderProps, type ImagePlaceholderVari
 export { RemoteImage, type RemoteImageProps } from './media/RemoteImage';
 export { ToastProvider, showGlobalToast, showGlobalError } from './toast';
 export { Dialog, type DialogAction, type DialogProps, type DialogVariant } from './dialog';
+export { PullToRefreshIndicator } from './pullToRefresh';
+export type { PullToRefreshIndicatorProps } from './pullToRefresh';
 
 export { OTPInput } from './otp/OTPInput';
 export { SectionHeader } from './sections/SectionHeader';

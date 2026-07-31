@@ -1,13 +1,17 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { LayoutChangeEvent } from 'react-native';
-import { Platform, StyleSheet, UIManager, View } from 'react-native';
+import type { LayoutChangeEvent, NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
+import { Platform, RefreshControl, StyleSheet, UIManager, View } from 'react-native';
+import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import Animated, {
   Extrapolation,
   interpolate,
+  runOnJS,
+  useAnimatedReaction,
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
+  withSpring,
 } from 'react-native-reanimated';
 
 import { ZeptoHeaderV1 } from '../../navigation/Header/ZeptoHeaderV1';
@@ -15,6 +19,10 @@ import { ZeptoTabs } from '../../Tabs/ZeptoTabs';
 import { ZeptoTabsSearchBand } from '../../Tabs/ZeptoTabsSearchBand';
 import { THEME } from '@/constants/theme';
 import { darkenHex, ZEPTO_TABS_TRACK_DARKEN } from '@/utils/darkenHex';
+import {
+  PTR_THRESHOLD,
+  PullToRefreshIndicator,
+} from '@/shared/components/pullToRefresh';
 
 import { reportBizAIScroll } from '@/features/BizAI/engine/bizAiScrollBridge';
 
@@ -41,6 +49,13 @@ const HEADER_TABS_FADE_DISTANCE = 100;
 /** Fallback totals before layout; replaced by onLayout heights. */
 const FALLBACK_HEADER_H = 64;
 const FALLBACK_TABS_H = 80;
+
+const HAPTIC_OPTIONS = {
+  enableVibrateFallback: true,
+  ignoreAndroidSystemSettings: false,
+} as const;
+
+const PULL_SPRING = { damping: 18, stiffness: 220, mass: 0.7 } as const;
 
 function uniformShell(fallbackBackground: string): ZeptoHSShellColors {
   return {
@@ -84,10 +99,19 @@ export function resolveZeptoHSShellColors(
   return ZEPTO_HS_SHELL_BY_CATEGORY_ID[categoryId] ?? uniformShell(fallbackBackground);
 }
 
+function fireRefreshArmedHaptic(): void {
+  ReactNativeHapticFeedback.trigger(
+    Platform.OS === 'ios' ? 'impactLight' : 'keyboardTap',
+    HAPTIC_OPTIONS,
+  );
+}
+
 export function ZeptoHS(props: ZeptoHSProps): React.ReactElement {
-  const { header, children, testID, style, onShellColorsChange } = props;
+  const { header, children, testID, style, onShellColorsChange, onRefresh } = props;
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [activeTopCategoryIndex, setActiveTopCategoryIndex] = React.useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+  const refreshInFlightRef = useRef(false);
 
   const activeTopCategoryId: HomeCategoryId =
     (ZEPTO_HS_TOP_CATEGORY_TABS[activeTopCategoryIndex]?.id as HomeCategoryId) ?? 'diagnosis';
@@ -124,6 +148,29 @@ export function ZeptoHS(props: ZeptoHSProps): React.ReactElement {
   const scrollY = useSharedValue(0);
   const headerBlockH = useSharedValue(FALLBACK_HEADER_H);
   const tabsBlockH = useSharedValue(FALLBACK_TABS_H);
+  const pullProgress = useSharedValue(0);
+  const refreshingSV = useSharedValue(0);
+
+  const finishRefresh = useCallback((): void => {
+    refreshInFlightRef.current = false;
+    setRefreshing(false);
+    refreshingSV.value = 0;
+    pullProgress.value = withSpring(0, PULL_SPRING);
+  }, [pullProgress, refreshingSV]);
+
+  const runRefresh = useCallback((): void => {
+    if (onRefresh == null || refreshInFlightRef.current) {
+      return;
+    }
+    refreshInFlightRef.current = true;
+    setRefreshing(true);
+    refreshingSV.value = 1;
+    pullProgress.value = withSpring(1, PULL_SPRING);
+
+    void Promise.resolve(onRefresh()).finally(() => {
+      finishRefresh();
+    });
+  }, [finishRefresh, onRefresh, pullProgress, refreshingSV]);
 
   const onScroll = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -133,8 +180,28 @@ export function ZeptoHS(props: ZeptoHSProps): React.ReactElement {
         offsetY,
         velocityY: event.velocity?.y,
       });
+
+      if (refreshingSV.value === 1) {
+        return;
+      }
+      // iOS overscroll + Android rubber-band (when enabled) report negative Y while pulling.
+      if (offsetY < 0) {
+        pullProgress.value = Math.min(-offsetY / PTR_THRESHOLD, 1.35);
+      } else if (pullProgress.value !== 0) {
+        pullProgress.value = withSpring(0, PULL_SPRING);
+      }
     },
   });
+
+  useAnimatedReaction(
+    () => pullProgress.value >= 1 && refreshingSV.value === 0,
+    (armed, wasArmed) => {
+      if (armed && !wasArmed) {
+        runOnJS(fireRefreshArmedHaptic)();
+      }
+    },
+    [],
+  );
 
   const collapsingHeaderOpacityStyle = useAnimatedStyle(() => ({
     opacity: interpolate(
@@ -191,6 +258,24 @@ export function ZeptoHS(props: ZeptoHSProps): React.ReactElement {
     });
   }, [activeShell.tabLabelColor, activeShell.topTabsBackground, navigation]);
 
+  const onRefreshControl = useCallback((): void => {
+    runRefresh();
+  }, [runRefresh]);
+
+  /** iOS: arm refresh on release past threshold (RefreshControl also covers this). */
+  const onScrollEndDrag = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>): void => {
+      if (onRefresh == null || refreshInFlightRef.current) {
+        return;
+      }
+      const y = e.nativeEvent.contentOffset.y;
+      if (y <= -PTR_THRESHOLD) {
+        runRefresh();
+      }
+    },
+    [onRefresh, runRefresh],
+  );
+
   const renderedChildren =
     children != null
       ? typeof children === 'function'
@@ -198,8 +283,19 @@ export function ZeptoHS(props: ZeptoHSProps): React.ReactElement {
         : children
       : null;
 
+  const refreshEnabled = onRefresh != null;
+
   return (
     <View style={[{ flex: 1 }, style]} testID={testID}>
+      {refreshEnabled ? (
+        <PullToRefreshIndicator
+          pullProgress={pullProgress}
+          refreshing={refreshingSV}
+          tintColor={activeShell.tabLabelColor}
+          testID="zepto_hs_ptr_indicator"
+        />
+      ) : null}
+
       <Animated.ScrollView
         style={styles.flex}
         contentContainerStyle={styles.scrollContent}
@@ -207,12 +303,30 @@ export function ZeptoHS(props: ZeptoHSProps): React.ReactElement {
         keyboardDismissMode="on-drag"
         showsVerticalScrollIndicator={false}
         showsHorizontalScrollIndicator={false}
+        bounces={refreshEnabled}
+        alwaysBounceVertical={refreshEnabled}
         {...Platform.select({
-          android: { persistentScrollbar: false, overScrollMode: 'never' as const },
+          android: {
+            persistentScrollbar: false,
+            overScrollMode: refreshEnabled ? ('always' as const) : ('never' as const),
+          },
           default: {},
         })}
         onScroll={onScroll}
+        onScrollEndDrag={refreshEnabled ? onScrollEndDrag : undefined}
         scrollEventThrottle={16}
+        refreshControl={
+          refreshEnabled ? (
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefreshControl}
+              tintColor="transparent"
+              colors={['transparent']}
+              progressBackgroundColor="transparent"
+              progressViewOffset={Platform.OS === 'android' ? -80 : undefined}
+            />
+          ) : undefined
+        }
       >
         <Animated.View style={collapsingHeaderOpacityStyle} onLayout={onHeaderLayout} collapsable={false}>
           <ZeptoHeaderV1 {...header} backgroundColor={headerBackgroundColor} />

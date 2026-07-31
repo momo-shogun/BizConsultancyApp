@@ -25,7 +25,11 @@ import {
   isBookingPaymentPending,
 } from '@/features/Bookings/utils/bookingDisplay';
 import { CallController } from '@/features/Calls/controllers/CallController';
-import { useGetPublicConsultantsQuery } from '@/features/consultant/api/consultantApi';
+import {
+  useGetMasterCategoriesQuery,
+  useGetMasterSegmentsQuery,
+  useGetPublicConsultantsQuery,
+} from '@/features/consultant/api/consultantApi';
 import { mapConsultantDetailToCardItem } from '@/features/consultant/utils/consultantMappers';
 import {
   formatWalletBalanceLabel,
@@ -54,7 +58,8 @@ import { mapPublicServiceToCardItem } from '@/features/Services/utils/serviceMap
 import { ROUTES } from '@/navigation/routeNames';
 import { navigationRef } from '@/navigation/RootNavigator';
 import type { AppTabParamList, RootStackParamList } from '@/navigation/types';
-import { useAppSelector } from '@/store/typedHooks';
+import { useAppDispatch, useAppSelector } from '@/store/typedHooks';
+import { baseApi } from '@/services/api/baseApi';
 import {
   InterestEventsSection,
   SafeAreaWrapper,
@@ -89,6 +94,8 @@ const HOME_MEMBERSHIP_PLANS_CARD_WIDTH = 360;
 const HOME_UPCOMING_BOOKINGS_LIMIT = 5;
 const BOOKING_VISIBLE_AFTER_START_MINUTES = 30;
 const HOME_DEFAULT_SHELL_BG = '#E6C8A4';
+/** Keep the PTR spinner visible briefly so fast cache hits still feel intentional. */
+const HOME_REFRESH_MIN_MS = 520;
 
 function HomeSectionSkeleton(props: { compact?: boolean }): React.ReactElement {
   const compact = props.compact ?? false;
@@ -192,6 +199,7 @@ function mapConsultantBookingToHomeItem(booking: ConsultantSelfBooking): Upcomin
 
 export function HomeDashboardScreen(): React.ReactElement {
   const navigation = useNavigation<HomeDashboardNavigationProp>();
+  const dispatch = useAppDispatch();
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const accountRole = useAppSelector(selectAccountRole);
   const isConsultant = accountRole === 'consultant';
@@ -207,6 +215,7 @@ export function HomeDashboardScreen(): React.ReactElement {
     data: userWalletBalance,
     isLoading: isUserWalletLoading,
     isFetching: isUserWalletFetching,
+    refetch: refetchUserWallet,
   } = useGetMyWalletBalanceQuery(undefined, {
     skip: !isAuthenticated || isConsultant,
   });
@@ -215,6 +224,7 @@ export function HomeDashboardScreen(): React.ReactElement {
     data: consultantWalletBalance,
     isLoading: isConsultantWalletLoading,
     isFetching: isConsultantWalletFetching,
+    refetch: refetchConsultantWallet,
   } = useGetConsultantWalletBalanceQuery(undefined, {
     skip: !isAuthenticated || !isConsultant,
   });
@@ -226,7 +236,7 @@ export function HomeDashboardScreen(): React.ReactElement {
 
   const walletLabel = useMemo(
     () =>
-      formatWalletBalanceLabel(walletBalance, {
+      formatWalletBalanceLabel(walletBalance ?? undefined, {
         isLoading: isWalletLoading,
         isAuthenticated,
       }),
@@ -237,6 +247,7 @@ export function HomeDashboardScreen(): React.ReactElement {
     data: consultantsResult,
     isLoading: isConsultantsLoading,
     isFetching: isConsultantsFetching,
+    refetch: refetchConsultants,
   } = useGetPublicConsultantsQuery({
     page: String(consultantsPageNumber),
     limit: String(HOME_TOP_CONSULTANTS_PAGE_SIZE),
@@ -246,29 +257,34 @@ export function HomeDashboardScreen(): React.ReactElement {
     data: publicServices,
     isLoading: isServicesLoading,
     isFetching: isServicesFetching,
+    refetch: refetchServices,
   } = useGetPublicServicesQuery({ limit: 6 });
 
   const {
     data: publicWorkshops,
     isLoading: isWorkshopsLoading,
     isFetching: isWorkshopsFetching,
+    refetch: refetchWorkshops,
   } = useGetPublicWorkshopsQuery(DEFAULT_HOME_WORKSHOPS_QUERY);
 
   const {
     data: publicTestimonials,
     isLoading: isTestimonialsLoading,
     isFetching: isTestimonialsFetching,
+    refetch: refetchTestimonials,
   } = useGetPublicTestimonialsQuery({ showOnHomescreen: true });
 
   const {
     data: publicMemberships,
     isLoading: isMembershipsLoading,
     isFetching: isMembershipsFetching,
+    refetch: refetchMemberships,
   } = useGetPublicMembershipsQuery();
   const {
     data: myBookingsPage,
     isLoading: isUserBookingsLoading,
     isFetching: isUserBookingsFetching,
+    refetch: refetchUserBookings,
   } = useGetMyConsultantBookingsPageQuery(
     { page: 1, limit: 100 },
     { skip: !isAuthenticated || isConsultant },
@@ -277,9 +293,72 @@ export function HomeDashboardScreen(): React.ReactElement {
     data: consultantBookings,
     isLoading: isConsultantBookingsLoading,
     isFetching: isConsultantBookingsFetching,
+    refetch: refetchConsultantBookings,
   } = useGetConsultantSelfBookingsQuery(undefined, {
     skip: !isAuthenticated || !isConsultant,
   });
+
+  const { refetch: refetchMasterCategories } = useGetMasterCategoriesQuery();
+  const { refetch: refetchMasterSegments } = useGetMasterSegmentsQuery();
+
+  const onHomeRefresh = useCallback(async (): Promise<void> => {
+    const startedAt = Date.now();
+
+    // Invalidate tagged lists so every subscribed home query (including spotlight
+    // variants with different args) refetches together.
+    dispatch(
+      baseApi.util.invalidateTags([
+        { type: 'Consultant', id: 'LIST' },
+        { type: 'Service', id: 'LIST' },
+        { type: 'Workshop', id: 'LIST' },
+        { type: 'Testimonial', id: 'LIST' },
+        { type: 'Membership', id: 'LIST' },
+        'Wallet',
+        { type: 'ConsultantBooking', id: 'MY' },
+        { type: 'ConsultantBooking', id: 'SELF_LIST' },
+      ]),
+    );
+
+    const tasks: Array<Promise<unknown>> = [
+      refetchConsultants(),
+      refetchServices(),
+      refetchWorkshops(),
+      refetchTestimonials(),
+      refetchMemberships(),
+      refetchMasterCategories(),
+      refetchMasterSegments(),
+    ];
+    if (isAuthenticated) {
+      if (isConsultant) {
+        tasks.push(refetchConsultantWallet(), refetchConsultantBookings());
+      } else {
+        tasks.push(refetchUserWallet(), refetchUserBookings());
+      }
+    }
+    await Promise.allSettled(tasks);
+
+    const elapsed = Date.now() - startedAt;
+    if (elapsed < HOME_REFRESH_MIN_MS) {
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, HOME_REFRESH_MIN_MS - elapsed);
+      });
+    }
+  }, [
+    dispatch,
+    isAuthenticated,
+    isConsultant,
+    refetchConsultantBookings,
+    refetchConsultantWallet,
+    refetchConsultants,
+    refetchMasterCategories,
+    refetchMasterSegments,
+    refetchMemberships,
+    refetchServices,
+    refetchTestimonials,
+    refetchUserBookings,
+    refetchUserWallet,
+    refetchWorkshops,
+  ]);
 
   const isUpcomingBookingsLoading = isAuthenticated
     ? isConsultant
@@ -557,7 +636,7 @@ export function HomeDashboardScreen(): React.ReactElement {
       statusBarStyle="dark-content"
     >
       {servicePurchaseLoginDialog}
-      <ZeptoHS header={zeptoHeader} onShellColorsChange={onShellColorsChange}>
+      <ZeptoHS header={zeptoHeader} onShellColorsChange={onShellColorsChange} onRefresh={onHomeRefresh}>
         {(_categoryId: HomeCategoryId) => (
           <View style={styles.sheet}>
             {isUpcomingBookingsLoading && upcomingBookingItems.length === 0 ? (
