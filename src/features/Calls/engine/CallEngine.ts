@@ -120,9 +120,6 @@ class CallEngineImpl {
   }
 
   bindSocketHandlers(): void {
-    if (this.handlersBound) {
-      return;
-    }
     const storeToken = store.getState().auth?.token;
     const token =
       storeToken != null && storeToken.length > 0 ? storeToken : readPersistedAuthTokenSync();
@@ -130,6 +127,7 @@ class CallEngineImpl {
       return;
     }
     this.handlersBound = true;
+    // Always call connect: updates handlers and recreates the socket if it dropped.
     callSocketService.connect(token, {
       onIncoming: (p) => this.handleIncoming(p),
       onAccepted: (p) => {
@@ -202,11 +200,18 @@ class CallEngineImpl {
     }, OUTGOING_RING_TIMEOUT_MS);
   }
 
-  /** HTTP fallback while RINGING if sockets miss call.accepted. */
-  private startRingStatusPoll(sessionId: number): void {
+  /**
+   * HTTP fallback while RINGING if sockets miss accept / decline / cancel.
+   * Always forceRefetch — cached status stays `initiated` and would miss peer reject.
+   */
+  private startRingStatusPoll(sessionId: number, side: 'outgoing' | 'incoming'): void {
     this.stopRingStatusPoll();
     this.ringStatusPollTimer = setInterval(() => {
-      void this.pollOutgoingRingStatus(sessionId);
+      if (side === 'outgoing') {
+        void this.pollOutgoingRingStatus(sessionId);
+      } else {
+        void this.pollIncomingRingStatus(sessionId);
+      }
     }, OUTGOING_RING_STATUS_POLL_MS);
   }
 
@@ -219,7 +224,9 @@ class CallEngineImpl {
       return;
     }
 
-    const result = await store.dispatch(callsApi.endpoints.getCallStatus.initiate(sessionId));
+    const result = await store.dispatch(
+      callsApi.endpoints.getCallStatus.initiate(sessionId, { forceRefetch: true }),
+    );
     if ('error' in result || result.data == null) {
       return;
     }
@@ -230,6 +237,38 @@ class CallEngineImpl {
       return;
     }
 
+    if (status === 'declined' || status === 'missed' || status === 'ended' || status === 'failed') {
+      this.handleRemoteEnd(
+        {
+          sessionId,
+          status,
+          durationSeconds: result.data.durationSeconds,
+          endReason: result.data.endReason,
+          endedAt: result.data.endedAt,
+        },
+        status === 'declined' ? 'declined' : 'ended',
+      );
+    }
+  }
+
+  /** Callee RINGING fallback when caller cancels and sockets miss call.ended. */
+  private async pollIncomingRingStatus(sessionId: number): Promise<void> {
+    const state = this.getCallState();
+    if (state.sessionId !== sessionId) {
+      return;
+    }
+    if (state.phase !== 'incoming_ringing') {
+      return;
+    }
+
+    const result = await store.dispatch(
+      callsApi.endpoints.getCallStatus.initiate(sessionId, { forceRefetch: true }),
+    );
+    if ('error' in result || result.data == null) {
+      return;
+    }
+
+    const status = result.data.status;
     if (status === 'declined' || status === 'missed' || status === 'ended' || status === 'failed') {
       this.handleRemoteEnd(
         {
@@ -602,7 +641,7 @@ class CallEngineImpl {
 
     // Missed timer tracks callee RINGING from initiate (not from local join).
     this.startOutgoingRingTimeout(data.sessionId);
-    this.startRingStatusPoll(data.sessionId);
+    this.startRingStatusPoll(data.sessionId, 'outgoing');
 
     // JOIN_AGORA immediately (do not wait for call.accepted).
     const joined = await this.joinAgoraFromCredentials(credentials);
@@ -681,6 +720,7 @@ class CallEngineImpl {
     );
     callSocketService.setActiveCallId(payload.sessionId);
     callRingtoneService.start();
+    this.startRingStatusPoll(payload.sessionId, 'incoming');
     this.navigateToCallScreen('IncomingCall', payload.sessionId);
     const shouldPaint = opts?.paintNotification !== false;
     /** Socket path when app is backgrounded: still paint a native call-style notification. */
@@ -791,8 +831,24 @@ class CallEngineImpl {
       return;
     }
     callRingtoneService.stop();
+    this.stopRingStatusPoll();
     void cancelIncomingCallNotification(sessionId);
-    await store.dispatch(callsApi.endpoints.declineCall.initiate(sessionId));
+    // Ensure socket is up so we can still receive peer cancel races during decline.
+    this.bindSocketHandlers();
+
+    const declineResult = await store.dispatch(
+      callsApi.endpoints.declineCall.initiate(sessionId),
+    );
+    // If decline fails (status race / network), fall back to end so the caller still
+    // gets `call.ended` — critical for app-to-app reject before accept.
+    if ('error' in declineResult) {
+      await store.dispatch(
+        callsApi.endpoints.endCall.initiate({
+          sessionId,
+          body: { endReason: 'declined' },
+        }),
+      );
+    }
     this.showOutcomeThenEnd('rejected');
   }
 
@@ -838,6 +894,10 @@ class CallEngineImpl {
       return;
     }
 
+    // Treat status=declined on either socket event as a reject (server dual-emits both).
+    const effectiveKind: 'declined' | 'ended' =
+      kind === 'declined' || payload.status === 'declined' ? 'declined' : 'ended';
+
     const terminal = ['ended', 'declined', 'missed', 'failed'];
     if (
       payload.status != null &&
@@ -855,14 +915,22 @@ class CallEngineImpl {
       (state.phase === 'incoming_ringing' || state.phase === 'connecting_media')
     ) {
       const outcome: CallOutcome =
-        kind === 'declined' ? 'rejected' : payload.status === 'missed' ? 'missed' : 'missed';
+        effectiveKind === 'declined'
+          ? 'rejected'
+          : payload.status === 'missed'
+            ? 'missed'
+            : 'missed';
       this.showOutcomeThenEnd(outcome);
       return;
     }
 
     if (state.phase === 'outgoing_ringing' || state.phase === 'outgoing_initiating') {
       const outcome: CallOutcome =
-        kind === 'declined' ? 'rejected' : payload.status === 'missed' ? 'missed' : 'rejected';
+        effectiveKind === 'declined'
+          ? 'rejected'
+          : payload.status === 'missed'
+            ? 'missed'
+            : 'rejected';
       this.showOutcomeThenEnd(outcome);
       return;
     }
