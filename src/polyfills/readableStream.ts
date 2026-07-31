@@ -1,4 +1,4 @@
-import { ReadableStream as ReadableStreamPolyfill } from 'web-streams-polyfill/dist/ponyfill';
+import { ReadableStream as ReadableStreamPolyfill } from 'web-streams-polyfill';
 
 declare global {
   // eslint-disable-next-line no-var
