@@ -74,17 +74,59 @@ export function parseSlotTimeToMinutes(slotTime: string): { hour: number; minute
   return { hour, minute };
 }
 
-export function buildBookingDateTime(bookingDate: string, slotTime: string): Date | null {
+/** Supports `"1:30 PM"` or `"1:30 PM - 2:00 PM"` / en-dash ranges. */
+function splitSlotTimeRange(slotTime: string): { start: string; end: string | null } {
+  const trimmed = slotTime.trim();
+  const range = /^(.+?)\s*[-–—]\s*(.+)$/.exec(trimmed);
+  if (range == null) {
+    return { start: trimmed, end: null };
+  }
+  const start = range[1].trim();
+  const end = range[2].trim();
+  if (parseSlotTimeToMinutes(start) == null || parseSlotTimeToMinutes(end) == null) {
+    return { start: trimmed, end: null };
+  }
+  return { start, end };
+}
+
+function applyTimeToBookingDate(
+  bookingDate: string,
+  time: { hour: number; minute: number },
+): Date | null {
   const baseDate = parseBookingDate(bookingDate);
   if (baseDate == null) {
     return null;
   }
-  const time = parseSlotTimeToMinutes(slotTime);
+  baseDate.setHours(time.hour, time.minute, 0, 0);
+  return baseDate;
+}
+
+export function buildBookingDateTime(bookingDate: string, slotTime: string): Date | null {
+  const { start } = splitSlotTimeRange(slotTime);
+  const time = parseSlotTimeToMinutes(start);
   if (time == null) {
     return null;
   }
-  baseDate.setHours(time.hour, time.minute, 0, 0);
-  return baseDate;
+  return applyTimeToBookingDate(bookingDate, time);
+}
+
+/**
+ * Slot end: explicit range end (`1:30 PM - 2:00 PM`), else start + {@link UPCOMING_GRACE_MINUTES}
+ * (default 30‑min consultation slots).
+ */
+export function buildBookingEndDateTime(bookingDate: string, slotTime: string): Date | null {
+  const { start, end } = splitSlotTimeRange(slotTime);
+  if (end != null) {
+    const endTime = parseSlotTimeToMinutes(end);
+    if (endTime != null) {
+      return applyTimeToBookingDate(bookingDate, endTime);
+    }
+  }
+  const startDateTime = buildBookingDateTime(bookingDate, start);
+  if (startDateTime == null) {
+    return null;
+  }
+  return new Date(startDateTime.getTime() + UPCOMING_GRACE_MINUTES * 60 * 1000);
 }
 
 export function hasBookingStarted(bookingDate: string, slotTime: string, now = new Date()): boolean {
@@ -95,15 +137,15 @@ export function hasBookingStarted(bookingDate: string, slotTime: string, now = n
   return now.getTime() >= bookingDateTime.getTime();
 }
 
-/** Upcoming tab: appointment is today or in the future (matches web bookings page). */
+/** Upcoming tab: stay upcoming until the slot ends (e.g. 1:30–2:00 → past only after 2:00). */
 export function isBookingUpcomingTab(
   bookingDate: string,
   slotTime: string,
   now = new Date(),
 ): boolean {
-  const bookingDateTime = buildBookingDateTime(bookingDate, slotTime);
-  if (bookingDateTime != null) {
-    return bookingDateTime.getTime() >= now.getTime();
+  const endDateTime = buildBookingEndDateTime(bookingDate, slotTime);
+  if (endDateTime != null) {
+    return now.getTime() <= endDateTime.getTime();
   }
   const dateOnly = parseBookingDate(bookingDate);
   if (dateOnly == null) {
@@ -115,10 +157,9 @@ export function isBookingUpcomingTab(
 }
 
 export function isBookingUpcoming(bookingDate: string, slotTime: string, now = new Date()): boolean {
-  const bookingDateTime = buildBookingDateTime(bookingDate, slotTime);
-  if (bookingDateTime != null) {
-    const graceMs = UPCOMING_GRACE_MINUTES * 60 * 1000;
-    return now.getTime() <= bookingDateTime.getTime() + graceMs;
+  const endDateTime = buildBookingEndDateTime(bookingDate, slotTime);
+  if (endDateTime != null) {
+    return now.getTime() <= endDateTime.getTime();
   }
   const dateOnly = parseBookingDate(bookingDate);
   if (dateOnly == null) {

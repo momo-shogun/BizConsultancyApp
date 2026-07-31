@@ -44,6 +44,15 @@ export function MyBookingsScreen(): React.ReactElement {
     navigationRef.navigate(ROUTES.Root.ConsultantsList);
   }, []);
 
+  const onBackPress = useCallback((): void => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+    /** After booking reset, MyBookings is the only Account screen — send user to Home. */
+    navigationRef.navigate(ROUTES.Root.App, { screen: ROUTES.App.Home });
+  }, [navigation]);
+
   const openSearch = useCallback((): void => {
     setSearchOpen(true);
   }, []);
@@ -67,7 +76,7 @@ export function MyBookingsScreen(): React.ReactElement {
 
   const shellProps = {
     title: 'My Bookings',
-    onBackPress: () => navigation.goBack(),
+    onBackPress,
     canvasColor: BOOKINGS_CANVAS,
     headerColor: BOOKINGS_HEADER_STATUS_BAR,
     headerGradientColors: BOOKINGS_HEADER_GRADIENT,

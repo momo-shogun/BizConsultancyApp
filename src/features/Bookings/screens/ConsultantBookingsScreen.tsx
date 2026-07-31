@@ -30,6 +30,7 @@ import type { AccountStackParamList } from '@/navigation/types';
 import { SafeAreaWrapper, ScreenHeader } from '@/shared/components';
 import { showGlobalToast } from '@/shared/components/toast';
 
+
 import { CONSULTANT_BOOKINGS_CANVAS, styles } from './ConsultantBookingsScreen.styles';
 
 type Nav = NativeStackNavigationProp<

@@ -32,6 +32,11 @@ import {
 import { readWorkshopBookingErrorMessage } from '@/features/Home/utils/workshopBookingErrors';
 import { useAppSelector } from '@/store/typedHooks';
 
+export interface UseWorkshopBookingOptions {
+  /** Called after a successful free / wallet / Razorpay booking. */
+  onBookingSuccess?: () => void;
+}
+
 export interface UseWorkshopBookingResult {
   isBooked: boolean;
   isBooking: boolean;
@@ -48,7 +53,11 @@ export interface UseWorkshopBookingResult {
   workshopLoginDialog: React.ReactElement;
 }
 
-export function useWorkshopBooking(workshop: PublicWorkshopApiRow | null): UseWorkshopBookingResult {
+export function useWorkshopBooking(
+  workshop: PublicWorkshopApiRow | null,
+  options?: UseWorkshopBookingOptions,
+): UseWorkshopBookingResult {
+  const onBookingSuccess = options?.onBookingSuccess;
   const hasVerifiedLogin = useAppSelector(selectHasVerifiedLogin);
   const accountRole = useAppSelector(selectAccountRole);
   const displayName = useAppSelector(selectDisplayName);
@@ -110,17 +119,22 @@ export function useWorkshopBooking(workshop: PublicWorkshopApiRow | null): UseWo
     return myBookings.some((b) => b.workshopId === workshop.id);
   }, [hasVerifiedLogin, myBookings, workshop]);
 
+  const finishBookingSuccess = useCallback((): void => {
+    setPaymentModalVisible(false);
+    onBookingSuccess?.();
+  }, [onBookingSuccess]);
+
   const handleFreeBook = useCallback(async (): Promise<void> => {
     if (workshop == null) {
       return;
     }
     try {
       await createBooking({ workshopId: workshop.id, type: 'free' }).unwrap();
-      Alert.alert('Booked', 'Your seat has been reserved for this workshop.');
+      finishBookingSuccess();
     } catch (error: unknown) {
       Alert.alert('Booking', readWorkshopBookingErrorMessage(error));
     }
-  }, [workshop, createBooking]);
+  }, [workshop, createBooking, finishBookingSuccess]);
 
   const handleWalletBook = useCallback(async (): Promise<void> => {
     if (workshop == null) {
@@ -129,14 +143,13 @@ export function useWorkshopBooking(workshop: PublicWorkshopApiRow | null): UseWo
     setPayingWith('wallet');
     try {
       await createBooking({ workshopId: workshop.id, type: 'wallet' }).unwrap();
-      setPaymentModalVisible(false);
-      Alert.alert('Confirmed', 'Paid from wallet. Your workshop seat is confirmed.');
+      finishBookingSuccess();
     } catch (error: unknown) {
       Alert.alert('Booking', readWorkshopBookingErrorMessage(error));
     } finally {
       setPayingWith(null);
     }
-  }, [workshop, createBooking]);
+  }, [workshop, createBooking, finishBookingSuccess]);
 
   const handleRazorpayBook = useCallback(async (): Promise<void> => {
     if (workshop == null) {
@@ -146,8 +159,7 @@ export function useWorkshopBooking(workshop: PublicWorkshopApiRow | null): UseWo
     try {
       const result = await createBooking({ workshopId: workshop.id, type: 'online' }).unwrap();
       if (!isPaidWorkshopBookingResult(result)) {
-        setPaymentModalVisible(false);
-        Alert.alert('Booked', 'Your seat has been reserved for this workshop.');
+        finishBookingSuccess();
         return;
       }
 
@@ -167,8 +179,7 @@ export function useWorkshopBooking(workshop: PublicWorkshopApiRow | null): UseWo
         paymentId: payment.razorpay_payment_id,
       }).unwrap();
 
-      setPaymentModalVisible(false);
-      Alert.alert('Confirmed', 'Payment received. Your workshop seat is confirmed.');
+      finishBookingSuccess();
     } catch (error: unknown) {
       if (error instanceof WorkshopPaymentCancelledError) {
         return;
@@ -185,6 +196,7 @@ export function useWorkshopBooking(workshop: PublicWorkshopApiRow | null): UseWo
     displayName,
     email,
     mobile,
+    finishBookingSuccess,
   ]);
 
   const onBookPress = useCallback((): void => {

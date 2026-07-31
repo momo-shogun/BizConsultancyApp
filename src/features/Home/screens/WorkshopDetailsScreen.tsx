@@ -157,6 +157,13 @@ export default function WorkshopDetailsScreen(): React.ReactElement {
     void refetch().finally(() => setRefreshing(false));
   }, [refetch]);
 
+  const onWorkshopBookingSuccess = useCallback((): void => {
+    navigation.navigate(ROUTES.Root.App, {
+      screen: ROUTES.App.Account,
+      params: { screen: ROUTES.Account.WorkshopBookings },
+    });
+  }, [navigation]);
+
   const {
     isBooked,
     isBooking,
@@ -170,7 +177,7 @@ export default function WorkshopDetailsScreen(): React.ReactElement {
     onPayRazorpay,
     onPayWallet,
     workshopLoginDialog,
-  } = useWorkshopBooking(workshop);
+  } = useWorkshopBooking(workshop, { onBookingSuccess: onWorkshopBookingSuccess });
 
   const isUpcoming = workshop != null ? isWorkshopUpcoming(workshop) : true;
   const isOnlineAvailable = workshop != null ? isWorkshopOnlineAvailable(workshop) : false;
@@ -544,7 +551,17 @@ export default function WorkshopDetailsScreen(): React.ReactElement {
             accessibilityRole="button"
             accessibilityLabel={bookCtaLabel}
             disabled={!canBook}
-            onPress={onBookPress}
+            onPress={() => {
+              if (isBooked) {
+                navigation.navigate(ROUTES.Root.App, {
+                  screen: ROUTES.App.Account,
+                  params: { screen: ROUTES.Account.WorkshopBookings },
+                });
+              } else {
+                onBookPress();
+              }
+            }}
+            // onPress={onBookPress}
             style={({ pressed }) => [
               styles.bookButton,
               !canBook && styles.bookButtonDisabled,

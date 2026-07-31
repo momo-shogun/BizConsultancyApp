@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
+import { CommonActions, useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { ROUTES } from '@/navigation/routeNames';
@@ -8,7 +8,10 @@ import type { RootStackParamList } from '@/navigation/types';
 import { SafeAreaWrapper, ScreenHeader } from '@/shared/components';
 import { radii, shadows, spacing } from '@/theme';
 
-import { selectHasVerifiedLogin } from '@/features/Auth/store/authSelectors';
+import {
+  selectEffectiveAccountRole,
+  selectHasVerifiedLogin,
+} from '@/features/Auth/store/authSelectors';
 import { useAppSelector } from '@/store/typedHooks';
 
 import { ConsultationStepper } from '../components/ConsultationStepper';
@@ -27,6 +30,7 @@ function ConsultationOnboardingContent(): React.ReactElement {
   const navigation = useNavigation<NavigationProp>();
   const [activeStep, setActiveStep] = useState(0);
   const hasVerifiedLogin = useAppSelector(selectHasVerifiedLogin);
+  const accountRole = useAppSelector(selectEffectiveAccountRole);
   const { ensureVerifiedLogin, consultantBookingLoginDialog } = useConsultantBookingLoginGate();
 
   useEffect(() => {
@@ -37,9 +41,41 @@ function ConsultationOnboardingContent(): React.ReactElement {
 
   const handleComplete = useCallback(
     (_bookingId: number) => {
-      navigation.goBack();
+      /**
+       * Clear Root overlays (onboarding / consultant detail) so Back from My Bookings
+       * does not return here. Account stack starts at MyBookings only — MyBookings
+       * back falls through to the Home tab.
+       */
+      const showEdp = accountRole !== 'consultant';
+      const tabRoutes = [
+        { name: ROUTES.App.Home },
+        { name: ROUTES.App.Services },
+        ...(showEdp ? [{ name: ROUTES.App.Edp }] : []),
+        {
+          name: ROUTES.App.Account,
+          state: {
+            routes: [{ name: ROUTES.Account.MyBookings }],
+            index: 0,
+          },
+        },
+      ];
+
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [
+            {
+              name: ROUTES.Root.App,
+              state: {
+                routes: tabRoutes,
+                index: tabRoutes.length - 1,
+              },
+            },
+          ],
+        }),
+      );
     },
-    [navigation],
+    [accountRole, navigation],
   );
 
   return (
