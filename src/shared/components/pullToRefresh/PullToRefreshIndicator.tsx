@@ -24,7 +24,10 @@ import {
 import type { PullToRefreshIndicatorProps } from './pullToRefresh.types';
 
 const SPIN_DURATION_MS = 720;
-const DEFAULT_TINT = THEME.colors.primary;
+/** Mid forest green — reads clearly as logo brand (deep primary can look near-black). */
+const LOGO_GREEN = THEME.colors.splashGreen3;
+const DEFAULT_TINT = LOGO_GREEN;
+const TRACK_GREEN = 'rgba(61,143,85,0.28)';
 
 /**
  * Zepto-style pull indicator: scales in with pull distance, arc rotates with
@@ -35,6 +38,7 @@ export function PullToRefreshIndicator(
 ): React.ReactElement {
   const { pullProgress, refreshing, tintColor = DEFAULT_TINT, testID } = props;
   const spin = useSharedValue(0);
+  const accent = tintColor.length > 0 ? tintColor : DEFAULT_TINT;
 
   useEffect(() => {
     return (): void => {
@@ -112,11 +116,11 @@ export function PullToRefreshIndicator(
         <Animated.View
           style={[
             styles.ring,
-            { borderTopColor: tintColor, borderRightColor: tintColor },
+            { borderTopColor: accent, borderRightColor: accent },
             ringStyle,
           ]}
         />
-        <View style={[styles.core, { backgroundColor: tintColor }]} />
+        <View style={[styles.core, { backgroundColor: accent }]} />
       </View>
     </Animated.View>
   );
@@ -138,27 +142,22 @@ const styles = StyleSheet.create({
     width: PTR_SIZE,
     height: PTR_SIZE,
     borderRadius: PTR_SIZE / 2,
-    backgroundColor: THEME.colors.white,
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#0B0F19',
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 4,
   },
   ring: {
     position: 'absolute',
-    width: PTR_SIZE - 8,
-    height: PTR_SIZE - 8,
-    borderRadius: (PTR_SIZE - 8) / 2,
+    width: PTR_SIZE,
+    height: PTR_SIZE,
+    borderRadius: PTR_SIZE / 2,
     borderWidth: PTR_STROKE,
-    borderColor: 'rgba(11,15,25,0.08)',
+    borderColor: TRACK_GREEN,
   },
   core: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    opacity: 0.9,
+    opacity: 1,
   },
 });

@@ -65,7 +65,14 @@ export const consultantApi = baseApi.injectEndpoints({
         `${endpointName}(${stableConsultantsQueryKey(queryArgs)})`,
       merge: (currentCache, newCache, { arg }) =>
         mergeConsultantPages(currentCache, newCache, Number(arg?.page ?? 1)),
-      forceRefetch: ({ currentArg, previousArg }) => currentArg?.page !== previousArg?.page,
+      forceRefetch: ({ currentArg, previousArg }) => {
+        if (currentArg?.page !== previousArg?.page) {
+          return true;
+        }
+        return (
+          stableConsultantsQueryKey(currentArg) !== stableConsultantsQueryKey(previousArg)
+        );
+      },
       providesTags: (result) =>
         result
           ? [

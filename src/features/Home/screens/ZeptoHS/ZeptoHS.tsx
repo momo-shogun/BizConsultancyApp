@@ -291,7 +291,7 @@ export function ZeptoHS(props: ZeptoHSProps): React.ReactElement {
         <PullToRefreshIndicator
           pullProgress={pullProgress}
           refreshing={refreshingSV}
-          tintColor={activeShell.tabLabelColor}
+          tintColor={THEME.colors.splashGreen3}
           testID="zepto_hs_ptr_indicator"
         />
       ) : null}
@@ -320,10 +320,12 @@ export function ZeptoHS(props: ZeptoHSProps): React.ReactElement {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefreshControl}
+              // Drive refresh only — hide native circle (Android elevation/shadow).
+              // Visible spinner is PullToRefreshIndicator above.
               tintColor="transparent"
-              colors={['transparent']}
+              colors={[THEME.colors.splashGreen3]}
               progressBackgroundColor="transparent"
-              progressViewOffset={Platform.OS === 'android' ? -80 : undefined}
+              progressViewOffset={Platform.OS === 'android' ? -120 : undefined}
             />
           ) : undefined
         }

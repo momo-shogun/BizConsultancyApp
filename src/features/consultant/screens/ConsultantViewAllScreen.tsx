@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   FlatList,
+  Keyboard,
   ListRenderItem,
   Pressable,
   StyleSheet,
@@ -39,7 +40,6 @@ import {
   EMPTY_CONSULTANT_LIST_FILTERS,
   findFilterOptionLabel,
   mapMasterToFilterOptions,
-  matchesConsultantSearch,
 } from '@/features/consultant/utils/consultantListFilters';
 import { getApiErrorMessage } from '@/utils/apiError';
 import { ROUTES } from '@/navigation/routeNames';
@@ -205,20 +205,25 @@ export function ConsultantViewAllScreen(): React.ReactElement {
   }, [consultantsPage?.items]);
 
   const hasMore = consultantsPage?.hasMore ?? false;
-  const isInitialLoading = (isLoading || isFetching) && page === 1 && consultantItems.length === 0;
+  /** Server-side search is active once debounced query meets API min length. */
+  const isApiSearchActive = debouncedSearch.length >= CONSULTANT_SEARCH_MIN_API_LENGTH;
+  const hasSearchDraft = searchQuery.trim().length > 0;
+  const isSearchPending =
+    hasSearchDraft &&
+    searchQuery.trim() !== debouncedSearch &&
+    searchQuery.trim().length >= CONSULTANT_SEARCH_MIN_API_LENGTH;
+  const isInitialLoading =
+    (isLoading || isFetching || isSearchPending) && page === 1 && consultantItems.length === 0;
   const isLoadingMore = isFetching && page > 1 && consultantItems.length > 0;
+  const isRefreshingSearch =
+    isApiSearchActive && (isFetching || isSearchPending) && page === 1 && consultantItems.length > 0;
   const showPlaceholders = isInitialLoading;
-  const hasSearchQuery = searchQuery.trim().length > 0;
   const activeFilterCount = useMemo(() => countActiveConsultantFilters(filters), [filters]);
 
   const displayItems = useMemo((): TopConsultantItem[] => {
-    const useLocalSearch = debouncedSearch.length < CONSULTANT_SEARCH_MIN_API_LENGTH;
-    let rows = consultantItems;
-    if (useLocalSearch && hasSearchQuery) {
-      rows = rows.filter((item) => matchesConsultantSearch(item, searchQuery));
-    }
-    return sortConsultants(rows, sortMode);
-  }, [consultantItems, debouncedSearch, hasSearchQuery, searchQuery, sortMode]);
+    // Search/filter results come from `GET public/consultants` — no client-side filter.
+    return sortConsultants(consultantItems, sortMode);
+  }, [consultantItems, sortMode]);
 
   const loadMore = useCallback((): void => {
     if (!hasMore || isFetching) {
@@ -428,6 +433,20 @@ export function ConsultantViewAllScreen(): React.ReactElement {
     [cardWidth],
   );
 
+  const toggleSearch = useCallback((): void => {
+    setIsSearchOpen((open) => {
+      if (open) {
+        setSearchQuery('');
+        Keyboard.dismiss();
+      }
+      return !open;
+    });
+  }, []);
+
+  const clearSearch = useCallback((): void => {
+    setSearchQuery('');
+  }, []);
+
   const ListHeader = useCallback(
     (): React.ReactElement => (
       <View style={styles.listHeader}>
@@ -442,14 +461,27 @@ export function ConsultantViewAllScreen(): React.ReactElement {
               {activeFilterCount} filter{activeFilterCount === 1 ? '' : 's'} active
             </Text>
           ) : null}
+          {isApiSearchActive ? (
+            <Text style={styles.sortHintText}>Search: “{debouncedSearch}”</Text>
+          ) : null}
           <Text style={styles.sortHintText}>Sort: {sortLabel}</Text>
-          {isFetching && !isLoading ? (
+          {(isFetching || isSearchPending) && !isLoading ? (
             <ActivityIndicator size="small" color={THEME.colors.primary} style={styles.fetchingIndicator} />
           ) : null}
         </View>
       </View>
     ),
-    [activeFilterCount, chipItems, isFetching, isLoading, onSortPress, sortLabel],
+    [
+      activeFilterCount,
+      chipItems,
+      debouncedSearch,
+      isApiSearchActive,
+      isFetching,
+      isLoading,
+      isSearchPending,
+      onSortPress,
+      sortLabel,
+    ],
   );
 
   const ListFooter = useCallback((): React.ReactElement | null => {
@@ -470,35 +502,47 @@ export function ConsultantViewAllScreen(): React.ReactElement {
       <ScreenHeader
         title="Consultants"
         onBackPress={handleBackPress}
-        onSearchPress={() => setIsSearchOpen((v) => !v)}
+        onSearchPress={toggleSearch}
       />
 
       {isSearchOpen ? (
-        <View style={styles.searchRow}>
-          <TextInput
-            accessibilityLabel="Search consultants"
-            placeholder="Name, designation, skills…"
-            placeholderTextColor={THEME.colors.textSecondary}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            style={styles.searchInput}
-            returnKeyType="search"
-            clearButtonMode="while-editing"
-            autoFocus
-          />
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Clear search"
-            onPress={() => setSearchQuery('')}
-            disabled={searchQuery.length === 0}
-            hitSlop={8}
-          >
-            <Ionicons
-              name="close-circle"
-              size={22}
-              color={searchQuery.length === 0 ? THEME.colors.border : THEME.colors.textSecondary}
+        <View style={styles.searchBlock}>
+          <View style={styles.searchField}>
+            <Ionicons name="search-outline" size={18} color={THEME.colors.primary} />
+            <TextInput
+              accessibilityLabel="Search consultants"
+              placeholder="Name, designation, skills…"
+              placeholderTextColor={THEME.colors.textSecondary}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              style={styles.searchInput}
+              returnKeyType="search"
+              clearButtonMode="while-editing"
+              autoFocus
+              autoCorrect={false}
+              autoCapitalize="none"
+              onSubmitEditing={() => Keyboard.dismiss()}
+              selectionColor={THEME.colors.primary}
             />
-          </Pressable>
+            {isRefreshingSearch || isSearchPending ? (
+              <ActivityIndicator size="small" color={THEME.colors.primary} />
+            ) : null}
+            {searchQuery.length > 0 ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Clear search"
+                onPress={clearSearch}
+                hitSlop={8}
+              >
+                <Ionicons name="close-circle" size={20} color={THEME.colors.textSecondary} />
+              </Pressable>
+            ) : null}
+          </View>
+          {hasSearchDraft && !isApiSearchActive && !isSearchPending ? (
+            <Text style={styles.searchHint}>
+              Type at least {CONSULTANT_SEARCH_MIN_API_LENGTH} characters to search
+            </Text>
+          ) : null}
         </View>
       ) : null}
 
@@ -534,16 +578,18 @@ export function ConsultantViewAllScreen(): React.ReactElement {
                 title={
                   isError
                     ? 'Consultants unavailable'
-                    : hasSearchQuery || activeFilterCount > 0
+                    : isApiSearchActive || activeFilterCount > 0
                       ? 'No consultants match'
                       : 'No consultants yet'
                 }
                 description={
                   isError
                     ? 'Pull to refresh or check your connection.'
-                    : hasSearchQuery || activeFilterCount > 0
-                      ? 'Try different keywords or adjust filters.'
-                      : 'New experts will appear here once they are onboarded.'
+                    : isApiSearchActive
+                      ? `No experts matched “${debouncedSearch}”. Try another keyword.`
+                      : activeFilterCount > 0
+                        ? 'Try adjusting filters.'
+                        : 'New experts will appear here once they are onboarded.'
                 }
               />
             }
@@ -568,25 +614,33 @@ export function ConsultantViewAllScreen(): React.ReactElement {
 export default ConsultantViewAllScreen;
 
 const styles = StyleSheet.create({
-  searchRow: {
+  searchBlock: {
+    backgroundColor: THEME.colors.background,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: THEME.colors.border,
+    paddingHorizontal: H_PADDING,
+    paddingTop: THEME.spacing[8],
+    paddingBottom: THEME.spacing[10],
+  },
+  searchField: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: THEME.spacing[8],
-    paddingHorizontal: H_PADDING,
-    paddingVertical: THEME.spacing[8],
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: THEME.colors.border,
-    backgroundColor: THEME.colors.background,
+    minHeight: 44,
+    paddingHorizontal: THEME.spacing[12],
+    borderRadius: THEME.radius[12],
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: THEME.colors.border,
+    backgroundColor: THEME.colors.surface,
+  },
+  searchHint: {
+    marginTop: THEME.spacing[4],
+    fontSize: THEME.typography.size[12],
+    color: THEME.colors.textSecondary,
   },
   searchInput: {
     flex: 1,
-    minHeight: 40,
-    paddingVertical: THEME.spacing[8],
-    paddingHorizontal: THEME.spacing[10],
-    borderRadius: THEME.radius[12],
-    borderWidth: 1,
-    borderColor: THEME.colors.border,
-    backgroundColor: THEME.colors.white,
+    paddingVertical: THEME.spacing[10],
     fontSize: THEME.typography.size[14],
     color: THEME.colors.textPrimary,
   },

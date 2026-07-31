@@ -1,5 +1,4 @@
 import type { FilterOption, FilterSection, FilterSheetValue } from '@/shared/components';
-import type { TopConsultantItem } from '@/shared/components';
 
 import type { MasterDataItem } from '../types/masterData.types';
 import type { PublicConsultantsQuery } from '../types/consultantApi.types';
@@ -86,19 +85,6 @@ export function buildPublicConsultantsListQuery(
   }
 
   return query;
-}
-
-export function matchesConsultantSearch(item: TopConsultantItem, query: string): boolean {
-  const term = query.trim().toLowerCase();
-  if (term.length === 0) {
-    return true;
-  }
-  return (
-    item.name.toLowerCase().includes(term) ||
-    item.role.toLowerCase().includes(term) ||
-    item.specialty.toLowerCase().includes(term) ||
-    item.bio.toLowerCase().includes(term)
-  );
 }
 
 export function buildConsultantFilterSections(
