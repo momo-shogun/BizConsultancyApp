@@ -137,11 +137,20 @@ export function MyDiagnosticPackScreen(): React.ReactElement {
     });
   }, []);
 
+  const onBackPress = useCallback((): void => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+    /** After purchase reset, MyDiagnosticPack is the only Account screen — send user to Home. */
+    navigationRef.navigate(ROUTES.Root.App, { screen: ROUTES.App.Home });
+  }, [navigation]);
+
   if (!screen.isAuthenticated) {
     return (
       <AccountHubScreenShell
         title="My Diagnostic Pack"
-        onBackPress={() => navigation.goBack()}
+        onBackPress={onBackPress}
         canvasColor={PACK_CANVAS}
       >
         <View style={styles.centered}>
@@ -161,7 +170,7 @@ export function MyDiagnosticPackScreen(): React.ReactElement {
     return (
       <AccountHubScreenShell
         title="My Diagnostic Pack"
-        onBackPress={() => navigation.goBack()}
+        onBackPress={onBackPress}
         canvasColor={PACK_CANVAS}
       >
         <View style={styles.centered}>
@@ -175,7 +184,7 @@ export function MyDiagnosticPackScreen(): React.ReactElement {
     return (
       <AccountHubScreenShell
         title="My Diagnostic Pack"
-        onBackPress={() => navigation.goBack()}
+        onBackPress={onBackPress}
         canvasColor={PACK_CANVAS}
       >
         <View style={styles.centered}>
@@ -198,7 +207,7 @@ export function MyDiagnosticPackScreen(): React.ReactElement {
     return (
       <AccountHubScreenShell
         title="My Diagnostic Pack"
-        onBackPress={() => navigation.goBack()}
+        onBackPress={onBackPress}
         canvasColor={PACK_CANVAS}
       >
         <ScrollView
@@ -233,7 +242,7 @@ export function MyDiagnosticPackScreen(): React.ReactElement {
   return (
     <AccountHubScreenShell
       title="My Diagnostic Pack"
-      onBackPress={() => navigation.goBack()}
+      onBackPress={onBackPress}
       canvasColor={PACK_CANVAS}
     >
       <ScrollView

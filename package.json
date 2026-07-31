@@ -16,6 +16,7 @@
     "start": "react-native start",
     "test": "NODE_OPTIONS=--max-old-space-size=4096 jest",
     "build": "cd android && ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a",
+    "buildW": "cd android && gradlew.bat assembleRelease -PreactNativeArchitectures=arm64-v8a",
     "build:apk:legacy32": "cd android && ./gradlew assembleRelease -PreactNativeArchitectures=armeabi-v7a,arm64-v8a",
     "build:bundle": "cd android && ./gradlew bundleRelease -PreactNativeArchitectures=arm64-v8a",
     "build:android": "npx react-native build-android --mode=release",

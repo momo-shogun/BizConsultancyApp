@@ -28,6 +28,11 @@ import type { MembershipPlan } from '../types/membershipPlan.types';
 import { readMembershipApiErrorMessage } from '../utils/membershipRegistrationParsing';
 
 export interface UseMembershipPurchaseResult {
+  /**
+   * Increments once per successful wallet / Razorpay purchase. Screens watch this in an
+   * effect instead of a callback so navigation runs after the checkout modal unmounts.
+   */
+  purchaseSuccessCount: number;
   checkoutVisible: boolean;
   paymentStepVisible: boolean;
   selectedPlan: MembershipPlan | null;
@@ -70,6 +75,7 @@ export function useMembershipPurchase(): UseMembershipPurchaseResult {
   const [segmentError, setSegmentError] = useState<string | null>(null);
   const [payingWith, setPayingWith] = useState<'razorpay' | 'wallet' | null>(null);
   const [isBusy, setIsBusy] = useState(false);
+  const [purchaseSuccessCount, setPurchaseSuccessCount] = useState(0);
 
   const { data: profile } = useGetUserMeQuery(undefined, { skip: !isAuthenticated });
   const { data: categories = [], isLoading: categoriesLoading } = useGetMasterCategoriesQuery();
@@ -247,6 +253,7 @@ export function useMembershipPurchase(): UseMembershipPurchaseResult {
       variant: 'success',
     });
     resetCheckout();
+    setPurchaseSuccessCount((count) => count + 1);
   }, [resetCheckout]);
 
   const payWithWallet = useCallback(async (): Promise<void> => {
@@ -351,6 +358,7 @@ export function useMembershipPurchase(): UseMembershipPurchaseResult {
 
   return useMemo(
     () => ({
+      purchaseSuccessCount,
       checkoutVisible,
       paymentStepVisible,
       selectedPlan,
@@ -393,6 +401,7 @@ export function useMembershipPurchase(): UseMembershipPurchaseResult {
       payingWith,
       paymentStepVisible,
       proceedToPayment,
+      purchaseSuccessCount,
       segmentError,
       segmentId,
       segmentOptions,

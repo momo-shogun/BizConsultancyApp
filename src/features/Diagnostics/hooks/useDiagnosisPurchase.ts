@@ -24,6 +24,11 @@ import { showGlobalError, showGlobalToast } from '@/shared/components';
 import { useAppSelector } from '@/store/typedHooks';
 
 export interface UseDiagnosisPurchaseResult {
+  /**
+   * Increments once per successful purchase / upgrade. Screens watch this in an
+   * effect so navigation runs after the payment modal closes.
+   */
+  purchaseSuccessCount: number;
   paymentModalVisible: boolean;
   selectedPlan: DiagnosisPlanViewModel | null;
   amountRupees: number;
@@ -67,6 +72,7 @@ export function useDiagnosisPurchase(): UseDiagnosisPurchaseResult {
   const [amountRupees, setAmountRupees] = useState(0);
   const [payingWith, setPayingWith] = useState<'razorpay' | 'wallet' | null>(null);
   const [isBusy, setIsBusy] = useState(false);
+  const [purchaseSuccessCount, setPurchaseSuccessCount] = useState(0);
 
   useEffect(() => {
     if (!hasVerifiedLogin) {
@@ -169,6 +175,7 @@ export function useDiagnosisPurchase(): UseDiagnosisPurchaseResult {
     setPaymentModalVisible(false);
     setSelectedPlan(null);
     setAmountRupees(0);
+    setPurchaseSuccessCount((count) => count + 1);
   }, []);
 
   const payWithWallet = useCallback(async (): Promise<void> => {
@@ -261,6 +268,7 @@ export function useDiagnosisPurchase(): UseDiagnosisPurchaseResult {
 
   return useMemo(
     () => ({
+      purchaseSuccessCount,
       paymentModalVisible,
       selectedPlan,
       amountRupees,
@@ -285,6 +293,7 @@ export function useDiagnosisPurchase(): UseDiagnosisPurchaseResult {
       payWithWallet,
       paymentModalVisible,
       payingWith,
+      purchaseSuccessCount,
       selectedPlan,
       walletBalanceRupees,
     ],

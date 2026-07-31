@@ -7,13 +7,14 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { NavigationProp, useNavigation } from '@react-navigation/native';
+import { NavigationProp, StackActions, useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { THEME } from '@/constants/theme';
 import { selectIsAuthenticated } from '@/features/Auth/store/authSelectors';
 import { useGetPublicMembershipsQuery } from '@/features/Home/api/homePublicApi';
 import { useAppSelector } from '@/store/typedHooks';
+import { ROUTES } from '@/navigation/routeNames';
 import type { AccountStackParamList } from '@/navigation/types';
 import { AccountHubScreenShell, ScreenWrapper } from '@/shared/components';
 
@@ -323,7 +324,24 @@ function isCtaDisabled(mode: MembershipPlanCtaMode): boolean {
 export function MembershipPlansScreen({ config }: MembershipPlansScreenProps): React.ReactElement {
   const navigation = useNavigation<NavigationProp<AccountStackParamList>>();
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
+
   const purchase = useMembershipPurchase();
+  const { purchaseSuccessCount } = purchase;
+
+  /** Replace so Back from My Membership skips the plans list instead of reopening checkout. */
+  useEffect(() => {
+    if (purchaseSuccessCount === 0) {
+      return;
+    }
+    navigation.dispatch(
+      StackActions.replace(
+        config.membershipApiType === 'experts'
+          ? ROUTES.Account.ConsultantMyMembership
+          : ROUTES.Account.UserMyMembership,
+      ),
+    );
+  }, [config.membershipApiType, navigation, purchaseSuccessCount]);
+
   const { data, isLoading, isError, refetch } = useGetPublicMembershipsQuery({
     type: config.membershipApiType,
   });

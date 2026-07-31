@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -9,6 +9,8 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { CommonActions, useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import {
   useGetMyDiagnosisPurchaseStateQuery,
@@ -23,12 +25,21 @@ import { DiagnosisSectionHeader } from '@/features/Diagnostics/components/Diagno
 import { DIAGNOSIS_THEME } from '@/features/Diagnostics/constants/diagnosisTheme';
 import { useDiagnosisPurchase } from '@/features/Diagnostics/hooks/useDiagnosisPurchase';
 import { mapToDiagnosisPlanViewModels } from '@/features/Diagnostics/utils/diagnosticsMappers';
-import { selectHasVerifiedLogin } from '@/features/Auth/store/authSelectors';
+import {
+  selectEffectiveAccountRole,
+  selectHasVerifiedLogin,
+} from '@/features/Auth/store/authSelectors';
 import { THEME } from '@/constants/theme';
 import { navigationRef } from '@/navigation/RootNavigator';
 import { ROUTES } from '@/navigation/routeNames';
+import type { RootStackParamList } from '@/navigation/types';
 import { SafeAreaWrapper } from '@/shared/components';
 import { useAppSelector } from '@/store/typedHooks';
+
+type NavigationProp = NativeStackNavigationProp<
+  RootStackParamList,
+  typeof ROUTES.Root.BusinessDiagnosis
+>;
 
 const FEATURES = [
   {
@@ -66,9 +77,11 @@ const TRUST_ITEMS = [
 ] as const;
 
 export function BusinessDiagnosisScreen(): React.ReactElement {
+  const navigation = useNavigation<NavigationProp>();
   const scrollRef = useRef<ScrollView>(null);
   const [packsScrollY, setPacksScrollY] = useState(0);
   const hasVerifiedLogin = useAppSelector(selectHasVerifiedLogin);
+  const accountRole = useAppSelector(selectEffectiveAccountRole);
 
   const {
     data: packs = [],
@@ -82,6 +95,45 @@ export function BusinessDiagnosisScreen(): React.ReactElement {
   });
 
   const purchase = useDiagnosisPurchase();
+  const { purchaseSuccessCount } = purchase;
+
+  /**
+   * Clear Root overlays (diagnosis plans) so Back from My Diagnostic Pack
+   * does not return here. Account stack starts at MyDiagnosticPack only.
+   */
+  useEffect(() => {
+    if (purchaseSuccessCount === 0) {
+      return;
+    }
+    const showEdp = accountRole !== 'consultant';
+    const tabRoutes = [
+      { name: ROUTES.App.Home },
+      { name: ROUTES.App.Services },
+      ...(showEdp ? [{ name: ROUTES.App.Edp }] : []),
+      {
+        name: ROUTES.App.Account,
+        state: {
+          routes: [{ name: ROUTES.Account.MyDiagnosticPack }],
+          index: 0,
+        },
+      },
+    ];
+
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [
+          {
+            name: ROUTES.Root.App,
+            state: {
+              routes: tabRoutes,
+              index: tabRoutes.length - 1,
+            },
+          },
+        ],
+      }),
+    );
+  }, [accountRole, navigation, purchaseSuccessCount]);
 
   const plans = useMemo(
     () => mapToDiagnosisPlanViewModels(packs, purchaseState ?? null),
