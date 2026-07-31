@@ -98,13 +98,10 @@ android {
                 arguments "-DANDROID_STL=c++_shared"
             }
         }
-        ndk {
-            debugSymbolLevel 'SYMBOL_TABLE'
-        }
     }
     configurations.configureEach {
-    exclude group: "io.agora.rtc", module: "full-screen-sharing"
-}
+        exclude group: "io.agora.rtc", module: "full-screen-sharing"
+    }
     signingConfigs {
         debug {
             storeFile file('debug.keystore')
@@ -130,7 +127,17 @@ android {
             minifyEnabled enableProguardInReleaseBuilds
             shrinkResources enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+            // Native symbols for Play/Crashlytics — skip on debug to avoid
+            // extractDebugNativeSymbolTables / mergeDebugNativeDebugMetadata cost.
+            ndk {
+                debugSymbolLevel 'SYMBOL_TABLE'
+            }
         }
+    }
+    lint {
+        // Skip lintVital on release assemble — large cost on low-RAM machines;
+        // run `./gradlew lintRelease` in CI when you want full lint.
+        checkReleaseBuilds false
     }
 }
 
