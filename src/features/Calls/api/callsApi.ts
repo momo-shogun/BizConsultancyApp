@@ -66,6 +66,12 @@ export const callsApi = baseApi.injectEndpoints({
         body,
       }),
     }),
+    clearDeviceToken: build.mutation<{ ok: true }, void>({
+      query: () => ({
+        url: 'calls/device-token',
+        method: 'DELETE',
+      }),
+    }),
     syncCall: build.query<CallSyncResponse, { sessionId: number; sinceVersion?: number }>({
       query: ({ sessionId, sinceVersion }) => {
         const q =

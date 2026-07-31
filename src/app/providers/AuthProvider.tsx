@@ -65,7 +65,7 @@ export function AuthProvider(props: React.PropsWithChildren): React.ReactElement
 
   const logout = useCallback((): void => {
     dispatchFlow({ type: 'AUTH/CLEAR_FLOW' });
-    clearAppSession(dispatch);
+    void clearAppSession(dispatch);
   }, [dispatch]);
 
   const selectAccountContext = useCallback(

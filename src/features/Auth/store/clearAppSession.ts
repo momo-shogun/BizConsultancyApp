@@ -1,10 +1,16 @@
+import { unregisterFcmDeviceToken } from '@/features/Calls/services/callFirebaseMessaging';
 import { baseApi } from '@/services/api/baseApi';
 import type { AppDispatch } from '@/store';
 
 import { logout } from './authSlice';
 
-/** Clears auth state and all RTK Query cached user data (bookings, wallet, profile, …). */
-export function clearAppSession(dispatch: AppDispatch): void {
+type SessionDispatch = AppDispatch | ((action: unknown) => unknown);
+
+/**
+ * Clears FCM registration (while JWT still valid), then auth state and RTK Query cache.
+ */
+export async function clearAppSession(dispatch: SessionDispatch): Promise<void> {
+  await unregisterFcmDeviceToken(dispatch as AppDispatch);
   dispatch(logout());
   dispatch(baseApi.util.resetApiState());
 }

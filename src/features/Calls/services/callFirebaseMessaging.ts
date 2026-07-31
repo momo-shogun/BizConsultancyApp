@@ -1,6 +1,7 @@
 import { PermissionsAndroid, Platform } from 'react-native';
 import messaging from '@react-native-firebase/messaging';
 
+import type { AppDispatch } from '@/store';
 import { store } from '@/store';
 
 import { callsApi } from '../api/callsApi';
@@ -64,6 +65,34 @@ export async function syncFcmDeviceToken(): Promise<void> {
   } catch (err) {
     if (__DEV__) {
       console.warn('[calls] syncFcmDeviceToken failed', err);
+    }
+  }
+}
+
+/**
+ * Clear this device's FCM registration for the current account, then invalidate the local token.
+ * Must run while the auth JWT is still present so the DELETE call is authorized.
+ */
+export async function unregisterFcmDeviceToken(dispatch: AppDispatch): Promise<void> {
+  try {
+    await dispatch(callsApi.endpoints.clearDeviceToken.initiate()).unwrap();
+    if (__DEV__) {
+      console.log('[calls] FCM device-token cleared on server');
+    }
+  } catch (err) {
+    if (__DEV__) {
+      console.warn('[calls] clear device-token API failed', err);
+    }
+  }
+
+  try {
+    await messaging().deleteToken();
+    if (__DEV__) {
+      console.log('[calls] local FCM token deleted');
+    }
+  } catch (err) {
+    if (__DEV__) {
+      console.warn('[calls] messaging().deleteToken failed', err);
     }
   }
 }

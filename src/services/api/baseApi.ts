@@ -8,7 +8,7 @@ import {
 
 import { API_BASE_URL } from '@/constants/api';
 import { readPersistedAuthTokenSync } from '@/features/Auth/store/readPersistedAuthToken';
-import { establishSession, logout, setAuthSession } from '@/features/Auth/store/authSlice';
+import { establishSession, setAuthSession } from '@/features/Auth/store/authSlice';
 import { parseAuthSessionPayload } from '@/features/Auth/utils/authSessionParsing';
 import type { RootState } from '@/store';
 
@@ -70,8 +70,8 @@ const baseQueryWithReauth: BaseQueryFn<
     return result;
   }
   if (state.auth.refreshToken == null || state.auth.refreshToken.length === 0) {
-    api.dispatch(logout());
-    api.dispatch(baseApi.util.resetApiState());
+    const { clearAppSession } = await import('@/features/Auth/store/clearAppSession');
+    await clearAppSession(api.dispatch);
     return result;
   }
 
@@ -128,8 +128,8 @@ const baseQueryWithReauth: BaseQueryFn<
 
   const refreshed = await refreshPromise;
   if (!refreshed) {
-    api.dispatch(logout());
-    api.dispatch(baseApi.util.resetApiState());
+    const { clearAppSession } = await import('@/features/Auth/store/clearAppSession');
+    await clearAppSession(api.dispatch);
     return result;
   }
 

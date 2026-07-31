@@ -100,11 +100,11 @@ export const restoreSession = createAsyncThunk<boolean, void, { state: RootState
               const refreshed = await dispatch(refreshAuthToken()).unwrap();
               return refreshed;
             } catch {
-              clearAppSession(dispatch);
+              await clearAppSession(dispatch);
               return false;
             }
           }
-          clearAppSession(dispatch);
+          await clearAppSession(dispatch);
           return false;
         }
         return true;
@@ -118,7 +118,7 @@ export const restoreSession = createAsyncThunk<boolean, void, { state: RootState
         return true;
       }
 
-      clearAppSession(dispatch);
+      await clearAppSession(dispatch);
       return false;
     } finally {
       dispatch(setRestoringSession(false));
@@ -228,6 +228,6 @@ export const establishProfileSession = createAsyncThunk<
 export const logoutSession = createAsyncThunk<void, void, { state: RootState }>(
   'auth/logoutSession',
   async (_arg, { dispatch }) => {
-    clearAppSession(dispatch);
+    await clearAppSession(dispatch);
   },
 );
