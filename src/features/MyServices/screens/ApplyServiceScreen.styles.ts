@@ -129,6 +129,67 @@ export const styles = StyleSheet.create({
   fieldBlock: {
     gap: 8,
   },
+  choiceGroup: {
+    gap: 8,
+  },
+  choiceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FAFCFE',
+  },
+  choiceRowSelected: {
+    borderColor: '#0F5132',
+    backgroundColor: '#ECFDF5',
+  },
+  choiceBox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: '#94A3B8',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  choiceBoxSelected: {
+    borderColor: '#0F5132',
+    backgroundColor: '#0F5132',
+  },
+  choiceCheck: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 14,
+  },
+  choiceRadioOuter: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#94A3B8',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  choiceRadioOuterSelected: {
+    borderColor: '#0F5132',
+  },
+  choiceRadioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#0F5132',
+  },
+  choiceLabel: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0B3258',
+  },
   multiAddBtn: {
     alignSelf: 'flex-start',
     paddingVertical: 4,

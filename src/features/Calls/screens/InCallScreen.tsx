@@ -12,6 +12,7 @@ import { CallAvatar } from '../components/CallAvatar';
 import { CallVideoLayout } from '../components/CallVideoLayout';
 import { CallController } from '../controllers/CallController';
 import { useCallTimer } from '../hooks/useCallTimer';
+import { useIsDeviceLocked } from '../hooks/useIsDeviceLocked';
 import { audioSessionService } from '../services/audioSessionService';
 import { formatCallDuration } from '../utils/formatCallDuration';
 
@@ -19,6 +20,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Root/InCall'>;
 
 export function InCallScreen({ navigation }: Props): React.ReactElement {
   const insets = useSafeAreaInsets();
+  const deviceLocked = useIsDeviceLocked();
   const remoteName = useAppSelector((s) => s.call.remoteDisplayName);
   const remoteAvatarUrl = useAppSelector((s) => s.call.remoteAvatarUrl);
   const callType = useAppSelector((s) => s.call.callType);
@@ -46,22 +48,30 @@ export function InCallScreen({ navigation }: Props): React.ReactElement {
 
   useEffect(() => {
     if (phase === 'idle' && !isMinimized) {
+      if (deviceLocked) {
+        return;
+      }
       navigation.goBack();
     }
-  }, [isMinimized, navigation, phase]);
+  }, [deviceLocked, isMinimized, navigation, phase]);
 
-  /** Hardware/system back on an active call minimizes (isMinimized=true) instead of dropping
-   *  the call, so the ongoing-call notification stays and tapping it reopens this screen. */
+  /**
+   * Hardware back: when unlocked, minimize so the user can browse the app.
+   * When locked, stay on the call UI only — no access to the rest of the app.
+   */
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
       if (phase === 'in_call') {
+        if (deviceLocked) {
+          return true;
+        }
         CallController.minimizeCall();
         return true;
       }
       return false;
     });
     return () => subscription.remove();
-  }, [phase]);
+  }, [deviceLocked, phase]);
 
   const statusText = reconnecting
     ? 'Reconnecting…'
@@ -69,16 +79,22 @@ export function InCallScreen({ navigation }: Props): React.ReactElement {
 
   const topBar = (
     <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
-      <Pressable
-        style={[styles.minimizeBtn, isVideoCall ? styles.minimizeBtnVideo : null]}
-        onPress={() => CallController.minimizeCall()}
-        accessibilityRole="button"
-        accessibilityLabel="Minimize call"
-      >
-        <Ionicons name="chevron-down" size={28} color="#fff" />
-      </Pressable>
+      {deviceLocked ? (
+        <View style={styles.topSpacer} />
+      ) : (
+        <Pressable
+          style={[styles.minimizeBtn, isVideoCall ? styles.minimizeBtnVideo : null]}
+          onPress={() => CallController.minimizeCall()}
+          accessibilityRole="button"
+          accessibilityLabel="Minimize call"
+        >
+          <Ionicons name="chevron-down" size={28} color="#fff" />
+        </Pressable>
+      )}
       {!isVideoCall ? (
-        <Text style={styles.topHint}>Swipe down to browse app</Text>
+        <Text style={styles.topHint}>
+          {deviceLocked ? 'Unlock phone to browse the app' : 'Swipe down to browse app'}
+        </Text>
       ) : (
         <View style={styles.videoTopMeta}>
           <Text style={styles.videoTopName} numberOfLines={1}>

@@ -50,7 +50,11 @@ export async function consumeNativePendingIncomingCall(): Promise<boolean> {
   }
 
   callEngine.bindSocketHandlers();
-  callEngine.seedIncomingFromNotification(payload);
+  const seeded = await callEngine.seedIncomingFromNotificationAsync(payload);
+  if (!seeded) {
+    await cancelIncomingCallNotification(payload.sessionId);
+    return false;
+  }
 
   const action = pending.action;
   if (action === 'decline') {

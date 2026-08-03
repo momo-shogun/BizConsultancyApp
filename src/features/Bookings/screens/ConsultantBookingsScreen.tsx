@@ -108,6 +108,7 @@ export function ConsultantBookingsScreen(): React.ReactElement {
 
   const isUpcoming = screen.filter === 'upcoming';
 
+  
   return (
     <SafeAreaWrapper
       edges={['bottom']}

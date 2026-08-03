@@ -228,6 +228,13 @@ export const establishProfileSession = createAsyncThunk<
 export const logoutSession = createAsyncThunk<void, void, { state: RootState }>(
   'auth/logoutSession',
   async (_arg, { dispatch }) => {
+<<<<<<< HEAD
     await clearAppSession(dispatch);
+=======
+    // Clear FCM registration before wiping the JWT — otherwise pushes keep arriving offline.
+    const { callWarmupCoordinator } = await import('@/features/Calls/engine/CallWarmupCoordinator');
+    await callWarmupCoordinator.onLogout();
+    clearAppSession(dispatch);
+>>>>>>> 98222fc (lock screen calling issue solved , timeout issue solved)
   },
 );

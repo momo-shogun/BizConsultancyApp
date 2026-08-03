@@ -1,6 +1,8 @@
 package com.consultancy
 
+import android.app.KeyguardManager
 import android.app.NotificationManager
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -10,10 +12,12 @@ import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
+import com.facebook.react.bridge.UiThreadUtil
 import com.facebook.react.bridge.WritableMap
 
 /**
- * Android call-display helpers: full-screen intent permission + pending native incoming call.
+ * Android call-display helpers: full-screen intent permission + pending native incoming call
+ * + lock-screen call-only overlay.
  */
 class CallAndroidPermissionsModule(
     private val reactContext: ReactApplicationContext,
@@ -105,6 +109,83 @@ class CallAndroidPermissionsModule(
       promise.resolve(null)
     } catch (error: Exception) {
       promise.reject("CANCEL_CALL_FAILED", error.message, error)
+    }
+  }
+
+  /**
+   * Arm the ring-window expiry for a Notifee-painted notification. Notifee has no `timeoutAfter`,
+   * so without this its notification outlives a JS process the OS reclaims mid-ring.
+   */
+  @ReactMethod
+  fun scheduleIncomingCallExpiry(sessionId: String, promise: Promise) {
+    try {
+      IncomingCallNativeNotifier.scheduleExpiry(reactContext.applicationContext, sessionId)
+      promise.resolve(null)
+    } catch (error: Exception) {
+      promise.reject("SCHEDULE_CALL_EXPIRY_FAILED", error.message, error)
+    }
+  }
+
+  /** Clears pending killed-state payload + all incoming-call notifications (logout). */
+  @ReactMethod
+  fun clearAllIncomingCallNotifications(promise: Promise) {
+    try {
+      IncomingCallNativeNotifier.clearAll(reactContext.applicationContext)
+      promise.resolve(null)
+    } catch (error: Exception) {
+      promise.reject("CLEAR_INCOMING_CALLS_FAILED", error.message, error)
+    }
+  }
+
+  /** Whether the keyguard is currently locked (device lock screen). */
+  @ReactMethod
+  fun isDeviceLocked(promise: Promise) {
+    try {
+      val km =
+          reactContext.getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager
+      promise.resolve(km?.isKeyguardLocked == true)
+    } catch (error: Exception) {
+      promise.reject("KEYGUARD_CHECK_FAILED", error.message, error)
+    }
+  }
+
+  /**
+   * Allow / disallow MainActivity over the lock screen for the duration of a call.
+   * Everyday app use must not sit on top of the keyguard.
+   */
+  @ReactMethod
+  fun setCallLockOverlay(enabled: Boolean, promise: Promise) {
+    UiThreadUtil.runOnUiThread {
+      try {
+        val activity = reactContext.currentActivity
+        MainActivity.setCallLockOverlay(activity, enabled)
+        promise.resolve(null)
+      } catch (error: Exception) {
+        promise.reject("CALL_LOCK_OVERLAY_FAILED", error.message, error)
+      }
+    }
+  }
+
+  /**
+   * After a call ends: drop lock-screen overlay. If the device is still locked,
+   * send the task to the background so the user returns to the lock screen
+   * instead of browsing the full app without unlocking.
+   */
+  @ReactMethod
+  fun leaveCallUiIfLocked(promise: Promise) {
+    UiThreadUtil.runOnUiThread {
+      try {
+        val activity = reactContext.currentActivity
+        MainActivity.setCallLockOverlay(activity, false)
+        val km =
+            reactContext.getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager
+        if (km?.isKeyguardLocked == true && activity != null) {
+          activity.moveTaskToBack(true)
+        }
+        promise.resolve(null)
+      } catch (error: Exception) {
+        promise.reject("LEAVE_CALL_UI_FAILED", error.message, error)
+      }
     }
   }
 

@@ -13,4 +13,8 @@ export async function clearAppSession(dispatch: SessionDispatch): Promise<void> 
   await unregisterFcmDeviceToken(dispatch as AppDispatch);
   dispatch(logout());
   dispatch(baseApi.util.resetApiState());
+  // Local only — JWT may already be invalid (401 path), so server token clear happens in logoutSession.
+  void import('@/features/Calls/services/callNotificationService').then(({ cancelAllCallNotifications }) => {
+    void cancelAllCallNotifications();
+  });
 }

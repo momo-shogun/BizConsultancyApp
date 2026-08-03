@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { selectIsAuthenticated } from '@/features/Auth/store/authSelectors';
+import { navigationRef } from '@/navigation/navigationContainerRef';
+import { ROUTES } from '@/navigation/routeNames';
 import { Dialog } from '@/shared/components/dialog';
 import { useAppSelector } from '@/store/typedHooks';
 
@@ -18,7 +20,25 @@ import {
   type AndroidCallDisplayPrompt,
 } from '../services/androidCallDisplayPermissions';
 import { consumeNativePendingIncomingCall } from '../services/consumeNativePendingIncomingCall';
+import { isDeviceLocked } from '../services/callLockScreenBridge';
 import { startCallPushListeners } from '../services/callFirebaseMessaging';
+
+const CALL_ONLY_ROUTES = new Set<string>([
+  ROUTES.Root.IncomingCall,
+  ROUTES.Root.OutgoingCall,
+  ROUTES.Root.InCall,
+]);
+
+function isActiveCallPhase(phase: string): boolean {
+  return (
+    phase === 'incoming_ringing' ||
+    phase === 'outgoing_ringing' ||
+    phase === 'outgoing_initiating' ||
+    phase === 'connecting_media' ||
+    phase === 'in_call' ||
+    phase === 'reconnecting'
+  );
+}
 
 function promptCopy(kind: AndroidCallDisplayPrompt): { title: string; description: string } {
   if (kind === 'battery_optimization') {
@@ -39,8 +59,11 @@ export function CallProvider(props: React.PropsWithChildren): React.ReactElement
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const token = useAppSelector((s) => s.auth.token);
   const callPhase = useAppSelector((s) => s.call.phase);
+  const callSessionId = useAppSelector((s) => s.call.sessionId);
   const callPhaseRef = useRef(callPhase);
   callPhaseRef.current = callPhase;
+  const callSessionIdRef = useRef(callSessionId);
+  callSessionIdRef.current = callSessionId;
 
   const [displayPrompt, setDisplayPrompt] = useState<AndroidCallDisplayPrompt>(null);
 
@@ -52,7 +75,6 @@ export function CallProvider(props: React.PropsWithChildren): React.ReactElement
 
   useEffect(() => {
     if (!isAuthenticated || token == null || token.length === 0) {
-      callWarmupCoordinator.onLogout();
       callEngine.unbindSocketHandlers();
       stopNetworkTransitionHandler();
       setDisplayPrompt(null);
@@ -85,6 +107,46 @@ export function CallProvider(props: React.PropsWithChildren): React.ReactElement
       stopNetworkTransitionHandler();
     };
   }, [isAuthenticated, token, refreshDisplayPrompt]);
+
+  /**
+   * Lock screen: if navigation somehow leaves the call stack, force the call UI back.
+   * Prevents browsing Home/Account while the keyguard is still locked.
+   */
+  useEffect(() => {
+    if (!navigationRef.isReady()) {
+      return;
+    }
+
+    const enforceCallOnlyWhenLocked = (): void => {
+      void isDeviceLocked().then((locked) => {
+        if (!locked) {
+          return;
+        }
+        const phase = callPhaseRef.current;
+        const sessionId = callSessionIdRef.current;
+        if (!isActiveCallPhase(phase) || sessionId == null) {
+          return;
+        }
+        const routeName = navigationRef.getCurrentRoute()?.name;
+        if (routeName != null && CALL_ONLY_ROUTES.has(routeName)) {
+          return;
+        }
+        if (phase === 'incoming_ringing') {
+          navigationRef.navigate(ROUTES.Root.IncomingCall as never, { sessionId } as never);
+          return;
+        }
+        if (phase === 'outgoing_ringing' || phase === 'outgoing_initiating') {
+          navigationRef.navigate(ROUTES.Root.OutgoingCall as never, { sessionId } as never);
+          return;
+        }
+        navigationRef.navigate(ROUTES.Root.InCall as never, { sessionId } as never);
+      });
+    };
+
+    const unsubscribe = navigationRef.addListener('state', enforceCallOnlyWhenLocked);
+    enforceCallOnlyWhenLocked();
+    return unsubscribe;
+  }, [callPhase, callSessionId, isAuthenticated]);
 
   const closePrompt = useCallback((): void => {
     if (displayPrompt === 'full_screen_intent') {

@@ -59,14 +59,18 @@
         </intent-filter>
       </receiver>
 
+      <!-- Clears the incoming-call notification once its ring window closes, even if the
+           process died first. No push is sent when the caller hangs up. -->
+      <receiver
+        android:name=".IncomingCallExpiryReceiver"
+        android:exported="false" />
+
       <activity
         android:name=".MainActivity"
         android:label="@string/app_name"
         android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize|uiMode"
         android:launchMode="singleTask"
         android:windowSoftInputMode="adjustResize"
-        android:showWhenLocked="true"
-        android:turnScreenOn="true"
         android:exported="true">
         <intent-filter>
             <action android:name="android.intent.action.MAIN" />

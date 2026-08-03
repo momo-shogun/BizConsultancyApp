@@ -4,6 +4,8 @@ import { AppState } from 'react-native';
 import { readPersistedAuthTokenSync } from '@/features/Auth/store/readPersistedAuthToken';
 import {
   CALL_STATE_SYNC_INTERVAL_MS,
+  INCOMING_RING_STATUS_POLL_MS,
+  INCOMING_RING_TIMEOUT_MS,
   OUTGOING_RING_STATUS_POLL_MS,
   OUTGOING_RING_TIMEOUT_MS,
   REMOTE_REJOIN_GRACE_MS,
@@ -16,6 +18,11 @@ import { callSocketService } from '../services/callSocketService';
 import { agoraMediaService } from '../services/agoraMediaService';
 import { cancelIncomingCallNotification, displayIncomingCallNotification } from '../services/callNotificationService';
 import { callForegroundService } from '../services/callForegroundService';
+import {
+  enableCallLockOverlay,
+  isDeviceLocked,
+  leaveCallUiIfLocked,
+} from '../services/callLockScreenBridge';
 import { callRingtoneService } from '../services/callRingtoneService';
 import { resolveCallPartyImageUrl } from '../utils/callPartyMedia';
 import {
@@ -40,6 +47,7 @@ import type { CallOutcome, CallUiState } from '../store/callSlice';
 import type {
   CallEndedPayload,
   CallIncomingPayload,
+  CallSessionStatusResponse,
   CallType,
   PersistedCallCredentials,
 } from '../types/callApi.types';
@@ -52,6 +60,13 @@ import { resolveLocalCallRole } from '../utils/resolveLocalCallRole';
 
 type CallScreen = 'IncomingCall' | 'OutgoingCall' | 'InCall';
 
+/** Server statuses from which a session can never return to an active call. */
+const TERMINAL_CALL_STATUSES: readonly string[] = ['ended', 'declined', 'missed', 'failed'];
+
+function isTerminalCallStatus(status: string | null | undefined): boolean {
+  return status != null && TERMINAL_CALL_STATUSES.includes(status);
+}
+
 type PendingCallNavigation =
   | { kind: 'navigate'; screen: CallScreen; sessionId: number }
   | { kind: 'replace'; screen: CallScreen; sessionId: number };
@@ -63,6 +78,8 @@ class CallEngineImpl {
   private pendingAcceptSessionId: number | null = null;
   private ringTimeout: ReturnType<typeof setTimeout> | null = null;
   private ringStatusPollTimer: ReturnType<typeof setInterval> | null = null;
+  private incomingRingTimeout: ReturnType<typeof setTimeout> | null = null;
+  private incomingRingStatusPollTimer: ReturnType<typeof setInterval> | null = null;
   private syncTimer: ReturnType<typeof setInterval> | null = null;
   private teardownTimer: ReturnType<typeof setTimeout> | null = null;
   private remoteLeftGraceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -79,6 +96,7 @@ class CallEngineImpl {
       return;
     }
     this.pendingNavigation = null;
+    enableCallLockOverlay();
     const route = this.routeForScreen(pending.screen);
     const params = { sessionId: pending.sessionId };
     if (pending.kind === 'replace') {
@@ -175,6 +193,20 @@ class CallEngineImpl {
     }
   }
 
+  private clearIncomingRingTimeout(): void {
+    if (this.incomingRingTimeout != null) {
+      clearTimeout(this.incomingRingTimeout);
+      this.incomingRingTimeout = null;
+    }
+  }
+
+  private stopIncomingRingStatusPoll(): void {
+    if (this.incomingRingStatusPollTimer != null) {
+      clearInterval(this.incomingRingStatusPollTimer);
+      this.incomingRingStatusPollTimer = null;
+    }
+  }
+
   private clearTeardownTimer(): void {
     if (this.teardownTimer != null) {
       clearTimeout(this.teardownTimer);
@@ -231,24 +263,100 @@ class CallEngineImpl {
       return;
     }
 
-    const status = result.data.status;
-    if (status === 'connected') {
+    if (result.data.status === 'connected') {
       await this.markOutgoingAnswered(sessionId, 'status.connected');
       return;
     }
 
-    if (status === 'declined' || status === 'missed' || status === 'ended' || status === 'failed') {
-      this.handleRemoteEnd(
-        {
-          sessionId,
-          status,
-          durationSeconds: result.data.durationSeconds,
-          endReason: result.data.endReason,
-          endedAt: result.data.endedAt,
-        },
-        status === 'declined' ? 'declined' : 'ended',
-      );
+    this.endIfStatusTerminal(sessionId, result.data);
+  }
+
+  /**
+   * Callee backstop: the caller abandons the session at OUTGOING_RING_TIMEOUT_MS, after which
+   * accept can no longer succeed. Without this the incoming UI rings forever whenever the
+   * caller's `call.ended` never reaches this device (socket down, push-only wake).
+   */
+  private startIncomingRingTimeout(sessionId: number): void {
+    this.clearIncomingRingTimeout();
+    this.incomingRingTimeout = setTimeout(() => {
+      const state = this.getCallState();
+      if (state.sessionId !== sessionId || state.phase !== 'incoming_ringing') {
+        return;
+      }
+      void this.expireIncomingRing(sessionId);
+    }, INCOMING_RING_TIMEOUT_MS);
+  }
+
+  private async expireIncomingRing(sessionId: number): Promise<void> {
+    if (await this.endIfSessionClosed(sessionId)) {
+      return;
     }
+    const state = this.getCallState();
+    if (state.sessionId !== sessionId || state.phase !== 'incoming_ringing') {
+      // Answered while the status check was in flight.
+      return;
+    }
+    await store.dispatch(
+      callsApi.endpoints.endCall.initiate({ sessionId, body: { endReason: 'missed_timeout' } }),
+    );
+    this.showOutcomeThenEnd('missed');
+  }
+
+  /** HTTP fallback while RINGING if sockets miss the caller's cancel / timeout. */
+  private startIncomingRingStatusPoll(sessionId: number): void {
+    this.stopIncomingRingStatusPoll();
+    this.incomingRingStatusPollTimer = setInterval(() => {
+      void this.pollIncomingRingStatus(sessionId);
+    }, INCOMING_RING_STATUS_POLL_MS);
+  }
+
+  private async pollIncomingRingStatus(sessionId: number): Promise<void> {
+    const state = this.getCallState();
+    if (state.sessionId !== sessionId || state.phase !== 'incoming_ringing') {
+      return;
+    }
+    await this.endIfSessionClosed(sessionId);
+  }
+
+  /** Restart the ringing guards after an accept attempt failed for a recoverable reason. */
+  private resumeIncomingRing(sessionId: number): void {
+    if (this.getCallState().phase !== 'incoming_ringing') {
+      return;
+    }
+    this.startIncomingRingTimeout(sessionId);
+    this.startIncomingRingStatusPoll(sessionId);
+  }
+
+  /**
+   * Ask the server whether the session is already closed and, if so, end the local UI.
+   * Returns true when the call was ended here.
+   */
+  private async endIfSessionClosed(sessionId: number): Promise<boolean> {
+    const result = await store.dispatch(
+      callsApi.endpoints.getCallStatus.initiate(sessionId, { forceRefetch: true }),
+    );
+    if ('error' in result || result.data == null) {
+      return false;
+    }
+    return this.endIfStatusTerminal(sessionId, result.data);
+  }
+
+  private endIfStatusTerminal(sessionId: number, data: CallSessionStatusResponse): boolean {
+    if (!isTerminalCallStatus(data.status)) {
+      return false;
+    }
+    this.clearRemoteLeftGrace();
+    this.handleRemoteEnd(
+      {
+        sessionId,
+        status: data.status,
+        durationSeconds: data.durationSeconds,
+        endReason: data.endReason,
+        endedAt: data.endedAt,
+      },
+      data.status === 'declined' ? 'declined' : 'ended',
+    );
+    return true;
   }
 
   /** Callee RINGING fallback when caller cancels and sockets miss call.ended. */
@@ -286,10 +394,13 @@ class CallEngineImpl {
   private scheduleTeardown(delayMs: number, popNavigation = true): void {
     this.clearTeardownTimer();
     this.teardownTimer = setTimeout(() => {
-      if (popNavigation && navigationRef.isReady()) {
-        navigationRef.goBack();
-      }
-      this.teardown();
+      void (async () => {
+        const locked = await isDeviceLocked();
+        if (popNavigation && !locked && navigationRef.isReady()) {
+          navigationRef.goBack();
+        }
+        this.teardown();
+      })();
     }, delayMs);
   }
 
@@ -316,6 +427,8 @@ class CallEngineImpl {
     screen: CallScreen,
     sessionId: number,
   ): void {
+    /** Call screens may appear over the keyguard; everyday app shell must not. */
+    enableCallLockOverlay();
     if (navigationRef.isReady()) {
       const route = this.routeForScreen(screen);
       const params = { sessionId };
@@ -372,20 +485,7 @@ class CallEngineImpl {
 
     await syncCallSession(sessionId, this.reliability.getLastEventVersion());
 
-    const status = result.data.status;
-    if (status === 'declined' || status === 'missed' || status === 'ended' || status === 'failed') {
-      this.clearRemoteLeftGrace();
-      this.handleRemoteEnd(
-        {
-          sessionId,
-          status,
-          durationSeconds: result.data.durationSeconds,
-          endReason: result.data.endReason,
-          endedAt: result.data.endedAt,
-        },
-        status === 'declined' ? 'declined' : 'ended',
-      );
-    }
+    this.endIfStatusTerminal(sessionId, result.data);
   }
 
   /**
@@ -409,19 +509,7 @@ class CallEngineImpl {
       callsApi.endpoints.getCallStatus.initiate(sessionId, { forceRefetch: true }),
     );
     if (!('error' in result) && result.data != null) {
-      const status = result.data.status;
-      if (status === 'declined' || status === 'missed' || status === 'ended' || status === 'failed') {
-        this.clearRemoteLeftGrace();
-        this.handleRemoteEnd(
-          {
-            sessionId,
-            status,
-            durationSeconds: result.data.durationSeconds,
-            endReason: result.data.endReason,
-            endedAt: result.data.endedAt,
-          },
-          status === 'declined' ? 'declined' : 'ended',
-        );
+      if (this.endIfStatusTerminal(sessionId, result.data)) {
         return;
       }
     }
@@ -462,6 +550,8 @@ class CallEngineImpl {
     callRingtoneService.stop();
     this.clearRingTimeout();
     this.stopRingStatusPoll();
+    this.clearIncomingRingTimeout();
+    this.stopIncomingRingStatusPoll();
     store.dispatch(setCallOutcome(outcome));
     store.dispatch(setCallPhase('ended'));
     this.scheduleTeardown(delayMs);
@@ -651,9 +741,37 @@ class CallEngineImpl {
     }
   }
 
+  /**
+   * Ask the server whether this incoming session is already closed (missed / ended / …).
+   * FCM can arrive minutes late (TTL) after the caller timed out — never ring a dead session.
+   * Returns true when the local UI should NOT start ringing.
+   */
+  private async discardIfIncomingSessionClosed(sessionId: number): Promise<boolean> {
+    const result = await store.dispatch(
+      callsApi.endpoints.getCallStatus.initiate(sessionId, { forceRefetch: true }),
+    );
+    if ('error' in result || result.data == null) {
+      // Unknown — let the call through; ring status poll will tear down if it's dead.
+      return false;
+    }
+    if (!isTerminalCallStatus(result.data.status)) {
+      return false;
+    }
+    void cancelIncomingCallNotification(sessionId);
+    return true;
+  }
+
   handleIncoming(payload: CallIncomingPayload): void {
+    void this.handleIncomingAsync(payload);
+  }
+
+  /**
+   * Apply an incoming call only if the server still has it ringing.
+   * Returns false when the session is already terminal (missed / ended / …).
+   */
+  async handleIncomingAsync(payload: CallIncomingPayload): Promise<boolean> {
     if (payload.status !== 'initiated' && payload.status !== 'ringing') {
-      return;
+      return false;
     }
 
     const localRole = resolveLocalCallRole();
@@ -662,15 +780,20 @@ class CallEngineImpl {
      * FCM was already addressed to this device as `payload.calleeRole`.
      */
     if (localRole != null && payload.calleeRole !== localRole) {
-      return;
+      return false;
     }
 
     if (!this.reliability.shouldApply(payload.eventId, payload.eventVersion)) {
-      return;
+      return false;
     }
-    this.reliability.markApplied(payload.eventId, payload.eventVersion);
 
+    if (await this.discardIfIncomingSessionClosed(payload.sessionId)) {
+      return false;
+    }
+
+    this.reliability.markApplied(payload.eventId, payload.eventVersion);
     this.applyIncomingRinging(payload);
+    return true;
   }
 
   /**
@@ -678,8 +801,12 @@ class CallEngineImpl {
    * Notification payload is authoritative even if an earlier headless `handleIncoming` no-op'd.
    */
   seedIncomingFromNotification(payload: CallIncomingPayload): void {
+    void this.seedIncomingFromNotificationAsync(payload);
+  }
+
+  async seedIncomingFromNotificationAsync(payload: CallIncomingPayload): Promise<boolean> {
     if (payload.status !== 'initiated' && payload.status !== 'ringing') {
-      return;
+      return false;
     }
     const state = this.getCallState();
     if (
@@ -688,12 +815,18 @@ class CallEngineImpl {
         state.phase === 'connecting_media' ||
         state.phase === 'in_call')
     ) {
-      return;
+      return true;
     }
+
+    if (await this.discardIfIncomingSessionClosed(payload.sessionId)) {
+      return false;
+    }
+
     if (this.reliability.shouldApply(payload.eventId, payload.eventVersion)) {
       this.reliability.markApplied(payload.eventId, payload.eventVersion);
     }
     this.applyIncomingRinging(payload, { paintNotification: false });
+    return true;
   }
 
   private applyIncomingRinging(
@@ -722,6 +855,10 @@ class CallEngineImpl {
     callRingtoneService.start();
     this.startRingStatusPoll(payload.sessionId, 'incoming');
     this.navigateToCallScreen('IncomingCall', payload.sessionId);
+
+    // The caller gives up first; these detect that even when its `call.ended` never arrives.
+    this.startIncomingRingTimeout(payload.sessionId);
+    this.startIncomingRingStatusPoll(payload.sessionId);
     const shouldPaint = opts?.paintNotification !== false;
     /** Socket path when app is backgrounded: still paint a native call-style notification. */
     if (shouldPaint && AppState.currentState !== 'active') {
@@ -779,17 +916,29 @@ class CallEngineImpl {
 
     callRingtoneService.stop();
     void cancelIncomingCallNotification(sessionId);
+    this.clearIncomingRingTimeout();
+    this.stopIncomingRingStatusPoll();
     store.dispatch(setCallPhase('connecting_media'));
 
     const incomingCallType = this.getCallState().callType ?? 'voice';
     if (!(await this.ensureCallPermissionsOrAbort(incomingCallType, 'incoming_ringing'))) {
+      this.resumeIncomingRing(sessionId);
       return;
     }
 
     const result = await store.dispatch(callsApi.endpoints.acceptCall.initiate(sessionId));
     if ('error' in result) {
+      /**
+       * A late answer is rejected by the server because the caller's ring timeout already
+       * closed the session. Treat that as terminal — returning to `incoming_ringing` leaves
+       * an unanswerable call on screen that can never connect or hang up.
+       */
+      if (await this.endIfSessionClosed(sessionId)) {
+        return;
+      }
       store.dispatch(setCallError('Could not accept call'));
       store.dispatch(setCallPhase('incoming_ringing'));
+      this.resumeIncomingRing(sessionId);
       return;
     }
 
@@ -809,7 +958,12 @@ class CallEngineImpl {
 
     const joined = await this.joinAgoraFromCredentials(credentials);
     if (!joined) {
-      store.dispatch(setCallPhase('incoming_ringing'));
+      // Accept already succeeded, so the server has this session connected. Falling back to
+      // ringing would strand the caller in a call this device can never join.
+      await store.dispatch(
+        callsApi.endpoints.endCall.initiate({ sessionId, body: { endReason: 'network_drop' } }),
+      );
+      this.showOutcomeThenEnd('missed');
       return;
     }
 
@@ -869,6 +1023,8 @@ class CallEngineImpl {
     store.dispatch(setCallPhase('ending'));
     this.clearRingTimeout();
     this.stopRingStatusPoll();
+    this.clearIncomingRingTimeout();
+    this.stopIncomingRingStatusPoll();
     this.clearRemoteLeftGrace();
 
     const accountRole = store.getState().auth?.accountRole;
@@ -894,22 +1050,25 @@ class CallEngineImpl {
       return;
     }
 
+<<<<<<< HEAD
     // Treat status=declined on either socket event as a reject (server dual-emits both).
     const effectiveKind: 'declined' | 'ended' =
       kind === 'declined' || payload.status === 'declined' ? 'declined' : 'ended';
 
     const terminal = ['ended', 'declined', 'missed', 'failed'];
+=======
+>>>>>>> 98222fc (lock screen calling issue solved , timeout issue solved)
     if (
       payload.status != null &&
       payload.status.length > 0 &&
-      !terminal.includes(payload.status)
+      !isTerminalCallStatus(payload.status)
     ) {
       return;
     }
 
     this.clearRemoteLeftGrace();
-    const mode = state.credentials?.mode;
 
+<<<<<<< HEAD
     if (
       mode === 'incoming' &&
       (state.phase === 'incoming_ringing' || state.phase === 'connecting_media')
@@ -921,6 +1080,15 @@ class CallEngineImpl {
             ? 'missed'
             : 'missed';
       this.showOutcomeThenEnd(outcome);
+=======
+    /**
+     * Callee still on the incoming UI. Keyed on phase alone: credentials (and therefore
+     * `mode`) only exist once accept has succeeded, so a ringing callee has none — gating
+     * this on `mode === 'incoming'` made it drop every caller cancel / timeout.
+     */
+    if (state.phase === 'incoming_ringing' || state.phase === 'connecting_media') {
+      this.showOutcomeThenEnd(kind === 'declined' ? 'rejected' : 'missed');
+>>>>>>> 98222fc (lock screen calling issue solved , timeout issue solved)
       return;
     }
 
@@ -1034,10 +1202,16 @@ class CallEngineImpl {
     if (state.phase !== 'in_call' || state.sessionId == null) {
       return;
     }
-    store.dispatch(setCallMinimized(true));
-    if (navigationRef.isReady() && navigationRef.canGoBack()) {
-      navigationRef.goBack();
-    }
+    /** Lock screen: stay on call UI only — no browsing the rest of the app. */
+    void isDeviceLocked().then((locked) => {
+      if (locked) {
+        return;
+      }
+      store.dispatch(setCallMinimized(true));
+      if (navigationRef.isReady() && navigationRef.canGoBack()) {
+        navigationRef.goBack();
+      }
+    });
   }
 
   expandCall(): void {
@@ -1061,6 +1235,8 @@ class CallEngineImpl {
     void cancelIncomingCallNotification(sessionId);
     this.clearRingTimeout();
     this.stopRingStatusPoll();
+    this.clearIncomingRingTimeout();
+    this.stopIncomingRingStatusPoll();
     this.clearTeardownTimer();
     this.clearRemoteLeftGrace();
     this.stopSyncTimer();
@@ -1068,6 +1244,7 @@ class CallEngineImpl {
     void agoraMediaService.leave();
     this.reliability.reset();
     store.dispatch(resetCallState());
+    leaveCallUiIfLocked();
   }
 }
 

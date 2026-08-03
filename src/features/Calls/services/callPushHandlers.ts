@@ -1,7 +1,13 @@
 import type { FirebaseMessagingTypes } from '@react-native-firebase/messaging';
 
+import { store } from '@/store';
+
 import { callEngine } from '../engine/CallEngine';
-import { displayIncomingCallNotification, type CallPushDelivery } from './callNotificationService';
+import {
+  cancelIncomingCallNotification,
+  displayIncomingCallNotification,
+  type CallPushDelivery,
+} from './callNotificationService';
 import { parseIncomingCallPushData } from './callPushPayload';
 
 function normalizeFcmData(
@@ -34,13 +40,27 @@ export async function handleIncomingCallRemoteMessage(
     return;
   }
 
+  const authToken = store.getState().auth?.token;
+  if (authToken == null || authToken.length === 0) {
+    if (__DEV__) {
+      console.warn('[calls] FCM call.incoming ignored: not authenticated');
+    }
+    return;
+  }
+
   if (__DEV__) {
     console.log(
       `[calls] FCM call.incoming delivery=${opts?.delivery ?? '?'} session=${payload.sessionId}`,
     );
   }
 
-  await displayIncomingCallNotification(payload, { delivery: opts?.delivery });
   callEngine.bindSocketHandlers();
-  callEngine.handleIncoming(payload);
+  const accepted = await callEngine.handleIncomingAsync(payload);
+  if (!accepted) {
+    await cancelIncomingCallNotification(payload.sessionId);
+    return;
+  }
+
+  /** Paint tray only after we know the session is still ringing. */
+  await displayIncomingCallNotification(payload, { delivery: opts?.delivery });
 }

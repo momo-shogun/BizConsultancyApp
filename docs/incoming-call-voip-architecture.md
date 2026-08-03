@@ -89,7 +89,7 @@ Populate these from notifications or marketing surfaces when you attach `Linking
 | Full-screen incoming intent | Notifee `fullScreenAction` + `USE_FULL_SCREEN_INTENT` |
 | Android 14+ FSI permission check | `CallAndroidPermissions` native module + one-time Dialog → settings |
 | Battery optimisation soft-prompt | Notifee `isBatteryOptimizationEnabled` + one-time Dialog |
-| Wake + lock screen Activity | Manifest + runtime flags in `MainActivity` |
+| Wake + lock screen Activity | **Call-only:** overlay enabled only during call intents / active call; ends → `moveTaskToBack` if still locked |
 | Headless consultant role race | Fixed via `resolveLocalCallRole` + notification seed |
 | **Killed-state native FCM receiver** | `IncomingCallFcmReceiver` paints CALL + FSI when JS headless cannot run |
 | Foreground Service for ongoing call | Implemented (`callForegroundService` from CallEngine on connect) |

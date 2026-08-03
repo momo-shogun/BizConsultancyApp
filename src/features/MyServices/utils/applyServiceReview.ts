@@ -1,5 +1,6 @@
-import type { ServiceDetailFormQuestion } from '../types/myServices.types';
+﻿import type { ServiceDetailFormQuestion } from '../types/myServices.types';
 import type { DocumentReviewIssue } from '../components/ApplyServiceReviewStep';
+import { isYesNoChoiceQuestion } from './serviceDetailQuestionOptions';
 
 export const APPLY_ERROR_TOAST_DURATION_MS = 10_000;
 
@@ -10,7 +11,7 @@ export function isDocumentRequired(isRequired: number | null | undefined): boole
   return Number(isRequired) === 1;
 }
 
-/** Merge local draft picks with server `selectedUserDocumentIds` (e.g. after upload auto-select). */
+/** Merge local draft picks with server selectedUserDocumentIds (e.g. after upload auto-select). */
 export function mergeDocumentSelections(
   items: Array<{
     serviceDocumentId: number;
@@ -69,15 +70,23 @@ export function buildDetailIssueLabels(
       }
       continue;
     }
+    if (isYesNoChoiceQuestion(q)) {
+      const value = detailAnswers[q.id]?.answerJson;
+      if (value !== true && value !== false) {
+        issues.push(q.questionLabel);
+      }
+      continue;
+    }
     if (q.answerType === 'checkbox') {
-      const cfg = q.configJson as { options?: unknown[] } | null;
-      const hasOptions = Array.isArray(cfg?.options) && cfg.options.length > 0;
-      if (hasOptions) {
-        const selected = detailAnswers[q.id]?.answerJson;
-        if (!Array.isArray(selected) || selected.length < 1) {
-          issues.push(q.questionLabel);
-        }
-      } else if (detailAnswers[q.id]?.answerJson !== true) {
+      const selected = detailAnswers[q.id]?.answerJson;
+      if (!Array.isArray(selected) || selected.length < 1) {
+        issues.push(q.questionLabel);
+      }
+      continue;
+    }
+    if (q.answerType === 'radio') {
+      const text = detailAnswers[q.id]?.answerText?.trim() ?? '';
+      if (text.length === 0) {
         issues.push(q.questionLabel);
       }
       continue;
@@ -96,10 +105,11 @@ export function formatApplyValidationError(
 ): string {
   const lines: string[] = [];
   for (const issue of documentIssues) {
-    lines.push(`${issue.label}: upload ${Math.max(0, issue.need - issue.have)} more`);
+    const missing = Math.max(0, issue.need - issue.have);
+    lines.push(issue.label + ': upload ' + String(missing) + ' more');
   }
   for (const label of detailIssueLabels) {
-    lines.push(`${label}: required`);
+    lines.push(label + ': required');
   }
   return lines.join('\n');
 }

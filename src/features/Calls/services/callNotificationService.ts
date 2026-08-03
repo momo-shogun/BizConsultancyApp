@@ -10,17 +10,45 @@ import { INCOMING_CALLS_CHANNEL_ID } from '../constants/callNotifications';
 import type { CallIncomingPayload } from '../types/callApi.types';
 import { resolveCallPartyImageUrl } from '../utils/callPartyMedia';
 
-function cancelNativeIncomingOverlay(sessionId: number): void {
+interface CallAndroidNotificationNative {
+  cancelIncomingCallNotification?: (id: string) => Promise<void>;
+  scheduleIncomingCallExpiry?: (id: string) => Promise<void>;
+  clearAllIncomingCallNotifications?: () => Promise<void>;
+}
+
+function nativeCallModule(): CallAndroidNotificationNative | null {
   if (Platform.OS !== 'android') {
-    return;
+    return null;
   }
-  const mod = NativeModules.CallAndroidPermissions as
-    | { cancelIncomingCallNotification?: (id: string) => Promise<void> }
-    | undefined;
+  return (NativeModules.CallAndroidPermissions as CallAndroidNotificationNative | undefined) ?? null;
+}
+
+function cancelNativeIncomingOverlay(sessionId: number): void {
+  const mod = nativeCallModule();
   if (mod?.cancelIncomingCallNotification == null) {
     return;
   }
   void mod.cancelIncomingCallNotification(String(sessionId));
+}
+
+/**
+ * Notifee cannot self-expire, and the OS may reclaim this process before the ring window ends.
+ * Hand the deadline to an alarm so the notification is retired either way.
+ */
+function scheduleNativeIncomingExpiry(sessionId: number): void {
+  const mod = nativeCallModule();
+  if (mod?.scheduleIncomingCallExpiry == null) {
+    return;
+  }
+  void mod.scheduleIncomingCallExpiry(String(sessionId));
+}
+
+function clearNativeIncomingCallState(): void {
+  const mod = nativeCallModule();
+  if (mod?.clearAllIncomingCallNotifications == null) {
+    return;
+  }
+  void mod.clearAllIncomingCallNotifications();
 }
 let channelReady = false;
 let iosCategoriesReady = false;
@@ -192,6 +220,8 @@ export async function displayIncomingCallNotification(
     });
     /** Replace/cancel the killed-state native overlay if headless JS also painted Notifee. */
     cancelNativeIncomingOverlay(payload.sessionId);
+    /** Re-arm after the cancel above, which also clears the native notification's alarm. */
+    scheduleNativeIncomingExpiry(payload.sessionId);
     return;
   }
 
@@ -220,9 +250,16 @@ export async function cancelIncomingCallNotification(sessionId: number | null): 
   if (sessionId == null) {
     return;
   }
+  /**
+   * Either painter may own the tray entry: Notifee (JS alive) or the native killed-state
+   * receiver. Cancel both — clearing only Notifee leaves an ongoing, non-swipeable native
+   * notification behind when the caller hangs up before it was ever replaced.
+   */
+  cancelNativeIncomingOverlay(sessionId);
   await notifee.cancelNotification(String(sessionId));
 }
 
 export async function cancelAllCallNotifications(): Promise<void> {
+  clearNativeIncomingCallState();
   await notifee.cancelAllNotifications();
 }

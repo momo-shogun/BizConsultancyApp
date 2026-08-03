@@ -23,5 +23,16 @@ export const OUTGOING_RING_TIMEOUT_MS = 30_000;
 /** HTTP status poll while caller is RINGING (socket miss fallback). */
 export const OUTGOING_RING_STATUS_POLL_MS = 2_500;
 
+/**
+ * Callee ring timeout before the incoming UI closes itself (ms).
+ * Deliberately longer than the caller's timeout: the caller ends the session first and the
+ * callee normally learns via socket/poll. This only fires when neither signal lands, and the
+ * extra headroom covers push delivery delay (the callee starts ringing after the caller).
+ */
+export const INCOMING_RING_TIMEOUT_MS = 40_000;
+
+/** HTTP status poll while callee is RINGING (socket miss fallback). */
+export const INCOMING_RING_STATUS_POLL_MS = 2_500;
+
 /** Wait for peer Agora rejoin before treating remote leave as hang-up (ms). */
 export const REMOTE_REJOIN_GRACE_MS = 12_000;

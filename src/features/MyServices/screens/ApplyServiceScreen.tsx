@@ -42,6 +42,11 @@ import {
   formatApplyValidationError,
   mergeDocumentSelections,
 } from '../utils/applyServiceReview';
+import {
+  getServiceDetailQuestionOptions,
+  isYesNoChoiceQuestion,
+  YES_NO_OPTIONS,
+} from '../utils/serviceDetailQuestionOptions';
 import { APPLY_CANVAS, styles } from './ApplyServiceScreen.styles';
 
 function showApplyErrorToast(message: string, title = 'Could not submit'): void {
@@ -95,19 +100,40 @@ function buildDetailPayload(
       continue;
     }
     if (q.answerType === 'checkbox') {
-      const cfg = q.configJson as { options?: unknown[] } | null;
-      const hasOptions = Array.isArray(cfg?.options) && cfg.options.length > 0;
+      const options = Array.isArray((q.configJson as { options?: unknown[] } | null)?.options)
+        ? ((q.configJson as { options: unknown[] }).options)
+        : [];
+      const hasOptions = options.length > 0;
       if (!hasOptions) {
         out.push({
           questionId: q.id,
           answerText: null,
-          answerJson: typeof cur.answerJson === 'boolean' ? cur.answerJson : false,
+          answerJson: typeof cur.answerJson === 'boolean' ? cur.answerJson : null,
         });
       } else {
         out.push({
           questionId: q.id,
           answerText: null,
           answerJson: Array.isArray(cur.answerJson) ? cur.answerJson : [],
+        });
+      }
+      continue;
+    }
+    if (q.answerType === 'radio') {
+      const options = Array.isArray((q.configJson as { options?: unknown[] } | null)?.options)
+        ? ((q.configJson as { options: unknown[] }).options)
+        : [];
+      if (options.length === 0) {
+        out.push({
+          questionId: q.id,
+          answerText: null,
+          answerJson: typeof cur.answerJson === 'boolean' ? cur.answerJson : null,
+        });
+      } else {
+        out.push({
+          questionId: q.id,
+          answerText: cur.answerText ?? '',
+          answerJson: null,
         });
       }
       continue;
@@ -237,11 +263,20 @@ export function ApplyServiceScreen(): React.ReactElement {
     const multi: MultiInputState = {};
     if (ctx.submission?.answers?.length) {
       for (const a of ctx.submission.answers) {
+        const q = ctx.form?.questions.find((x) => x.id === a.questionId);
+        let answerJson = a.answerJson;
+        if (q != null && isYesNoChoiceQuestion(q) && typeof answerJson !== 'boolean') {
+          const text = (a.answerText ?? '').trim().toLowerCase();
+          if (text === 'yes' || text === 'true' || text === '1') {
+            answerJson = true;
+          } else if (text === 'no' || text === 'false' || text === '0') {
+            answerJson = false;
+          }
+        }
         next[a.questionId] = {
           answerText: a.answerText ?? undefined,
-          answerJson: a.answerJson,
+          answerJson,
         };
-        const q = ctx.form?.questions.find((x) => x.id === a.questionId);
         if (q?.answerType === 'multiinput' && Array.isArray(a.answerJson)) {
           multi[a.questionId] = (a.answerJson as unknown[]).map((x) => String(x));
         }
@@ -497,6 +532,120 @@ export function ApplyServiceScreen(): React.ReactElement {
                     <Text style={styles.multiAddText}>+ Add another entry</Text>
                   </Pressable>
                 ) : null}
+              </>
+            ) : isYesNoChoiceQuestion(q) ? (
+              <>
+                <Text style={styles.docGroupTitle}>
+                  {q.questionLabel}
+                  {q.isRequired === 1 ? ' *' : ''}
+                </Text>
+                <View style={styles.choiceGroup}>
+                  {YES_NO_OPTIONS.map((opt) => {
+                    const selected =
+                      opt.value === 'yes'
+                        ? detailAnswers[q.id]?.answerJson === true
+                        : detailAnswers[q.id]?.answerJson === false;
+                    return (
+                      <Pressable
+                        key={opt.value}
+                        style={[styles.choiceRow, selected ? styles.choiceRowSelected : null]}
+                        onPress={() => {
+                          setDetailAnswers((prev) => ({
+                            ...prev,
+                            [q.id]: { answerJson: opt.value === 'yes' },
+                          }));
+                        }}
+                        accessibilityRole="checkbox"
+                        accessibilityState={{ checked: selected }}
+                        accessibilityLabel={`${q.questionLabel}: ${opt.label}`}
+                      >
+                        <View
+                          style={[styles.choiceBox, selected ? styles.choiceBoxSelected : null]}
+                        >
+                          {selected ? <Text style={styles.choiceCheck}>✓</Text> : null}
+                        </View>
+                        <Text style={styles.choiceLabel}>{opt.label}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </>
+            ) : q.answerType === 'checkbox' ? (
+              <>
+                <Text style={styles.docGroupTitle}>
+                  {q.questionLabel}
+                  {q.isRequired === 1 ? ' *' : ''}
+                </Text>
+                <View style={styles.choiceGroup}>
+                  {getServiceDetailQuestionOptions(q).map((opt) => {
+                    const selectedValues = Array.isArray(detailAnswers[q.id]?.answerJson)
+                      ? (detailAnswers[q.id]?.answerJson as string[])
+                      : [];
+                    const selected = selectedValues.includes(opt.value);
+                    return (
+                      <Pressable
+                        key={opt.value}
+                        style={[styles.choiceRow, selected ? styles.choiceRowSelected : null]}
+                        onPress={() => {
+                          const next = selected
+                            ? selectedValues.filter((v) => v !== opt.value)
+                            : [...selectedValues, opt.value];
+                          setDetailAnswers((prev) => ({
+                            ...prev,
+                            [q.id]: { answerJson: next },
+                          }));
+                        }}
+                        accessibilityRole="checkbox"
+                        accessibilityState={{ checked: selected }}
+                        accessibilityLabel={`${q.questionLabel}: ${opt.label}`}
+                      >
+                        <View
+                          style={[styles.choiceBox, selected ? styles.choiceBoxSelected : null]}
+                        >
+                          {selected ? <Text style={styles.choiceCheck}>✓</Text> : null}
+                        </View>
+                        <Text style={styles.choiceLabel}>{opt.label}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </>
+            ) : q.answerType === 'radio' ? (
+              <>
+                <Text style={styles.docGroupTitle}>
+                  {q.questionLabel}
+                  {q.isRequired === 1 ? ' *' : ''}
+                </Text>
+                <View style={styles.choiceGroup}>
+                  {getServiceDetailQuestionOptions(q).map((opt) => {
+                    const selected = detailAnswers[q.id]?.answerText === opt.value;
+                    return (
+                      <Pressable
+                        key={opt.value}
+                        style={[styles.choiceRow, selected ? styles.choiceRowSelected : null]}
+                        onPress={() => {
+                          setDetailAnswers((prev) => ({
+                            ...prev,
+                            [q.id]: { answerText: opt.value },
+                          }));
+                        }}
+                        accessibilityRole="radio"
+                        accessibilityState={{ selected }}
+                        accessibilityLabel={`${q.questionLabel}: ${opt.label}`}
+                      >
+                        <View
+                          style={[
+                            styles.choiceRadioOuter,
+                            selected ? styles.choiceRadioOuterSelected : null,
+                          ]}
+                        >
+                          {selected ? <View style={styles.choiceRadioInner} /> : null}
+                        </View>
+                        <Text style={styles.choiceLabel}>{opt.label}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
               </>
             ) : q.answerType === 'number' ? (
               <Input
