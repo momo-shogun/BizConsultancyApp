@@ -105,10 +105,26 @@ class CallAndroidPermissionsModule(
   @ReactMethod
   fun cancelIncomingCallNotification(sessionId: String, promise: Promise) {
     try {
+      // Soft cancel only — used when Notifee replaces the native tray paint. Do not sweep
+      // the channel here or the freshly painted Notifee Answer/Decline is wiped.
       IncomingCallNativeNotifier.cancel(reactContext.applicationContext, sessionId)
       promise.resolve(null)
     } catch (error: Exception) {
       promise.reject("CANCEL_CALL_FAILED", error.message, error)
+    }
+  }
+
+  /**
+   * Remote hang-up / miss / decline: clear this session and any leftover Notifee entry on
+   * the incoming-calls channel.
+   */
+  @ReactMethod
+  fun expireIncomingCallNotification(sessionId: String, promise: Promise) {
+    try {
+      IncomingCallNativeNotifier.expire(reactContext.applicationContext, sessionId)
+      promise.resolve(null)
+    } catch (error: Exception) {
+      promise.reject("EXPIRE_CALL_FAILED", error.message, error)
     }
   }
 

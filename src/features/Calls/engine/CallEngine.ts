@@ -721,6 +721,7 @@ class CallEngineImpl {
   }
 
   private showOutcomeThenEnd(outcome: CallOutcome, delayMs = 2200): void {
+    const sessionId = this.getCallState().sessionId;
     callRingtoneService.stop();
     this.clearRingTimeout();
     this.stopRingStatusPoll();
@@ -729,6 +730,8 @@ class CallEngineImpl {
     this.clearOutgoingBackgroundCancel();
     this.pendingNavigation = null;
     this.pendingAcceptSessionId = null;
+    // Drop Answer/Decline immediately when the other side hangs up / cancels.
+    void cancelIncomingCallNotification(sessionId);
     // Clear immediately so a force-kill during the outcome delay cannot restore this call.
     clearActiveCallSnapshot();
     setNativeConnectedCallSession(null);
@@ -1327,6 +1330,10 @@ class CallEngineImpl {
   }
 
   private handleRemoteEnd(payload: CallEndedPayload, kind: 'declined' | 'ended'): void {
+    // Always clear Answer/Decline for this session — even if local Redux never hydrated
+    // (native tray only) or phase is already idle.
+    void cancelIncomingCallNotification(payload.sessionId);
+
     const state = this.getCallState();
     if (state.sessionId == null || Number(payload.sessionId) !== Number(state.sessionId)) {
       return;

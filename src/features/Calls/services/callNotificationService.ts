@@ -13,6 +13,7 @@ import { callForegroundService } from './callForegroundService';
 
 interface CallAndroidNotificationNative {
   cancelIncomingCallNotification?: (id: string) => Promise<void>;
+  expireIncomingCallNotification?: (id: string) => Promise<void>;
   scheduleIncomingCallExpiry?: (id: string) => Promise<void>;
   clearAllIncomingCallNotifications?: () => Promise<void>;
   setIncomingCallPushEnabled?: (enabled: boolean) => Promise<void>;
@@ -32,6 +33,16 @@ function cancelNativeIncomingOverlay(sessionId: number): void {
     return;
   }
   void mod.cancelIncomingCallNotification(String(sessionId));
+}
+
+/** Remote end / miss: cancel native + sweep Notifee leftovers on the incoming channel. */
+function expireNativeIncomingOverlay(sessionId: number): void {
+  const mod = nativeCallModule();
+  if (mod?.expireIncomingCallNotification != null) {
+    void mod.expireIncomingCallNotification(String(sessionId));
+    return;
+  }
+  cancelNativeIncomingOverlay(sessionId);
 }
 
 /**
@@ -277,10 +288,10 @@ export async function cancelIncomingCallNotification(sessionId: number | null): 
   }
   /**
    * Either painter may own the tray entry: Notifee (JS alive) or the native killed-state
-   * receiver. Cancel both — clearing only Notifee leaves an ongoing, non-swipeable native
-   * notification behind when the caller hangs up before it was ever replaced.
+   * receiver. Expire sweeps the incoming channel so a remote cancel clears Answer/Decline
+   * even when Notifee's id derivation differs from the native stable id.
    */
-  cancelNativeIncomingOverlay(sessionId);
+  expireNativeIncomingOverlay(sessionId);
   await notifee.cancelNotification(String(sessionId));
 }
 
