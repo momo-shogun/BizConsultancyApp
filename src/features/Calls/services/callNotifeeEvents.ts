@@ -19,6 +19,14 @@ function dataFromEvent(event: Event): Record<string, string | undefined> | undef
   return normalized;
 }
 
+function readSessionId(data: Record<string, string | undefined> | undefined): number | undefined {
+  if (data?.sessionId == null || data.sessionId.length === 0) {
+    return undefined;
+  }
+  const parsed = Number(data.sessionId);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+}
+
 export async function handleCallNotifeeEvent(event: Event): Promise<void> {
   const { type, detail } = event;
   const pressId = detail.pressAction?.id;
@@ -40,7 +48,7 @@ export async function handleCallNotifeeEvent(event: Event): Promise<void> {
   /** Tap on the ongoing-call foreground-service notification → reopen the in-call screen. */
   if (eventData?.type === ONGOING_CALL_NOTIFICATION_TYPE) {
     if (type === EventType.PRESS) {
-      callEngine.expandCall();
+      await callEngine.returnToActiveCall(readSessionId(eventData));
     }
     return;
   }
@@ -75,4 +83,27 @@ export function registerCallNotifeeForegroundHandler(): () => void {
   return notifee.onForegroundEvent((event) => {
     void handleCallNotifeeEvent(event);
   });
+}
+
+/** Cold start: user opened the app by tapping the ongoing-call notification. */
+export async function consumeInitialOngoingCallNotification(): Promise<void> {
+  try {
+    const initial = await notifee.getInitialNotification();
+    if (initial == null) {
+      return;
+    }
+    const raw = initial.notification?.data;
+    if (raw == null || raw.type !== ONGOING_CALL_NOTIFICATION_TYPE) {
+      return;
+    }
+    const sessionRaw = raw.sessionId;
+    const sessionId = typeof sessionRaw === 'string' || typeof sessionRaw === 'number'
+      ? Number(sessionRaw)
+      : NaN;
+    await callEngine.returnToActiveCall(
+      Number.isFinite(sessionId) && sessionId > 0 ? sessionId : undefined,
+    );
+  } catch {
+    // ignore — restoreActiveCallIfNeeded still covers MMKV snapshot
+  }
 }

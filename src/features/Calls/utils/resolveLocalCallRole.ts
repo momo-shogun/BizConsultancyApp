@@ -25,3 +25,13 @@ export function resolveLocalCallRole(): CallRole | null {
   }
   return asCallRole(readPersistedAccountRoleSync());
 }
+
+/** Logged-in principal id for callee matching. Null when unknown (headless / pre-rehydrate). */
+export function resolveLocalUserId(): number | null {
+  const raw = store.getState().auth?.user?.id;
+  if (raw == null || raw.length === 0) {
+    return null;
+  }
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}

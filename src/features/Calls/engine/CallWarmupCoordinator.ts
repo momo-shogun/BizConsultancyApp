@@ -1,9 +1,7 @@
-import { store } from '@/store';
-
-import { callsApi } from '../api/callsApi';
 import { agoraMediaService } from '../services/agoraMediaService';
 import { syncFcmDeviceToken } from '../services/callFirebaseMessaging';
 import { cancelAllCallNotifications } from '../services/callNotificationService';
+import { callEngine } from './CallEngine';
 
 let warmedToken: string | null = null;
 
@@ -16,18 +14,11 @@ export const callWarmupCoordinator = {
     void syncFcmDeviceToken();
   },
 
-  /**
-   * Must run while the JWT is still valid so DELETE /calls/device-token succeeds.
-   * Stops this device receiving call pushes for a logged-out account.
-   */
-  async onLogout(): Promise<void> {
+  /** Drop media + call socket so the next login cannot keep the previous account's rooms. */
+  onLogout(): void {
     warmedToken = null;
     agoraMediaService.release();
-    try {
-      await store.dispatch(callsApi.endpoints.clearDeviceToken.initiate());
-    } catch {
-      // Best-effort — local cleanup still proceeds.
-    }
+    callEngine.unbindSocketHandlers();
     void cancelAllCallNotifications();
   },
 

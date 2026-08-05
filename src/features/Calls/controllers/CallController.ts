@@ -140,7 +140,7 @@ export const CallController = {
   },
 
   expandCall(): void {
-    callEngine.expandCall();
+    void callEngine.returnToActiveCall();
   },
 
   async startOutgoingWithType(

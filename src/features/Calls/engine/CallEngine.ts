@@ -6,6 +6,7 @@ import {
   CALL_STATE_SYNC_INTERVAL_MS,
   INCOMING_RING_STATUS_POLL_MS,
   INCOMING_RING_TIMEOUT_MS,
+  OUTGOING_RING_BACKGROUND_CANCEL_MS,
   OUTGOING_RING_STATUS_POLL_MS,
   OUTGOING_RING_TIMEOUT_MS,
   REMOTE_REJOIN_GRACE_MS,
@@ -16,8 +17,14 @@ import { store } from '@/store';
 import { callsApi } from '../api/callsApi';
 import { callSocketService } from '../services/callSocketService';
 import { agoraMediaService } from '../services/agoraMediaService';
-import { cancelIncomingCallNotification, displayIncomingCallNotification } from '../services/callNotificationService';
-import { callForegroundService } from '../services/callForegroundService';
+import { cancelIncomingCallNotification, displayIncomingCallNotification, setNativeConnectedCallSession } from '../services/callNotificationService';
+import { callForegroundService, type ReturnToCallStage } from '../services/callForegroundService';
+import {
+  clearActiveCallSnapshot,
+  isRingSnapshotExpired,
+  readActiveCallSnapshot,
+  saveActiveCallSnapshot,
+} from '../services/activeCallPersistence';
 import {
   enableCallLockOverlay,
   isDeviceLocked,
@@ -56,7 +63,7 @@ import { CallReliabilityManager } from './CallReliabilityManager';
 import { syncCallSession } from './CallStateSyncService';
 import { transitionCallPhase, type CallPhase } from './callStateMachine';
 import { ensureCallPermissions } from '../utils/callPermissions';
-import { resolveLocalCallRole } from '../utils/resolveLocalCallRole';
+import { resolveLocalCallRole, resolveLocalUserId } from '../utils/resolveLocalCallRole';
 
 type CallScreen = 'IncomingCall' | 'OutgoingCall' | 'InCall';
 
@@ -88,6 +95,10 @@ class CallEngineImpl {
   private outgoingAnswered = false;
   /** Prevent overlapping leave/rejoin that peers treat as a hang-up. */
   private reconnectInFlight = false;
+  private appStateSub: { remove: () => void } | null = null;
+  private restoreInFlight = false;
+  /** Cancels outbound ring if the caller leaves the app and does not return. */
+  private outgoingBackgroundCancelTimer: ReturnType<typeof setTimeout> | null = null;
 
   /** Apply navigation requested before `NavigationContainer` mounted (cold start via FCM). */
   flushPendingCallNavigation(): void {
@@ -96,6 +107,14 @@ class CallEngineImpl {
       return;
     }
     this.pendingNavigation = null;
+    const state = this.getCallState();
+    /**
+     * After a missed/ended call, teardown resets phase to idle but used to leave
+     * `pendingNavigation` set — flushing it on the next open resurrected IncomingCall.
+     */
+    if (!this.isPendingNavigationStillValid(pending, state)) {
+      return;
+    }
     enableCallLockOverlay();
     const route = this.routeForScreen(pending.screen);
     const params = { sessionId: pending.sessionId };
@@ -104,6 +123,26 @@ class CallEngineImpl {
     } else {
       navigationRef.navigate(route as never, params as never);
     }
+  }
+
+  private isPendingNavigationStillValid(
+    pending: PendingCallNavigation,
+    state: CallUiState,
+  ): boolean {
+    if (state.sessionId != null && Number(state.sessionId) !== Number(pending.sessionId)) {
+      return false;
+    }
+    if (pending.screen === 'IncomingCall') {
+      return state.phase === 'incoming_ringing';
+    }
+    if (pending.screen === 'OutgoingCall') {
+      return state.phase === 'outgoing_ringing' || state.phase === 'outgoing_initiating';
+    }
+    return (
+      state.phase === 'in_call' ||
+      state.phase === 'connecting_media' ||
+      state.phase === 'reconnecting'
+    );
   }
 
   /**
@@ -145,6 +184,7 @@ class CallEngineImpl {
       return;
     }
     this.handlersBound = true;
+    this.ensureAppStateListener();
     // Always call connect: updates handlers and recreates the socket if it dropped.
     callSocketService.connect(token, {
       onIncoming: (p) => this.handleIncoming(p),
@@ -161,6 +201,87 @@ class CallEngineImpl {
 
   unbindSocketHandlers(): void {
     this.handlersBound = false;
+    this.clearOutgoingBackgroundCancel();
+    this.appStateSub?.remove();
+    this.appStateSub = null;
+    callSocketService.disconnect();
+  }
+
+  private clearOutgoingBackgroundCancel(): void {
+    if (this.outgoingBackgroundCancelTimer != null) {
+      clearTimeout(this.outgoingBackgroundCancelTimer);
+      this.outgoingBackgroundCancelTimer = null;
+    }
+  }
+
+  /**
+   * Caller left the app while still ringing. After a short grace, cancel so the consultant
+   * stops ringing and cannot answer a call with no live caller.
+   */
+  private scheduleOutgoingBackgroundCancel(): void {
+    this.clearOutgoingBackgroundCancel();
+    this.outgoingBackgroundCancelTimer = setTimeout(() => {
+      this.outgoingBackgroundCancelTimer = null;
+      if (AppState.currentState === 'active') {
+        return;
+      }
+      const state = this.getCallState();
+      if (state.phase !== 'outgoing_ringing' && state.phase !== 'outgoing_initiating') {
+        return;
+      }
+      if (this.outgoingAnswered || state.connectedAtMs != null) {
+        return;
+      }
+      void this.endCall('caller_cancelled');
+    }, OUTGOING_RING_BACKGROUND_CANCEL_MS);
+  }
+
+  private ensureAppStateListener(): void {
+    if (this.appStateSub != null) {
+      return;
+    }
+    void callForegroundService.warmUp();
+    this.appStateSub = AppState.addEventListener('change', (next) => {
+      if (next === 'active') {
+        this.clearOutgoingBackgroundCancel();
+        return;
+      }
+      if (next !== 'background' && next !== 'inactive') {
+        return;
+      }
+      const state = this.getCallState();
+      if (this.isReturnToCallPhase(state.phase)) {
+        // Paint immediately on leave — don't wait for the next FGS timer tick.
+        if (callForegroundService.isRunning()) {
+          callForegroundService.bump();
+        }
+        this.ensureReturnToCallNotification();
+      }
+      if (state.phase === 'outgoing_ringing' || state.phase === 'outgoing_initiating') {
+        this.scheduleOutgoingBackgroundCancel();
+      }
+    });
+  }
+
+  private isReturnToCallPhase(phase: CallPhase): boolean {
+    return (
+      phase === 'outgoing_initiating' ||
+      phase === 'outgoing_ringing' ||
+      phase === 'incoming_ringing' ||
+      phase === 'connecting_media' ||
+      phase === 'in_call' ||
+      phase === 'reconnecting'
+    );
+  }
+
+  private stageForPhase(phase: CallPhase): ReturnToCallStage {
+    if (phase === 'incoming_ringing') {
+      return 'incoming_ringing';
+    }
+    if (phase === 'outgoing_initiating' || phase === 'outgoing_ringing') {
+      return 'outgoing_ringing';
+    }
+    return 'in_call';
   }
 
   private getCallState() {
@@ -359,38 +480,6 @@ class CallEngineImpl {
     return true;
   }
 
-  /** Callee RINGING fallback when caller cancels and sockets miss call.ended. */
-  private async pollIncomingRingStatus(sessionId: number): Promise<void> {
-    const state = this.getCallState();
-    if (state.sessionId !== sessionId) {
-      return;
-    }
-    if (state.phase !== 'incoming_ringing') {
-      return;
-    }
-
-    const result = await store.dispatch(
-      callsApi.endpoints.getCallStatus.initiate(sessionId, { forceRefetch: true }),
-    );
-    if ('error' in result || result.data == null) {
-      return;
-    }
-
-    const status = result.data.status;
-    if (status === 'declined' || status === 'missed' || status === 'ended' || status === 'failed') {
-      this.handleRemoteEnd(
-        {
-          sessionId,
-          status,
-          durationSeconds: result.data.durationSeconds,
-          endReason: result.data.endReason,
-          endedAt: result.data.endedAt,
-        },
-        status === 'declined' ? 'declined' : 'ended',
-      );
-    }
-  }
-
   private scheduleTeardown(delayMs: number, popNavigation = true): void {
     this.clearTeardownTimer();
     this.teardownTimer = setTimeout(() => {
@@ -532,17 +621,102 @@ class CallEngineImpl {
     }, REMOTE_REJOIN_GRACE_MS);
   }
 
-  /** Start the mic foreground service once media is live, so the call survives backgrounding. */
-  private startCallForegroundService(): void {
+  /**
+   * Sticky "Tap to return" tray for any live call phase (outgoing ring, incoming ring, in-call).
+   * Also backs the mic FGS once Agora is joined.
+   */
+  private ensureReturnToCallNotification(): void {
     const state = this.getCallState();
-    if (state.sessionId == null) {
+    if (state.sessionId == null || !this.isReturnToCallPhase(state.phase)) {
       return;
     }
+    const stage = this.stageForPhase(state.phase);
+    const connectedAtMs =
+      stage === 'in_call' ? (state.connectedAtMs ?? Date.now()) : 0;
+    if (stage === 'in_call') {
+      setNativeConnectedCallSession(state.sessionId);
+    }
+    const existing = readActiveCallSnapshot();
+    const ringStartedAtMs =
+      existing?.sessionId === state.sessionId && existing.ringStartedAtMs > 0
+        ? existing.ringStartedAtMs
+        : Date.now();
+    saveActiveCallSnapshot({
+      sessionId: state.sessionId,
+      callType: state.callType ?? 'voice',
+      remoteDisplayName: state.remoteDisplayName,
+      remoteAvatarUrl: state.remoteAvatarUrl,
+      connectedAtMs,
+      ringStartedAtMs,
+      mode:
+        state.credentials?.mode ??
+        (state.phase === 'incoming_ringing' ? 'incoming' : 'outgoing'),
+    });
     void callForegroundService.start(
       state.remoteDisplayName,
       state.callType === 'video',
-      state.connectedAtMs ?? Date.now(),
+      connectedAtMs,
       state.sessionId,
+      stage,
+    );
+    // Connected path: drop any delayed Answer/Decline incoming tray.
+    if (stage === 'in_call') {
+      void cancelIncomingCallNotification(state.sessionId);
+    }
+  }
+
+  /** @deprecated name kept as alias — prefer ensureReturnToCallNotification */
+  private startCallForegroundService(): void {
+    this.ensureReturnToCallNotification();
+  }
+
+  /** Discard unanswered / timed-out ring snapshots so reopen does not show call UI. */
+  private discardExpiredRingSnapshot(): boolean {
+    const snapshot = readActiveCallSnapshot();
+    if (snapshot == null) {
+      return false;
+    }
+    if (
+      !isRingSnapshotExpired(
+        snapshot,
+        Date.now(),
+        OUTGOING_RING_TIMEOUT_MS,
+        INCOMING_RING_TIMEOUT_MS,
+      )
+    ) {
+      return false;
+    }
+    clearActiveCallSnapshot();
+    setNativeConnectedCallSession(null);
+    void callForegroundService.stop();
+    void cancelIncomingCallNotification(snapshot.sessionId);
+    return true;
+  }
+
+  /** Instant tray from MMKV before any network restore (skip expired rings). */
+  private paintOngoingFromSnapshot(): void {
+    if (this.discardExpiredRingSnapshot()) {
+      return;
+    }
+    const snapshot = readActiveCallSnapshot();
+    if (snapshot == null) {
+      return;
+    }
+    const stage: ReturnToCallStage =
+      snapshot.connectedAtMs > 0
+        ? 'in_call'
+        : snapshot.mode === 'incoming'
+          ? 'incoming_ringing'
+          : 'outgoing_ringing';
+    if (stage === 'in_call') {
+      setNativeConnectedCallSession(snapshot.sessionId);
+    }
+    void callForegroundService.start(
+      snapshot.remoteDisplayName,
+      snapshot.callType === 'video',
+      snapshot.connectedAtMs,
+      snapshot.sessionId,
+      stage,
     );
   }
 
@@ -552,6 +726,13 @@ class CallEngineImpl {
     this.stopRingStatusPoll();
     this.clearIncomingRingTimeout();
     this.stopIncomingRingStatusPoll();
+    this.clearOutgoingBackgroundCancel();
+    this.pendingNavigation = null;
+    this.pendingAcceptSessionId = null;
+    // Clear immediately so a force-kill during the outcome delay cannot restore this call.
+    clearActiveCallSnapshot();
+    setNativeConnectedCallSession(null);
+    void callForegroundService.stop();
     store.dispatch(setCallOutcome(outcome));
     store.dispatch(setCallPhase('ended'));
     this.scheduleTeardown(delayMs);
@@ -739,26 +920,66 @@ class CallEngineImpl {
       await this.endCall('missed_timeout');
       return;
     }
+    this.ensureReturnToCallNotification();
   }
 
   /**
-   * Ask the server whether this incoming session is already closed (missed / ended / …).
-   * FCM can arrive minutes late (TTL) after the caller timed out — never ring a dead session.
+   * Ask the server whether this session should still ring locally.
+   * FCM can arrive late — never paint incoming for connected / ended sessions.
    * Returns true when the local UI should NOT start ringing.
    */
-  private async discardIfIncomingSessionClosed(sessionId: number): Promise<boolean> {
+  /**
+   * Ask the server whether this session should still ring locally.
+   * FCM can arrive late — never paint incoming for connected / ended sessions.
+   * Returns true when the local UI should NOT start ringing.
+   *
+   * @param requireConfirmedRinging When true (notification tap / cold open), treat an
+   *   unreachable status API as closed so a missed call cannot reopen IncomingCall.
+   *   Live FCM must stay fail-open — otherwise a slow status fetch cancels the native
+   *   Answer/Decline tray that already painted.
+   */
+  private async discardIfIncomingSessionClosed(
+    sessionId: number,
+    opts?: { requireConfirmedRinging?: boolean },
+  ): Promise<boolean> {
     const result = await store.dispatch(
       callsApi.endpoints.getCallStatus.initiate(sessionId, { forceRefetch: true }),
     );
     if ('error' in result || result.data == null) {
-      // Unknown — let the call through; ring status poll will tear down if it's dead.
+      if (opts?.requireConfirmedRinging === true) {
+        const state = this.getCallState();
+        if (state.phase === 'incoming_ringing' && state.sessionId === sessionId) {
+          return false;
+        }
+        return true;
+      }
+      // Live push: keep ringing; status poll tears down if the session is already dead.
       return false;
     }
-    if (!isTerminalCallStatus(result.data.status)) {
+    const status = result.data.status;
+    // Only `initiated` / `ringing` should open the incoming UI. `connected` means we already
+    // answered — a delayed push must not show a second "incoming call" tray entry.
+    if (status === 'initiated' || status === 'ringing') {
       return false;
     }
     void cancelIncomingCallNotification(sessionId);
     return true;
+  }
+
+  /** True when this device already owns a live session (do not re-ring as incoming). */
+  private isLocallyInActiveCall(sessionId?: number): boolean {
+    const state = this.getCallState();
+    if (
+      state.phase !== 'in_call' &&
+      state.phase !== 'connecting_media' &&
+      state.phase !== 'reconnecting'
+    ) {
+      return false;
+    }
+    if (sessionId == null) {
+      return state.sessionId != null;
+    }
+    return state.sessionId === sessionId;
   }
 
   handleIncoming(payload: CallIncomingPayload): void {
@@ -769,8 +990,16 @@ class CallEngineImpl {
    * Apply an incoming call only if the server still has it ringing.
    * Returns false when the session is already terminal (missed / ended / …).
    */
-  async handleIncomingAsync(payload: CallIncomingPayload): Promise<boolean> {
+  async handleIncomingAsync(
+    payload: CallIncomingPayload,
+    opts?: { requireConfirmedRinging?: boolean },
+  ): Promise<boolean> {
     if (payload.status !== 'initiated' && payload.status !== 'ringing') {
+      return false;
+    }
+
+    if (this.isLocallyInActiveCall(payload.sessionId)) {
+      void cancelIncomingCallNotification(payload.sessionId);
       return false;
     }
 
@@ -783,11 +1012,32 @@ class CallEngineImpl {
       return false;
     }
 
+    const localUserId = resolveLocalUserId();
+    // Same device can switch accounts (consultant-1 → consultant-2). Never ring a call for someone else.
+    if (localUserId != null && payload.calleeUserId !== localUserId) {
+      if (__DEV__) {
+        console.warn(
+          `[calls] Ignoring incoming for callee=${payload.calleeUserId}; local user=${localUserId}`,
+        );
+      }
+      return false;
+    }
+
     if (!this.reliability.shouldApply(payload.eventId, payload.eventVersion)) {
       return false;
     }
 
-    if (await this.discardIfIncomingSessionClosed(payload.sessionId)) {
+    if (
+      await this.discardIfIncomingSessionClosed(payload.sessionId, {
+        requireConfirmedRinging: opts?.requireConfirmedRinging === true,
+      })
+    ) {
+      return false;
+    }
+
+    // Race: accept completed while status was in flight.
+    if (this.isLocallyInActiveCall(payload.sessionId)) {
+      void cancelIncomingCallNotification(payload.sessionId);
       return false;
     }
 
@@ -808,6 +1058,17 @@ class CallEngineImpl {
     if (payload.status !== 'initiated' && payload.status !== 'ringing') {
       return false;
     }
+
+    const localRole = resolveLocalCallRole();
+    if (localRole != null && payload.calleeRole !== localRole) {
+      return false;
+    }
+    const localUserId = resolveLocalUserId();
+    if (localUserId != null && payload.calleeUserId !== localUserId) {
+      await cancelIncomingCallNotification(payload.sessionId);
+      return false;
+    }
+
     const state = this.getCallState();
     if (
       state.sessionId === payload.sessionId &&
@@ -818,7 +1079,12 @@ class CallEngineImpl {
       return true;
     }
 
-    if (await this.discardIfIncomingSessionClosed(payload.sessionId)) {
+    // Notification actions / cold open must confirm the session is still ringing.
+    if (
+      await this.discardIfIncomingSessionClosed(payload.sessionId, {
+        requireConfirmedRinging: true,
+      })
+    ) {
       return false;
     }
 
@@ -835,6 +1101,11 @@ class CallEngineImpl {
   ): void {
     const state = this.getCallState();
     if (state.phase === 'incoming_ringing' && state.sessionId === payload.sessionId) {
+      return;
+    }
+    // Never demote a live call back to the incoming ring UI / tray.
+    if (this.isLocallyInActiveCall(payload.sessionId)) {
+      void cancelIncomingCallNotification(payload.sessionId);
       return;
     }
 
@@ -859,6 +1130,7 @@ class CallEngineImpl {
     // The caller gives up first; these detect that even when its `call.ended` never arrives.
     this.startIncomingRingTimeout(payload.sessionId);
     this.startIncomingRingStatusPoll(payload.sessionId);
+    this.ensureReturnToCallNotification();
     const shouldPaint = opts?.paintNotification !== false;
     /** Socket path when app is backgrounded: still paint a native call-style notification. */
     if (shouldPaint && AppState.currentState !== 'active') {
@@ -888,6 +1160,7 @@ class CallEngineImpl {
     this.outgoingAnswered = true;
     this.clearRingTimeout();
     this.stopRingStatusPoll();
+    this.clearOutgoingBackgroundCancel();
     callRingtoneService.stop();
 
     store.dispatch(startConnectedTimer());
@@ -902,6 +1175,14 @@ class CallEngineImpl {
 
   private async handleAccepted(sessionId: number): Promise<void> {
     await this.markOutgoingAnswered(sessionId, 'call.accepted');
+  }
+
+  /** FCM `call.ended` — tear down local ringing UI when the caller cancelled / timed out. */
+  applyRemoteCallEnded(payload: CallEndedPayload): void {
+    this.handleRemoteEnd(
+      payload,
+      payload.status === 'declined' ? 'declined' : 'ended',
+    );
   }
 
   async acceptIncoming(): Promise<void> {
@@ -1025,6 +1306,7 @@ class CallEngineImpl {
     this.stopRingStatusPoll();
     this.clearIncomingRingTimeout();
     this.stopIncomingRingStatusPoll();
+    this.clearOutgoingBackgroundCancel();
     this.clearRemoteLeftGrace();
 
     const accountRole = store.getState().auth?.accountRole;
@@ -1050,14 +1332,10 @@ class CallEngineImpl {
       return;
     }
 
-<<<<<<< HEAD
     // Treat status=declined on either socket event as a reject (server dual-emits both).
     const effectiveKind: 'declined' | 'ended' =
       kind === 'declined' || payload.status === 'declined' ? 'declined' : 'ended';
 
-    const terminal = ['ended', 'declined', 'missed', 'failed'];
-=======
->>>>>>> 98222fc (lock screen calling issue solved , timeout issue solved)
     if (
       payload.status != null &&
       payload.status.length > 0 &&
@@ -1068,27 +1346,13 @@ class CallEngineImpl {
 
     this.clearRemoteLeftGrace();
 
-<<<<<<< HEAD
-    if (
-      mode === 'incoming' &&
-      (state.phase === 'incoming_ringing' || state.phase === 'connecting_media')
-    ) {
-      const outcome: CallOutcome =
-        effectiveKind === 'declined'
-          ? 'rejected'
-          : payload.status === 'missed'
-            ? 'missed'
-            : 'missed';
-      this.showOutcomeThenEnd(outcome);
-=======
     /**
      * Callee still on the incoming UI. Keyed on phase alone: credentials (and therefore
      * `mode`) only exist once accept has succeeded, so a ringing callee has none — gating
      * this on `mode === 'incoming'` made it drop every caller cancel / timeout.
      */
     if (state.phase === 'incoming_ringing' || state.phase === 'connecting_media') {
-      this.showOutcomeThenEnd(kind === 'declined' ? 'rejected' : 'missed');
->>>>>>> 98222fc (lock screen calling issue solved , timeout issue solved)
+      this.showOutcomeThenEnd(effectiveKind === 'declined' ? 'rejected' : 'missed');
       return;
     }
 
@@ -1138,32 +1402,11 @@ class CallEngineImpl {
     this.applyPhase('AGORA_LOST');
 
     try {
-      const result = await store.dispatch(callsApi.endpoints.rejoinCall.initiate(sessionId));
-      if ('error' in result || result.data == null) {
+      const joined = await this.joinWithRejoinToken(sessionId, creds?.mode ?? 'outgoing');
+      if (!joined) {
         store.dispatch(setReconnecting(false));
         return;
       }
-
-      const data = result.data;
-      const nextCreds: PersistedCallCredentials = {
-        sessionId: data.sessionId,
-        channelName: data.channelName,
-        callType: data.callType,
-        appId: data.appId,
-        uid: data.uid,
-        rtcToken: data.rtcToken,
-        mode: creds?.mode ?? 'outgoing',
-      };
-      store.dispatch(updateCredentials(nextCreds));
-      await agoraMediaService.leave();
-      this.bindAgoraMediaListeners();
-      await agoraMediaService.join({
-        appId: data.appId,
-        channelName: data.channelName,
-        token: data.rtcToken,
-        uid: data.uid,
-        callType: data.callType,
-      });
       await syncCallSession(sessionId, this.reliability.getLastEventVersion());
       store.dispatch(setReconnecting(false));
       this.applyPhase('REJOIN_OK');
@@ -1172,6 +1415,53 @@ class CallEngineImpl {
     } finally {
       this.reconnectInFlight = false;
     }
+  }
+
+  /** Rejoin Agora without forcing the UI into `in_call` (used while still ringing). */
+  private async rejoinAgoraForActiveSession(sessionId: number): Promise<void> {
+    if (agoraMediaService.isInChannel() || this.reconnectInFlight) {
+      return;
+    }
+    this.reconnectInFlight = true;
+    try {
+      await this.joinWithRejoinToken(
+        sessionId,
+        this.getCallState().credentials?.mode ?? 'outgoing',
+      );
+    } finally {
+      this.reconnectInFlight = false;
+    }
+  }
+
+  private async joinWithRejoinToken(
+    sessionId: number,
+    mode: PersistedCallCredentials['mode'],
+  ): Promise<boolean> {
+    const result = await store.dispatch(callsApi.endpoints.rejoinCall.initiate(sessionId));
+    if ('error' in result || result.data == null) {
+      return false;
+    }
+    const data = result.data;
+    const nextCreds: PersistedCallCredentials = {
+      sessionId: data.sessionId,
+      channelName: data.channelName,
+      callType: data.callType,
+      appId: data.appId,
+      uid: data.uid,
+      rtcToken: data.rtcToken,
+      mode,
+    };
+    store.dispatch(updateCredentials(nextCreds));
+    await agoraMediaService.leave();
+    this.bindAgoraMediaListeners();
+    await agoraMediaService.join({
+      appId: data.appId,
+      channelName: data.channelName,
+      token: data.rtcToken,
+      uid: data.uid,
+      callType: data.callType,
+    });
+    return true;
   }
 
   setMuted(muted: boolean): void {
@@ -1215,28 +1505,161 @@ class CallEngineImpl {
   }
 
   expandCall(): void {
+    void this.returnToActiveCall();
+  }
+
+  /**
+   * Tap on the ongoing-call notification (or cold reopen while a live session is persisted).
+   * Restores InCall + Agora when JS/Activity restarted with an empty Redux call slice.
+   */
+  async returnToActiveCall(sessionIdHint?: number): Promise<void> {
     const state = this.getCallState();
-    if (state.phase !== 'in_call' || state.sessionId == null) {
+    if (this.isReturnToCallPhase(state.phase) && state.sessionId != null) {
+      store.dispatch(setCallMinimized(false));
+      if (state.phase === 'incoming_ringing') {
+        this.navigateToCallScreen('IncomingCall', state.sessionId);
+      } else if (state.phase === 'outgoing_ringing' || state.phase === 'outgoing_initiating') {
+        this.navigateToCallScreen('OutgoingCall', state.sessionId);
+      } else {
+        this.navigateToCallScreen('InCall', state.sessionId);
+      }
+      this.ensureReturnToCallNotification();
+      if (
+        (state.phase === 'in_call' || state.phase === 'reconnecting' || state.phase === 'connecting_media') &&
+        !agoraMediaService.isInChannel()
+      ) {
+        void this.reconnectMedia({ force: true });
+      }
       return;
     }
-    store.dispatch(setCallMinimized(false));
-    if (navigationRef.isReady()) {
-      navigationRef.navigate(ROUTES.Root.InCall as never, { sessionId: state.sessionId } as never);
+
+    if (this.restoreInFlight) {
+      return;
     }
+
+    // Show Tap-to-return immediately — do not wait for status HTTP.
+    this.paintOngoingFromSnapshot();
+
+    const snapshot = readActiveCallSnapshot();
+    const sessionId = sessionIdHint ?? snapshot?.sessionId;
+    if (sessionId == null) {
+      return;
+    }
+
+    this.restoreInFlight = true;
+    try {
+      this.bindSocketHandlers();
+      const result = await store.dispatch(
+        callsApi.endpoints.getCallStatus.initiate(sessionId, { forceRefetch: true }),
+      );
+      if ('error' in result || result.data == null) {
+        clearActiveCallSnapshot();
+        return;
+      }
+
+      /**
+       * Cold start / Tap-to-return: only resume a live connected call.
+       * Never reopen Incoming/Outgoing ring screens after an unanswered call — that left
+       * users stuck on call UI when opening the app later.
+       */
+      if (result.data.status !== 'connected') {
+        clearActiveCallSnapshot();
+        setNativeConnectedCallSession(null);
+        void callForegroundService.stop();
+        void cancelIncomingCallNotification(sessionId);
+        return;
+      }
+
+      const displayName =
+        snapshot?.remoteDisplayName ??
+        (state.remoteDisplayName.trim().length > 0 ? state.remoteDisplayName : 'Ongoing call');
+      const callType = snapshot?.callType ?? result.data.callType ?? 'voice';
+      const mode = snapshot?.mode ?? state.credentials?.mode ?? 'outgoing';
+      const serverConnectedAtMs =
+        result.data.connectedAt != null ? Date.parse(result.data.connectedAt) : NaN;
+      const restoredConnectedAtMs =
+        snapshot?.connectedAtMs != null && snapshot.connectedAtMs > 0
+          ? snapshot.connectedAtMs
+          : Number.isFinite(serverConnectedAtMs) && serverConnectedAtMs > 0
+            ? serverConnectedAtMs
+            : Date.now();
+
+      this.outgoingAnswered = true;
+      store.dispatch(
+        setCallSession({
+          sessionId,
+          callType,
+          credentials: {
+            sessionId,
+            channelName: result.data.channelName,
+            callType,
+            appId: state.credentials?.appId ?? '',
+            uid: state.credentials?.uid ?? 0,
+            rtcToken: state.credentials?.rtcToken ?? '',
+            mode,
+          },
+          remoteDisplayName: displayName,
+          remoteAvatarUrl: snapshot?.remoteAvatarUrl ?? state.remoteAvatarUrl,
+        }),
+      );
+      store.dispatch(setCallPhase('connecting_media'));
+      store.dispatch(setCallMinimized(false));
+      store.dispatch(startConnectedTimer(restoredConnectedAtMs));
+      callSocketService.setActiveCallId(sessionId);
+      this.navigateToCallScreen('InCall', sessionId);
+      this.startCallForegroundService();
+      this.startSyncTimer(sessionId);
+      await this.reconnectMedia({ force: true });
+      store.dispatch(setCallPhase('in_call'));
+    } finally {
+      this.restoreInFlight = false;
+    }
+  }
+
+  /**
+   * After auth boot: only restore a still-connected call. Ringing snapshots are dropped so
+   * unanswered calls do not reopen call screens on the next launch.
+   */
+  async restoreActiveCallIfNeeded(): Promise<void> {
+    if (this.discardExpiredRingSnapshot()) {
+      return;
+    }
+    const state = this.getCallState();
+    if (this.isReturnToCallPhase(state.phase)) {
+      this.ensureReturnToCallNotification();
+      return;
+    }
+    const snapshot = readActiveCallSnapshot();
+    if (snapshot == null) {
+      return;
+    }
+    // Unanswered / still-ringing persistence must not open call UI on cold start.
+    if (snapshot.connectedAtMs <= 0) {
+      clearActiveCallSnapshot();
+      void callForegroundService.stop();
+      void cancelIncomingCallNotification(snapshot.sessionId);
+      return;
+    }
+    this.paintOngoingFromSnapshot();
+    await this.returnToActiveCall(snapshot.sessionId);
   }
 
   teardown(): void {
     const sessionId = this.getCallState().sessionId;
     this.pendingAcceptSessionId = null;
+    this.pendingNavigation = null;
     this.outgoingAnswered = false;
     this.reconnectInFlight = false;
     callRingtoneService.stop();
+    clearActiveCallSnapshot();
+    setNativeConnectedCallSession(null);
     void callForegroundService.stop();
     void cancelIncomingCallNotification(sessionId);
     this.clearRingTimeout();
     this.stopRingStatusPoll();
     this.clearIncomingRingTimeout();
     this.stopIncomingRingStatusPoll();
+    this.clearOutgoingBackgroundCancel();
     this.clearTeardownTimer();
     this.clearRemoteLeftGrace();
     this.stopSyncTimer();

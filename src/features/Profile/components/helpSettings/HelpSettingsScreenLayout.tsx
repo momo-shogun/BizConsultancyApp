@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { AccountHubScreenShell } from '@/shared/components';
+import { Dialog } from '@/shared/components/dialog';
 
 import { HelpSettingsSection } from './HelpSettingsSection';
 import { HELP_SETTINGS_CANVAS, helpSettingsStyles } from './helpSettings.styles';
@@ -32,6 +33,21 @@ export function HelpSettingsScreenLayout(
     onSubscriberAgreement,
   } = props;
 
+  const [logoutConfirmVisible, setLogoutConfirmVisible] = useState(false);
+
+  const openLogoutConfirm = useCallback((): void => {
+    setLogoutConfirmVisible(true);
+  }, []);
+
+  const closeLogoutConfirm = useCallback((): void => {
+    setLogoutConfirmVisible(false);
+  }, []);
+
+  const confirmLogout = useCallback((): void => {
+    setLogoutConfirmVisible(false);
+    onLogout();
+  }, [onLogout]);
+
   return (
     <AccountHubScreenShell
       title="Help & Settings"
@@ -56,7 +72,7 @@ export function HelpSettingsScreenLayout(
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Log out"
-            onPress={onLogout}
+            onPress={openLogoutConfirm}
             style={({ pressed }) => [
               helpSettingsStyles.logoutBtn,
               pressed ? helpSettingsStyles.logoutBtnPressed : null,
@@ -86,6 +102,18 @@ export function HelpSettingsScreenLayout(
           <Text style={helpSettingsStyles.footerVersion}>App version {appVersion}</Text>
         </View>
       </ScrollView>
+
+      <Dialog
+        visible={logoutConfirmVisible}
+        onClose={closeLogoutConfirm}
+        variant="destructive"
+        title="Log out?"
+        description="You will stop receiving calls and notifications until you sign in again."
+        actions={[
+          { label: 'Cancel', variant: 'ghost', onPress: closeLogoutConfirm },
+          { label: 'Log out', variant: 'destructive', onPress: confirmLogout },
+        ]}
+      />
     </AccountHubScreenShell>
   );
 }

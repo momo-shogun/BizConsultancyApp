@@ -1,4 +1,4 @@
-import type { CallIncomingPayload } from '../types/callApi.types';
+import type { CallEndedPayload, CallIncomingPayload } from '../types/callApi.types';
 
 function readString(data: Record<string, string | undefined>, key: string): string | undefined {
   const value = data[key];
@@ -54,5 +54,27 @@ export function parseIncomingCallPushData(
     eventId: readString(data, 'eventId'),
     eventVersion: readNumber(data, 'eventVersion'),
     timestamp: readNumber(data, 'timestamp'),
+  };
+}
+
+/** Parse FCM cancel / hang-up for a ringing session. */
+export function parseCallEndedPushData(
+  data: Record<string, string | undefined> | undefined,
+): CallEndedPayload | null {
+  if (data == null) {
+    return null;
+  }
+  const type = readString(data, 'type');
+  if (type !== 'call.ended') {
+    return null;
+  }
+  const sessionId = readNumber(data, 'sessionId');
+  if (sessionId == null) {
+    return null;
+  }
+  return {
+    sessionId,
+    status: readString(data, 'status') ?? 'ended',
+    endReason: readString(data, 'endReason') ?? null,
   };
 }

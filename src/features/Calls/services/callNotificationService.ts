@@ -9,11 +9,14 @@ import { AppState, NativeModules, Platform } from 'react-native';
 import { INCOMING_CALLS_CHANNEL_ID } from '../constants/callNotifications';
 import type { CallIncomingPayload } from '../types/callApi.types';
 import { resolveCallPartyImageUrl } from '../utils/callPartyMedia';
+import { callForegroundService } from './callForegroundService';
 
 interface CallAndroidNotificationNative {
   cancelIncomingCallNotification?: (id: string) => Promise<void>;
   scheduleIncomingCallExpiry?: (id: string) => Promise<void>;
   clearAllIncomingCallNotifications?: () => Promise<void>;
+  setIncomingCallPushEnabled?: (enabled: boolean) => Promise<void>;
+  setConnectedCallSession?: (sessionId: string | null) => Promise<void>;
 }
 
 function nativeCallModule(): CallAndroidNotificationNative | null {
@@ -49,6 +52,27 @@ function clearNativeIncomingCallState(): void {
     return;
   }
   void mod.clearAllIncomingCallNotifications();
+}
+
+/** Native killed-state FCM paint gate — false after logout. */
+export function setNativeIncomingCallPushEnabled(enabled: boolean): void {
+  const mod = nativeCallModule();
+  if (mod?.setIncomingCallPushEnabled == null) {
+    return;
+  }
+  void mod.setIncomingCallPushEnabled(enabled);
+}
+
+/**
+ * Tell native that this session is already connected so delayed FCM incoming paints are skipped.
+ * Pass `null` when the call ends.
+ */
+export function setNativeConnectedCallSession(sessionId: number | null): void {
+  const mod = nativeCallModule();
+  if (mod?.setConnectedCallSession == null) {
+    return;
+  }
+  void mod.setConnectedCallSession(sessionId == null ? null : String(sessionId));
 }
 let channelReady = false;
 let iosCategoriesReady = false;
@@ -121,6 +145,7 @@ async function ensureIosNotificationPermission(): Promise<void> {
 export async function ensureCallNotificationsReady(): Promise<void> {
   await ensureIosCallCategories();
   await ensureIosNotificationPermission();
+  await callForegroundService.warmUp();
 }
 
 /**

@@ -60,7 +60,7 @@
       </receiver>
 
       <!-- Clears the incoming-call notification once its ring window closes, even if the
-           process died first. No push is sent when the caller hangs up. -->
+           process died first. Caller cancel also sends FCM call.ended (see IncomingCallFcmReceiver). -->
       <receiver
         android:name=".IncomingCallExpiryReceiver"
         android:exported="false" />

@@ -137,7 +137,10 @@ export function hasBookingStarted(bookingDate: string, slotTime: string, now = n
   return now.getTime() >= bookingDateTime.getTime();
 }
 
-/** Upcoming tab: stay upcoming until the slot ends (e.g. 1:30–2:00 → past only after 2:00). */
+/**
+ * Upcoming until the slot end instant (exclusive).
+ * e.g. `1:00 PM – 1:30 PM` (or bare `1:00 PM` + 30‑min grace) → gone once the clock hits 1:30.
+ */
 export function isBookingUpcomingTab(
   bookingDate: string,
   slotTime: string,
@@ -145,7 +148,7 @@ export function isBookingUpcomingTab(
 ): boolean {
   const endDateTime = buildBookingEndDateTime(bookingDate, slotTime);
   if (endDateTime != null) {
-    return now.getTime() <= endDateTime.getTime();
+    return now.getTime() < endDateTime.getTime();
   }
   const dateOnly = parseBookingDate(bookingDate);
   if (dateOnly == null) {
@@ -159,7 +162,7 @@ export function isBookingUpcomingTab(
 export function isBookingUpcoming(bookingDate: string, slotTime: string, now = new Date()): boolean {
   const endDateTime = buildBookingEndDateTime(bookingDate, slotTime);
   if (endDateTime != null) {
-    return now.getTime() <= endDateTime.getTime();
+    return now.getTime() < endDateTime.getTime();
   }
   const dateOnly = parseBookingDate(bookingDate);
   if (dateOnly == null) {

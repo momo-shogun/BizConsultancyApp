@@ -28,6 +28,8 @@ let socket: Socket | null = null;
 let pingTimer: ReturnType<typeof setInterval> | null = null;
 let handlers: SocketHandlers = {};
 let activeCallId: number | null = null;
+/** JWT used for the current socket — reconnect when the logged-in account changes. */
+let connectedAuthToken: string | null = null;
 
 function deviceStateFromAppState(state: AppStateStatus): DeviceState {
   return state === 'active' ? 'foreground' : 'background';
@@ -61,14 +63,18 @@ function stopPing(): void {
 export const callSocketService = {
   connect(token: string, nextHandlers: SocketHandlers): void {
     handlers = nextHandlers;
-    if (socket?.connected === true) {
+    // Same account still online — just refresh handlers.
+    if (socket?.connected === true && connectedAuthToken === token) {
       return;
     }
+    // Drop the previous identity (e.g. consultant-1) before joining as the new account.
     if (socket != null) {
       socket.removeAllListeners();
       socket.disconnect();
+      socket = null;
     }
 
+    connectedAuthToken = token;
     socket = io(SOCKET_BASE_URL, {
       path: CALL_SOCKET_PATH,
       transports: ['websocket', 'polling'],
@@ -118,6 +124,7 @@ export const callSocketService = {
     stopPing();
     handlers = {};
     activeCallId = null;
+    connectedAuthToken = null;
     if (socket != null) {
       socket.removeAllListeners();
       socket.disconnect();

@@ -1,3 +1,4 @@
+import { callWarmupCoordinator } from '@/features/Calls/engine/CallWarmupCoordinator';
 import { unregisterFcmDeviceToken } from '@/features/Calls/services/callFirebaseMessaging';
 import { baseApi } from '@/services/api/baseApi';
 import type { AppDispatch } from '@/store';
@@ -11,10 +12,7 @@ type SessionDispatch = AppDispatch | ((action: unknown) => unknown);
  */
 export async function clearAppSession(dispatch: SessionDispatch): Promise<void> {
   await unregisterFcmDeviceToken(dispatch as AppDispatch);
+  callWarmupCoordinator.onLogout();
   dispatch(logout());
   dispatch(baseApi.util.resetApiState());
-  // Local only — JWT may already be invalid (401 path), so server token clear happens in logoutSession.
-  void import('@/features/Calls/services/callNotificationService').then(({ cancelAllCallNotifications }) => {
-    void cancelAllCallNotifications();
-  });
 }

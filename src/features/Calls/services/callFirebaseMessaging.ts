@@ -1,13 +1,35 @@
 import { PermissionsAndroid, Platform } from 'react-native';
-import messaging from '@react-native-firebase/messaging';
+import {
+  AuthorizationStatus,
+  deleteToken,
+  getInitialNotification,
+  getMessaging,
+  getToken,
+  onMessage,
+  onNotificationOpenedApp,
+  onTokenRefresh,
+  requestPermission,
+} from '@react-native-firebase/messaging';
 
 import type { AppDispatch } from '@/store';
 import { store } from '@/store';
 
 import { callsApi } from '../api/callsApi';
 import { registerCallNotifeeForegroundHandler } from './callNotifeeEvents';
-import { ensureCallNotificationsReady } from './callNotificationService';
+import {
+  ensureCallNotificationsReady,
+  setNativeIncomingCallPushEnabled,
+} from './callNotificationService';
 import { handleIncomingCallRemoteMessage } from './callPushHandlers';
+
+const messaging = getMessaging();
+
+/**
+ * Gate for POST /calls/device-token.
+ * `deleteToken()` rotates the FCM token and fires `onTokenRefresh` — if registration is still
+ * allowed while logout is mid-flight, the new token is saved and pushes keep arriving.
+ */
+let fcmRegistrationEnabled = false;
 
 async function requestNotificationPermission(): Promise<boolean> {
   if (Platform.OS === 'android' && Platform.Version >= 33) {
@@ -16,14 +38,20 @@ async function requestNotificationPermission(): Promise<boolean> {
     );
     return result === PermissionsAndroid.RESULTS.GRANTED;
   }
-  const authStatus = await messaging().requestPermission();
+  const authStatus = await requestPermission(messaging);
   return (
-    authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-    authStatus === messaging.AuthorizationStatus.PROVISIONAL
+    authStatus === AuthorizationStatus.AUTHORIZED ||
+    authStatus === AuthorizationStatus.PROVISIONAL
   );
 }
 
 async function registerTokenWithServer(token: string): Promise<void> {
+  if (!fcmRegistrationEnabled) {
+    if (__DEV__) {
+      console.log('[calls] FCM token register skipped (registration disabled)');
+    }
+    return;
+  }
   const authToken = store.getState().auth?.token;
   if (authToken == null || authToken.length === 0) {
     if (__DEV__) {
@@ -47,6 +75,8 @@ async function registerTokenWithServer(token: string): Promise<void> {
 }
 
 export async function syncFcmDeviceToken(): Promise<void> {
+  fcmRegistrationEnabled = true;
+  setNativeIncomingCallPushEnabled(true);
   await ensureCallNotificationsReady();
   const granted = await requestNotificationPermission();
   if (!granted && __DEV__) {
@@ -54,10 +84,10 @@ export async function syncFcmDeviceToken(): Promise<void> {
   }
 
   try {
-    const token = await messaging().getToken();
+    const token = await getToken(messaging);
     if (token.length === 0) {
       if (__DEV__) {
-        console.warn('[calls] messaging().getToken() returned empty');
+        console.warn('[calls] getToken() returned empty');
       }
       return;
     }
@@ -74,6 +104,10 @@ export async function syncFcmDeviceToken(): Promise<void> {
  * Must run while the auth JWT is still present so the DELETE call is authorized.
  */
 export async function unregisterFcmDeviceToken(dispatch: AppDispatch): Promise<void> {
+  // Block onTokenRefresh → register races before we rotate the local token.
+  fcmRegistrationEnabled = false;
+  setNativeIncomingCallPushEnabled(false);
+
   try {
     await dispatch(callsApi.endpoints.clearDeviceToken.initiate()).unwrap();
     if (__DEV__) {
@@ -86,41 +120,51 @@ export async function unregisterFcmDeviceToken(dispatch: AppDispatch): Promise<v
   }
 
   try {
-    await messaging().deleteToken();
+    await deleteToken(messaging);
     if (__DEV__) {
       console.log('[calls] local FCM token deleted');
     }
   } catch (err) {
     if (__DEV__) {
-      console.warn('[calls] messaging().deleteToken failed', err);
+      console.warn('[calls] deleteToken failed', err);
     }
+  }
+
+  /**
+   * `deleteToken` can race a refresh that registered a brand-new token under the still-valid JWT.
+   * Clear again so the account row is empty even if that happened.
+   */
+  try {
+    await dispatch(callsApi.endpoints.clearDeviceToken.initiate()).unwrap();
+  } catch {
+    // Best-effort — JWT may already be mid-teardown.
   }
 }
 
 export function startCallPushListeners(): () => void {
+  fcmRegistrationEnabled = true;
   void ensureCallNotificationsReady();
 
   const unsubNotifee = registerCallNotifeeForegroundHandler();
 
-  const unsubRefresh = messaging().onTokenRefresh((token) => {
+  const unsubRefresh = onTokenRefresh(messaging, (token) => {
     void registerTokenWithServer(token);
   });
 
-  const unsubForeground = messaging().onMessage((message) => {
+  const unsubForeground = onMessage(messaging, (message) => {
     void handleIncomingCallRemoteMessage(message, { delivery: 'foreground' });
   });
 
-  const unsubOpened = messaging().onNotificationOpenedApp((message) => {
+  const unsubOpened = onNotificationOpenedApp(messaging, (message) => {
     void handleIncomingCallRemoteMessage(message, { delivery: 'opened' });
   });
 
-  void messaging()
-    .getInitialNotification()
-    .then((message) => {
-      void handleIncomingCallRemoteMessage(message, { delivery: 'opened' });
-    });
+  void getInitialNotification(messaging).then((message) => {
+    void handleIncomingCallRemoteMessage(message, { delivery: 'opened' });
+  });
 
   return () => {
+    fcmRegistrationEnabled = false;
     unsubNotifee();
     unsubRefresh();
     unsubForeground();

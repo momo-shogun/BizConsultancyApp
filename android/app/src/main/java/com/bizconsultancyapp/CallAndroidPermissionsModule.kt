@@ -137,6 +137,37 @@ class CallAndroidPermissionsModule(
     }
   }
 
+  /**
+   * Enable/disable native killed-state incoming-call paints. Must be false after logout so a
+   * stale FCM token on the server cannot still ring this device.
+   */
+  @ReactMethod
+  fun setIncomingCallPushEnabled(enabled: Boolean, promise: Promise) {
+    try {
+      IncomingCallNativeNotifier.setPushDeliveryEnabled(reactContext.applicationContext, enabled)
+      promise.resolve(null)
+    } catch (error: Exception) {
+      promise.reject("SET_CALL_PUSH_ENABLED_FAILED", error.message, error)
+    }
+  }
+
+  /**
+   * While a call is connected, mark the session so delayed FCM `call.incoming` does not show a
+   * second incoming notification beside the ongoing-call tray entry. Pass null/empty to clear.
+   */
+  @ReactMethod
+  fun setConnectedCallSession(sessionId: String?, promise: Promise) {
+    try {
+      IncomingCallNativeNotifier.setConnectedSession(
+          reactContext.applicationContext,
+          sessionId,
+      )
+      promise.resolve(null)
+    } catch (error: Exception) {
+      promise.reject("SET_CONNECTED_CALL_FAILED", error.message, error)
+    }
+  }
+
   /** Whether the keyguard is currently locked (device lock screen). */
   @ReactMethod
   fun isDeviceLocked(promise: Promise) {

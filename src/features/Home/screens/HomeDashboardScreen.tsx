@@ -16,14 +16,18 @@ import type { ConsultantSelfBooking } from '@/features/Bookings/types/consultant
 import type { MyConsultantBooking } from '@/features/Bookings/types/myConsultantBooking.types';
 import {
   buildBookingDateTime,
+  buildBookingEndDateTime,
   formatBookingDate,
   hasBookingStarted,
   isBookingUpcoming,
+  isBookingUpcomingTab,
 } from '@/features/Bookings/utils/bookingDateTime';
 import {
+  canShowCallAction,
   getBookingConsultationKind,
   isBookingPaymentPending,
 } from '@/features/Bookings/utils/bookingDisplay';
+import { canConsultantStartCall } from '@/features/Bookings/utils/consultantSelfBookingDisplay';
 import { CallController } from '@/features/Calls/controllers/CallController';
 import {
   useGetMasterCategoriesQuery,
@@ -92,10 +96,11 @@ const HOME_RECOMMENDED_SERVICES_CARD_WIDTH = 320;
 const HOME_TESTIMONIALS_CARD_WIDTH = 260;
 const HOME_MEMBERSHIP_PLANS_CARD_WIDTH = 360;
 const HOME_UPCOMING_BOOKINGS_LIMIT = 5;
-const BOOKING_VISIBLE_AFTER_START_MINUTES = 30;
 const HOME_DEFAULT_SHELL_BG = '#E6C8A4';
 /** Keep the PTR spinner visible briefly so fast cache hits still feel intentional. */
 const HOME_REFRESH_MIN_MS = 520;
+/** Re-evaluate slot end while Home stays mounted (expired bookings must leave the list). */
+const HOME_UPCOMING_CLOCK_MS = 15_000;
 
 function HomeSectionSkeleton(props: { compact?: boolean }): React.ReactElement {
   const compact = props.compact ?? false;
@@ -129,15 +134,6 @@ function isStatusVisibleForHomeUpcoming(
     return isBookingUpcoming(bookingDate, slotTime, now);
   }
   return isStatusVisibleOnHome(status);
-}
-
-function isBookingVisibleInHomeWindow(bookingDate: string, slotTime: string, now: Date): boolean {
-  const start = buildBookingDateTime(bookingDate, slotTime);
-  if (start == null) {
-    return false;
-  }
-  const visibleUntil = start.getTime() + BOOKING_VISIBLE_AFTER_START_MINUTES * 60 * 1000;
-  return now.getTime() <= visibleUntil;
 }
 
 function compareByStartTime(
@@ -210,6 +206,7 @@ export function HomeDashboardScreen(): React.ReactElement {
   } = useServicePurchaseLoginGate();
   const [activeShell, setActiveShell] = useState<ZeptoHSShellColors | null>(null);
   const [consultantsPageNumber, setConsultantsPageNumber] = useState(1);
+  const [nowMs, setNowMs] = useState(() => Date.now());
 
   const {
     data: userWalletBalance,
@@ -298,11 +295,25 @@ export function HomeDashboardScreen(): React.ReactElement {
     skip: !isAuthenticated || !isConsultant,
   });
 
+  useFocusEffect(
+    useCallback((): (() => void) => {
+      setNowMs(Date.now());
+      const intervalId = setInterval(() => {
+        setNowMs(Date.now());
+      }, HOME_UPCOMING_CLOCK_MS);
+      return (): void => {
+        clearInterval(intervalId);
+      };
+    }, []),
+  );
+
   const { refetch: refetchMasterCategories } = useGetMasterCategoriesQuery();
   const { refetch: refetchMasterSegments } = useGetMasterSegmentsQuery();
 
   const onHomeRefresh = useCallback(async (): Promise<void> => {
     const startedAt = Date.now();
+    // Re-filter upcoming sessions against the current clock (drop slots whose duration ended).
+    setNowMs(startedAt);
 
     // Invalidate tagged lists so every subscribed home query (including spotlight
     // variants with different args) refetches together.
@@ -336,6 +347,9 @@ export function HomeDashboardScreen(): React.ReactElement {
       }
     }
     await Promise.allSettled(tasks);
+
+    // After fresh booking data lands, filter again with the latest time.
+    setNowMs(Date.now());
 
     const elapsed = Date.now() - startedAt;
     if (elapsed < HOME_REFRESH_MIN_MS) {
@@ -397,14 +411,14 @@ export function HomeDashboardScreen(): React.ReactElement {
     if (!isAuthenticated) {
       return [];
     }
-    const now = new Date();
+    const now = new Date(nowMs);
     if (isConsultant) {
       const rows = (consultantBookings ?? [])
         .filter((booking) => !isBookingPaymentPending(booking.paymentStatus))
         .filter((booking) =>
           isStatusVisibleForHomeUpcoming(booking.status, booking.bookingDate, booking.slotTime, now),
         )
-        .filter((booking) => isBookingVisibleInHomeWindow(booking.bookingDate, booking.slotTime, now))
+        .filter((booking) => isBookingUpcomingTab(booking.bookingDate, booking.slotTime, now))
         .sort(compareByStartTime)
         .slice(0, HOME_UPCOMING_BOOKINGS_LIMIT);
       return rows.map(mapConsultantBookingToHomeItem);
@@ -415,11 +429,40 @@ export function HomeDashboardScreen(): React.ReactElement {
       .filter((booking) =>
         isStatusVisibleForHomeUpcoming(booking.status, booking.bookingDate, booking.slotTime, now),
       )
-      .filter((booking) => isBookingVisibleInHomeWindow(booking.bookingDate, booking.slotTime, now))
+      .filter((booking) => isBookingUpcomingTab(booking.bookingDate, booking.slotTime, now))
       .sort(compareByStartTime)
       .slice(0, HOME_UPCOMING_BOOKINGS_LIMIT);
     return rows.map(mapUserBookingToHomeItem);
-  }, [consultantBookings, isAuthenticated, isConsultant, myBookingsPage?.data]);
+  }, [consultantBookings, isAuthenticated, isConsultant, myBookingsPage?.data, nowMs]);
+
+  /** Drop the card within ~1s of slot end instead of waiting for the next clock tick. */
+  useEffect((): (() => void) | void => {
+    if (!isAuthenticated) {
+      return;
+    }
+    const source = isConsultant ? (consultantBookings ?? []) : (myBookingsPage?.data ?? []);
+    let soonestEndMs = Number.POSITIVE_INFINITY;
+    for (const booking of source) {
+      const end = buildBookingEndDateTime(booking.bookingDate, booking.slotTime);
+      if (end == null) {
+        continue;
+      }
+      const endMs = end.getTime();
+      if (endMs > nowMs && endMs < soonestEndMs) {
+        soonestEndMs = endMs;
+      }
+    }
+    if (!Number.isFinite(soonestEndMs)) {
+      return;
+    }
+    const delayMs = Math.max(50, soonestEndMs - Date.now() + 50);
+    const timeoutId = setTimeout(() => {
+      setNowMs(Date.now());
+    }, delayMs);
+    return (): void => {
+      clearTimeout(timeoutId);
+    };
+  }, [consultantBookings, isAuthenticated, isConsultant, myBookingsPage?.data, nowMs]);
 
   const testimonialItems = useMemo((): TestimonialItem[] => {
     const rows = publicTestimonials ?? [];
@@ -578,14 +621,17 @@ export function HomeDashboardScreen(): React.ReactElement {
         if (booking == null) {
           return false;
         }
-        return hasBookingStarted(booking.bookingDate, booking.slotTime);
+        return canConsultantStartCall(booking, 'upcoming');
       }
 
       const booking = (myBookingsPage?.data ?? []).find((row) => row.id === bookingId);
       if (booking == null) {
         return false;
       }
-      return hasBookingStarted(booking.bookingDate, booking.slotTime);
+      return (
+        canShowCallAction(booking, 'upcoming') &&
+        hasBookingStarted(booking.bookingDate, booking.slotTime)
+      );
     },
     [consultantBookings, isConsultant, myBookingsPage?.data],
   );

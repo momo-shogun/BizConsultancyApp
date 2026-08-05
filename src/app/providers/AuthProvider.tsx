@@ -8,7 +8,7 @@ import {
   selectEffectiveAccountRole,
   selectIsAuthenticated,
 } from '@/features/Auth/store/authSelectors';
-import { logoutSession } from '@/features/Auth/store/authThunks';
+import { clearAppSession } from '@/features/Auth/store/clearAppSession';
 import { useAppDispatch, useAppSelector } from '@/store/typedHooks';
 
 interface AuthFlowState {
@@ -65,11 +65,7 @@ export function AuthProvider(props: React.PropsWithChildren): React.ReactElement
 
   const logout = useCallback((): void => {
     dispatchFlow({ type: 'AUTH/CLEAR_FLOW' });
-<<<<<<< HEAD
     void clearAppSession(dispatch);
-=======
-    void dispatch(logoutSession());
->>>>>>> 98222fc (lock screen calling issue solved , timeout issue solved)
   }, [dispatch]);
 
   const selectAccountContext = useCallback(

@@ -1,5 +1,8 @@
 import { NativeModules, Platform } from 'react-native';
 
+import { store } from '@/store';
+
+import { callsApi } from '../api/callsApi';
 import { callEngine } from '../engine/CallEngine';
 import { parseIncomingCallPushData } from './callPushPayload';
 import { cancelIncomingCallNotification } from './callNotificationService';
@@ -22,6 +25,17 @@ function getNativeModule(): CallAndroidPermissionsNative | null {
     return null;
   }
   return mod;
+}
+
+async function isSessionStillRinging(sessionId: number): Promise<boolean> {
+  const result = await store.dispatch(
+    callsApi.endpoints.getCallStatus.initiate(sessionId, { forceRefetch: true }),
+  );
+  if ('error' in result || result.data == null) {
+    // Fail closed on cold start — never reopen a missed call UI when status is unknown.
+    return false;
+  }
+  return result.data.status === 'initiated' || result.data.status === 'ringing';
 }
 
 /**
@@ -49,6 +63,12 @@ export async function consumeNativePendingIncomingCall(): Promise<boolean> {
     return false;
   }
 
+  // Missed / ended / timed-out: never reopen IncomingCall just because pending prefs remained.
+  if (!(await isSessionStillRinging(payload.sessionId))) {
+    await cancelIncomingCallNotification(payload.sessionId);
+    return false;
+  }
+
   callEngine.bindSocketHandlers();
   const seeded = await callEngine.seedIncomingFromNotificationAsync(payload);
   if (!seeded) {
@@ -70,5 +90,6 @@ export async function consumeNativePendingIncomingCall(): Promise<boolean> {
     return true;
   }
 
+  // action === open (notification body tap while still ringing)
   return true;
 }

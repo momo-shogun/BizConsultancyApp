@@ -41,6 +41,16 @@ export function IncomingCallScreen({
   const showResult = phase === 'ended' && callOutcome !== 'none';
 
   useEffect(() => {
+    // Stale navigation (e.g. pending queue after a missed call) must not keep this UI open.
+    if (phase !== 'idle') {
+      return;
+    }
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    }
+  }, [phase, navigation]);
+
+  useEffect(() => {
     if (!isRinging) return;
 
     const sub = BackHandler.addEventListener(

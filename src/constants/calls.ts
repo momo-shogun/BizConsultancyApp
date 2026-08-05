@@ -24,6 +24,12 @@ export const OUTGOING_RING_TIMEOUT_MS = 30_000;
 export const OUTGOING_RING_STATUS_POLL_MS = 2_500;
 
 /**
+ * If the caller backgrounds / leaves the app while still ringing, cancel after this delay
+ * so the callee does not keep ringing (and cannot answer) a dead outbound call.
+ */
+export const OUTGOING_RING_BACKGROUND_CANCEL_MS = 3_000;
+
+/**
  * Callee ring timeout before the incoming UI closes itself (ms).
  * Deliberately longer than the caller's timeout: the caller ends the session first and the
  * callee normally learns via socket/poll. This only fires when neither signal lands, and the

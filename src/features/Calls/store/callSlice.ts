@@ -115,10 +115,14 @@ export const callSlice = createSlice({
     setCallOutcome: (state, action: PayloadAction<CallOutcome>) => {
       state.callOutcome = action.payload;
     },
-    startConnectedTimer: (state) => {
-      state.connectedAtMs = Date.now();
+    startConnectedTimer: (state, action: PayloadAction<number | undefined>) => {
+      const startedAt =
+        action.payload != null && Number.isFinite(action.payload) && action.payload > 0
+          ? action.payload
+          : Date.now();
+      state.connectedAtMs = startedAt;
       state.callOutcome = 'connected';
-      state.elapsedSeconds = 0;
+      state.elapsedSeconds = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
     },
     setRemoteMuted: (state, action: PayloadAction<boolean>) => {
       state.remoteMuted = action.payload;

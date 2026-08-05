@@ -14,10 +14,12 @@ export function useCallTimer(): number {
     if (connectedAtMs == null) {
       return;
     }
-    const tick = setInterval(() => {
+    const sync = (): void => {
       const secs = Math.max(0, Math.floor((Date.now() - connectedAtMs) / 1000));
       dispatch(setElapsedSeconds(secs));
-    }, 1000);
+    };
+    sync();
+    const tick = setInterval(sync, 1000);
     return () => clearInterval(tick);
   }, [connectedAtMs, dispatch]);
 

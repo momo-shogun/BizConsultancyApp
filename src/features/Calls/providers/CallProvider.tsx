@@ -22,6 +22,7 @@ import {
 import { consumeNativePendingIncomingCall } from '../services/consumeNativePendingIncomingCall';
 import { isDeviceLocked } from '../services/callLockScreenBridge';
 import { startCallPushListeners } from '../services/callFirebaseMessaging';
+import { consumeInitialOngoingCallNotification } from '../services/callNotifeeEvents';
 
 const CALL_ONLY_ROUTES = new Set<string>([
   ROUTES.Root.IncomingCall,
@@ -85,6 +86,8 @@ export function CallProvider(props: React.PropsWithChildren): React.ReactElement
     callEngine.bindSocketHandlers();
     callEngine.flushPendingCallNavigation();
     callEngine.flushPendingAccept();
+    void callEngine.restoreActiveCallIfNeeded();
+    void consumeInitialOngoingCallNotification();
     void consumeNativePendingIncomingCall().then((handled) => {
       if (handled) {
         callEngine.flushPendingAccept();

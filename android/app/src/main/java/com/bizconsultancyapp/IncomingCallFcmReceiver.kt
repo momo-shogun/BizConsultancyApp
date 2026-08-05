@@ -26,7 +26,28 @@ class IncomingCallFcmReceiver : BroadcastReceiver() {
   override fun onReceive(context: Context, intent: Intent?) {
     val extras = intent?.extras ?: return
     val type = extras.getString("type") ?: return
+    val appContext = context.applicationContext
+
+    if (type == "call.ended") {
+      val sessionId = extras.getString("sessionId") ?: return
+      try {
+        IncomingCallNativeNotifier.expire(appContext, sessionId)
+      } catch (error: Exception) {
+        Log.e(TAG, "Failed to clear incoming call on call.ended", error)
+      }
+      return
+    }
+
     if (type != "call.incoming") {
+      return
+    }
+    if (!IncomingCallNativeNotifier.isPushDeliveryEnabled(appContext)) {
+      Log.i(TAG, "Ignoring call.incoming — user is logged out")
+      return
+    }
+    val sessionId = extras.getString("sessionId")
+    if (sessionId != null && IncomingCallNativeNotifier.isConnectedSession(appContext, sessionId)) {
+      Log.i(TAG, "Ignoring call.incoming — session already connected (ongoing call)")
       return
     }
     if (isAppInForeground(context)) {
@@ -34,7 +55,7 @@ class IncomingCallFcmReceiver : BroadcastReceiver() {
     }
 
     try {
-      IncomingCallNativeNotifier.show(context.applicationContext, extras)
+      IncomingCallNativeNotifier.show(appContext, extras)
     } catch (error: Exception) {
       Log.e(TAG, "Failed to show native incoming-call notification", error)
     }
@@ -62,6 +83,9 @@ object IncomingCallNativeNotifier {
   private const val KEY_ACTION = "pending_action"
   private const val KEY_PERSISTED_AT = "pending_persisted_at"
   private const val KEY_ACTIVE_SESSION = "active_session_id"
+  private const val KEY_PUSH_ENABLED = "push_delivery_enabled"
+  /** Session currently in a connected call — suppress delayed call.incoming paints. */
+  private const val KEY_CONNECTED_SESSION = "connected_session_id"
 
   /** Keep in sync with `INCOMING_RING_TIMEOUT_MS` in `src/constants/calls.ts`. */
   private const val RING_TIMEOUT_MS = 40_000L
@@ -71,8 +95,55 @@ object IncomingCallNativeNotifier {
   const val ACTION_DECLINE = "com.consultancy.INCOMING_CALL_DECLINE"
   const val ACTION_EXPIRE = "com.consultancy.INCOMING_CALL_EXPIRE"
 
+  /**
+   * When false, ignore killed-state FCM paints. Cleared on logout so a stale server token cannot
+   * still ring a logged-out device.
+   */
+  fun setPushDeliveryEnabled(context: Context, enabled: Boolean) {
+    context
+        .getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        .edit()
+        .putBoolean(KEY_PUSH_ENABLED, enabled)
+        .apply()
+    if (!enabled) {
+      clearAll(context)
+    }
+  }
+
+  fun isPushDeliveryEnabled(context: Context): Boolean {
+    return context
+        .getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        .getBoolean(KEY_PUSH_ENABLED, false)
+  }
+
+  /**
+   * Mark a session as already connected so delayed FCM `call.incoming` does not paint a second
+   * incoming notification next to the ongoing-call tray entry.
+   */
+  fun setConnectedSession(context: Context, sessionId: String?) {
+    val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    if (sessionId.isNullOrBlank()) {
+      prefs.edit().remove(KEY_CONNECTED_SESSION).apply()
+      return
+    }
+    prefs.edit().putString(KEY_CONNECTED_SESSION, sessionId.trim()).apply()
+    cancel(context, sessionId.trim())
+  }
+
+  fun isConnectedSession(context: Context, sessionId: String): Boolean {
+    val connected =
+        context
+            .getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getString(KEY_CONNECTED_SESSION, null)
+    return connected != null && connected == sessionId
+  }
+
   fun show(context: Context, extras: Bundle) {
     val sessionId = extras.getString("sessionId") ?: return
+    if (isConnectedSession(context, sessionId)) {
+      Log.i(TAG, "Skipping incoming paint — session already connected")
+      return
+    }
     val callerName =
         extras.getString("callerName")?.takeIf { it.isNotBlank() } ?: "Incoming caller"
     val callType = extras.getString("callType") ?: "voice"
@@ -109,8 +180,8 @@ object IncomingCallNativeNotifier {
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setOngoing(true)
             .setAutoCancel(false)
-            // Ongoing + non-cancellable means nothing else can clear this once the process
-            // dies, and no push is sent when the caller hangs up. Let the system retire it.
+            // Ongoing until Answer/Decline, caller FCM call.ended, AlarmManager expiry, or
+            // the system timeout below (ring window).
             .setTimeoutAfter(RING_TIMEOUT_MS)
             .setContentIntent(contentIntent)
             .setFullScreenIntent(fullScreen, true)
@@ -124,8 +195,8 @@ object IncomingCallNativeNotifier {
   }
 
   /**
-   * Nothing is pushed to this device when the caller hangs up, and the process may be dead long
-   * before the ring window closes. Arm an alarm so the tray entry always retires itself.
+   * Fallback if FCM `call.ended` never arrives (or process was already dead). Arm an alarm so
+   * the tray entry retires when the ring window closes.
    * Inexact on purpose — SCHEDULE_EXACT_ALARM is stripped from the manifest.
    */
   fun scheduleExpiry(context: Context, sessionId: String) {
@@ -214,7 +285,22 @@ object IncomingCallNativeNotifier {
     if (prefs.getString(KEY_ACTIVE_SESSION, null) == sessionId) {
       prefs.edit().remove(KEY_ACTIVE_SESSION).apply()
     }
+    // Drop killed-state pending payload so a later app open cannot resurrect IncomingCall.
+    clearPendingIfSession(context, sessionId)
     NotificationManagerCompat.from(context).cancel(stableId(sessionId))
+  }
+
+  private fun clearPendingIfSession(context: Context, sessionId: String) {
+    val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    val json = prefs.getString(KEY_PAYLOAD_JSON, null) ?: return
+    try {
+      val pendingSession = JSONObject(json).optString("sessionId", "")
+      if (pendingSession.isEmpty() || pendingSession == sessionId) {
+        clearPending(context)
+      }
+    } catch (_: Exception) {
+      clearPending(context)
+    }
   }
 
   /** Logout / session end: drop pending payload and every incoming-call tray entry. */
@@ -225,7 +311,7 @@ object IncomingCallNativeNotifier {
       cancelExpiry(context, activeSession)
     }
     clearPending(context)
-    prefs.edit().remove(KEY_ACTIVE_SESSION).apply()
+    prefs.edit().remove(KEY_ACTIVE_SESSION).remove(KEY_CONNECTED_SESSION).apply()
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
       return
     }
