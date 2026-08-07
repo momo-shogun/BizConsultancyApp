@@ -126,8 +126,38 @@ export interface ServiceDetailFormStep {
   title: string;
   description: string | null;
   sortOrder: number;
+  isRepeatable: number;
+  minInstances: number;
+  maxInstances: number;
+  instanceLabel: string | null;
+  addAnotherLabel: string | null;
   sections: ServiceDetailFormSection[];
   declarationItems: ServiceDetailFormDeclarationItem[];
+}
+
+export interface ServiceDetailAnswerItem {
+  questionId: number;
+  answerText: string | null;
+  answerJson: unknown;
+}
+
+export interface ServiceDetailAnswerInstance {
+  id: number;
+  stepId: number;
+  instanceIndex: number;
+  label: string | null;
+  answers: ServiceDetailAnswerItem[];
+}
+
+export interface ServiceDetailInstancePayload {
+  stepId: number;
+  instanceIndex: number;
+  label?: string | null;
+  answers: Array<{
+    questionId: number;
+    answerText?: string | null;
+    answerJson?: unknown;
+  }>;
 }
 
 export interface ServiceDetailFormContext {
@@ -147,11 +177,8 @@ export interface ServiceDetailFormContext {
     submitterName: string | null;
     declarationDate: string | null;
     declarationAcceptedJson: Record<string, boolean> | null;
-    answers: Array<{
-      questionId: number;
-      answerText: string | null;
-      answerJson: unknown;
-    }>;
+    instances: ServiceDetailAnswerInstance[];
+    answers: ServiceDetailAnswerItem[];
   } | null;
 }
 
@@ -169,6 +196,11 @@ export interface VaultDocumentOption {
   createdAt: string;
 }
 
+export interface DocumentRequirementSelectionGroup {
+  answerInstanceId: number | null;
+  userDocumentIds: number[];
+}
+
 export interface SubmissionDocumentRequirementItem {
   serviceDocumentId: number;
   documentTypeId: number;
@@ -178,6 +210,7 @@ export interface SubmissionDocumentRequirementItem {
   sortOrder: number | null;
   availableDocuments: VaultDocumentOption[];
   selectedUserDocumentIds: number[];
+  selections: DocumentRequirementSelectionGroup[];
 }
 
 export interface SubmissionDocumentRequirements {
@@ -186,9 +219,24 @@ export interface SubmissionDocumentRequirements {
   items: SubmissionDocumentRequirementItem[];
 }
 
+export interface SubmissionDocumentSelectionItem {
+  serviceDocumentId: number;
+  userDocumentIds: number[];
+  answerInstanceId?: number | null;
+}
+
 export interface MyServiceCardModel {
   item: MyOnboardingSubmission;
   showContinue: boolean;
   showApply: boolean;
   isContinueLoading: boolean;
+}
+
+export interface ApplyInstanceDraft {
+  id: number | null;
+  stepId: number;
+  instanceIndex: number;
+  label: string | null;
+  detailAnswers: Record<number, { answerText?: string; answerJson?: unknown }>;
+  multiInputs: Record<number, string[]>;
 }

@@ -1,9 +1,12 @@
 import type {
+  DocumentRequirementSelectionGroup,
   MyOnboardingSubmission,
   MyOnboardingSubmissionDetail,
   MyOnboardingSubmissionFullDetail,
   OnboardingDetailRow,
   OnboardingSubmissionStatus,
+  ServiceDetailAnswerInstance,
+  ServiceDetailAnswerItem,
   ServiceDetailAnswerRow,
   ServiceDetailAnswerType,
   ServiceDetailFormContext,
@@ -399,12 +402,34 @@ function parseServiceDetailStep(raw: unknown): ServiceDetailFormStep | null {
   }
   declarationItems.sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id);
 
+  const isRepeatable =
+    kind === 'fields' && Number(raw.isRepeatable) === 1 ? 1 : 0;
+  const minRaw = Math.floor(Number(raw.minInstances));
+  const maxRaw = Math.floor(Number(raw.maxInstances));
+  const minInstances =
+    isRepeatable === 1 ? Math.max(1, Number.isFinite(minRaw) ? minRaw : 1) : 1;
+  const maxInstances =
+    isRepeatable === 1
+      ? Math.max(minInstances, Math.min(20, Number.isFinite(maxRaw) ? maxRaw : minInstances))
+      : 1;
+
   return {
     id,
     kind,
     title: typeof raw.title === 'string' ? raw.title : kind === 'declaration' ? 'Review & declaration' : 'Details',
     description: typeof raw.description === 'string' ? raw.description : null,
     sortOrder: Number(raw.sortOrder) || 0,
+    isRepeatable,
+    minInstances,
+    maxInstances,
+    instanceLabel:
+      isRepeatable === 1 && typeof raw.instanceLabel === 'string' && raw.instanceLabel.trim()
+        ? raw.instanceLabel.trim()
+        : null,
+    addAnotherLabel:
+      isRepeatable === 1 && typeof raw.addAnotherLabel === 'string' && raw.addAnotherLabel.trim()
+        ? raw.addAnotherLabel.trim()
+        : null,
     sections,
     declarationItems,
   };
@@ -437,6 +462,11 @@ function buildSyntheticSteps(
       title: 'Details',
       description: null,
       sortOrder: 0,
+      isRepeatable: 0,
+      minInstances: 1,
+      maxInstances: 1,
+      instanceLabel: null,
+      addAnotherLabel: null,
       sections: fieldSections,
       declarationItems: [],
     },
@@ -446,10 +476,58 @@ function buildSyntheticSteps(
       title: 'Review & declaration',
       description: null,
       sortOrder: 1,
+      isRepeatable: 0,
+      minInstances: 1,
+      maxInstances: 1,
+      instanceLabel: null,
+      addAnotherLabel: null,
       sections: [],
       declarationItems: [],
     },
   ];
+}
+
+function parseAnswerItem(raw: unknown): ServiceDetailAnswerItem | null {
+  if (!isRecord(raw)) {
+    return null;
+  }
+  const questionId = Number(raw.questionId);
+  if (!Number.isFinite(questionId)) {
+    return null;
+  }
+  return {
+    questionId,
+    answerText: typeof raw.answerText === 'string' ? raw.answerText : null,
+    answerJson: raw.answerJson ?? null,
+  };
+}
+
+function parseAnswerInstance(raw: unknown): ServiceDetailAnswerInstance | null {
+  if (!isRecord(raw)) {
+    return null;
+  }
+  const id = Number(raw.id);
+  const stepId = Number(raw.stepId);
+  if (!Number.isFinite(id) || !Number.isFinite(stepId)) {
+    return null;
+  }
+  const answersRaw = Array.isArray(raw.answers) ? raw.answers : [];
+  const answers: ServiceDetailAnswerItem[] = [];
+  for (const a of answersRaw) {
+    const parsed = parseAnswerItem(a);
+    if (parsed != null) {
+      answers.push(parsed);
+    }
+  }
+  return {
+    id,
+    stepId,
+    instanceIndex: Number.isFinite(Number(raw.instanceIndex))
+      ? Math.max(0, Math.floor(Number(raw.instanceIndex)))
+      : 0,
+    label: typeof raw.label === 'string' ? raw.label : null,
+    answers,
+  };
 }
 
 export function parseServiceDetailFormContext(raw: unknown): ServiceDetailFormContext | null {
@@ -518,6 +596,28 @@ export function parseServiceDetailFormContext(raw: unknown): ServiceDetailFormCo
   let submission: ServiceDetailFormContext['submission'] = null;
   if (submissionRaw != null && Number.isFinite(Number(submissionRaw.id))) {
     const answersRaw = Array.isArray(submissionRaw.answers) ? submissionRaw.answers : [];
+    const answers: ServiceDetailAnswerItem[] = [];
+    for (const a of answersRaw) {
+      const parsed = parseAnswerItem(a);
+      if (parsed != null) {
+        answers.push(parsed);
+      }
+    }
+
+    const instancesRaw = Array.isArray(submissionRaw.instances)
+      ? submissionRaw.instances
+      : [];
+    const instances: ServiceDetailAnswerInstance[] = [];
+    for (const inst of instancesRaw) {
+      const parsed = parseAnswerInstance(inst);
+      if (parsed != null) {
+        instances.push(parsed);
+      }
+    }
+    instances.sort(
+      (a, b) => a.stepId - b.stepId || a.instanceIndex - b.instanceIndex || a.id - b.id,
+    );
+
     submission = {
       id: Number(submissionRaw.id),
       status: typeof submissionRaw.status === 'string' ? submissionRaw.status : '',
@@ -528,14 +628,8 @@ export function parseServiceDetailFormContext(raw: unknown): ServiceDetailFormCo
           ? submissionRaw.declarationDate
           : null,
       declarationAcceptedJson: parseAcceptedJson(submissionRaw.declarationAcceptedJson),
-      answers: answersRaw
-        .filter(isRecord)
-        .map((a) => ({
-          questionId: Number(a.questionId),
-          answerText: typeof a.answerText === 'string' ? a.answerText : null,
-          answerJson: a.answerJson ?? null,
-        }))
-        .filter((a) => Number.isFinite(a.questionId)),
+      instances,
+      answers,
     };
   }
 
@@ -600,6 +694,24 @@ export function parseSubmissionDocumentRequirements(
     const availableRaw = Array.isArray(item.availableDocuments)
       ? item.availableDocuments
       : [];
+    const selectionsRaw = Array.isArray(item.selections) ? item.selections : [];
+    const selections: DocumentRequirementSelectionGroup[] = [];
+    for (const sel of selectionsRaw) {
+      if (!isRecord(sel)) {
+        continue;
+      }
+      const answerInstanceId =
+        sel.answerInstanceId != null && Number.isFinite(Number(sel.answerInstanceId))
+          ? Number(sel.answerInstanceId)
+          : null;
+      const userDocumentIds = Array.isArray(sel.userDocumentIds)
+        ? sel.userDocumentIds.map(Number).filter(Number.isFinite)
+        : [];
+      selections.push({ answerInstanceId, userDocumentIds });
+    }
+    const selectedUserDocumentIds = Array.isArray(item.selectedUserDocumentIds)
+      ? item.selectedUserDocumentIds.map(Number).filter(Number.isFinite)
+      : [];
     items.push({
       serviceDocumentId,
       documentTypeId: Number(item.documentTypeId) || 0,
@@ -619,9 +731,13 @@ export function parseSubmissionDocumentRequirements(
           createdAt: typeof doc.createdAt === 'string' ? doc.createdAt : '',
         }))
         .filter((doc) => Number.isFinite(doc.id) && doc.documentUrl.length > 0),
-      selectedUserDocumentIds: Array.isArray(item.selectedUserDocumentIds)
-        ? item.selectedUserDocumentIds.map(Number).filter(Number.isFinite)
-        : [],
+      selectedUserDocumentIds,
+      selections:
+        selections.length > 0
+          ? selections
+          : selectedUserDocumentIds.length > 0
+            ? [{ answerInstanceId: null, userDocumentIds: selectedUserDocumentIds }]
+            : [],
     });
   }
   return {

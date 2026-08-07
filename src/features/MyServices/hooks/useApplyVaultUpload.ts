@@ -6,6 +6,7 @@ import { getApiErrorMessage } from '@/utils/apiError';
 import { useUploadMyVaultDocumentMutation } from '../api/myServicesApi';
 import type { SubmissionDocumentRequirementItem } from '../types/myServices.types';
 import { assetToMultipartFile } from '@/services/api/multipartFetch';
+import { docSelectionKey } from '../utils/applyServiceReview';
 
 import {
   getVaultAssetMimeType,
@@ -19,13 +20,21 @@ interface UseApplyVaultUploadParams {
   submissionId: number;
   isApplied: boolean;
   personNameForUpload: string;
-  setDraftSelections: Dispatch<SetStateAction<Record<number, number[]>>>;
+  setDraftSelections: Dispatch<SetStateAction<Record<string, number[]>>>;
+}
+
+interface UploadTarget {
+  item: SubmissionDocumentRequirementItem;
+  answerInstanceId: number;
 }
 
 interface UseApplyVaultUploadResult {
-  uploadingForServiceDocumentId: number | null;
-  uploadSourceItem: SubmissionDocumentRequirementItem | null;
-  requestUploadForRequirement: (item: SubmissionDocumentRequirementItem) => void;
+  uploadingSelectionKey: string | null;
+  uploadSourceTarget: UploadTarget | null;
+  requestUploadForRequirement: (
+    item: SubmissionDocumentRequirementItem,
+    answerInstanceId: number | null,
+  ) => void;
   closeUploadSourceDialog: () => void;
   uploadFromSource: (source: VaultImagePickerSource) => Promise<void>;
 }
@@ -36,31 +45,38 @@ export function useApplyVaultUpload({
   personNameForUpload,
   setDraftSelections,
 }: UseApplyVaultUploadParams): UseApplyVaultUploadResult {
-  const [uploadingForServiceDocumentId, setUploadingForServiceDocumentId] = useState<
-    number | null
-  >(null);
-  const [uploadSourceItem, setUploadSourceItem] =
-    useState<SubmissionDocumentRequirementItem | null>(null);
+  const [uploadingSelectionKey, setUploadingSelectionKey] = useState<string | null>(null);
+  const [uploadSourceTarget, setUploadSourceTarget] = useState<UploadTarget | null>(null);
   const [uploadVault] = useUploadMyVaultDocumentMutation();
 
   const requestUploadForRequirement = useCallback(
-    (item: SubmissionDocumentRequirementItem): void => {
+    (item: SubmissionDocumentRequirementItem, answerInstanceId: number | null): void => {
       if (isApplied) {
         showGlobalToast('This application is final submitted and locked');
         return;
       }
-      setUploadSourceItem(item);
+      if (answerInstanceId == null || answerInstanceId <= 0) {
+        showGlobalToast({
+          variant: 'error',
+          message: 'Save this section first, then upload the document.',
+          duration: 6000,
+          position: 'top',
+        });
+        return;
+      }
+      setUploadSourceTarget({ item, answerInstanceId });
     },
     [isApplied],
   );
 
   const closeUploadSourceDialog = useCallback((): void => {
-    setUploadSourceItem(null);
+    setUploadSourceTarget(null);
   }, []);
 
   const performUpload = useCallback(
     async (
       item: SubmissionDocumentRequirementItem,
+      answerInstanceId: number,
       source: VaultImagePickerSource,
     ): Promise<void> => {
       const pickerResult = await launchVaultImagePicker(source);
@@ -106,7 +122,8 @@ export function useApplyVaultUpload({
         return;
       }
 
-      setUploadingForServiceDocumentId(item.serviceDocumentId);
+      const selectionKey = docSelectionKey(item.serviceDocumentId, answerInstanceId);
+      setUploadingSelectionKey(selectionKey);
       try {
         const uploaded = await uploadVault({
           submissionId,
@@ -116,19 +133,19 @@ export function useApplyVaultUpload({
         }).unwrap();
 
         setDraftSelections((prev) => {
-          const current = prev[item.serviceDocumentId] ?? [];
+          const current = prev[selectionKey] ?? [];
           if (current.includes(uploaded.id)) {
             return prev;
           }
           return {
             ...prev,
-            [item.serviceDocumentId]: [...current, uploaded.id],
+            [selectionKey]: [...current, uploaded.id],
           };
         });
       } catch (err: unknown) {
         showGlobalToast(getApiErrorMessage(err, 'Upload failed'));
       } finally {
-        setUploadingForServiceDocumentId(null);
+        setUploadingSelectionKey(null);
       }
     },
     [personNameForUpload, setDraftSelections, submissionId, uploadVault],
@@ -136,19 +153,19 @@ export function useApplyVaultUpload({
 
   const uploadFromSource = useCallback(
     async (source: VaultImagePickerSource): Promise<void> => {
-      const item = uploadSourceItem;
-      if (item == null) {
+      const target = uploadSourceTarget;
+      if (target == null) {
         return;
       }
-      setUploadSourceItem(null);
-      await performUpload(item, source);
+      setUploadSourceTarget(null);
+      await performUpload(target.item, target.answerInstanceId, source);
     },
-    [performUpload, uploadSourceItem],
+    [performUpload, uploadSourceTarget],
   );
 
   return {
-    uploadingForServiceDocumentId,
-    uploadSourceItem,
+    uploadingSelectionKey,
+    uploadSourceTarget,
     requestUploadForRequirement,
     closeUploadSourceDialog,
     uploadFromSource,

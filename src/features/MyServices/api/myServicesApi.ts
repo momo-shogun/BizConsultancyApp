@@ -13,7 +13,9 @@ import type {
   OnboardingDetailRow,
   ServiceDetailDeclarationPayload,
   ServiceDetailFormContext,
+  ServiceDetailInstancePayload,
   SubmissionDocumentRequirements,
+  SubmissionDocumentSelectionItem,
   VaultDocumentOption,
 } from '../types/myServices.types';
 import {
@@ -322,19 +324,15 @@ export const myServicesApi = baseApi.injectEndpoints({
       { ok: true; submissionId: number },
       {
         submissionId: number;
-        answers: Array<{
-          questionId: number;
-          answerText?: string | null;
-          answerJson?: unknown;
-        }>;
+        instances: ServiceDetailInstancePayload[];
         declaration?: ServiceDetailDeclarationPayload;
       }
     >({
-      query: ({ submissionId, answers, declaration }) => ({
+      query: ({ submissionId, instances, declaration }) => ({
         url: `service-detail-forms/me/submissions/${submissionId}`,
         method: 'PUT',
         body: {
-          answers,
+          instances,
           ...(declaration != null ? { declaration } : {}),
         },
       }),
@@ -347,7 +345,7 @@ export const myServicesApi = baseApi.injectEndpoints({
       { ok: true },
       {
         submissionId: number;
-        items: Array<{ serviceDocumentId: number; userDocumentIds: number[] }>;
+        items: SubmissionDocumentSelectionItem[];
       }
     >({
       query: ({ submissionId, items }) => ({

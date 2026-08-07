@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
@@ -35,24 +35,31 @@ import { ApplyServiceDeclarationStep } from '../components/ApplyServiceReviewSte
 import { VaultUploadSourceDialog } from '../components/VaultUploadSourceDialog';
 import { useApplyVaultUpload } from '../hooks/useApplyVaultUpload';
 import type {
+  ApplyInstanceDraft,
   ServiceDetailFormQuestion,
   ServiceDetailFormStep,
 } from '../types/myServices.types';
 import {
   APPLY_ERROR_TOAST_DURATION_MS,
+  addAnotherButtonLabel,
+  buildAllFieldsIssueLabels,
   buildChecklistRows,
   buildDeclarationIssueLabels,
   buildDeclarationPayload,
-  buildDetailIssueLabels,
-  buildUploadIssueLabels,
-  collectQuestionsFromSteps,
-  collectSectionsFromSteps,
+  buildDocumentSelectionPayload,
+  buildInstancesPayload,
+  buildInitialInstancesByStep,
+  buildStepIssueLabels,
+  createEmptyInstance,
+  defaultInstanceLabel,
   displayToIsoDate,
+  docSelectionKey,
   findRequirementForQuestion,
-  formatApplyValidationError,
+  formatIssueList,
   isDeclarationReadyForSave,
   isoToDisplayDate,
   mergeDocumentSelections,
+  syncInstanceIdsFromServer,
   todayIsoDate,
 } from '../utils/applyServiceReview';
 import {
@@ -83,77 +90,6 @@ function showApplySuccessToast(message: string): void {
 }
 
 type ApplyRoute = RouteProp<AccountStackParamList, typeof ROUTES.Account.ApplyService>;
-
-type DetailAnswerState = Record<number, { answerText?: string; answerJson?: unknown }>;
-type MultiInputState = Record<number, string[]>;
-
-function buildDetailPayload(
-  questions: ServiceDetailFormQuestion[],
-  detailAnswers: DetailAnswerState,
-  multiInputs: MultiInputState,
-): Array<{ questionId: number; answerText?: string | null; answerJson?: unknown }> {
-  const out: Array<{
-    questionId: number;
-    answerText?: string | null;
-    answerJson?: unknown;
-  }> = [];
-  for (const q of questions) {
-    if (q.answerType === 'upload') {
-      continue;
-    }
-    const cur = detailAnswers[q.id] ?? {};
-    if (q.answerType === 'multiinput') {
-      const arr = (multiInputs[q.id] ?? []).map((s) => s.trim()).filter(Boolean);
-      out.push({ questionId: q.id, answerText: null, answerJson: arr });
-      continue;
-    }
-    if (q.answerType === 'checkbox') {
-      const options = Array.isArray((q.configJson as { options?: unknown[] } | null)?.options)
-        ? ((q.configJson as { options: unknown[] }).options)
-        : [];
-      const hasOptions = options.length > 0;
-      if (!hasOptions) {
-        out.push({
-          questionId: q.id,
-          answerText: null,
-          answerJson: typeof cur.answerJson === 'boolean' ? cur.answerJson : null,
-        });
-      } else {
-        out.push({
-          questionId: q.id,
-          answerText: null,
-          answerJson: Array.isArray(cur.answerJson) ? cur.answerJson : [],
-        });
-      }
-      continue;
-    }
-    if (q.answerType === 'radio') {
-      const options = Array.isArray((q.configJson as { options?: unknown[] } | null)?.options)
-        ? ((q.configJson as { options: unknown[] }).options)
-        : [];
-      if (options.length === 0) {
-        out.push({
-          questionId: q.id,
-          answerText: null,
-          answerJson: typeof cur.answerJson === 'boolean' ? cur.answerJson : null,
-        });
-      } else {
-        out.push({
-          questionId: q.id,
-          answerText: cur.answerText ?? '',
-          answerJson: null,
-        });
-      }
-      continue;
-    }
-    out.push({
-      questionId: q.id,
-      answerText: cur.answerText ?? '',
-      answerJson: null,
-    });
-  }
-  return out;
-}
 
 function ApplyStepIndicator({
   steps,
@@ -216,9 +152,10 @@ export function ApplyServiceScreen(): React.ReactElement {
   const submissionId = route.params.submissionId;
 
   const [stepIndex, setStepIndex] = useState(0);
-  const [detailAnswers, setDetailAnswers] = useState<DetailAnswerState>({});
-  const [multiInputs, setMultiInputs] = useState<MultiInputState>({});
-  const [draftSelections, setDraftSelections] = useState<Record<number, number[]>>({});
+  const [instancesByStep, setInstancesByStep] = useState<
+    Record<number, ApplyInstanceDraft[]>
+  >({});
+  const [draftSelections, setDraftSelections] = useState<Record<string, number[]>>({});
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [deleteVaultTarget, setDeleteVaultTarget] = useState<{
     id: number;
@@ -232,6 +169,7 @@ export function ApplyServiceScreen(): React.ReactElement {
     isoToDisplayDate(todayIsoDate()),
   );
   const [declarationAccepted, setDeclarationAccepted] = useState<Record<number, boolean>>({});
+  const hydratedCtxIdRef = useRef<number | null>(null);
 
   const displayName = useSelector(selectDisplayName);
   const personNameForUpload = (displayName ?? 'User').trim() || 'User';
@@ -251,19 +189,6 @@ export function ApplyServiceScreen(): React.ReactElement {
     return ctx?.form?.steps ?? [];
   }, [ctx?.form?.steps]);
 
-  const allQuestions = useMemo((): ServiceDetailFormQuestion[] => {
-    const fromSteps = collectQuestionsFromSteps(wizardSteps);
-    if (fromSteps.length > 0) {
-      return fromSteps;
-    }
-    return ctx?.form?.questions ?? [];
-  }, [ctx?.form?.questions, wizardSteps]);
-
-  const checklistSections = useMemo(
-    () => collectSectionsFromSteps(wizardSteps),
-    [wizardSteps],
-  );
-
   const currentStep = wizardSteps[stepIndex] ?? null;
   const isDeclarationStep = currentStep?.kind === 'declaration';
   const isLastStep = stepIndex >= wizardSteps.length - 1 && wizardSteps.length > 0;
@@ -278,8 +203,8 @@ export function ApplyServiceScreen(): React.ReactElement {
   }, [currentStep, wizardSteps]);
 
   const {
-    uploadingForServiceDocumentId,
-    uploadSourceItem,
+    uploadingSelectionKey,
+    uploadSourceTarget,
     requestUploadForRequirement,
     closeUploadSourceDialog,
     uploadFromSource,
@@ -303,64 +228,45 @@ export function ApplyServiceScreen(): React.ReactElement {
       return;
     }
     const steps = ctx.form?.steps ?? [];
-    const questions =
-      collectQuestionsFromSteps(steps).length > 0
-        ? collectQuestionsFromSteps(steps)
-        : (ctx.form?.questions ?? []);
 
-    const next: DetailAnswerState = {};
-    const multi: MultiInputState = {};
-    if (ctx.submission?.answers?.length) {
-      for (const a of ctx.submission.answers) {
-        const q = questions.find((x) => x.id === a.questionId);
-        let answerJson = a.answerJson;
-        if (q != null && isYesNoChoiceQuestion(q) && typeof answerJson !== 'boolean') {
-          const text = (a.answerText ?? '').trim().toLowerCase();
-          if (text === 'yes' || text === 'true' || text === '1') {
-            answerJson = true;
-          } else if (text === 'no' || text === 'false' || text === '0') {
-            answerJson = false;
+    if (hydratedCtxIdRef.current !== submissionId) {
+      hydratedCtxIdRef.current = submissionId;
+      setInstancesByStep(
+        buildInitialInstancesByStep(
+          steps,
+          ctx.submission?.instances ?? [],
+          ctx.submission?.answers ?? [],
+        ),
+      );
+
+      const nameFromSub = (ctx.submission?.submitterName ?? '').trim();
+      setSubmitterName(nameFromSub || (displayName ?? '').trim());
+
+      const dateFromSub = (ctx.submission?.declarationDate ?? '').trim().slice(0, 10);
+      const iso = /^(\d{4})-(\d{2})-(\d{2})$/.test(dateFromSub) ? dateFromSub : todayIsoDate();
+      setDeclarationDateIso(iso);
+      setDeclarationDateDisplay(isoToDisplayDate(iso));
+
+      const acceptedRaw = ctx.submission?.declarationAcceptedJson ?? null;
+      const acceptedNext: Record<number, boolean> = {};
+      if (acceptedRaw != null) {
+        for (const [k, v] of Object.entries(acceptedRaw)) {
+          const id = Number(k);
+          if (Number.isFinite(id) && v === true) {
+            acceptedNext[id] = true;
           }
         }
-        next[a.questionId] = {
-          answerText: a.answerText ?? undefined,
-          answerJson,
-        };
-        if (q?.answerType === 'multiinput' && Array.isArray(a.answerJson)) {
-          multi[a.questionId] = (a.answerJson as unknown[]).map((x) => String(x));
-        }
       }
+      setDeclarationAccepted(acceptedNext);
+      return;
     }
-    for (const q of questions) {
-      if (q.answerType === 'multiinput' && multi[q.id] == null) {
-        const cfg = (q.configJson ?? {}) as { minEntries?: number };
-        const min = Math.max(1, Number(cfg.minEntries) || 1);
-        multi[q.id] = Array.from({ length: min }, () => '');
-      }
+
+    if ((ctx.submission?.instances ?? []).length > 0) {
+      setInstancesByStep((prev) =>
+        syncInstanceIdsFromServer(prev, ctx.submission?.instances ?? []),
+      );
     }
-    setDetailAnswers(next);
-    setMultiInputs(multi);
-
-    const nameFromSub = (ctx.submission?.submitterName ?? '').trim();
-    setSubmitterName(nameFromSub || (displayName ?? '').trim());
-
-    const dateFromSub = (ctx.submission?.declarationDate ?? '').trim().slice(0, 10);
-    const iso = /^(\d{4})-(\d{2})-(\d{2})$/.test(dateFromSub) ? dateFromSub : todayIsoDate();
-    setDeclarationDateIso(iso);
-    setDeclarationDateDisplay(isoToDisplayDate(iso));
-
-    const acceptedRaw = ctx.submission?.declarationAcceptedJson ?? null;
-    const acceptedNext: Record<number, boolean> = {};
-    if (acceptedRaw != null) {
-      for (const [k, v] of Object.entries(acceptedRaw)) {
-        const id = Number(k);
-        if (Number.isFinite(id) && v === true) {
-          acceptedNext[id] = true;
-        }
-      }
-    }
-    setDeclarationAccepted(acceptedNext);
-  }, [ctx, displayName]);
+  }, [ctx, displayName, submissionId]);
 
   useEffect(() => {
     if (!reqData?.items) {
@@ -374,7 +280,7 @@ export function ApplyServiceScreen(): React.ReactElement {
       return;
     }
     const t = setTimeout(() => {
-      const answers = buildDetailPayload(allQuestions, detailAnswers, multiInputs);
+      const instances = buildInstancesPayload(wizardSteps, instancesByStep);
       const includeDeclaration = isDeclarationReadyForSave(
         submitterName,
         declarationDateIso,
@@ -384,26 +290,24 @@ export function ApplyServiceScreen(): React.ReactElement {
       const declaration = includeDeclaration
         ? buildDeclarationPayload(submitterName, declarationDateIso, declarationAccepted)
         : undefined;
-      if (answers.length === 0 && declaration == null) {
+      if (instances.length === 0 && declaration == null) {
         return;
       }
-      void saveDetails({ submissionId, answers, declaration });
+      void saveDetails({ submissionId, instances, declaration });
     }, 700);
     return () => clearTimeout(t);
   }, [
-    allQuestions,
     ctxLoading,
     declarationAccepted,
     declarationDateIso,
     declarationItems,
-    detailAnswers,
     hasWizard,
+    instancesByStep,
     isApplied,
-    isDeclarationStep,
-    multiInputs,
     saveDetails,
     submissionId,
     submitterName,
+    wizardSteps,
   ]);
 
   useEffect(() => {
@@ -411,11 +315,10 @@ export function ApplyServiceScreen(): React.ReactElement {
       return;
     }
     const t = setTimeout(() => {
-      const merged = mergeDocumentSelections(reqData.items, draftSelections);
-      const items = reqData.items.map((it) => ({
-        serviceDocumentId: it.serviceDocumentId,
-        userDocumentIds: merged[it.serviceDocumentId] ?? [],
-      }));
+      const items = buildDocumentSelectionPayload(reqData.items, draftSelections);
+      if (items.length === 0) {
+        return;
+      }
       void saveDocs({ submissionId, items });
     }, 500);
     return () => clearTimeout(t);
@@ -425,25 +328,13 @@ export function ApplyServiceScreen(): React.ReactElement {
     submission?.serviceName || submission?.serviceSlug || 'Service';
 
   const checklistRows = useMemo(
-    () =>
-      buildChecklistRows(
-        checklistSections,
-        detailAnswers,
-        multiInputs,
-        draftSelections,
-        reqData,
-      ),
-    [checklistSections, detailAnswers, draftSelections, multiInputs, reqData],
+    () => buildChecklistRows(wizardSteps, instancesByStep, draftSelections, reqData),
+    [draftSelections, instancesByStep, reqData, wizardSteps],
   );
 
-  const detailIssueLabels = useMemo(
-    () => buildDetailIssueLabels(allQuestions, detailAnswers, multiInputs),
-    [allQuestions, detailAnswers, multiInputs],
-  );
-
-  const uploadIssueLabels = useMemo(
-    () => buildUploadIssueLabels(allQuestions, draftSelections, reqData),
-    [allQuestions, draftSelections, reqData],
+  const fieldsIssueLabels = useMemo(
+    () => buildAllFieldsIssueLabels(wizardSteps, instancesByStep, draftSelections, reqData),
+    [draftSelections, instancesByStep, reqData, wizardSteps],
   );
 
   const declarationIssueLabels = useMemo(
@@ -458,9 +349,7 @@ export function ApplyServiceScreen(): React.ReactElement {
   );
 
   const canFinalSubmit =
-    detailIssueLabels.length === 0 &&
-    uploadIssueLabels.length === 0 &&
-    declarationIssueLabels.length === 0;
+    fieldsIssueLabels.length === 0 && declarationIssueLabels.length === 0;
 
   useEffect(() => {
     if (stepIndex >= wizardSteps.length && wizardSteps.length > 0) {
@@ -474,17 +363,41 @@ export function ApplyServiceScreen(): React.ReactElement {
     }
   }, [canFinalSubmit]);
 
+  const updateInstance = useCallback(
+    (
+      stepId: number,
+      instanceIndex: number,
+      updater: (inst: ApplyInstanceDraft) => ApplyInstanceDraft,
+    ): void => {
+      setInstancesByStep((prev) => {
+        const list = [...(prev[stepId] ?? [])];
+        const current = list[instanceIndex];
+        if (current == null) {
+          return prev;
+        }
+        list[instanceIndex] = updater(current);
+        return { ...prev, [stepId]: list };
+      });
+    },
+    [],
+  );
+
   const toggleDocument = useCallback(
-    (serviceDocumentId: number, userDocumentId: number): void => {
-      if (isApplied) {
+    (
+      serviceDocumentId: number,
+      answerInstanceId: number | null,
+      userDocumentId: number,
+    ): void => {
+      if (isApplied || answerInstanceId == null || answerInstanceId <= 0) {
         return;
       }
+      const key = docSelectionKey(serviceDocumentId, answerInstanceId);
       setDraftSelections((prev) => {
-        const current = prev[serviceDocumentId] ?? [];
+        const current = prev[key] ?? [];
         const isSelected = current.includes(userDocumentId);
         return {
           ...prev,
-          [serviceDocumentId]: isSelected
+          [key]: isSelected
             ? current.filter((id) => id !== userDocumentId)
             : [...current, userDocumentId],
         };
@@ -508,44 +421,83 @@ export function ApplyServiceScreen(): React.ReactElement {
     }));
   }, []);
 
+  const addInstance = useCallback(
+    (step: ServiceDetailFormStep): void => {
+      if (isApplied || step.isRepeatable !== 1) {
+        return;
+      }
+      setInstancesByStep((prev) => {
+        const list = [...(prev[step.id] ?? [])];
+        if (list.length >= step.maxInstances) {
+          return prev;
+        }
+        list.push(createEmptyInstance(step, list.length));
+        return { ...prev, [step.id]: list };
+      });
+    },
+    [isApplied],
+  );
+
+  const removeInstance = useCallback(
+    (step: ServiceDetailFormStep, index: number): void => {
+      if (isApplied || step.isRepeatable !== 1) {
+        return;
+      }
+      setInstancesByStep((prev) => {
+        const list = [...(prev[step.id] ?? [])];
+        if (list.length <= step.minInstances) {
+          return prev;
+        }
+        list.splice(index, 1);
+        const reindexed = list.map((inst, idx) => ({
+          ...inst,
+          instanceIndex: idx,
+          label:
+            (inst.label ?? '').trim().length > 0
+              ? inst.label
+              : defaultInstanceLabel(step, idx),
+        }));
+        return { ...prev, [step.id]: reindexed };
+      });
+    },
+    [isApplied],
+  );
+
   const validateFieldsStep = useCallback(
     (step: ServiceDetailFormStep): boolean => {
-      const stepQuestions = step.sections.flatMap((s) => s.questions);
-      const detailIssues = buildDetailIssueLabels(stepQuestions, detailAnswers, multiInputs);
-      const uploadIssues = buildUploadIssueLabels(stepQuestions, draftSelections, reqData);
-      if (detailIssues.length === 0 && uploadIssues.length === 0) {
+      const drafts = instancesByStep[step.id] ?? [];
+      const issues = buildStepIssueLabels(step, drafts, draftSelections, reqData);
+      if (issues.length === 0) {
         return true;
       }
-      const message = formatApplyValidationError(detailIssues, uploadIssues, []);
+      const message = formatIssueList(issues);
       setSubmitError(message);
       showApplyErrorToast(message, 'Complete required items');
       return false;
     },
-    [detailAnswers, draftSelections, multiInputs, reqData],
+    [draftSelections, instancesByStep, reqData],
   );
 
   const handleOpenFinalSubmit = useCallback((): void => {
     if (!canFinalSubmit) {
-      const message = formatApplyValidationError(
-        detailIssueLabels,
-        uploadIssueLabels,
-        declarationIssueLabels,
-      );
+      const message = formatIssueList([
+        ...fieldsIssueLabels,
+        ...declarationIssueLabels,
+      ]);
       setSubmitError(message);
       showApplyErrorToast(message, 'Complete required items');
       return;
     }
     setSubmitError(null);
     setConfirmVisible(true);
-  }, [canFinalSubmit, declarationIssueLabels, detailIssueLabels, uploadIssueLabels]);
+  }, [canFinalSubmit, declarationIssueLabels, fieldsIssueLabels]);
 
   const handleFinalApply = useCallback(async (): Promise<void> => {
     if (!canFinalSubmit) {
-      const message = formatApplyValidationError(
-        detailIssueLabels,
-        uploadIssueLabels,
-        declarationIssueLabels,
-      );
+      const message = formatIssueList([
+        ...fieldsIssueLabels,
+        ...declarationIssueLabels,
+      ]);
       setSubmitError(message);
       setConfirmVisible(false);
       showApplyErrorToast(message, 'Complete required items');
@@ -556,11 +508,11 @@ export function ApplyServiceScreen(): React.ReactElement {
     setSubmitError(null);
 
     try {
-      const answers = buildDetailPayload(allQuestions, detailAnswers, multiInputs);
+      const instances = buildInstancesPayload(wizardSteps, instancesByStep);
       const parsedDate = displayToIsoDate(declarationDateDisplay) ?? declarationDateIso;
       await saveDetails({
         submissionId,
-        answers,
+        instances,
         declaration: buildDeclarationPayload(
           submitterName,
           parsedDate,
@@ -569,12 +521,10 @@ export function ApplyServiceScreen(): React.ReactElement {
       }).unwrap();
 
       if (reqData != null) {
-        const merged = mergeDocumentSelections(reqData.items, draftSelections);
-        const items = reqData.items.map((it) => ({
-          serviceDocumentId: it.serviceDocumentId,
-          userDocumentIds: merged[it.serviceDocumentId] ?? [],
-        }));
-        await saveDocs({ submissionId, items }).unwrap();
+        const items = buildDocumentSelectionPayload(reqData.items, draftSelections);
+        if (items.length > 0) {
+          await saveDocs({ submissionId, items }).unwrap();
+        }
       }
       await applySubmission(submissionId).unwrap();
       showApplySuccessToast('Application submitted successfully.');
@@ -585,24 +535,22 @@ export function ApplyServiceScreen(): React.ReactElement {
       showApplyErrorToast(message);
     }
   }, [
-    allQuestions,
     applySubmission,
     canFinalSubmit,
     declarationAccepted,
     declarationDateDisplay,
     declarationDateIso,
     declarationIssueLabels,
-    detailAnswers,
-    detailIssueLabels,
     draftSelections,
-    multiInputs,
+    fieldsIssueLabels,
+    instancesByStep,
     navigation,
     reqData,
     saveDetails,
     saveDocs,
     submissionId,
     submitterName,
-    uploadIssueLabels,
+    wizardSteps,
   ]);
 
   const goNext = useCallback((): void => {
@@ -642,11 +590,24 @@ export function ApplyServiceScreen(): React.ReactElement {
 
   const isLoading = ctxLoading || reqLoading;
 
-  const renderQuestionField = (q: ServiceDetailFormQuestion): React.ReactElement => {
+  const renderQuestionField = (
+    q: ServiceDetailFormQuestion,
+    instance: ApplyInstanceDraft,
+    stepId: number,
+    instanceIndex: number,
+  ): React.ReactElement => {
     if (q.answerType === 'upload') {
       const requirement = findRequirementForQuestion(q, reqData);
+      const selectionKey =
+        requirement != null
+          ? docSelectionKey(requirement.serviceDocumentId, instance.id)
+          : null;
       return (
-        <View key={q.id} style={styles.fieldBlock} pointerEvents={isApplied ? 'none' : 'auto'}>
+        <View
+          key={`${instance.id ?? 'new'}-${q.id}`}
+          style={styles.fieldBlock}
+          pointerEvents={isApplied ? 'none' : 'auto'}
+        >
           {q.helpText ? <Text style={styles.sectionHint}>{q.helpText}</Text> : null}
           {reqLoading ? (
             <ActivityIndicator color="#0B3B66" />
@@ -654,6 +615,11 @@ export function ApplyServiceScreen(): React.ReactElement {
             <Text style={styles.uploadMissingHint}>
               {q.questionLabel}
               {q.isRequired === 1 ? ' *' : ''}: document type is not assigned for this service.
+            </Text>
+          ) : instance.id == null || instance.id <= 0 ? (
+            <Text style={styles.sectionHint}>
+              {q.questionLabel}
+              {q.isRequired === 1 ? ' *' : ''}: saving this section so you can upload…
             </Text>
           ) : (
             <ApplyDocumentRequirementCard
@@ -663,15 +629,19 @@ export function ApplyServiceScreen(): React.ReactElement {
                 isRequired: q.isRequired,
               }}
               selectedIds={
-                effectiveDocumentSelections[requirement.serviceDocumentId] ?? []
+                selectionKey != null
+                  ? (effectiveDocumentSelections[selectionKey] ?? [])
+                  : []
               }
               isApplied={isApplied}
-              isUploading={uploadingForServiceDocumentId === requirement.serviceDocumentId}
+              isUploading={uploadingSelectionKey === selectionKey}
               deletingVaultDocId={deletingVaultDocId}
               onToggleDocument={(documentId) =>
-                toggleDocument(requirement.serviceDocumentId, documentId)
+                toggleDocument(requirement.serviceDocumentId, instance.id, documentId)
               }
-              onUploadPress={() => requestUploadForRequirement(requirement)}
+              onUploadPress={() =>
+                requestUploadForRequirement(requirement, instance.id)
+              }
               onDeletePress={(documentId, documentName) =>
                 setDeleteVaultTarget({ id: documentId, name: documentName })
               }
@@ -683,7 +653,7 @@ export function ApplyServiceScreen(): React.ReactElement {
 
     return (
       <View
-        key={q.id}
+        key={`${instance.id ?? 'new'}-${q.id}`}
         style={styles.fieldBlock}
         pointerEvents={isApplied ? 'none' : 'auto'}
       >
@@ -694,16 +664,19 @@ export function ApplyServiceScreen(): React.ReactElement {
               {q.isRequired === 1 ? ' *' : ''}
             </Text>
             {q.helpText ? <Text style={styles.sectionHint}>{q.helpText}</Text> : null}
-            {(multiInputs[q.id] ?? ['']).map((val, idx) => (
+            {(instance.multiInputs[q.id] ?? ['']).map((val, idx) => (
               <Input
                 key={`${q.id}-${idx}`}
                 label={idx === 0 ? undefined : `Entry ${idx + 1}`}
                 value={val}
                 onChangeText={(text) => {
-                  setMultiInputs((prev) => {
-                    const arr = [...(prev[q.id] ?? [])];
+                  updateInstance(stepId, instanceIndex, (inst) => {
+                    const arr = [...(inst.multiInputs[q.id] ?? [])];
                     arr[idx] = text;
-                    return { ...prev, [q.id]: arr };
+                    return {
+                      ...inst,
+                      multiInputs: { ...inst.multiInputs, [q.id]: arr },
+                    };
                   });
                 }}
                 placeholder={q.placeholder ?? 'Enter value'}
@@ -714,9 +687,12 @@ export function ApplyServiceScreen(): React.ReactElement {
               <Pressable
                 style={styles.multiAddBtn}
                 onPress={() => {
-                  setMultiInputs((prev) => ({
-                    ...prev,
-                    [q.id]: [...(prev[q.id] ?? []), ''],
+                  updateInstance(stepId, instanceIndex, (inst) => ({
+                    ...inst,
+                    multiInputs: {
+                      ...inst.multiInputs,
+                      [q.id]: [...(inst.multiInputs[q.id] ?? []), ''],
+                    },
                   }));
                 }}
               >
@@ -735,16 +711,19 @@ export function ApplyServiceScreen(): React.ReactElement {
               {YES_NO_OPTIONS.map((opt) => {
                 const selected =
                   opt.value === 'yes'
-                    ? detailAnswers[q.id]?.answerJson === true
-                    : detailAnswers[q.id]?.answerJson === false;
+                    ? instance.detailAnswers[q.id]?.answerJson === true
+                    : instance.detailAnswers[q.id]?.answerJson === false;
                 return (
                   <Pressable
                     key={opt.value}
                     style={[styles.choiceRow, selected ? styles.choiceRowSelected : null]}
                     onPress={() => {
-                      setDetailAnswers((prev) => ({
-                        ...prev,
-                        [q.id]: { answerJson: opt.value === 'yes' },
+                      updateInstance(stepId, instanceIndex, (inst) => ({
+                        ...inst,
+                        detailAnswers: {
+                          ...inst.detailAnswers,
+                          [q.id]: { answerJson: opt.value === 'yes' },
+                        },
                       }));
                     }}
                     accessibilityRole="checkbox"
@@ -771,8 +750,8 @@ export function ApplyServiceScreen(): React.ReactElement {
             {q.helpText ? <Text style={styles.sectionHint}>{q.helpText}</Text> : null}
             <View style={styles.choiceGroup}>
               {getServiceDetailQuestionOptions(q).map((opt) => {
-                const selectedValues = Array.isArray(detailAnswers[q.id]?.answerJson)
-                  ? (detailAnswers[q.id]?.answerJson as string[])
+                const selectedValues = Array.isArray(instance.detailAnswers[q.id]?.answerJson)
+                  ? (instance.detailAnswers[q.id]?.answerJson as string[])
                   : [];
                 const selected = selectedValues.includes(opt.value);
                 return (
@@ -783,9 +762,12 @@ export function ApplyServiceScreen(): React.ReactElement {
                       const next = selected
                         ? selectedValues.filter((v) => v !== opt.value)
                         : [...selectedValues, opt.value];
-                      setDetailAnswers((prev) => ({
-                        ...prev,
-                        [q.id]: { answerJson: next },
+                      updateInstance(stepId, instanceIndex, (inst) => ({
+                        ...inst,
+                        detailAnswers: {
+                          ...inst.detailAnswers,
+                          [q.id]: { answerJson: next },
+                        },
                       }));
                     }}
                     accessibilityRole="checkbox"
@@ -812,15 +794,18 @@ export function ApplyServiceScreen(): React.ReactElement {
             {q.helpText ? <Text style={styles.sectionHint}>{q.helpText}</Text> : null}
             <View style={styles.choiceGroup}>
               {getServiceDetailQuestionOptions(q).map((opt) => {
-                const selected = detailAnswers[q.id]?.answerText === opt.value;
+                const selected = instance.detailAnswers[q.id]?.answerText === opt.value;
                 return (
                   <Pressable
                     key={opt.value}
                     style={[styles.choiceRow, selected ? styles.choiceRowSelected : null]}
                     onPress={() => {
-                      setDetailAnswers((prev) => ({
-                        ...prev,
-                        [q.id]: { answerText: opt.value },
+                      updateInstance(stepId, instanceIndex, (inst) => ({
+                        ...inst,
+                        detailAnswers: {
+                          ...inst.detailAnswers,
+                          [q.id]: { answerText: opt.value },
+                        },
                       }));
                     }}
                     accessibilityRole="radio"
@@ -844,11 +829,14 @@ export function ApplyServiceScreen(): React.ReactElement {
         ) : q.answerType === 'number' ? (
           <Input
             label={`${q.questionLabel}${q.isRequired === 1 ? ' *' : ''}`}
-            value={String(detailAnswers[q.id]?.answerText ?? '')}
+            value={String(instance.detailAnswers[q.id]?.answerText ?? '')}
             onChangeText={(text) => {
-              setDetailAnswers((prev) => ({
-                ...prev,
-                [q.id]: { answerText: text },
+              updateInstance(stepId, instanceIndex, (inst) => ({
+                ...inst,
+                detailAnswers: {
+                  ...inst.detailAnswers,
+                  [q.id]: { answerText: text },
+                },
               }));
             }}
             placeholder={q.placeholder ?? 'Enter number'}
@@ -858,11 +846,14 @@ export function ApplyServiceScreen(): React.ReactElement {
         ) : (
           <Input
             label={`${q.questionLabel}${q.isRequired === 1 ? ' *' : ''}`}
-            value={String(detailAnswers[q.id]?.answerText ?? '')}
+            value={String(instance.detailAnswers[q.id]?.answerText ?? '')}
             onChangeText={(text) => {
-              setDetailAnswers((prev) => ({
-                ...prev,
-                [q.id]: { answerText: text },
+              updateInstance(stepId, instanceIndex, (inst) => ({
+                ...inst,
+                detailAnswers: {
+                  ...inst.detailAnswers,
+                  [q.id]: { answerText: text },
+                },
               }));
             }}
             placeholder={q.placeholder ?? 'Enter answer'}
@@ -876,26 +867,118 @@ export function ApplyServiceScreen(): React.ReactElement {
     );
   };
 
-  const renderFieldsStep = (step: ServiceDetailFormStep): React.ReactElement => (
-    <View style={styles.detailsStack}>
-      {step.description ? (
-        <Text style={styles.sectionHint}>{step.description}</Text>
-      ) : null}
-      {step.sections.map((section) => (
-        <View key={`${section.letter}-${section.id}`} style={styles.groupedSectionCard}>
-          <Text style={styles.groupedSectionTitle}>
-            {section.letter}. {section.title}
-          </Text>
-          {section.description ? (
-            <Text style={styles.sectionHint}>{section.description}</Text>
-          ) : null}
-          <View style={styles.inputGap}>
-            {section.questions.map((q) => renderQuestionField(q))}
+  const renderInstanceCard = (
+    step: ServiceDetailFormStep,
+    instance: ApplyInstanceDraft,
+    instanceIndex: number,
+    showHeader: boolean,
+  ): React.ReactElement => {
+    const canRemove =
+      !isApplied &&
+      step.isRepeatable === 1 &&
+      (instancesByStep[step.id] ?? []).length > step.minInstances;
+
+    return (
+      <View
+        key={`inst-${step.id}-${instanceIndex}-${instance.id ?? 'new'}`}
+        style={styles.instanceCard}
+      >
+        {showHeader ? (
+          <View style={styles.instanceCardHeader}>
+            <Text style={styles.instanceCardTitle}>
+              {(instance.label ?? '').trim() || defaultInstanceLabel(step, instanceIndex)}
+            </Text>
+            {canRemove ? (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => removeInstance(step, instanceIndex)}
+                style={styles.instanceRemoveBtn}
+              >
+                <Text style={styles.instanceRemoveText}>Remove</Text>
+              </Pressable>
+            ) : null}
           </View>
-        </View>
-      ))}
-    </View>
-  );
+        ) : null}
+
+        {step.isRepeatable === 1 ? (
+          <View style={styles.instanceLabelInputWrap} pointerEvents={isApplied ? 'none' : 'auto'}>
+            <Input
+              label="Label"
+              value={instance.label ?? ''}
+              onChangeText={(text) => {
+                updateInstance(step.id, instanceIndex, (inst) => ({
+                  ...inst,
+                  label: text,
+                }));
+              }}
+              placeholder={defaultInstanceLabel(step, instanceIndex)}
+              accessibilityLabel="Instance label"
+            />
+          </View>
+        ) : null}
+
+        {step.sections.map((section) => (
+          <View key={`${section.letter}-${section.id}`} style={styles.groupedSectionCard}>
+            <Text style={styles.groupedSectionTitle}>
+              {section.letter}. {section.title}
+            </Text>
+            {section.description ? (
+              <Text style={styles.sectionHint}>{section.description}</Text>
+            ) : null}
+            <View style={styles.inputGap}>
+              {section.questions.map((q) =>
+                renderQuestionField(q, instance, step.id, instanceIndex),
+              )}
+            </View>
+          </View>
+        ))}
+      </View>
+    );
+  };
+
+  const renderFieldsStep = (step: ServiceDetailFormStep): React.ReactElement => {
+    const drafts = instancesByStep[step.id] ?? [];
+    const isRepeatable = step.isRepeatable === 1;
+    const canAdd =
+      !isApplied && isRepeatable && drafts.length < step.maxInstances;
+
+    return (
+      <View style={styles.detailsStack}>
+        {step.description ? (
+          <Text style={styles.sectionHint}>{step.description}</Text>
+        ) : null}
+
+        {drafts.map((inst, idx) =>
+          renderInstanceCard(step, inst, idx, isRepeatable),
+        )}
+
+        {isRepeatable ? (
+          <Pressable
+            accessibilityRole="button"
+            disabled={!canAdd}
+            onPress={() => addInstance(step)}
+            style={[styles.addInstanceBtn, !canAdd && styles.addInstanceBtnDisabled]}
+          >
+            <Text
+              style={[
+                styles.addInstanceText,
+                !canAdd && styles.addInstanceTextDisabled,
+              ]}
+            >
+              {addAnotherButtonLabel(step)}
+            </Text>
+          </Pressable>
+        ) : null}
+
+        {isRepeatable && drafts.length < step.minInstances ? (
+          <Text style={styles.uploadMissingHint}>
+            Add at least {step.minInstances}{' '}
+            {(step.instanceLabel ?? 'record').trim() || 'record'}(s) before continuing.
+          </Text>
+        ) : null}
+      </View>
+    );
+  };
 
   const renderDeclarationStep = (step: ServiceDetailFormStep): React.ReactElement => (
     <ApplyServiceDeclarationStep
@@ -1017,9 +1100,9 @@ export function ApplyServiceScreen(): React.ReactElement {
       )}
 
       <VaultUploadSourceDialog
-        visible={uploadSourceItem != null}
+        visible={uploadSourceTarget != null}
         onClose={closeUploadSourceDialog}
-        documentLabel={uploadSourceItem?.documentTypeName ?? null}
+        documentLabel={uploadSourceTarget?.item.documentTypeName ?? null}
         onSelectSource={(source) => void uploadFromSource(source)}
       />
 

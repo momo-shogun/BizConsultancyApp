@@ -578,4 +578,64 @@ export const styles = StyleSheet.create({
   inputGap: {
     gap: THEME.spacing[12],
   },
+  instanceCard: {
+    borderRadius: 14,
+    padding: 14,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E8EDF2',
+    gap: 12,
+  },
+  instanceCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  instanceCardTitle: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0B3258',
+  },
+  instanceRemoveBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FECDD3',
+    backgroundColor: '#FFF1F2',
+  },
+  instanceRemoveText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#BE123C',
+  },
+  addInstanceBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    height: 44,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#0F5132',
+    borderStyle: 'dashed',
+    backgroundColor: '#F0FDF4',
+  },
+  addInstanceBtnDisabled: {
+    borderColor: '#CBD5E1',
+    backgroundColor: '#F8FAFC',
+  },
+  addInstanceText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0F5132',
+  },
+  addInstanceTextDisabled: {
+    color: '#94A3B8',
+  },
+  instanceLabelInputWrap: {
+    gap: 4,
+  },
 });

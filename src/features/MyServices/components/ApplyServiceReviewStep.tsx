@@ -66,8 +66,8 @@ export function ApplyServiceDeclarationStep({
             <Text style={styles.checklistEmptyText}>No sections to review.</Text>
           </View>
         ) : (
-          checklistRows.map((row) => (
-            <View key={row.section} style={styles.checklistBodyRow}>
+          checklistRows.map((row, index) => (
+            <View key={`${row.section}-${index}`} style={styles.checklistBodyRow}>
               <Text style={[styles.checklistBodyCell, styles.checklistColSection]}>
                 {row.section}
               </Text>
