@@ -5,13 +5,13 @@ import { getApiErrorMessage } from '@/utils/apiError';
 
 import { useUploadMyVaultDocumentMutation } from '../api/myServicesApi';
 import type { SubmissionDocumentRequirementItem } from '../types/myServices.types';
-import { assetToMultipartFile } from '@/services/api/multipartFetch';
 import { docSelectionKey } from '../utils/applyServiceReview';
 
 import {
-  getVaultAssetMimeType,
+  getVaultFileMimeType,
   launchVaultImagePicker,
-  validateVaultPickerAsset,
+  validateVaultPickerFile,
+  vaultPickedFileToMultipart,
   type VaultImagePickerSource,
 } from '../utils/vaultImagePicker';
 import { buildVaultUploadFilename } from '../utils/vaultUploadFilename';
@@ -21,11 +21,18 @@ interface UseApplyVaultUploadParams {
   isApplied: boolean;
   personNameForUpload: string;
   setDraftSelections: Dispatch<SetStateAction<Record<string, number[]>>>;
+  /**
+   * Persist drafts and return a server answer-instance id for the target row.
+   * Called when the instance has no id yet (mirrors web save-before-upload).
+   */
+  ensureAnswerInstanceId: (stepId: number, instanceIndex: number) => Promise<number | null>;
 }
 
 interface UploadTarget {
   item: SubmissionDocumentRequirementItem;
-  answerInstanceId: number;
+  stepId: number;
+  instanceIndex: number;
+  answerInstanceId: number | null;
 }
 
 interface UseApplyVaultUploadResult {
@@ -33,6 +40,8 @@ interface UseApplyVaultUploadResult {
   uploadSourceTarget: UploadTarget | null;
   requestUploadForRequirement: (
     item: SubmissionDocumentRequirementItem,
+    stepId: number,
+    instanceIndex: number,
     answerInstanceId: number | null,
   ) => void;
   closeUploadSourceDialog: () => void;
@@ -44,27 +53,24 @@ export function useApplyVaultUpload({
   isApplied,
   personNameForUpload,
   setDraftSelections,
+  ensureAnswerInstanceId,
 }: UseApplyVaultUploadParams): UseApplyVaultUploadResult {
   const [uploadingSelectionKey, setUploadingSelectionKey] = useState<string | null>(null);
   const [uploadSourceTarget, setUploadSourceTarget] = useState<UploadTarget | null>(null);
   const [uploadVault] = useUploadMyVaultDocumentMutation();
 
   const requestUploadForRequirement = useCallback(
-    (item: SubmissionDocumentRequirementItem, answerInstanceId: number | null): void => {
+    (
+      item: SubmissionDocumentRequirementItem,
+      stepId: number,
+      instanceIndex: number,
+      answerInstanceId: number | null,
+    ): void => {
       if (isApplied) {
         showGlobalToast('This application is final submitted and locked');
         return;
       }
-      if (answerInstanceId == null || answerInstanceId <= 0) {
-        showGlobalToast({
-          variant: 'error',
-          message: 'Save this section first, then upload the document.',
-          duration: 6000,
-          position: 'top',
-        });
-        return;
-      }
-      setUploadSourceTarget({ item, answerInstanceId });
+      setUploadSourceTarget({ item, stepId, instanceIndex, answerInstanceId });
     },
     [isApplied],
   );
@@ -89,20 +95,22 @@ export function useApplyVaultUpload({
         });
         return;
       }
-      const asset = pickerResult.asset;
-      if (asset == null) {
+      const picked = pickerResult.file;
+      if (picked == null) {
         return;
       }
 
-      const validationError = validateVaultPickerAsset(asset);
+      const validationError = validateVaultPickerFile(picked);
       if (validationError != null) {
         showGlobalToast(validationError);
         return;
       }
 
       const ordinal = Math.max(1, item.availableDocuments.length + 1);
-      const mimeType = getVaultAssetMimeType(asset);
-      const originalName = asset.fileName?.trim() || `upload_${Date.now()}.jpg`;
+      const mimeType = getVaultFileMimeType(picked);
+      const originalName =
+        picked.fileName?.trim() ||
+        `upload_${Date.now()}${mimeType === 'application/pdf' ? '.pdf' : '.jpg'}`;
       const uploadFilename = buildVaultUploadFilename({
         requirementLabel: item.documentTypeName ?? 'Document',
         ordinal,
@@ -110,10 +118,10 @@ export function useApplyVaultUpload({
         originalFilename: originalName,
         mimeType,
       });
-      const file = assetToMultipartFile(asset, uploadFilename, mimeType);
+      const file = vaultPickedFileToMultipart(picked, uploadFilename, mimeType);
 
       if (file.uri.length === 0) {
-        showGlobalToast('Could not read the selected file. Please try another photo.');
+        showGlobalToast('Could not read the selected file. Please try another file.');
         return;
       }
 
@@ -158,9 +166,37 @@ export function useApplyVaultUpload({
         return;
       }
       setUploadSourceTarget(null);
-      await performUpload(target.item, target.answerInstanceId, source);
+
+      let answerInstanceId = target.answerInstanceId;
+      if (answerInstanceId == null || answerInstanceId <= 0) {
+        try {
+          answerInstanceId = await ensureAnswerInstanceId(
+            target.stepId,
+            target.instanceIndex,
+          );
+        } catch (err: unknown) {
+          showGlobalToast({
+            variant: 'error',
+            message: getApiErrorMessage(err, 'Save failed before upload'),
+            duration: 6000,
+            position: 'top',
+          });
+          return;
+        }
+        if (answerInstanceId == null || answerInstanceId <= 0) {
+          showGlobalToast({
+            variant: 'error',
+            message: 'Could not save this entry before upload. Please try again.',
+            duration: 6000,
+            position: 'top',
+          });
+          return;
+        }
+      }
+
+      await performUpload(target.item, answerInstanceId, source);
     },
-    [performUpload, uploadSourceTarget],
+    [ensureAnswerInstanceId, performUpload, uploadSourceTarget],
   );
 
   return {

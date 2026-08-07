@@ -233,6 +233,8 @@ export interface MyServiceCardModel {
 }
 
 export interface ApplyInstanceDraft {
+  /** Stable local key until server assigns `id` (used for draft selection keys). */
+  clientKey: string;
   id: number | null;
   stepId: number;
   instanceIndex: number;

@@ -215,6 +215,24 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#0B3B66',
   },
+  multiRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  multiRowInput: {
+    flex: 1,
+  },
+  multiRemoveBtn: {
+    marginTop: 28,
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+  },
+  multiRemoveText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#B91C1C',
+  },
   docGroup: {
     gap: 10,
   },

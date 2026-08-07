@@ -1,4 +1,5 @@
 import { InteractionManager, PermissionsAndroid, Platform } from 'react-native';
+import * as DocumentPicker from 'expo-document-picker';
 import {
   launchCamera,
   launchImageLibrary,
@@ -8,11 +9,18 @@ import {
   type ImagePickerResponse,
 } from 'react-native-image-picker';
 
-export type VaultImagePickerSource = 'camera' | 'library';
+import type { MultipartFilePayload } from '@/services/api/multipartFetch';
+
+export type VaultImagePickerSource = 'camera' | 'library' | 'files';
 
 const MAX_VAULT_FILE_BYTES = 10 * 1024 * 1024;
 
-const ALLOWED_VAULT_MIME = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const ALLOWED_VAULT_MIME = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'application/pdf',
+]);
 
 const BLOCKED_VAULT_MIME = new Set(['image/heic', 'image/heif']);
 
@@ -39,12 +47,33 @@ const LIBRARY_OPTIONS: ImageLibraryOptions = {
   assetRepresentationMode: 'compatible',
 };
 
+export interface VaultPickedFile {
+  uri: string;
+  fileName: string | null;
+  fileSize: number | null;
+  type: string | null;
+}
+
 export interface VaultPickerResult {
+  file: VaultPickedFile | null;
+  /** Compatibility for callers that still expect image-picker `Asset`. */
   asset: Asset | null;
   errorMessage: string | null;
 }
 
-function normalizeMimeType(raw: string | undefined): string {
+function toAssetCompat(file: VaultPickedFile | null): Asset | null {
+  if (file == null) {
+    return null;
+  }
+  return {
+    uri: file.uri,
+    fileName: file.fileName ?? undefined,
+    fileSize: file.fileSize ?? undefined,
+    type: file.type ?? undefined,
+  };
+}
+
+function normalizeMimeType(raw: string | undefined | null): string {
   const mime = (raw ?? 'image/jpeg').toLowerCase();
   if (mime === 'image/jpg') {
     return 'image/jpeg';
@@ -71,16 +100,16 @@ function pickerErrorMessage(response: ImagePickerResponse): string | null {
   return null;
 }
 
-function assetFromResponse(response: ImagePickerResponse): Asset | null {
-  const error = pickerErrorMessage(response);
-  if (error != null) {
-    return null;
-  }
-  const asset = response.assets?.[0];
+function fileFromImageAsset(asset: Asset | undefined): VaultPickedFile | null {
   if (asset?.uri == null || asset.uri.length === 0) {
     return null;
   }
-  return asset;
+  return {
+    uri: asset.uri,
+    fileName: asset.fileName ?? null,
+    fileSize: asset.fileSize ?? null,
+    type: asset.type ?? null,
+  };
 }
 
 async function requestAndroidCameraPermission(): Promise<boolean> {
@@ -116,6 +145,7 @@ async function openCamera(): Promise<VaultPickerResult> {
   const permitted = await requestAndroidCameraPermission();
   if (!permitted) {
     return {
+      file: null,
       asset: null,
       errorMessage: 'Camera permission is required to take a photo.',
     };
@@ -126,10 +156,14 @@ async function openCamera(): Promise<VaultPickerResult> {
   const response = await launchCamera(CAMERA_OPTIONS);
   const errorMessage = pickerErrorMessage(response);
   if (errorMessage != null) {
-    return { asset: null, errorMessage };
+    return { file: null, asset: null, errorMessage };
+  }
+  if (response.didCancel) {
+    return { file: null, asset: null, errorMessage: null };
   }
 
-  return { asset: assetFromResponse(response), errorMessage: null };
+  const file = fileFromImageAsset(response.assets?.[0]);
+  return { file, asset: toAssetCompat(file), errorMessage: null };
 }
 
 async function openLibrary(): Promise<VaultPickerResult> {
@@ -138,10 +172,53 @@ async function openLibrary(): Promise<VaultPickerResult> {
   const response = await launchImageLibrary(LIBRARY_OPTIONS);
   const errorMessage = pickerErrorMessage(response);
   if (errorMessage != null) {
-    return { asset: null, errorMessage };
+    return { file: null, asset: null, errorMessage };
+  }
+  if (response.didCancel) {
+    return { file: null, asset: null, errorMessage: null };
   }
 
-  return { asset: assetFromResponse(response), errorMessage: null };
+  const file = fileFromImageAsset(response.assets?.[0]);
+  return { file, asset: toAssetCompat(file), errorMessage: null };
+}
+
+async function openFiles(): Promise<VaultPickerResult> {
+  await waitForUiReady();
+
+  try {
+    const result = await DocumentPicker.getDocumentAsync({
+      type: ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'],
+      copyToCacheDirectory: true,
+      multiple: false,
+    });
+
+    if (result.canceled) {
+      return { file: null, asset: null, errorMessage: null };
+    }
+
+    const picked = result.assets[0];
+    if (picked?.uri == null || picked.uri.length === 0) {
+      return {
+        file: null,
+        asset: null,
+        errorMessage: 'Could not read the selected file.',
+      };
+    }
+
+    const file: VaultPickedFile = {
+      uri: picked.uri,
+      fileName: picked.name ?? null,
+      fileSize: picked.size ?? null,
+      type: picked.mimeType ?? null,
+    };
+    return { file, asset: toAssetCompat(file), errorMessage: null };
+  } catch {
+    return {
+      file: null,
+      asset: null,
+      errorMessage: 'Could not open the file picker. Please try again.',
+    };
+  }
 }
 
 export async function launchVaultImagePicker(
@@ -150,26 +227,66 @@ export async function launchVaultImagePicker(
   if (source === 'camera') {
     return openCamera();
   }
+  if (source === 'files') {
+    return openFiles();
+  }
   return openLibrary();
 }
 
-export function validateVaultPickerAsset(asset: Asset): string | null {
-  const fileSize = asset.fileSize ?? 0;
+export function validateVaultPickerFile(file: VaultPickedFile): string | null {
+  const fileSize = file.fileSize ?? 0;
   if (fileSize > MAX_VAULT_FILE_BYTES) {
     return 'File too large. Maximum 10MB.';
   }
 
-  const mimeType = normalizeMimeType(asset.type);
+  const mimeType = normalizeMimeType(file.type);
   if (BLOCKED_VAULT_MIME.has(mimeType)) {
-    return 'HEIC format is not supported. Please pick a JPG or PNG photo.';
+    return 'HEIC format is not supported. Please pick a JPG, PNG, or PDF.';
   }
   if (!ALLOWED_VAULT_MIME.has(mimeType)) {
-    return 'Invalid file type. Use JPG/PNG/WEBP.';
+    return 'Invalid file type. Use JPG, PNG, WEBP, or PDF.';
   }
 
   return null;
 }
 
+/** @deprecated Prefer validateVaultPickerFile — kept for DocumentVault / ExpertVideos. */
+export function validateVaultPickerAsset(asset: Asset): string | null {
+  return validateVaultPickerFile({
+    uri: asset.uri ?? '',
+    fileName: asset.fileName ?? null,
+    fileSize: asset.fileSize ?? null,
+    type: asset.type ?? null,
+  });
+}
+
+export function getVaultFileMimeType(file: VaultPickedFile): string {
+  return normalizeMimeType(file.type);
+}
+
+/** @deprecated Prefer getVaultFileMimeType. */
 export function getVaultAssetMimeType(asset: Asset): string {
   return normalizeMimeType(asset.type);
+}
+
+export function vaultPickedFileToMultipart(
+  file: VaultPickedFile,
+  uploadFilename: string,
+  mimeType: string,
+): MultipartFilePayload {
+  const fallbackExt =
+    mimeType === 'application/pdf'
+      ? '.pdf'
+      : mimeType === 'image/png'
+        ? '.png'
+        : mimeType === 'image/webp'
+          ? '.webp'
+          : '.jpg';
+  const fallbackName = file.fileName?.trim() || `upload_${Date.now()}${fallbackExt}`;
+
+  return {
+    uri: file.uri,
+    name: uploadFilename || fallbackName,
+    type: mimeType,
+  };
 }

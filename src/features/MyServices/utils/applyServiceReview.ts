@@ -34,33 +34,114 @@ export function isDocumentRequired(isRequired: number | null | undefined): boole
   return Number(isRequired) === 1;
 }
 
+export function newClientKey(): string {
+  return `ck_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+/** Server id when known; otherwise local clientKey (never the literal `null`). */
+export function instanceDraftKeyPart(instance: ApplyInstanceDraft): string {
+  if (instance.id != null && Number.isFinite(instance.id) && instance.id > 0) {
+    return String(instance.id);
+  }
+  return instance.clientKey;
+}
+
 export function docSelectionKey(
   serviceDocumentId: number,
-  answerInstanceId: number | null | undefined,
+  answerInstanceId: number | string | null | undefined,
 ): string {
-  const instancePart =
-    answerInstanceId != null && Number.isFinite(answerInstanceId) && answerInstanceId > 0
-      ? String(answerInstanceId)
-      : 'null';
-  return `${serviceDocumentId}:${instancePart}`;
+  if (typeof answerInstanceId === 'string' && answerInstanceId.trim().length > 0) {
+    return `${serviceDocumentId}:${answerInstanceId.trim()}`;
+  }
+  if (
+    answerInstanceId != null &&
+    typeof answerInstanceId === 'number' &&
+    Number.isFinite(answerInstanceId) &&
+    answerInstanceId > 0
+  ) {
+    return `${serviceDocumentId}:${String(answerInstanceId)}`;
+  }
+  return `${serviceDocumentId}:null`;
 }
 
 export function parseDocSelectionKey(
   key: string,
 ): { serviceDocumentId: number; answerInstanceId: number | null } | null {
-  const [docPart, instancePart] = key.split(':');
-  const serviceDocumentId = Number(docPart);
+  const colon = key.indexOf(':');
+  if (colon < 0) {
+    return null;
+  }
+  const serviceDocumentId = Number(key.slice(0, colon));
+  const instancePart = key.slice(colon + 1);
   if (!Number.isFinite(serviceDocumentId)) {
     return null;
   }
-  if (instancePart === 'null' || instancePart == null || instancePart === '') {
+  if (instancePart === 'null' || instancePart === '') {
     return { serviceDocumentId, answerInstanceId: null };
   }
   const answerInstanceId = Number(instancePart);
   if (!Number.isFinite(answerInstanceId) || answerInstanceId <= 0) {
+    // Client keys (ck_…) are not sent to the API until remapped to a server id.
     return { serviceDocumentId, answerInstanceId: null };
   }
   return { serviceDocumentId, answerInstanceId };
+}
+
+export function remapDraftSelectionsClientKeysToServerIds(
+  drafts: Record<number, ApplyInstanceDraft[]>,
+  draftSelections: Record<string, number[]>,
+): Record<string, number[]> {
+  const next: Record<string, number[]> = { ...draftSelections };
+  for (const list of Object.values(drafts)) {
+    for (const inst of list) {
+      if (inst.id == null || inst.id <= 0) {
+        continue;
+      }
+      const suffix = `:${inst.clientKey}`;
+      for (const key of Object.keys(draftSelections)) {
+        if (!key.endsWith(suffix)) {
+          continue;
+        }
+        const docPart = key.slice(0, key.lastIndexOf(':'));
+        const newKey = `${docPart}:${inst.id}`;
+        if (!(newKey in next)) {
+          next[newKey] = draftSelections[key] ?? [];
+        }
+        delete next[key];
+      }
+    }
+  }
+  return next;
+}
+
+export function scrubUserDocumentFromDraftSelections(
+  draftSelections: Record<string, number[]>,
+  userDocumentId: number,
+): Record<string, number[]> {
+  const next: Record<string, number[]> = {};
+  for (const [k, arr] of Object.entries(draftSelections)) {
+    next[k] = (arr ?? []).filter((id) => id !== userDocumentId);
+  }
+  return next;
+}
+
+export function scrubDraftSelectionsForInstanceParts(
+  draftSelections: Record<string, number[]>,
+  instanceParts: string[],
+): Record<string, number[]> {
+  const skip = new Set(instanceParts.filter((p) => p.length > 0));
+  if (skip.size === 0) {
+    return draftSelections;
+  }
+  const next: Record<string, number[]> = {};
+  for (const [k, arr] of Object.entries(draftSelections)) {
+    const part = k.slice(k.lastIndexOf(':') + 1);
+    if (skip.has(part)) {
+      continue;
+    }
+    next[k] = arr;
+  }
+  return next;
 }
 
 /** Merge local draft picks with server selections (per answerInstanceId). */
@@ -266,6 +347,7 @@ export function createEmptyInstance(
 ): ApplyInstanceDraft {
   const questions = stepQuestions(step);
   return {
+    clientKey: newClientKey(),
     id: null,
     stepId: step.id,
     instanceIndex: index,
@@ -293,6 +375,7 @@ export function buildInitialInstancesByStep(
       out[step.id] = forStep.map((inst, idx) => {
         const hydrated = hydrateAnswersFromServer(inst.answers, questions);
         return {
+          clientKey: newClientKey(),
           id: inst.id,
           stepId: step.id,
           instanceIndex: idx,
@@ -315,6 +398,7 @@ export function buildInitialInstancesByStep(
         const relevant = flatAnswers.filter((a) => stepQIds.has(a.questionId));
         const hydrated = hydrateAnswersFromServer(relevant, questions);
         drafts.push({
+          clientKey: newClientKey(),
           id: null,
           stepId: step.id,
           instanceIndex: 0,

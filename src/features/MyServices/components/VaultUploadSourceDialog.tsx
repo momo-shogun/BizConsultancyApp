@@ -105,8 +105,14 @@ export function VaultUploadSourceDialog({
           subtitle="Choose from your gallery"
           onPress={() => handleSource('library')}
         />
+        <SourceOption
+          icon="document-outline"
+          title="Files"
+          subtitle="PDF or image from device storage"
+          onPress={() => handleSource('files')}
+        />
       </View>
-      <Text style={styles.hint}>JPG, PNG or WEBP · maximum 10MB</Text>
+      <Text style={styles.hint}>JPG, PNG, WEBP or PDF · maximum 10MB</Text>
     </Dialog>
   );
 }
