@@ -11,6 +11,7 @@ import type {
   MyOnboardingSubmissionDetail,
   MyOnboardingSubmissionFullDetail,
   OnboardingDetailRow,
+  ServiceDetailDeclarationPayload,
   ServiceDetailFormContext,
   SubmissionDocumentRequirements,
   VaultDocumentOption,
@@ -326,12 +327,16 @@ export const myServicesApi = baseApi.injectEndpoints({
           answerText?: string | null;
           answerJson?: unknown;
         }>;
+        declaration?: ServiceDetailDeclarationPayload;
       }
     >({
-      query: ({ submissionId, answers }) => ({
+      query: ({ submissionId, answers, declaration }) => ({
         url: `service-detail-forms/me/submissions/${submissionId}`,
         method: 'PUT',
-        body: { answers },
+        body: {
+          answers,
+          ...(declaration != null ? { declaration } : {}),
+        },
       }),
       invalidatesTags: (_r, _e, { submissionId }) => [
         { type: 'MyServices', id: `apply-ctx-${submissionId}` },

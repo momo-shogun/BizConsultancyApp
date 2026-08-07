@@ -81,7 +81,15 @@ export interface MyOnboardingSubmissionFullDetail {
 
 export type MyServicesFilterTab = 'all' | 'action' | 'active' | 'completed' | 'other';
 
-export type ServiceDetailAnswerType = 'text' | 'number' | 'checkbox' | 'radio' | 'multiinput';
+export type ServiceDetailAnswerType =
+  | 'text'
+  | 'number'
+  | 'checkbox'
+  | 'radio'
+  | 'multiinput'
+  | 'upload';
+
+export type ServiceDetailFormStepKind = 'fields' | 'declaration';
 
 export interface ServiceDetailFormQuestion {
   id: number;
@@ -90,8 +98,36 @@ export interface ServiceDetailFormQuestion {
   answerType: ServiceDetailAnswerType;
   configJson: Record<string, unknown> | null;
   placeholder: string | null;
+  helpText: string | null;
+  columnSpan: number;
   isRequired: number;
   sortOrder: number;
+}
+
+export interface ServiceDetailFormSection {
+  id: number;
+  title: string;
+  description: string | null;
+  sortOrder: number;
+  letter: string;
+  questions: ServiceDetailFormQuestion[];
+}
+
+export interface ServiceDetailFormDeclarationItem {
+  id: number;
+  label: string;
+  sortOrder: number;
+  isRequired: number;
+}
+
+export interface ServiceDetailFormStep {
+  id: number;
+  kind: ServiceDetailFormStepKind;
+  title: string;
+  description: string | null;
+  sortOrder: number;
+  sections: ServiceDetailFormSection[];
+  declarationItems: ServiceDetailFormDeclarationItem[];
 }
 
 export interface ServiceDetailFormContext {
@@ -101,17 +137,28 @@ export interface ServiceDetailFormContext {
     id: number;
     name: string;
     status: number;
+    steps: ServiceDetailFormStep[];
+    sections: ServiceDetailFormSection[];
     questions: ServiceDetailFormQuestion[];
   } | null;
   submission: {
     id: number;
     status: string;
+    submitterName: string | null;
+    declarationDate: string | null;
+    declarationAcceptedJson: Record<string, boolean> | null;
     answers: Array<{
       questionId: number;
       answerText: string | null;
       answerJson: unknown;
     }>;
   } | null;
+}
+
+export interface ServiceDetailDeclarationPayload {
+  submitterName: string;
+  declarationDate: string;
+  acceptedItemIds: number[];
 }
 
 export interface VaultDocumentOption {

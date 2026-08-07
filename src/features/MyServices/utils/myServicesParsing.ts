@@ -5,8 +5,13 @@ import type {
   OnboardingDetailRow,
   OnboardingSubmissionStatus,
   ServiceDetailAnswerRow,
+  ServiceDetailAnswerType,
   ServiceDetailFormContext,
+  ServiceDetailFormDeclarationItem,
   ServiceDetailFormQuestion,
+  ServiceDetailFormSection,
+  ServiceDetailFormStep,
+  ServiceDetailFormStepKind,
   SubmissionDocumentRequirementItem,
   SubmissionDocumentRequirements,
   SubmissionDocumentRow,
@@ -24,12 +29,51 @@ const VALID_STATUSES: readonly OnboardingSubmissionStatus[] = [
   'applied',
 ];
 
+const VALID_ANSWER_TYPES: readonly ServiceDetailAnswerType[] = [
+  'text',
+  'number',
+  'checkbox',
+  'radio',
+  'multiinput',
+  'upload',
+];
+
+const VALID_STEP_KINDS: readonly ServiceDetailFormStepKind[] = ['fields', 'declaration'];
+
 function parseStatus(raw: unknown): OnboardingSubmissionStatus | null {
   if (typeof raw !== 'string') {
     return null;
   }
   const normalized = raw.trim().toLowerCase() as OnboardingSubmissionStatus;
   return VALID_STATUSES.includes(normalized) ? normalized : null;
+}
+
+function parseAnswerType(raw: unknown): ServiceDetailAnswerType {
+  if (typeof raw === 'string' && VALID_ANSWER_TYPES.includes(raw as ServiceDetailAnswerType)) {
+    return raw as ServiceDetailAnswerType;
+  }
+  return 'text';
+}
+
+function parseStepKind(raw: unknown): ServiceDetailFormStepKind | null {
+  if (typeof raw !== 'string') {
+    return null;
+  }
+  const kind = raw.trim().toLowerCase() as ServiceDetailFormStepKind;
+  return VALID_STEP_KINDS.includes(kind) ? kind : null;
+}
+
+function parseAcceptedJson(raw: unknown): Record<string, boolean> | null {
+  if (!isRecord(raw)) {
+    return null;
+  }
+  const out: Record<string, boolean> = {};
+  for (const [key, value] of Object.entries(raw)) {
+    if (value === true) {
+      out[key] = true;
+    }
+  }
+  return out;
 }
 
 export function parseMyOnboardingSubmission(raw: unknown): MyOnboardingSubmission | null {
@@ -265,18 +309,147 @@ function parseServiceDetailQuestion(raw: unknown): ServiceDetailFormQuestion | n
   if (!Number.isFinite(id)) {
     return null;
   }
-  const answerType = typeof raw.answerType === 'string' ? raw.answerType : 'text';
   return {
     id,
     serviceDetailFormId: Number(raw.serviceDetailFormId) || 0,
     questionLabel:
       typeof raw.questionLabel === 'string' ? raw.questionLabel : `Question #${id}`,
-    answerType: answerType as ServiceDetailFormQuestion['answerType'],
+    answerType: parseAnswerType(raw.answerType),
     configJson: isRecord(raw.configJson) ? raw.configJson : null,
     placeholder: typeof raw.placeholder === 'string' ? raw.placeholder : null,
+    helpText: typeof raw.helpText === 'string' ? raw.helpText : null,
+    columnSpan: Number(raw.columnSpan) === 4 || Number(raw.columnSpan) === 6 ? Number(raw.columnSpan) : 12,
     isRequired: Number(raw.isRequired) || 0,
     sortOrder: Number(raw.sortOrder) || 0,
   };
+}
+
+function parseServiceDetailSection(raw: unknown): ServiceDetailFormSection | null {
+  if (!isRecord(raw)) {
+    return null;
+  }
+  const questionsRaw = Array.isArray(raw.questions) ? raw.questions : [];
+  const questions: ServiceDetailFormQuestion[] = [];
+  for (const q of questionsRaw) {
+    const parsed = parseServiceDetailQuestion(q);
+    if (parsed != null) {
+      questions.push(parsed);
+    }
+  }
+  questions.sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id);
+  if (questions.length === 0) {
+    return null;
+  }
+  return {
+    id: Number(raw.id) || 0,
+    title: typeof raw.title === 'string' ? raw.title : 'Details',
+    description: typeof raw.description === 'string' ? raw.description : null,
+    sortOrder: Number(raw.sortOrder) || 0,
+    letter: typeof raw.letter === 'string' ? raw.letter : 'A',
+    questions,
+  };
+}
+
+function parseDeclarationItem(raw: unknown): ServiceDetailFormDeclarationItem | null {
+  if (!isRecord(raw)) {
+    return null;
+  }
+  const id = Number(raw.id);
+  if (!Number.isFinite(id)) {
+    return null;
+  }
+  return {
+    id,
+    label: typeof raw.label === 'string' ? raw.label : `Item #${id}`,
+    sortOrder: Number(raw.sortOrder) || 0,
+    isRequired: Number(raw.isRequired) || 0,
+  };
+}
+
+function parseServiceDetailStep(raw: unknown): ServiceDetailFormStep | null {
+  if (!isRecord(raw)) {
+    return null;
+  }
+  const kind = parseStepKind(raw.kind);
+  if (kind == null) {
+    return null;
+  }
+  const id = Number(raw.id);
+  if (!Number.isFinite(id)) {
+    return null;
+  }
+
+  const sectionsRaw = Array.isArray(raw.sections) ? raw.sections : [];
+  const sections: ServiceDetailFormSection[] = [];
+  for (const sectionRaw of sectionsRaw) {
+    const parsed = parseServiceDetailSection(sectionRaw);
+    if (parsed != null) {
+      sections.push(parsed);
+    }
+  }
+  sections.sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id);
+
+  const itemsRaw = Array.isArray(raw.declarationItems) ? raw.declarationItems : [];
+  const declarationItems: ServiceDetailFormDeclarationItem[] = [];
+  for (const itemRaw of itemsRaw) {
+    const parsed = parseDeclarationItem(itemRaw);
+    if (parsed != null) {
+      declarationItems.push(parsed);
+    }
+  }
+  declarationItems.sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id);
+
+  return {
+    id,
+    kind,
+    title: typeof raw.title === 'string' ? raw.title : kind === 'declaration' ? 'Review & declaration' : 'Details',
+    description: typeof raw.description === 'string' ? raw.description : null,
+    sortOrder: Number(raw.sortOrder) || 0,
+    sections,
+    declarationItems,
+  };
+}
+
+function buildSyntheticSteps(
+  sections: ServiceDetailFormSection[],
+  questions: ServiceDetailFormQuestion[],
+): ServiceDetailFormStep[] {
+  const fieldSections =
+    sections.length > 0
+      ? sections
+      : questions.length > 0
+        ? [
+            {
+              id: 0,
+              title: 'Details',
+              description: null,
+              sortOrder: 0,
+              letter: 'A',
+              questions,
+            },
+          ]
+        : [];
+
+  return [
+    {
+      id: -1,
+      kind: 'fields',
+      title: 'Details',
+      description: null,
+      sortOrder: 0,
+      sections: fieldSections,
+      declarationItems: [],
+    },
+    {
+      id: -2,
+      kind: 'declaration',
+      title: 'Review & declaration',
+      description: null,
+      sortOrder: 1,
+      sections: [],
+      declarationItems: [],
+    },
+  ];
 }
 
 export function parseServiceDetailFormContext(raw: unknown): ServiceDetailFormContext | null {
@@ -300,10 +473,43 @@ export function parseServiceDetailFormContext(raw: unknown): ServiceDetailFormCo
       }
     }
     questions.sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id);
+
+    const sectionsRaw = Array.isArray(formRaw.sections) ? formRaw.sections : [];
+    const sections: ServiceDetailFormSection[] = [];
+    for (const sectionRaw of sectionsRaw) {
+      const parsed = parseServiceDetailSection(sectionRaw);
+      if (parsed != null) {
+        sections.push(parsed);
+      }
+    }
+    sections.sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id);
+    if (sections.length === 0 && questions.length > 0) {
+      sections.push({
+        id: 0,
+        title: 'Details',
+        description: null,
+        sortOrder: 0,
+        letter: 'A',
+        questions,
+      });
+    }
+
+    const stepsRaw = Array.isArray(formRaw.steps) ? formRaw.steps : [];
+    const steps: ServiceDetailFormStep[] = [];
+    for (const stepRaw of stepsRaw) {
+      const parsed = parseServiceDetailStep(stepRaw);
+      if (parsed != null) {
+        steps.push(parsed);
+      }
+    }
+    steps.sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id);
+
     form = {
       id: Number(formRaw.id),
       name: typeof formRaw.name === 'string' ? formRaw.name : 'Service details',
       status: Number(formRaw.status) || 0,
+      steps: steps.length > 0 ? steps : buildSyntheticSteps(sections, questions),
+      sections,
       questions,
     };
   }
@@ -315,6 +521,13 @@ export function parseServiceDetailFormContext(raw: unknown): ServiceDetailFormCo
     submission = {
       id: Number(submissionRaw.id),
       status: typeof submissionRaw.status === 'string' ? submissionRaw.status : '',
+      submitterName:
+        typeof submissionRaw.submitterName === 'string' ? submissionRaw.submitterName : null,
+      declarationDate:
+        typeof submissionRaw.declarationDate === 'string'
+          ? submissionRaw.declarationDate
+          : null,
+      declarationAcceptedJson: parseAcceptedJson(submissionRaw.declarationAcceptedJson),
       answers: answersRaw
         .filter(isRecord)
         .map((a) => ({
