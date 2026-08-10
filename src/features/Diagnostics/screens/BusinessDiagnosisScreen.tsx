@@ -109,6 +109,7 @@ export function BusinessDiagnosisScreen(): React.ReactElement {
     const tabRoutes = [
       { name: ROUTES.App.Home },
       { name: ROUTES.App.Services },
+      { name: ROUTES.App.Calls },
       ...(showEdp ? [{ name: ROUTES.App.Edp }] : []),
       {
         name: ROUTES.App.Account,

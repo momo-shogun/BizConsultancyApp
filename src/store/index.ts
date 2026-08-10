@@ -1,5 +1,10 @@
-import { combineReducers, configureStore } from '@reduxjs/toolkit';
-import { persistStore, persistReducer, createTransform } from 'redux-persist';
+import { combineReducers, configureStore, type Reducer } from '@reduxjs/toolkit';
+import {
+  persistStore,
+  persistReducer,
+  createTransform,
+  type PersistConfig,
+} from 'redux-persist';
 import MMKVStorage from 'react-native-mmkv-storage';
 
 import { authSlice } from '@/features/Auth/store/authSlice';
@@ -50,7 +55,15 @@ const authPersistTransform = createTransform<AuthState, AuthState>(
   { whitelist: ['auth'] },
 );
 
-const persistConfig = {
+const appReducer = combineReducers({
+  auth: authSlice.reducer,
+  call: callSlice.reducer,
+  [baseApi.reducerPath]: baseApi.reducer,
+});
+
+export type RootState = ReturnType<typeof appReducer>;
+
+const persistConfig: PersistConfig<RootState> = {
   key: 'root',
   storage: {
     setItem: (key: string, value: string) => MMKV.setStringAsync(key, value),
@@ -61,15 +74,11 @@ const persistConfig = {
   transforms: [authPersistTransform],
 };
 
-const appReducer = combineReducers({
-  auth: authSlice.reducer,
-  call: callSlice.reducer,
-  [baseApi.reducerPath]: baseApi.reducer,
-});
-
-export type RootState = ReturnType<typeof appReducer>;
-
-const persistedReducer = persistReducer(persistConfig, appReducer);
+/** redux-persist types widen state to Partial<>; cast back to the real root reducer. */
+const persistedReducer = persistReducer(
+  persistConfig,
+  appReducer,
+) as unknown as Reducer<RootState>;
 
 export const store = configureStore({
   reducer: persistedReducer,

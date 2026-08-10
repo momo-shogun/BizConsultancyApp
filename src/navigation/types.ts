@@ -76,6 +76,7 @@ export type AccountStackParamList = {
 export type AppTabParamList = {
   [ROUTES.App.Home]: undefined;
   [ROUTES.App.Services]: NavigatorScreenParams<ServicesStackParamList>;
+  [ROUTES.App.Calls]: undefined;
   [ROUTES.App.Edp]: NavigatorScreenParams<EdpStackParamList>;
   [ROUTES.App.Account]: NavigatorScreenParams<AccountStackParamList>;
 };

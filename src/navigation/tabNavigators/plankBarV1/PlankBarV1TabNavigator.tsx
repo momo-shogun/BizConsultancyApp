@@ -12,6 +12,7 @@ import { servicesTabListeners } from '../../tabBar/servicesTabListeners';
 import { getStackTabScreenOptions } from '../../tabBar/tabBarVisibility';
 
 import { selectEffectiveAccountRole } from '@/features/Auth/store/authSelectors';
+import { CallsTabScreen } from '@/features/Calls/screens/CallsTabScreen';
 import { HomeDashboardScreen } from '@/features/Home/screens/HomeDashboardScreen';
 import { useAppSelector } from '@/store/typedHooks';
 
@@ -35,6 +36,8 @@ function getTabBarIcon(
         return focused ? 'home' : 'home-outline';
       case ROUTES.App.Services:
         return focused ? 'briefcase' : 'briefcase-outline';
+      case ROUTES.App.Calls:
+        return focused ? 'call' : 'call-outline';
       case ROUTES.App.Edp:
         return focused ? 'calendar' : 'calendar-outline';
       case ROUTES.App.Account:
@@ -82,6 +85,11 @@ export function PlankBarV1TabNavigator(): React.ReactElement {
           title: 'Services',
           ...getStackTabScreenOptions(route),
         })}
+      />
+      <PlankTab.Screen
+        name={ROUTES.App.Calls}
+        component={CallsTabScreen}
+        options={{ title: 'Calls' }}
       />
       {showEdpTab ? (
         <PlankTab.Screen

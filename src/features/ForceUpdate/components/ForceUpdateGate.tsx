@@ -9,21 +9,23 @@ import {
   ANDROID_PLAY_STORE_URL,
   FORCE_UPDATE_MESSAGE,
   FORCE_UPDATE_TITLE,
+  IOS_APP_STORE_URL,
 } from '../constants/forceUpdateCopy';
 import {
-  readLocalAndroidVersionCode,
-  shouldForceAndroidUpdate,
-} from '../utils/androidVersionGate';
+  platformMinBuildNumber,
+  readLocalBuildNumber,
+  shouldForceUpdate,
+} from '../utils/versionGate';
 
 /**
- * Blocks the Android app when local versionCode is below the admin floor.
+ * Blocks the app when local build number is below the admin floor for this platform.
  * API failure → allow (offline users must not be stuck).
  */
 export function ForceUpdateGate(props: React.PropsWithChildren): React.ReactElement {
   const [blocked, setBlocked] = useState(false);
 
   const evaluate = useCallback(async (): Promise<void> => {
-    if (Platform.OS !== 'android') {
+    if (Platform.OS !== 'android' && Platform.OS !== 'ios') {
       setBlocked(false);
       return;
     }
@@ -38,8 +40,9 @@ export function ForceUpdateGate(props: React.PropsWithChildren): React.ReactElem
         setBlocked(false);
         return;
       }
-      const local = readLocalAndroidVersionCode();
-      setBlocked(shouldForceAndroidUpdate(local, result.data.androidMinVersionCode));
+      const local = readLocalBuildNumber();
+      const min = platformMinBuildNumber(result.data);
+      setBlocked(shouldForceUpdate(local, min));
     } catch {
       setBlocked(false);
     }
@@ -55,8 +58,9 @@ export function ForceUpdateGate(props: React.PropsWithChildren): React.ReactElem
     return () => sub.remove();
   }, [evaluate]);
 
-  const openPlayStore = useCallback((): void => {
-    void Linking.openURL(ANDROID_PLAY_STORE_URL);
+  const openStore = useCallback((): void => {
+    const url = Platform.OS === 'ios' ? IOS_APP_STORE_URL : ANDROID_PLAY_STORE_URL;
+    void Linking.openURL(url);
   }, []);
 
   return (
@@ -70,7 +74,7 @@ export function ForceUpdateGate(props: React.PropsWithChildren): React.ReactElem
         variant="warning"
         title={FORCE_UPDATE_TITLE}
         description={FORCE_UPDATE_MESSAGE}
-        actions={[{ label: 'Update', onPress: openPlayStore }]}
+        actions={[{ label: 'Update', onPress: openStore }]}
       />
     </>
   );

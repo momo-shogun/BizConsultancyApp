@@ -91,6 +91,8 @@ export type ServiceDetailAnswerType =
 
 export type ServiceDetailFormStepKind = 'fields' | 'declaration';
 
+export type ServiceDetailFormSectionKind = 'fields' | 'summary';
+
 export interface ServiceDetailFormQuestion {
   id: number;
   serviceDetailFormId: number;
@@ -104,13 +106,37 @@ export interface ServiceDetailFormQuestion {
   sortOrder: number;
 }
 
+export interface SummaryColumnConfig {
+  questionKey: string;
+  questionId: number;
+  headerLabel: string;
+}
+
+export interface SummaryAggregateConfig {
+  questionKey: string;
+  questionId: number;
+  operator: 'sum';
+  equals: number;
+}
+
+export interface SummarySectionConfig {
+  sourceStepKey: string;
+  sourceStepId: number;
+  columns: SummaryColumnConfig[];
+  actionLabel: string | null;
+  aggregate: SummaryAggregateConfig | null;
+}
+
 export interface ServiceDetailFormSection {
   id: number;
+  kind: ServiceDetailFormSectionKind;
   title: string;
   description: string | null;
   sortOrder: number;
   letter: string;
   questions: ServiceDetailFormQuestion[];
+  /** Present when `kind === 'summary'` — live projection of a linked repeatable step. */
+  configJson: SummarySectionConfig | null;
 }
 
 export interface ServiceDetailFormDeclarationItem {

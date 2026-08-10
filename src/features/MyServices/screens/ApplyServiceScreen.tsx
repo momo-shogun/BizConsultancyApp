@@ -32,6 +32,7 @@ import {
 } from '../api/myServicesApi';
 import { ApplyDocumentRequirementCard } from '../components/ApplyDocumentRequirementCard';
 import { ApplyServiceDeclarationStep } from '../components/ApplyServiceReviewStep';
+import { ApplyShareholdingSummary } from '../components/ApplyShareholdingSummary';
 import { VaultUploadSourceDialog } from '../components/VaultUploadSourceDialog';
 import { useApplyVaultUpload } from '../hooks/useApplyVaultUpload';
 import type {
@@ -71,6 +72,11 @@ import {
   isYesNoChoiceQuestion,
   YES_NO_OPTIONS,
 } from '../utils/serviceDetailQuestionOptions';
+import {
+  buildQuestionsByIdMap,
+  fieldSections,
+  summarySections,
+} from '../utils/summarySection';
 import { APPLY_CANVAS, styles } from './ApplyServiceScreen.styles';
 
 function showApplyErrorToast(message: string, title = 'Could not submit'): void {
@@ -581,7 +587,13 @@ export function ApplyServiceScreen(): React.ReactElement {
   const validateFieldsStep = useCallback(
     (step: ServiceDetailFormStep): boolean => {
       const drafts = instancesByStep[step.id] ?? [];
-      const issues = buildStepIssueLabels(step, drafts, draftSelections, reqData);
+      const issues = buildStepIssueLabels(
+        step,
+        drafts,
+        draftSelections,
+        reqData,
+        instancesByStep,
+      );
       if (issues.length === 0) {
         return true;
       }
@@ -1113,7 +1125,7 @@ export function ApplyServiceScreen(): React.ReactElement {
           </View>
         ) : null}
 
-        {step.sections.map((section) => (
+        {fieldSections(step).map((section) => (
           <View key={`${section.letter}-${section.id}`} style={styles.groupedSectionCard}>
             <Text style={styles.groupedSectionTitle}>
               {section.letter}. {section.title}
@@ -1132,11 +1144,30 @@ export function ApplyServiceScreen(): React.ReactElement {
     );
   };
 
+  const questionsById = useMemo(
+    () => buildQuestionsByIdMap(wizardSteps),
+    [wizardSteps],
+  );
+
+  const jumpToSourceInstance = useCallback(
+    (sourceStepId: number, instanceIndex: number): void => {
+      const idx = wizardSteps.findIndex((s) => s.id === sourceStepId);
+      if (idx < 0) {
+        showApplyErrorToast('Could not find the linked step to edit');
+        return;
+      }
+      setStepIndex(idx);
+      void instanceIndex;
+    },
+    [wizardSteps],
+  );
+
   const renderFieldsStep = (step: ServiceDetailFormStep): React.ReactElement => {
     const drafts = instancesByStep[step.id] ?? [];
     const isRepeatable = step.isRepeatable === 1;
     const canAdd =
       !isApplied && isRepeatable && drafts.length < step.maxInstances;
+    const summaries = summarySections(step);
 
     return (
       <View style={styles.detailsStack}>
@@ -1147,6 +1178,26 @@ export function ApplyServiceScreen(): React.ReactElement {
         {drafts.map((inst, idx) =>
           renderInstanceCard(step, inst, idx, isRepeatable),
         )}
+
+        {summaries.map((section) => {
+          const sourceStepId = Number(section.configJson?.sourceStepId);
+          const sourceStep = wizardSteps.find((s) => s.id === sourceStepId);
+          const sourceInstances = Number.isFinite(sourceStepId)
+            ? (instancesByStep[sourceStepId] ?? [])
+            : [];
+          return (
+            <ApplyShareholdingSummary
+              key={`summary-${section.id}-${section.letter}`}
+              section={section}
+              sourceStep={sourceStep}
+              sourceInstances={sourceInstances}
+              questionsById={questionsById}
+              instancesByStep={instancesByStep}
+              disabled={isApplied}
+              onEditInstance={jumpToSourceInstance}
+            />
+          );
+        })}
 
         {isRepeatable ? (
           <Pressable

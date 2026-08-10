@@ -13,11 +13,15 @@ import type {
   ServiceDetailFormDeclarationItem,
   ServiceDetailFormQuestion,
   ServiceDetailFormSection,
+  ServiceDetailFormSectionKind,
   ServiceDetailFormStep,
   ServiceDetailFormStepKind,
   SubmissionDocumentRequirementItem,
   SubmissionDocumentRequirements,
   SubmissionDocumentRow,
+  SummaryAggregateConfig,
+  SummaryColumnConfig,
+  SummarySectionConfig,
   VaultDocumentOption,
 } from '../types/myServices.types';
 
@@ -327,10 +331,83 @@ function parseServiceDetailQuestion(raw: unknown): ServiceDetailFormQuestion | n
   };
 }
 
+function parseSummaryConfig(raw: unknown): SummarySectionConfig | null {
+  if (!isRecord(raw)) {
+    return null;
+  }
+  const sourceStepId = Number(raw.sourceStepId);
+  if (!Number.isFinite(sourceStepId) || sourceStepId <= 0) {
+    return null;
+  }
+  const columnsRaw = Array.isArray(raw.columns) ? raw.columns : [];
+  const columns: SummaryColumnConfig[] = [];
+  for (const colRaw of columnsRaw) {
+    if (!isRecord(colRaw)) {
+      continue;
+    }
+    const questionId = Number(colRaw.questionId);
+    const headerLabel =
+      typeof colRaw.headerLabel === 'string' ? colRaw.headerLabel.trim() : '';
+    if (!Number.isFinite(questionId) || questionId <= 0 || headerLabel.length === 0) {
+      continue;
+    }
+    columns.push({
+      questionKey:
+        typeof colRaw.questionKey === 'string' && colRaw.questionKey.trim().length > 0
+          ? colRaw.questionKey.trim()
+          : `id:${questionId}`,
+      questionId,
+      headerLabel,
+    });
+  }
+  if (columns.length === 0) {
+    return null;
+  }
+
+  const actionLabel =
+    typeof raw.actionLabel === 'string' && raw.actionLabel.trim().length > 0
+      ? raw.actionLabel.trim()
+      : null;
+
+  let aggregate: SummaryAggregateConfig | null = null;
+  if (isRecord(raw.aggregate)) {
+    const questionId = Number(raw.aggregate.questionId);
+    const equals = Number(raw.aggregate.equals);
+    if (Number.isFinite(questionId) && questionId > 0 && Number.isFinite(equals)) {
+      aggregate = {
+        questionKey:
+          typeof raw.aggregate.questionKey === 'string' &&
+          raw.aggregate.questionKey.trim().length > 0
+            ? raw.aggregate.questionKey.trim()
+            : `id:${questionId}`,
+        questionId,
+        operator: 'sum',
+        equals,
+      };
+    }
+  }
+
+  return {
+    sourceStepKey:
+      typeof raw.sourceStepKey === 'string' && raw.sourceStepKey.trim().length > 0
+        ? raw.sourceStepKey.trim()
+        : `id:${sourceStepId}`,
+    sourceStepId,
+    columns,
+    actionLabel,
+    aggregate,
+  };
+}
+
+function parseSectionKind(raw: unknown): ServiceDetailFormSectionKind {
+  return raw === 'summary' ? 'summary' : 'fields';
+}
+
 function parseServiceDetailSection(raw: unknown): ServiceDetailFormSection | null {
   if (!isRecord(raw)) {
     return null;
   }
+  const kind = parseSectionKind(raw.kind);
   const questionsRaw = Array.isArray(raw.questions) ? raw.questions : [];
   const questions: ServiceDetailFormQuestion[] = [];
   for (const q of questionsRaw) {
@@ -340,16 +417,27 @@ function parseServiceDetailSection(raw: unknown): ServiceDetailFormSection | nul
     }
   }
   questions.sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id);
-  if (questions.length === 0) {
+
+  const configJson =
+    kind === 'summary' ? parseSummaryConfig(raw.configJson) : null;
+
+  // Summary sections intentionally have no questions; fields sections need at least one.
+  if (kind === 'fields' && questions.length === 0) {
     return null;
   }
+  if (kind === 'summary' && configJson == null) {
+    return null;
+  }
+
   return {
     id: Number(raw.id) || 0,
+    kind,
     title: typeof raw.title === 'string' ? raw.title : 'Details',
     description: typeof raw.description === 'string' ? raw.description : null,
     sortOrder: Number(raw.sortOrder) || 0,
     letter: typeof raw.letter === 'string' ? raw.letter : 'A',
-    questions,
+    questions: kind === 'summary' ? [] : questions,
+    configJson,
   };
 }
 
@@ -446,11 +534,13 @@ function buildSyntheticSteps(
         ? [
             {
               id: 0,
+              kind: 'fields' as const,
               title: 'Details',
               description: null,
               sortOrder: 0,
               letter: 'A',
               questions,
+              configJson: null,
             },
           ]
         : [];
@@ -564,11 +654,13 @@ export function parseServiceDetailFormContext(raw: unknown): ServiceDetailFormCo
     if (sections.length === 0 && questions.length > 0) {
       sections.push({
         id: 0,
+        kind: 'fields',
         title: 'Details',
         description: null,
         sortOrder: 0,
         letter: 'A',
         questions,
+        configJson: null,
       });
     }
 

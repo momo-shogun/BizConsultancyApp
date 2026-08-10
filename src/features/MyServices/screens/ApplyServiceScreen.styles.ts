@@ -656,4 +656,90 @@ export const styles = StyleSheet.create({
   instanceLabelInputWrap: {
     gap: 4,
   },
+  summaryCard: {
+    borderRadius: 14,
+    padding: 14,
+    backgroundColor: '#F4F7F8',
+    borderWidth: 1,
+    borderColor: '#15803D80',
+    gap: 10,
+  },
+  summaryTable: {
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+    overflow: 'hidden',
+  },
+  summaryHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0B3258',
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  summaryHeaderCell: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  summaryBodyRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 12,
+    gap: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+  },
+  summaryBodyRowLast: {
+    borderBottomWidth: 0,
+  },
+  summaryBodyCell: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#0B3258',
+  },
+  summaryFlexCell: {
+    flex: 1,
+  },
+  summaryActionCell: {
+    width: 108,
+  },
+  summaryActionText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0F766E',
+    textDecorationLine: 'underline',
+  },
+  summaryActionTextDisabled: {
+    color: '#94A3B8',
+    textDecorationLine: 'none',
+  },
+  summaryEmptyText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#64748B',
+  },
+  summaryFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+  },
+  summaryFooterText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  summaryFooterOk: {
+    color: '#0B3258',
+  },
+  summaryFooterBad: {
+    color: '#BE123C',
+  },
 });

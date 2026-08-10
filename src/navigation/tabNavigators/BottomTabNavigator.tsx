@@ -6,6 +6,7 @@ import type { AppTabParamList } from '../types';
 import { ROUTES } from '../routeNames';
 
 import { selectEffectiveAccountRole } from '@/features/Auth/store/authSelectors';
+import { CallsTabScreen } from '@/features/Calls/screens/CallsTabScreen';
 import { HomeDashboardScreen } from '@/features/Home/screens/HomeDashboardScreen';
 import { ServicesStackNavigator } from '../ServicesStackNavigator';
 import Edp from '@/features/Edp/screens/Edp';
@@ -28,6 +29,8 @@ function getTabBarIcon(
         return focused ? 'home' : 'home-outline';
       case ROUTES.App.Services:
         return focused ? 'briefcase' : 'briefcase-outline';
+      case ROUTES.App.Calls:
+        return focused ? 'call' : 'call-outline';
       case ROUTES.App.Edp:
         return focused ? 'calendar' : 'calendar-outline';
       case ROUTES.App.Account:
@@ -59,6 +62,7 @@ export function BottomTabNavigator(): React.ReactElement {
         listeners={servicesTabListeners}
         options={{ title: 'Services' }}
       />
+      <Tab.Screen name={ROUTES.App.Calls} component={CallsTabScreen} options={{ title: 'Calls' }} />
       {showEdpTab ? (
         <Tab.Screen name={ROUTES.App.Edp} component={Edp} options={{ title: 'EDP' }} />
       ) : null}
@@ -71,4 +75,3 @@ export function BottomTabNavigator(): React.ReactElement {
     </Tab.Navigator>
   );
 }
-

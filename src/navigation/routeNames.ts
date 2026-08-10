@@ -31,6 +31,7 @@ export const ROUTES = {
   App: {
     Home: 'App/Home',
     Services: 'App/Services',
+    Calls: 'App/Calls',
     Edp: 'App/Edp',
     Account: 'App/Account',
   },

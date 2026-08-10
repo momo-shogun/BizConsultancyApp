@@ -12,6 +12,7 @@
   SubmissionDocumentSelectionItem,
 } from '../types/myServices.types';
 import { isYesNoChoiceQuestion } from './serviceDetailQuestionOptions';
+import { sumAggregateForSummary } from './summarySection';
 
 export const APPLY_ERROR_TOAST_DURATION_MS = 10_000;
 
@@ -264,6 +265,9 @@ export function collectQuestionsFromSteps(steps: ServiceDetailFormStep[]): Servi
       continue;
     }
     for (const section of step.sections) {
+      if (section.kind === 'summary') {
+        continue;
+      }
       out.push(...section.questions);
     }
   }
@@ -276,13 +280,15 @@ export function collectSectionsFromSteps(steps: ServiceDetailFormStep[]): Servic
     if (step.kind !== 'fields') {
       continue;
     }
-    out.push(...step.sections);
+    out.push(...step.sections.filter((s) => s.kind !== 'summary'));
   }
   return out;
 }
 
 export function stepQuestions(step: ServiceDetailFormStep): ServiceDetailFormQuestion[] {
-  return step.sections.flatMap((s) => s.questions);
+  return step.sections
+    .filter((s) => s.kind !== 'summary')
+    .flatMap((s) => s.questions);
 }
 
 export function defaultInstanceLabel(step: ServiceDetailFormStep, index: number): string {
@@ -669,11 +675,35 @@ export function buildChecklistRows(
           complete: false,
         });
       }
+      for (const section of step.sections) {
+        if (section.kind !== 'summary') {
+          continue;
+        }
+        const agg = sumAggregateForSummary(section.configJson, instancesByStep);
+        if (agg != null) {
+          rows.push({
+            section: `${section.letter}. ${section.title}`,
+            requirement: `Total must equal ${agg.target}%`,
+            complete: agg.ok,
+          });
+        }
+      }
       continue;
     }
 
     const inst = drafts[0];
     for (const section of step.sections) {
+      if (section.kind === 'summary') {
+        const agg = sumAggregateForSummary(section.configJson, instancesByStep);
+        if (agg != null) {
+          rows.push({
+            section: `${section.letter}. ${section.title}`,
+            requirement: `Total must equal ${agg.target}%`,
+            complete: agg.ok,
+          });
+        }
+        continue;
+      }
       rows.push({
         section: `${section.letter}. ${section.title}`,
         requirement: section.description?.trim() || 'All required fields completed',
@@ -749,6 +779,7 @@ export function buildStepIssueLabels(
   drafts: ApplyInstanceDraft[],
   draftSelections: Record<string, number[]>,
   reqData: SubmissionDocumentRequirements | null | undefined,
+  instancesByStep?: Record<number, ApplyInstanceDraft[]>,
 ): string[] {
   const questions = stepQuestions(step);
   const issues: string[] = [];
@@ -779,6 +810,19 @@ export function buildStepIssueLabels(
     );
   });
 
+  const instanceMap = instancesByStep ?? { [step.id]: drafts };
+  for (const section of step.sections) {
+    if (section.kind !== 'summary') {
+      continue;
+    }
+    const agg = sumAggregateForSummary(section.configJson, instanceMap);
+    if (agg != null && !agg.ok) {
+      issues.push(
+        `${section.title}: total must equal ${agg.target}% (currently ${agg.sum}%)`,
+      );
+    }
+  }
+
   return issues;
 }
 
@@ -799,6 +843,7 @@ export function buildAllFieldsIssueLabels(
         instancesByStep[step.id] ?? [],
         draftSelections,
         reqData,
+        instancesByStep,
       ),
     );
   }

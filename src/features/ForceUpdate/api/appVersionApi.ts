@@ -2,6 +2,7 @@ import { baseApi } from '@/services/api/baseApi';
 
 export interface AppVersionPolicy {
   androidMinVersionCode: number;
+  iosMinVersionCode: number;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -23,11 +24,9 @@ function parseAppVersionPolicy(raw: unknown): AppVersionPolicy | null {
   if (!isRecord(raw)) {
     return null;
   }
-  const androidMinVersionCode = readNonNegativeInt(raw.androidMinVersionCode);
-  if (androidMinVersionCode == null) {
-    return null;
-  }
-  return { androidMinVersionCode };
+  const androidMinVersionCode = readNonNegativeInt(raw.androidMinVersionCode) ?? 0;
+  const iosMinVersionCode = readNonNegativeInt(raw.iosMinVersionCode) ?? 0;
+  return { androidMinVersionCode, iosMinVersionCode };
 }
 
 export const appVersionApi = baseApi.injectEndpoints({
@@ -37,7 +36,7 @@ export const appVersionApi = baseApi.injectEndpoints({
       transformResponse: (response: unknown): AppVersionPolicy => {
         const parsed = parseAppVersionPolicy(response);
         if (parsed == null) {
-          return { androidMinVersionCode: 0 };
+          return { androidMinVersionCode: 0, iosMinVersionCode: 0 };
         }
         return parsed;
       },

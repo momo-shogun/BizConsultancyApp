@@ -29,6 +29,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
               [ROUTES.Services.Onboarding]: ':slug/onboarding',
             },
           },
+          [ROUTES.App.Calls]: 'calls',
           [ROUTES.App.Account]: {
             path: 'account',
             screens: {
