@@ -8,6 +8,7 @@ import { store, persistor } from '@/store';
 import { ToastProvider } from '@/shared/components/toast';
 
 import { CallProvider } from '@/features/Calls/providers/CallProvider';
+import { ForceUpdateGate } from '@/features/ForceUpdate/components/ForceUpdateGate';
 
 import { AuthGate } from './AuthGate';
 import { AuthProvider } from './AuthProvider';
@@ -27,11 +28,13 @@ export function AppProviders(props: React.PropsWithChildren): React.ReactElement
         >
           <SessionBootstrap bootstrapped={bootstrapped}>
             <ToastProvider>
-              <AuthProvider>
-                <CallProvider>
-                  <AuthGate>{props.children}</AuthGate>
-                </CallProvider>
-              </AuthProvider>
+              <ForceUpdateGate>
+                <AuthProvider>
+                  <CallProvider>
+                    <AuthGate>{props.children}</AuthGate>
+                  </CallProvider>
+                </AuthProvider>
+              </ForceUpdateGate>
             </ToastProvider>
           </SessionBootstrap>
         </PersistGate>
