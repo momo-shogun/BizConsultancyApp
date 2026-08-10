@@ -13,6 +13,14 @@
 } from '../types/myServices.types';
 import { isYesNoChoiceQuestion } from './serviceDetailQuestionOptions';
 import { sumAggregateForSummary } from './summarySection';
+import {
+  isQuestionVisible,
+  isValidEmail,
+  isValidIsoDate,
+  isValidPhone,
+  parseNumberBounds,
+  parseTextInputVariant,
+} from './serviceDetailVisibility';
 
 export const APPLY_ERROR_TOAST_DURATION_MS = 10_000;
 
@@ -461,6 +469,9 @@ export function buildInstanceAnswersPayload(
     if (q.answerType === 'upload') {
       continue;
     }
+    if (!isQuestionVisible(q, questions, detailAnswers)) {
+      continue;
+    }
     const cur = detailAnswers[q.id] ?? {};
     if (q.answerType === 'multiinput') {
       const arr = (multiInputs[q.id] ?? []).map((s) => s.trim()).filter(Boolean);
@@ -546,12 +557,57 @@ function isNonUploadQuestionComplete(
   q: ServiceDetailFormQuestion,
   detailAnswers: DetailAnswerState,
   multiInputs: MultiInputState,
+  allQuestions: ServiceDetailFormQuestion[],
 ): boolean {
+  if (!isQuestionVisible(q, allQuestions, detailAnswers)) {
+    return true;
+  }
+  const cfg = (q.configJson ?? {}) as Record<string, unknown>;
+  if (q.answerType === 'text') {
+    const v = detailAnswers[q.id]?.answerText?.trim() ?? '';
+    if (q.isRequired === 1 && v.length === 0) {
+      return false;
+    }
+    if (v.length === 0) {
+      return true;
+    }
+    const variant = parseTextInputVariant(cfg);
+    if (variant === 'email') {
+      return isValidEmail(v);
+    }
+    if (variant === 'tel') {
+      return isValidPhone(v);
+    }
+    if (variant === 'date') {
+      return isValidIsoDate(v);
+    }
+    return true;
+  }
+  if (q.answerType === 'number') {
+    const v = detailAnswers[q.id]?.answerText?.trim() ?? '';
+    if (q.isRequired === 1 && v.length === 0) {
+      return false;
+    }
+    if (v.length === 0) {
+      return true;
+    }
+    const n = Number(v);
+    if (!Number.isFinite(n)) {
+      return false;
+    }
+    const bounds = parseNumberBounds(cfg);
+    if (bounds.min != null && n < bounds.min) {
+      return false;
+    }
+    if (bounds.max != null && n > bounds.max) {
+      return false;
+    }
+    return true;
+  }
   if (q.isRequired !== 1) {
     return true;
   }
   if (q.answerType === 'multiinput') {
-    const cfg = (q.configJson ?? {}) as { minEntries?: number };
     const min = Math.max(1, Number(cfg.minEntries) || 1);
     const filled = (multiInputs[q.id] ?? []).map((s) => s.trim()).filter(Boolean);
     return filled.length >= min;
@@ -564,7 +620,7 @@ function isNonUploadQuestionComplete(
     const selected = detailAnswers[q.id]?.answerJson;
     return Array.isArray(selected) && selected.length > 0;
   }
-  if (q.answerType === 'radio' || q.answerType === 'text' || q.answerType === 'number') {
+  if (q.answerType === 'radio') {
     return (detailAnswers[q.id]?.answerText?.trim() ?? '').length > 0;
   }
   return true;
@@ -601,6 +657,9 @@ export function isInstanceComplete(
   reqData: SubmissionDocumentRequirements | null | undefined,
 ): boolean {
   for (const q of questions) {
+    if (!isQuestionVisible(q, questions, instance.detailAnswers)) {
+      continue;
+    }
     if (q.answerType === 'upload') {
       if (
         !isUploadQuestionCompleteForInstance(
@@ -613,7 +672,12 @@ export function isInstanceComplete(
         return false;
       }
     } else if (
-      !isNonUploadQuestionComplete(q, instance.detailAnswers, instance.multiInputs)
+      !isNonUploadQuestionComplete(
+        q,
+        instance.detailAnswers,
+        instance.multiInputs,
+        questions,
+      )
     ) {
       return false;
     }
@@ -630,13 +694,18 @@ export function isSectionComplete(
   reqData: SubmissionDocumentRequirements | null | undefined,
 ): boolean {
   for (const q of section.questions) {
+    if (!isQuestionVisible(q, section.questions, detailAnswers)) {
+      continue;
+    }
     if (q.answerType === 'upload') {
       if (
         !isUploadQuestionCompleteForInstance(q, answerInstanceId, draftSelections, reqData)
       ) {
         return false;
       }
-    } else if (!isNonUploadQuestionComplete(q, detailAnswers, multiInputs)) {
+    } else if (
+      !isNonUploadQuestionComplete(q, detailAnswers, multiInputs, section.questions)
+    ) {
       return false;
     }
   }
@@ -736,13 +805,10 @@ export function buildDetailIssueLabels(
       : '';
   const issues: string[] = [];
   for (const q of questions) {
-    if (q.isRequired !== 1) {
-      continue;
-    }
     if (q.answerType === 'upload') {
       continue;
     }
-    if (!isNonUploadQuestionComplete(q, detailAnswers, multiInputs)) {
+    if (!isNonUploadQuestionComplete(q, detailAnswers, multiInputs, questions)) {
       issues.push(`${prefix}${q.questionLabel}`);
     }
   }
@@ -755,6 +821,7 @@ export function buildUploadIssueLabels(
   draftSelections: Record<string, number[]>,
   reqData: SubmissionDocumentRequirements | null | undefined,
   instanceLabel?: string | null,
+  detailAnswers: DetailAnswerState = {},
 ): string[] {
   const prefix =
     instanceLabel != null && instanceLabel.trim().length > 0
@@ -763,6 +830,9 @@ export function buildUploadIssueLabels(
   const issues: string[] = [];
   for (const q of questions) {
     if (q.isRequired !== 1 || q.answerType !== 'upload') {
+      continue;
+    }
+    if (!isQuestionVisible(q, questions, detailAnswers)) {
       continue;
     }
     if (
@@ -806,6 +876,7 @@ export function buildStepIssueLabels(
         draftSelections,
         reqData,
         label,
+        inst.detailAnswers,
       ),
     );
   });

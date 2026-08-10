@@ -64,6 +64,7 @@ import {
   remapDraftSelectionsClientKeysToServerIds,
   scrubDraftSelectionsForInstanceParts,
   scrubUserDocumentFromDraftSelections,
+  stepQuestions,
   syncInstanceIdsFromServer,
   todayIsoDate,
 } from '../utils/applyServiceReview';
@@ -77,6 +78,13 @@ import {
   fieldSections,
   summarySections,
 } from '../utils/summarySection';
+import {
+  isQuestionVisible,
+  parseNumberBounds,
+  parseTextInputVariant,
+  sanitizeNumberInput,
+  scrubHiddenAnswers,
+} from '../utils/serviceDetailVisibility';
 import { APPLY_CANVAS, styles } from './ApplyServiceScreen.styles';
 
 function showApplyErrorToast(message: string, title = 'Could not submit'): void {
@@ -483,7 +491,19 @@ export function ApplyServiceScreen(): React.ReactElement {
         if (current == null) {
           return prev;
         }
-        list[instanceIndex] = updater(current);
+        const next = updater(current);
+        const step = wizardStepsRef.current.find((s) => s.id === stepId);
+        const questions = step != null ? stepQuestions(step) : [];
+        const cleaned = scrubHiddenAnswers(
+          questions,
+          next.detailAnswers,
+          next.multiInputs,
+        );
+        list[instanceIndex] = {
+          ...next,
+          detailAnswers: cleaned.answers,
+          multiInputs: cleaned.multiInputs,
+        };
         return { ...prev, [stepId]: list };
       });
     },
@@ -1034,43 +1054,79 @@ export function ApplyServiceScreen(): React.ReactElement {
               })}
             </View>
           </>
-        ) : q.answerType === 'number' ? (
-          <Input
-            label={`${q.questionLabel}${q.isRequired === 1 ? ' *' : ''}`}
-            value={String(instance.detailAnswers[q.id]?.answerText ?? '')}
-            onChangeText={(text) => {
-              updateInstance(stepId, instanceIndex, (inst) => ({
-                ...inst,
-                detailAnswers: {
-                  ...inst.detailAnswers,
-                  [q.id]: { answerText: text },
-                },
-              }));
-            }}
-            placeholder={q.placeholder ?? 'Enter number'}
-            keyboardType="number-pad"
-            accessibilityLabel={q.questionLabel}
-          />
         ) : (
-          <Input
-            label={`${q.questionLabel}${q.isRequired === 1 ? ' *' : ''}`}
-            value={String(instance.detailAnswers[q.id]?.answerText ?? '')}
-            onChangeText={(text) => {
-              updateInstance(stepId, instanceIndex, (inst) => ({
-                ...inst,
-                detailAnswers: {
-                  ...inst.detailAnswers,
-                  [q.id]: { answerText: text },
-                },
-              }));
-            }}
-            placeholder={q.placeholder ?? 'Enter answer'}
-            accessibilityLabel={q.questionLabel}
-          />
+          (() => {
+            const variant =
+              q.answerType === 'text'
+                ? parseTextInputVariant(q.configJson)
+                : 'text';
+            const bounds =
+              q.answerType === 'number' ? parseNumberBounds(q.configJson) : null;
+            const placeholder =
+              q.placeholder ??
+              (q.answerType === 'number'
+                ? 'Enter number'
+                : variant === 'date'
+                  ? 'YYYY-MM-DD'
+                  : variant === 'email'
+                    ? 'name@example.com'
+                    : variant === 'tel'
+                      ? 'Phone number'
+                      : 'Enter answer');
+            const keyboardType =
+              q.answerType === 'number'
+                ? 'decimal-pad'
+                : variant === 'email'
+                  ? 'email-address'
+                  : variant === 'tel'
+                    ? 'phone-pad'
+                    : 'default';
+            const hintParts = [
+              q.helpText?.trim() ?? '',
+              bounds != null && (bounds.min != null || bounds.max != null)
+                ? [
+                    bounds.min != null ? `Min ${bounds.min}` : '',
+                    bounds.max != null ? `Max ${bounds.max}` : '',
+                  ]
+                    .filter((p) => p.length > 0)
+                    .join(' · ')
+                : '',
+            ].filter((p) => p.length > 0);
+            return (
+              <>
+                <Input
+                  label={`${q.questionLabel}${q.isRequired === 1 ? ' *' : ''}`}
+                  value={String(instance.detailAnswers[q.id]?.answerText ?? '')}
+                  onChangeText={(text) => {
+                    const next =
+                      q.answerType === 'number' ? sanitizeNumberInput(text) : text;
+                    updateInstance(stepId, instanceIndex, (inst) => ({
+                      ...inst,
+                      detailAnswers: {
+                        ...inst.detailAnswers,
+                        [q.id]: { answerText: next },
+                      },
+                    }));
+                  }}
+                  placeholder={placeholder}
+                  keyboardType={keyboardType}
+                  textContentType={
+                    variant === 'email'
+                      ? 'emailAddress'
+                      : variant === 'tel'
+                        ? 'telephoneNumber'
+                        : undefined
+                  }
+                  multiline={variant === 'textarea'}
+                  accessibilityLabel={q.questionLabel}
+                />
+                {hintParts.length > 0 ? (
+                  <Text style={styles.sectionHint}>{hintParts.join(' · ')}</Text>
+                ) : null}
+              </>
+            );
+          })()
         )}
-        {q.helpText && (q.answerType === 'text' || q.answerType === 'number') ? (
-          <Text style={styles.sectionHint}>{q.helpText}</Text>
-        ) : null}
       </View>
     );
   };
@@ -1134,9 +1190,11 @@ export function ApplyServiceScreen(): React.ReactElement {
               <Text style={styles.sectionHint}>{section.description}</Text>
             ) : null}
             <View style={styles.inputGap}>
-              {section.questions.map((q) =>
-                renderQuestionField(q, instance, step.id, instanceIndex),
-              )}
+              {section.questions
+                .filter((q) =>
+                  isQuestionVisible(q, stepQuestions(step), instance.detailAnswers),
+                )
+                .map((q) => renderQuestionField(q, instance, step.id, instanceIndex))}
             </View>
           </View>
         ))}

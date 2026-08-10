@@ -17,7 +17,7 @@ interface InputProps {
   onChangeText: (text: string) => void;
   placeholder?: string;
   secureTextEntry?: boolean;
-  keyboardType?: 'default' | 'email-address' | 'number-pad' | 'phone-pad';
+  keyboardType?: 'default' | 'email-address' | 'number-pad' | 'phone-pad' | 'decimal-pad';
   textContentType?: 'emailAddress' | 'password' | 'telephoneNumber' | 'oneTimeCode' | 'name';
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   accessibilityLabel: string;
