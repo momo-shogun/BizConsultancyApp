@@ -12,6 +12,11 @@
   SubmissionDocumentSelectionItem,
 } from '../types/myServices.types';
 import { isYesNoChoiceQuestion } from './serviceDetailQuestionOptions';
+import {
+  formatLocationAnswerDisplay,
+  isLocationAnswerComplete,
+  parseLocationAnswer,
+} from './locationAnswer';
 import { sumAggregateForSummary } from './summarySection';
 import {
   isQuestionVisible,
@@ -517,6 +522,15 @@ export function buildInstanceAnswersPayload(
       }
       continue;
     }
+    if (q.answerType === 'location') {
+      const loc = parseLocationAnswer(cur.answerJson);
+      out.push({
+        questionId: q.id,
+        answerText: loc != null ? formatLocationAnswerDisplay(loc) : null,
+        answerJson: loc,
+      });
+      continue;
+    }
     out.push({
       questionId: q.id,
       answerText: cur.answerText ?? '',
@@ -603,6 +617,9 @@ function isNonUploadQuestionComplete(
       return false;
     }
     return true;
+  }
+  if (q.answerType === 'location') {
+    return isLocationAnswerComplete(detailAnswers[q.id]?.answerJson, q.isRequired === 1);
   }
   if (q.isRequired !== 1) {
     return true;

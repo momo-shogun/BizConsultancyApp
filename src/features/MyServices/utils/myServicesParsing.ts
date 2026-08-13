@@ -43,6 +43,7 @@ const VALID_ANSWER_TYPES: readonly ServiceDetailAnswerType[] = [
   'radio',
   'multiinput',
   'upload',
+  'location',
 ];
 
 const VALID_STEP_KINDS: readonly ServiceDetailFormStepKind[] = ['fields', 'declaration'];

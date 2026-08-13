@@ -87,7 +87,8 @@ export type ServiceDetailAnswerType =
   | 'checkbox'
   | 'radio'
   | 'multiinput'
-  | 'upload';
+  | 'upload'
+  | 'location';
 
 export type ServiceDetailFormStepKind = 'fields' | 'declaration';
 

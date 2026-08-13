@@ -5,6 +5,7 @@ import type {
   ServiceDetailFormStep,
   SummarySectionConfig,
 } from '../types/myServices.types';
+import { formatLocationAnswerDisplay } from './locationAnswer';
 
 export function isSummarySection(section: ServiceDetailFormSection): boolean {
   return section.kind === 'summary';
@@ -48,6 +49,14 @@ export function formatSummaryAnswerDisplay(
       ? (cur.answerJson as unknown[]).map(String)
       : [];
     return selected.length > 0 ? selected.join(', ') : '—';
+  }
+  if (question.answerType === 'location') {
+    const loc = formatLocationAnswerDisplay(cur?.answerJson);
+    if (loc.length > 0) {
+      return loc;
+    }
+    const text = (cur?.answerText ?? '').trim();
+    return text.length > 0 ? text : '—';
   }
   const text = (cur?.answerText ?? '').trim();
   return text.length > 0 ? text : '—';

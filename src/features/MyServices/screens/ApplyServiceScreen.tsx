@@ -31,6 +31,7 @@ import {
   useSaveSubmissionDocumentSelectionsMutation,
 } from '../api/myServicesApi';
 import { ApplyDocumentRequirementCard } from '../components/ApplyDocumentRequirementCard';
+import { LocationQuestionFields } from '../components/LocationQuestionFields';
 import { ApplyServiceDeclarationStep } from '../components/ApplyServiceReviewStep';
 import { ApplyShareholdingSummary } from '../components/ApplyShareholdingSummary';
 import { VaultUploadSourceDialog } from '../components/VaultUploadSourceDialog';
@@ -68,6 +69,7 @@ import {
   syncInstanceIdsFromServer,
   todayIsoDate,
 } from '../utils/applyServiceReview';
+import { formatLocationAnswerDisplay } from '../utils/locationAnswer';
 import {
   getServiceDetailQuestionOptions,
   isYesNoChoiceQuestion,
@@ -1013,6 +1015,29 @@ export function ApplyServiceScreen(): React.ReactElement {
               })}
             </View>
           </>
+        ) : q.answerType === 'location' ? (
+          <LocationQuestionFields
+            questionLabel={q.questionLabel}
+            helpText={q.helpText}
+            required={q.isRequired === 1}
+            disabled={isApplied}
+            answerJson={instance.detailAnswers[q.id]?.answerJson}
+            onChange={(value) => {
+              updateInstance(stepId, instanceIndex, (inst) => ({
+                ...inst,
+                detailAnswers: {
+                  ...inst.detailAnswers,
+                  [q.id]: {
+                    answerText:
+                      value != null && 'cityId' in value
+                        ? formatLocationAnswerDisplay(value)
+                        : '',
+                    answerJson: value,
+                  },
+                },
+              }));
+            }}
+          />
         ) : q.answerType === 'radio' ? (
           <>
             <Text style={styles.docGroupTitle}>

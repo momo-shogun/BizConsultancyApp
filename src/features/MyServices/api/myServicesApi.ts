@@ -26,6 +26,7 @@ import {
   parseSubmissionDocumentRequirements,
   parseVaultDocumentOption,
 } from '../utils/myServicesParsing';
+import { parseLocationSelectOptions } from '../utils/locationAnswer';
 function isFetchNotFound(error: unknown): boolean {
   if (error == null || typeof error !== 'object') {
     return false;
@@ -320,6 +321,24 @@ export const myServicesApi = baseApi.injectEndpoints({
       },
       providesTags: (_r, _e, id) => [{ type: 'MyServices', id: `apply-docs-${id}` }],
     }),
+    getLocationStateOptions: build.query<
+      Array<{ value: number; label: string }>,
+      void
+    >({
+      query: () => ({
+        url: 'service-detail-forms/me/location/states',
+      }),
+      transformResponse: (response: unknown) => parseLocationSelectOptions(response),
+    }),
+    getLocationCityOptions: build.query<
+      Array<{ value: number; label: string }>,
+      number
+    >({
+      query: (stateId) => ({
+        url: `service-detail-forms/me/location/cities?stateId=${stateId}`,
+      }),
+      transformResponse: (response: unknown) => parseLocationSelectOptions(response),
+    }),
     saveServiceDetailFormAnswers: build.mutation<
       { ok: true; submissionId: number },
       {
@@ -505,6 +524,8 @@ export const {
   useLazyGetMyOnboardingSubmissionFullDetailQuery,
   useApplyMyOnboardingSubmissionMutation,
   useGetServiceDetailFormContextQuery,
+  useGetLocationStateOptionsQuery,
+  useGetLocationCityOptionsQuery,
   useGetSubmissionDocumentRequirementsQuery,
   useSaveServiceDetailFormAnswersMutation,
   useSaveSubmissionDocumentSelectionsMutation,
