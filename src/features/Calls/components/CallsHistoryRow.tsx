@@ -10,40 +10,20 @@ import type { CallsTabRowModel } from '@/features/Calls/utils/callsTabHistoryDis
 export interface CallsHistoryRowProps {
   row: CallsTabRowModel;
   isLast: boolean;
-  isEditing: boolean;
-  isSelected: boolean;
-  onPressRow: () => void;
   onPressAction: () => void;
 }
 
 export const CallsHistoryRow = memo(function CallsHistoryRow(
   props: CallsHistoryRowProps,
 ): React.ReactElement {
-  const { row, isLast, isEditing, isSelected, onPressRow, onPressAction } = props;
+  const { row, isLast, onPressAction } = props;
   const nameColor = row.isMissed ? CALLS_TAB_THEME.missed : CALLS_TAB_THEME.textPrimary;
   const directionIcon = row.isOutgoing ? 'arrow-up' : 'arrow-down';
   const actionIcon = row.item.callType === 'video' ? 'videocam' : 'call';
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${row.displayName}, ${row.mediumLabel}`}
-      onPress={onPressRow}
-      style={({ pressed }) => [
-        styles.row,
-        isLast ? styles.rowLast : null,
-        pressed ? styles.rowPressed : null,
-      ]}
-    >
-      {isEditing ? (
-        <View style={[styles.selectCircle, isSelected ? styles.selectCircleOn : null]}>
-          {isSelected ? (
-            <Ionicons name="checkmark" size={14} color={CALLS_TAB_THEME.textPrimary} />
-          ) : null}
-        </View>
-      ) : null}
-
-      <CallsHistoryAvatar name={row.displayName} />
+    <View style={[styles.row, isLast ? styles.rowLast : null]}>
+      <CallsHistoryAvatar name={row.displayName} uri={row.avatarUri} />
 
       <View style={styles.body}>
         <Text style={[styles.name, { color: nameColor }]} numberOfLines={1}>
@@ -64,20 +44,18 @@ export const CallsHistoryRow = memo(function CallsHistoryRow(
 
       <Text style={styles.time}>{row.timeLabel}</Text>
 
-      {isEditing ? null : (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={
-            row.item.callType === 'video' ? 'Start video call' : 'Start voice call'
-          }
-          hitSlop={8}
-          onPress={onPressAction}
-          style={({ pressed }) => [styles.actionBtn, pressed ? styles.actionBtnPressed : null]}
-        >
-          <Ionicons name={actionIcon} size={18} color={CALLS_TAB_THEME.accent} />
-        </Pressable>
-      )}
-    </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={
+          row.item.callType === 'video' ? 'Start video call' : 'Start voice call'
+        }
+        hitSlop={8}
+        onPress={onPressAction}
+        style={({ pressed }) => [styles.actionBtn, pressed ? styles.actionBtnPressed : null]}
+      >
+        <Ionicons name={actionIcon} size={18} color={CALLS_TAB_THEME.accent} />
+      </Pressable>
+    </View>
   );
 });
 
@@ -93,22 +71,6 @@ const styles = StyleSheet.create({
   },
   rowLast: {
     borderBottomWidth: 0,
-  },
-  rowPressed: {
-    backgroundColor: 'rgba(255,255,255,0.04)',
-  },
-  selectCircle: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 1.5,
-    borderColor: CALLS_TAB_THEME.textSecondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  selectCircleOn: {
-    borderColor: CALLS_TAB_THEME.accent,
-    backgroundColor: CALLS_TAB_THEME.accent,
   },
   body: {
     flex: 1,
@@ -142,6 +104,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: CALLS_TAB_THEME.textSecondary,
     marginRight: 2,
+    flexShrink: 0,
   },
   actionBtn: {
     width: 36,

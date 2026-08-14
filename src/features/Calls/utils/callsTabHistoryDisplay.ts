@@ -1,6 +1,5 @@
 import type { CallHistoryItem, CallStatus } from '@/features/Calls/types/callApi.types';
-
-export type CallsTabFilter = 'all' | 'missed';
+import { resolveCallPartyImageUrl } from '@/features/Calls/utils/callPartyMedia';
 
 const MISSED_STATUSES: CallStatus[] = ['declined', 'missed', 'failed'];
 
@@ -9,6 +8,7 @@ export interface CallsTabRowModel {
   item: CallHistoryItem;
   count: number;
   displayName: string;
+  avatarUri: string | null;
   otherUserId: number;
   mediumLabel: string;
   timeLabel: string;
@@ -38,6 +38,15 @@ export function getOtherPartyName(item: CallHistoryItem): string {
 
 export function getOtherPartyUserId(item: CallHistoryItem): number {
   return item.direction === 'outgoing' ? item.calleeUserId : item.callerUserId;
+}
+
+export function getOtherPartyThumbnail(item: CallHistoryItem): string | null {
+  if (item.direction === 'outgoing') {
+    const thumb = item.calleeThumbnail?.trim();
+    return thumb != null && thumb.length > 0 ? thumb : null;
+  }
+  const thumb = item.callerThumbnail?.trim();
+  return thumb != null && thumb.length > 0 ? thumb : null;
 }
 
 export function isMissedCall(item: CallHistoryItem): boolean {
@@ -83,21 +92,10 @@ function mediumBaseLabel(item: CallHistoryItem): string {
   return item.callType === 'video' ? 'Video' : 'Voice';
 }
 
-export function matchesCallsTabFilter(item: CallHistoryItem, filter: CallsTabFilter): boolean {
-  if (filter === 'all') {
-    return true;
-  }
-  return isMissedCall(item);
-}
-
-export function buildCallsTabRows(
-  items: CallHistoryItem[],
-  filter: CallsTabFilter,
-): CallsTabRowModel[] {
-  const filtered = items.filter((item) => matchesCallsTabFilter(item, filter));
+export function buildCallsTabRows(items: CallHistoryItem[]): CallsTabRowModel[] {
   const rows: CallsTabRowModel[] = [];
 
-  for (const item of filtered) {
+  for (const item of items) {
     const otherUserId = getOtherPartyUserId(item);
     const groupKey = `${otherUserId}-${item.callType}-${item.direction}`;
     const last = rows[rows.length - 1];
@@ -107,17 +105,19 @@ export function buildCallsTabRows(
       continue;
     }
 
-    rows.push({
+    const row: CallsTabRowModel = {
       key: groupKey,
       item,
       count: 1,
       displayName: getOtherPartyName(item),
+      avatarUri: resolveCallPartyImageUrl(getOtherPartyThumbnail(item)),
       otherUserId,
       mediumLabel: mediumBaseLabel(item),
       timeLabel: formatCallsTabTime(item.startedAt ?? item.connectedAt ?? item.endedAt),
       isMissed: isMissedCall(item),
       isOutgoing: item.direction === 'outgoing',
-    });
+    };
+    rows.push(row);
   }
 
   return rows.map((row, index) => ({
@@ -125,20 +125,4 @@ export function buildCallsTabRows(
     key: `${row.key}-${row.item.id}-${index}`,
     mediumLabel: row.count > 1 ? `${row.mediumLabel} (${row.count})` : row.mediumLabel,
   }));
-}
-
-export function avatarGradientIndex(name: string): number {
-  let hash = 0;
-  for (let i = 0; i < name.length; i += 1) {
-    hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
-  }
-  return hash % 5;
-}
-
-export function initialsFromName(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  const first = parts[0]?.[0] ?? '';
-  const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? '') : '';
-  const letters = `${first}${last}`.toUpperCase();
-  return letters.length > 0 ? letters : '?';
 }

@@ -29,7 +29,7 @@ type ScreenRoute = RouteProp<RootStackParamList, typeof ROUTES.Root.Consultation
 function ConsultationOnboardingContent(): React.ReactElement {
   const navigation = useNavigation<NavigationProp>();
   const [activeStep, setActiveStep] = useState(0);
-  const hasVerifiedLogin = useAppSelector(selectHasVerifiedLogin);
+  const hasVerifiedLogin = useAppSelector(selectHasVerifiedLogin);  
   const accountRole = useAppSelector(selectEffectiveAccountRole);
   const { ensureVerifiedLogin, consultantBookingLoginDialog } = useConsultantBookingLoginGate();
 

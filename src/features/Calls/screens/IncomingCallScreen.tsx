@@ -94,18 +94,16 @@ export function IncomingCallScreen({
       <View style={styles.center}>
         <View style={styles.avatarGlow}>
           <View style={styles.avatarRing}>
-            {remoteAvatarUrl ? (
-              <RemoteImage
-                uri={remoteAvatarUrl}
-                style={styles.avatarImage}
-                placeholderVariant="avatar"
-              />
-            ) : (
-              <ImagePlaceholder
-                variant="avatar"
-                style={styles.avatarImage}
-              />
-            )}
+            <View style={styles.avatarClip}>
+              {remoteAvatarUrl ? (
+                <RemoteImage
+                  uri={remoteAvatarUrl}
+                  placeholderVariant="avatar"
+                />
+              ) : (
+                <ImagePlaceholder variant="avatar" style={styles.avatarFill} />
+              )}
+            </View>
           </View>
         </View>
 
@@ -263,12 +261,17 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.12)',
     borderWidth: 2,
     borderColor: 'rgba(255,255,255,0.18)',
+    overflow: 'hidden',
   },
 
-  avatarImage: {
-    width: '100%',
-    height: '100%',
+  avatarClip: {
+    flex: 1,
     borderRadius: AVATAR_SIZE / 2,
+    overflow: 'hidden',
+  },
+
+  avatarFill: {
+    ...StyleSheet.absoluteFillObject,
   },
 
   infoCard: {

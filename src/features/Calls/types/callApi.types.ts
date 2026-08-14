@@ -143,9 +143,11 @@ export interface CallHistoryItem {
   callerUserId: number;
   callerRole: CallRole;
   callerName?: string | null;
+  callerThumbnail?: string | null;
   calleeUserId: number;
   calleeRole: CallRole;
   calleeName?: string | null;
+  calleeThumbnail?: string | null;
   consultantId?: number | null;
   consultantBookingId?: number | null;
   reviewedByMe?: boolean;

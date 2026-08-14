@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
-import { ImagePlaceholder, RemoteImage } from '@/shared/components';
+import { RemoteImage } from '@/shared/components';
 
 type CallAvatarProps = {
   uri: string | null;
@@ -30,7 +30,6 @@ export function CallAvatar({
       {uri != null ? (
         <RemoteImage
           uri={uri}
-          style={{ width: size, height: size, borderRadius: radius }}
           placeholderVariant="avatar"
           placeholderName={name}
         />

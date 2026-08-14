@@ -1,40 +1,40 @@
 import { StyleSheet } from 'react-native';
 
-import { CALLS_TAB_THEME } from '@/features/Calls/constants/callsTabTheme';
+import { ACCOUNT_HUB_LIST_CANVAS } from '@/constants/accountScreenTheme';
 import { THEME } from '@/constants/theme';
+import { CALLS_TAB_THEME } from '@/features/Calls/constants/callsTabTheme';
 
 export const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: CALLS_TAB_THEME.bg,
+    backgroundColor: ACCOUNT_HUB_LIST_CANVAS,
   },
   list: {
     flex: 1,
   },
   listContent: {
     flexGrow: 1,
+    backgroundColor: CALLS_TAB_THEME.bg,
   },
   listContentEmpty: {
     justifyContent: 'center',
   },
-  filterChipRow: {
-    paddingHorizontal: THEME.spacing[16],
-    paddingBottom: THEME.spacing[8],
+  listHeader: {
+    paddingTop: THEME.spacing[12],
+    paddingBottom: THEME.spacing[4],
+    backgroundColor: CALLS_TAB_THEME.bg,
+    gap: THEME.spacing[8],
   },
-  filterChip: {
-    alignSelf: 'flex-start',
+  metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: 'rgba(10,132,255,0.16)',
+    justifyContent: 'space-between',
+    paddingHorizontal: THEME.spacing[16],
   },
-  filterChipText: {
-    color: CALLS_TAB_THEME.accent,
-    fontSize: 13,
-    fontWeight: '600',
+  metaText: {
+    fontSize: 12,
+    color: CALLS_TAB_THEME.textSecondary,
+    fontWeight: '500',
   },
   centered: {
     flex: 1,
@@ -42,6 +42,7 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: THEME.spacing[12],
     paddingHorizontal: THEME.spacing[24],
+    backgroundColor: CALLS_TAB_THEME.bg,
   },
   stateText: {
     color: CALLS_TAB_THEME.textSecondary,
@@ -56,16 +57,17 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 12,
-    backgroundColor: CALLS_TAB_THEME.accent,
+    backgroundColor: THEME.colors.primary,
   },
   retryText: {
-    color: CALLS_TAB_THEME.textPrimary,
+    color: CALLS_TAB_THEME.onAccent,
     fontSize: 15,
     fontWeight: '600',
   },
   empty: {
     alignItems: 'center',
     paddingHorizontal: THEME.spacing[28],
+    paddingVertical: THEME.spacing[28],
     gap: THEME.spacing[10],
   },
   emptyIcon: {

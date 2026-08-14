@@ -1,13 +1,14 @@
-/** Dark Calls-tab history surface — phone-recents aesthetic. */
+/** Light Calls-tab history surface. */
 export const CALLS_TAB_THEME = {
-  bg: '#000000',
-  surface: '#1C1C1E',
-  surfaceElevated: '#2C2C2E',
-  separator: '#2C2C2E',
-  textPrimary: '#FFFFFF',
-  textSecondary: '#8E8E93',
+  bg: '#FFFFFF',
+  surface: '#F6F7FB',
+  surfaceElevated: '#EEF0F4',
+  separator: '#E5E7EF',
+  textPrimary: '#0B0F19',
+  textSecondary: '#5B6475',
   accent: '#0A84FF',
-  missed: '#FF453A',
+  missed: '#E5484D',
+  onAccent: '#FFFFFF',
   avatarGradients: [
     ['#7C3AED', '#A78BFA'],
     ['#2563EB', '#60A5FA'],
