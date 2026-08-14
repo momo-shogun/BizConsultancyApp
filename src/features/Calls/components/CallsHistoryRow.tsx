@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { THEME } from '@/constants/theme';
@@ -10,19 +10,39 @@ import type { CallsTabRowModel } from '@/features/Calls/utils/callsTabHistoryDis
 export interface CallsHistoryRowProps {
   row: CallsTabRowModel;
   isLast: boolean;
+  isStarting: boolean;
   onPressAction: () => void;
 }
 
 export const CallsHistoryRow = memo(function CallsHistoryRow(
   props: CallsHistoryRowProps,
 ): React.ReactElement {
-  const { row, isLast, onPressAction } = props;
+  const { row, isLast, isStarting, onPressAction } = props;
   const nameColor = row.isMissed ? CALLS_TAB_THEME.missed : CALLS_TAB_THEME.textPrimary;
   const directionIcon = row.isOutgoing ? 'arrow-up' : 'arrow-down';
   const actionIcon = row.item.callType === 'video' ? 'videocam' : 'call';
+  const canPress = row.canCallBack && !isStarting;
 
   return (
-    <View style={[styles.row, isLast ? styles.rowLast : null]}>
+    <Pressable
+      accessibilityRole={row.canCallBack ? 'button' : undefined}
+      accessibilityLabel={
+        row.canCallBack
+          ? row.item.callType === 'video'
+            ? `Call ${row.displayName} on video`
+            : `Call ${row.displayName}`
+          : undefined
+      }
+      disabled={!canPress}
+      onPress={onPressAction}
+      android_disableSound
+      unstable_pressDelay={0}
+      style={({ pressed }) => [
+        styles.row,
+        isLast ? styles.rowLast : null,
+        pressed && canPress ? styles.rowPressed : null,
+      ]}
+    >
       <CallsHistoryAvatar name={row.displayName} uri={row.avatarUri} />
 
       <View style={styles.body}>
@@ -44,18 +64,16 @@ export const CallsHistoryRow = memo(function CallsHistoryRow(
 
       <Text style={styles.time}>{row.timeLabel}</Text>
 
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={
-          row.item.callType === 'video' ? 'Start video call' : 'Start voice call'
-        }
-        hitSlop={8}
-        onPress={onPressAction}
-        style={({ pressed }) => [styles.actionBtn, pressed ? styles.actionBtnPressed : null]}
-      >
-        <Ionicons name={actionIcon} size={18} color={CALLS_TAB_THEME.accent} />
-      </Pressable>
-    </View>
+      {row.canCallBack ? (
+        <View style={styles.actionBtn}>
+          {isStarting ? (
+            <ActivityIndicator size="small" color={CALLS_TAB_THEME.accent} />
+          ) : (
+            <Ionicons name={actionIcon} size={18} color={CALLS_TAB_THEME.accent} />
+          )}
+        </View>
+      ) : null}
+    </Pressable>
   );
 });
 
@@ -71,6 +89,9 @@ const styles = StyleSheet.create({
   },
   rowLast: {
     borderBottomWidth: 0,
+  },
+  rowPressed: {
+    opacity: 0.82,
   },
   body: {
     flex: 1,
@@ -107,14 +128,11 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   actionBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: CALLS_TAB_THEME.surfaceElevated,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  actionBtnPressed: {
-    opacity: 0.75,
   },
 });

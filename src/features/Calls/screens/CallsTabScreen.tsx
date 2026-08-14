@@ -50,6 +50,7 @@ import {
   type FilterSheetValue,
 } from '@/shared/components';
 import { showGlobalToast } from '@/shared/components/toast';
+import { useAppSelector } from '@/store/typedHooks';
 
 import { styles } from './CallsTabScreen.styles';
 
@@ -58,6 +59,10 @@ const TAB_BAR_CONTENT_INSET = 96;
 
 export function CallsTabScreen(): React.ReactElement {
   const insets = useSafeAreaInsets();
+  const currentUserId = useAppSelector((state) => {
+    const parsed = Number(state.auth.user?.id ?? '');
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  });
   const searchInputRef = useRef<TextInput>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -65,6 +70,7 @@ export function CallsTabScreen(): React.ReactElement {
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [datePickerDraft, setDatePickerDraft] = useState<Date>(() => new Date());
   const [filters, setFilters] = useState<FilterSheetValue>(EMPTY_CALLS_FILTERS);
+  const [startingRowKey, setStartingRowKey] = useState<string | null>(null);
 
   const datePickerBounds = useMemo(() => getCallsDatePickerBounds(), []);
   const filterSections = useMemo(() => buildCallsFilterSections(), []);
@@ -84,7 +90,10 @@ export function CallsTabScreen(): React.ReactElement {
     });
   }, [allItems, filters, searchQuery]);
 
-  const rows = useMemo((): CallsTabRowModel[] => buildCallsTabRows(filteredItems), [filteredItems]);
+  const rows = useMemo(
+    (): CallsTabRowModel[] => buildCallsTabRows(filteredItems, currentUserId),
+    [currentUserId, filteredItems],
+  );
 
   const activeFilterCount = useMemo(() => countActiveCallsFilters(filters), [filters]);
   const hasSearchQuery = searchQuery.trim().length > 0;
@@ -154,20 +163,29 @@ export function CallsTabScreen(): React.ReactElement {
   }, []);
 
   const handleCallBack = useCallback(async (row: CallsTabRowModel): Promise<void> => {
+    if (startingRowKey != null) {
+      return;
+    }
+    if (!row.canCallBack) {
+      showGlobalToast({ message: 'You cannot call yourself', variant: 'error' });
+      return;
+    }
     if (!Number.isFinite(row.otherUserId) || row.otherUserId <= 0) {
       showGlobalToast({ message: 'Unable to start call', variant: 'error' });
       return;
     }
 
+    setStartingRowKey(row.key);
     const error = await CallController.startOutgoingWithType(
       row.otherUserId,
       row.item.callType,
       row.displayName,
     );
+    setStartingRowKey(null);
     if (error != null) {
       showGlobalToast({ message: error, variant: 'error' });
     }
-  }, []);
+  }, [startingRowKey]);
 
   const listBottomPad = TAB_BAR_CONTENT_INSET + Math.max(insets.bottom, 8);
 
@@ -176,12 +194,13 @@ export function CallsTabScreen(): React.ReactElement {
       <CallsHistoryRow
         row={item}
         isLast={index === rows.length - 1}
+        isStarting={startingRowKey === item.key}
         onPressAction={() => {
           void handleCallBack(item);
         }}
       />
     ),
-    [handleCallBack, rows.length],
+    [handleCallBack, rows.length, startingRowKey],
   );
 
   const keyExtractor = useCallback((item: CallsTabRowModel): string => item.key, []);
@@ -270,7 +289,7 @@ export function CallsTabScreen(): React.ReactElement {
                 { paddingBottom: listBottomPad },
               ]}
               showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
+              keyboardShouldPersistTaps="always"
               ListHeaderComponent={ListHeader}
               refreshControl={
                 <RefreshControl

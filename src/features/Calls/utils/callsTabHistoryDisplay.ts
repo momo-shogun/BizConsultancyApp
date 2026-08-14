@@ -14,14 +14,45 @@ export interface CallsTabRowModel {
   timeLabel: string;
   isMissed: boolean;
   isOutgoing: boolean;
+  canCallBack: boolean;
+}
+
+type OtherPartySide = 'caller' | 'callee';
+
+function isValidUserId(value: number | null | undefined): value is number {
+  return value != null && Number.isFinite(value) && value > 0;
+}
+
+/**
+ * Prefer the party that is not the logged-in user so a bad `direction`
+ * cannot treat the current user as the person to call back.
+ */
+export function resolveOtherPartySide(
+  item: CallHistoryItem,
+  currentUserId?: number | null,
+): OtherPartySide {
+  if (isValidUserId(currentUserId)) {
+    const isCaller = item.callerUserId === currentUserId;
+    const isCallee = item.calleeUserId === currentUserId;
+    if (isCaller && !isCallee) {
+      return 'callee';
+    }
+    if (isCallee && !isCaller) {
+      return 'caller';
+    }
+  }
+  return item.direction === 'outgoing' ? 'callee' : 'caller';
 }
 
 function startOfLocalDay(date: Date): number {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
 }
 
-export function getOtherPartyName(item: CallHistoryItem): string {
-  if (item.direction === 'outgoing') {
+export function getOtherPartyName(
+  item: CallHistoryItem,
+  currentUserId?: number | null,
+): string {
+  if (resolveOtherPartySide(item, currentUserId) === 'callee') {
     const name = item.calleeName?.trim();
     if (name != null && name.length > 0) {
       return name;
@@ -36,12 +67,20 @@ export function getOtherPartyName(item: CallHistoryItem): string {
   return item.callerRole === 'consultant' ? 'Consultant' : 'Contact';
 }
 
-export function getOtherPartyUserId(item: CallHistoryItem): number {
-  return item.direction === 'outgoing' ? item.calleeUserId : item.callerUserId;
+export function getOtherPartyUserId(
+  item: CallHistoryItem,
+  currentUserId?: number | null,
+): number {
+  return resolveOtherPartySide(item, currentUserId) === 'callee'
+    ? item.calleeUserId
+    : item.callerUserId;
 }
 
-export function getOtherPartyThumbnail(item: CallHistoryItem): string | null {
-  if (item.direction === 'outgoing') {
+export function getOtherPartyThumbnail(
+  item: CallHistoryItem,
+  currentUserId?: number | null,
+): string | null {
+  if (resolveOtherPartySide(item, currentUserId) === 'callee') {
     const thumb = item.calleeThumbnail?.trim();
     return thumb != null && thumb.length > 0 ? thumb : null;
   }
@@ -92,11 +131,14 @@ function mediumBaseLabel(item: CallHistoryItem): string {
   return item.callType === 'video' ? 'Video' : 'Voice';
 }
 
-export function buildCallsTabRows(items: CallHistoryItem[]): CallsTabRowModel[] {
+export function buildCallsTabRows(
+  items: CallHistoryItem[],
+  currentUserId?: number | null,
+): CallsTabRowModel[] {
   const rows: CallsTabRowModel[] = [];
 
   for (const item of items) {
-    const otherUserId = getOtherPartyUserId(item);
+    const otherUserId = getOtherPartyUserId(item, currentUserId);
     const groupKey = `${otherUserId}-${item.callType}-${item.direction}`;
     const last = rows[rows.length - 1];
 
@@ -109,13 +151,14 @@ export function buildCallsTabRows(items: CallHistoryItem[]): CallsTabRowModel[] 
       key: groupKey,
       item,
       count: 1,
-      displayName: getOtherPartyName(item),
-      avatarUri: resolveCallPartyImageUrl(getOtherPartyThumbnail(item)),
+      displayName: getOtherPartyName(item, currentUserId),
+      avatarUri: resolveCallPartyImageUrl(getOtherPartyThumbnail(item, currentUserId)),
       otherUserId,
       mediumLabel: mediumBaseLabel(item),
       timeLabel: formatCallsTabTime(item.startedAt ?? item.connectedAt ?? item.endedAt),
       isMissed: isMissedCall(item),
       isOutgoing: item.direction === 'outgoing',
+      canCallBack: isValidUserId(otherUserId) && otherUserId !== currentUserId,
     };
     rows.push(row);
   }

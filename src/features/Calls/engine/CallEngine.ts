@@ -63,9 +63,14 @@ import { CallReliabilityManager } from './CallReliabilityManager';
 import { syncCallSession } from './CallStateSyncService';
 import { transitionCallPhase, type CallPhase } from './callStateMachine';
 import { ensureCallPermissions } from '../utils/callPermissions';
+import { readCallApiErrorMessage } from '../utils/callApiError';
 import { resolveLocalCallRole, resolveLocalUserId } from '../utils/resolveLocalCallRole';
 
 type CallScreen = 'IncomingCall' | 'OutgoingCall' | 'InCall';
+type CallRouteName =
+  | typeof ROUTES.Root.IncomingCall
+  | typeof ROUTES.Root.OutgoingCall
+  | typeof ROUTES.Root.InCall;
 
 /** Server statuses from which a session can never return to an active call. */
 const TERMINAL_CALL_STATUSES: readonly string[] = ['ended', 'declined', 'missed', 'failed'];
@@ -99,6 +104,8 @@ class CallEngineImpl {
   private restoreInFlight = false;
   /** Cancels outbound ring if the caller leaves the app and does not return. */
   private outgoingBackgroundCancelTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Blocks a second tap from resetting a call that is already starting. */
+  private outgoingStartInFlight = false;
 
   /** Apply navigation requested before `NavigationContainer` mounted (cold start via FCM). */
   flushPendingCallNavigation(): void {
@@ -116,13 +123,7 @@ class CallEngineImpl {
       return;
     }
     enableCallLockOverlay();
-    const route = this.routeForScreen(pending.screen);
-    const params = { sessionId: pending.sessionId };
-    if (pending.kind === 'replace') {
-      navigationRef.dispatch(StackActions.replace(route as never, params as never));
-    } else {
-      navigationRef.navigate(route as never, params as never);
-    }
+    this.dispatchCallRoute(pending.kind, pending.screen, pending.sessionId);
   }
 
   private isPendingNavigationStillValid(
@@ -493,7 +494,7 @@ class CallEngineImpl {
     }, delayMs);
   }
 
-  private routeForScreen(screen: CallScreen): string {
+  private routeForScreen(screen: CallScreen): CallRouteName {
     if (screen === 'IncomingCall') {
       return ROUTES.Root.IncomingCall;
     }
@@ -501,6 +502,20 @@ class CallEngineImpl {
       return ROUTES.Root.OutgoingCall;
     }
     return ROUTES.Root.InCall;
+  }
+
+  private dispatchCallRoute(
+    kind: 'navigate' | 'replace',
+    screen: CallScreen,
+    sessionId: number,
+  ): void {
+    const route = this.routeForScreen(screen);
+    const params = { sessionId };
+    if (kind === 'replace') {
+      navigationRef.dispatch(StackActions.replace(route, params));
+      return;
+    }
+    navigationRef.navigate(route, params);
   }
 
   private navigateToCallScreen(screen: CallScreen, sessionId: number): void {
@@ -519,13 +534,7 @@ class CallEngineImpl {
     /** Call screens may appear over the keyguard; everyday app shell must not. */
     enableCallLockOverlay();
     if (navigationRef.isReady()) {
-      const route = this.routeForScreen(screen);
-      const params = { sessionId };
-      if (kind === 'replace') {
-        navigationRef.dispatch(StackActions.replace(route as never, params as never));
-      } else {
-        navigationRef.navigate(route as never, params as never);
-      }
+      this.dispatchCallRoute(kind, screen, sessionId);
       return;
     }
     this.pendingNavigation = { kind, screen, sessionId };
@@ -820,7 +829,40 @@ class CallEngineImpl {
     }
   }
 
-  async startOutgoing(calleeUserId: number, callType: CallType, remoteName: string): Promise<void> {
+  private isOutgoingStartBusy(): boolean {
+    if (this.outgoingStartInFlight) {
+      return true;
+    }
+    const phase = this.getCallState().phase;
+    return (
+      phase === 'outgoing_initiating' ||
+      phase === 'outgoing_ringing' ||
+      phase === 'incoming_ringing' ||
+      phase === 'connecting_media' ||
+      phase === 'in_call' ||
+      phase === 'reconnecting'
+    );
+  }
+
+  private busyCallMessage(): string {
+    return 'A call is already in progress';
+  }
+
+  async startOutgoing(calleeUserId: number, callType: CallType, remoteName: string): Promise<string | null> {
+    const localUserId = resolveLocalUserId();
+    if (localUserId != null && localUserId === calleeUserId) {
+      store.dispatch(setCallError('You cannot call yourself'));
+      store.dispatch(setCallPhase('idle'));
+      return 'You cannot call yourself';
+    }
+    if (this.outgoingStartInFlight) {
+      return null;
+    }
+    if (this.isOutgoingStartBusy()) {
+      return this.busyCallMessage();
+    }
+
+    this.outgoingStartInFlight = true;
     store.dispatch(resetCallState());
     this.reliability.reset();
     this.outgoingAnswered = false;
@@ -829,28 +871,45 @@ class CallEngineImpl {
     store.dispatch(setCallPhase('outgoing_initiating'));
     store.dispatch(setCallError(null));
 
-    if (!(await this.ensureCallPermissionsOrAbort(callType))) {
-      return;
+    try {
+      if (!(await this.ensureCallPermissionsOrAbort(callType))) {
+        return this.getCallState().errorMessage ?? 'Call permission is required';
+      }
+
+      this.bindSocketHandlers();
+      await callSocketService.waitUntilConnected();
+
+      const result = await store.dispatch(
+        callsApi.endpoints.initiateCall.initiate({ calleeUserId, callType }),
+      );
+
+      if (result.error != null || result.data == null) {
+        const message = readCallApiErrorMessage(result.error, 'Failed to start call');
+        store.dispatch(setCallError(message));
+        store.dispatch(setCallPhase('idle'));
+        return message;
+      }
+
+      await this.beginOutgoingAfterInitiate(result.data, remoteName);
+      return null;
+    } finally {
+      this.outgoingStartInFlight = false;
     }
-
-    const result = await store.dispatch(
-      callsApi.endpoints.initiateCall.initiate({ calleeUserId, callType }),
-    );
-
-    if ('error' in result) {
-      store.dispatch(setCallError('Failed to start call'));
-      store.dispatch(setCallPhase('idle'));
-      return;
-    }
-
-    await this.beginOutgoingAfterInitiate(result.data, remoteName);
   }
 
   async startOutgoingFromBooking(
     bookingId: number,
     remoteName: string,
     callType: CallType,
-  ): Promise<void> {
+  ): Promise<string | null> {
+    if (this.outgoingStartInFlight) {
+      return null;
+    }
+    if (this.isOutgoingStartBusy()) {
+      return this.busyCallMessage();
+    }
+
+    this.outgoingStartInFlight = true;
     store.dispatch(resetCallState());
     this.reliability.reset();
     this.outgoingAnswered = false;
@@ -858,21 +917,30 @@ class CallEngineImpl {
     this.stopRingStatusPoll();
     store.dispatch(setCallPhase('outgoing_initiating'));
 
-    if (!(await this.ensureCallPermissionsOrAbort(callType))) {
-      return;
+    try {
+      if (!(await this.ensureCallPermissionsOrAbort(callType))) {
+        return this.getCallState().errorMessage ?? 'Call permission is required';
+      }
+
+      this.bindSocketHandlers();
+      await callSocketService.waitUntilConnected();
+
+      const result = await store.dispatch(
+        callsApi.endpoints.initiateCallFromBooking.initiate({ bookingId }),
+      );
+
+      if (result.error != null || result.data == null) {
+        const message = readCallApiErrorMessage(result.error, 'Failed to start call');
+        store.dispatch(setCallError(message));
+        store.dispatch(setCallPhase('idle'));
+        return message;
+      }
+
+      await this.beginOutgoingAfterInitiate(result.data, remoteName);
+      return null;
+    } finally {
+      this.outgoingStartInFlight = false;
     }
-
-    const result = await store.dispatch(
-      callsApi.endpoints.initiateCallFromBooking.initiate({ bookingId }),
-    );
-
-    if ('error' in result) {
-      store.dispatch(setCallError('Failed to start call'));
-      store.dispatch(setCallPhase('idle'));
-      return;
-    }
-
-    await this.beginOutgoingAfterInitiate(result.data, remoteName);
   }
 
   /**

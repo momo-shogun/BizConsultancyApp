@@ -31,6 +31,13 @@ function requireAuthUser(): { userId: number; role: string } | null {
   return { userId, role };
 }
 
+function rejectIfSelfCall(authUserId: number, calleeUserId: number): string | null {
+  if (authUserId === calleeUserId) {
+    return 'You cannot call yourself';
+  }
+  return null;
+}
+
 export const CallController = {
   async startOutgoingToConsultant(detail: ConsultantDetail): Promise<string | null> {
     const auth = requireAuthUser();
@@ -46,9 +53,13 @@ export const CallController = {
       return 'Invalid consultant';
     }
 
+    const selfCallError = rejectIfSelfCall(auth.userId, calleeUserId);
+    if (selfCallError != null) {
+      return selfCallError;
+    }
+
     callEngine.bindSocketHandlers();
-    await callEngine.startOutgoing(calleeUserId, 'voice', detail.name);
-    return null;
+    return callEngine.startOutgoing(calleeUserId, 'voice', detail.name);
   },
 
   async startOutgoingFromUserBooking(booking: MyConsultantBooking): Promise<string | null> {
@@ -72,6 +83,11 @@ export const CallController = {
     const calleeUserId = booking.consultantId;
     if (!Number.isFinite(calleeUserId) || calleeUserId <= 0) {
       return 'Invalid consultant for this booking';
+    }
+
+    const selfCallError = rejectIfSelfCall(auth.userId, calleeUserId);
+    if (selfCallError != null) {
+      return selfCallError;
     }
 
     const remoteName = booking.consultantName?.trim() || booking.name?.trim() || 'Consultant';
@@ -103,8 +119,7 @@ export const CallController = {
     }
 
     callEngine.bindSocketHandlers();
-    await callEngine.startOutgoingFromBooking(bookingId, remoteName, callType);
-    return null;
+    return callEngine.startOutgoingFromBooking(bookingId, remoteName, callType);
   },
 
   acceptIncoming(): Promise<void> {
@@ -152,8 +167,11 @@ export const CallController = {
     if (auth == null) {
       return 'Please login to start a call';
     }
+    const selfCallError = rejectIfSelfCall(auth.userId, calleeUserId);
+    if (selfCallError != null) {
+      return selfCallError;
+    }
     callEngine.bindSocketHandlers();
-    await callEngine.startOutgoing(calleeUserId, callType, remoteName);
-    return null;
+    return callEngine.startOutgoing(calleeUserId, callType, remoteName);
   },
 };

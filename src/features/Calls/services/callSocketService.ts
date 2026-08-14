@@ -63,8 +63,11 @@ function stopPing(): void {
 export const callSocketService = {
   connect(token: string, nextHandlers: SocketHandlers): void {
     handlers = nextHandlers;
-    // Same account still online — just refresh handlers.
-    if (socket?.connected === true && connectedAuthToken === token) {
+    // Same account already connected or still connecting — keep the socket.
+    if (socket != null && connectedAuthToken === token) {
+      if (socket.connected !== true) {
+        socket.connect();
+      }
       return;
     }
     // Drop the previous identity (e.g. consultant-1) before joining as the new account.
@@ -146,5 +149,34 @@ export const callSocketService = {
 
   isConnected(): boolean {
     return socket?.connected === true;
+  },
+
+  waitUntilConnected(timeoutMs = 2_000): Promise<boolean> {
+    if (socket?.connected === true) {
+      return Promise.resolve(true);
+    }
+    const activeSocket = socket;
+    if (activeSocket == null) {
+      return Promise.resolve(false);
+    }
+    return new Promise((resolve) => {
+      let settled = false;
+      const finish = (connected: boolean): void => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        activeSocket.off('connect', onConnect);
+        resolve(connected);
+      };
+      const timer = setTimeout(() => {
+        finish(activeSocket.connected === true);
+      }, timeoutMs);
+      const onConnect = (): void => {
+        clearTimeout(timer);
+        finish(true);
+      };
+      activeSocket.once('connect', onConnect);
+    });
   },
 };

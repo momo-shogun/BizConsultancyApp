@@ -59,10 +59,11 @@ export function BizAIFloatingEntry(): React.ReactElement {
 
   return (
     <Animated.View
+      pointerEvents="box-none"
       animatedProps={hostAnimatedProps}
       style={[styles.host, { bottom: bottomOffset }, hostStyle]}
     >
-      <Animated.View style={clusterStyle}>
+      <Animated.View pointerEvents="box-none" style={clusterStyle}>
         <View style={styles.row}>
           <Pressable
             onPress={openKeyboardMode}
