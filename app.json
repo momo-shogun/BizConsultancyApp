@@ -2,6 +2,11 @@
   "expo": {
     "name": "Biz Consultancy",
     "slug": "bizconsultancyapp",
+    "version": "2.0.0",
+    "ios": {
+      "bundleIdentifier": "com.iidconsultancy",
+      "buildNumber": "37"
+    },
     "plugins": [
       [
         "expo-speech-recognition",

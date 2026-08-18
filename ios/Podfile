@@ -15,8 +15,11 @@ require Pod::Executable.execute_command(
 platform :ios, '16.4'
 prepare_react_native_project!
 
-# Required for @react-native-firebase with static frameworks
+# Expo Swift (`import React`) needs static frameworks on RN 0.85 prebuilt core.
+# RNFBApp / RNFBMessaging stay static libraries so they do not absorb React
+# headers into a Clang module (that breaks Messaging compile).
 $RNFirebaseAsStaticFramework = true
+ENV['USE_FRAMEWORKS'] = 'static' unless ENV.key?('USE_FRAMEWORKS')
 
 linkage = ENV['USE_FRAMEWORKS']
 
@@ -50,6 +53,16 @@ target 'BizConsultancyApp' do
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
 
+  pre_install do |installer|
+    installer.pod_targets.each do |pod|
+      next unless ['RNFBApp', 'RNFBMessaging'].include?(pod.name)
+
+      def pod.build_type
+        Pod::BuildType.static_library
+      end
+    end
+  end
+
   post_install do |installer|
     react_native_post_install(
       installer,
@@ -61,6 +74,54 @@ target 'BizConsultancyApp' do
     installer.pods_project.targets.each do |target|
       target.build_configurations.each do |config|
         config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
+        next unless ['RNFBApp', 'RNFBMessaging'].include?(target.name)
+
+        config.build_settings['DEFINES_MODULE'] = 'NO'
+      end
+    end
+  end
+end
+
+# Expo keeps `framework module React_RCTAppDelegate` in React.framework's
+# modulemap (see XCFrameworkIntermediates). Do not add a plain `module
+# React_RCTAppDelegate` to React-use-frameworks.modulemap — that breaks
+# `#import <React_RCTAppDelegate/...>` in Expo's RCTAppDelegateUmbrella.h.
+# Instead, expose the framework modulemap to Swift (AppDelegate.swift).
+class ::Pod::Installer
+  alias_method :biz_consultancy_perform_post_install_actions, :perform_post_install_actions
+
+  def perform_post_install_actions
+    biz_consultancy_perform_post_install_actions
+
+    pods_root = sandbox.root
+    react_framework_modulemap = File.join(
+      pods_root,
+      'React-Core-prebuilt',
+      'React.xcframework',
+      'ios-arm64',
+      'React.framework',
+      'Modules',
+      'module.modulemap'
+    )
+    return unless File.exist?(react_framework_modulemap)
+
+    react_rct_app_delegate_modulemap_flag =
+      '-Xcc -fmodule-map-file="${PODS_CONFIGURATION_BUILD_DIR}/XCFrameworkIntermediates/React-Core-prebuilt/React.framework/Modules/module.modulemap"'
+    skip_marker = 'XCFrameworkIntermediates/React-Core-prebuilt/React.framework/Modules/module.modulemap'
+
+    aggregate_targets.each do |agg_target|
+      agg_target.user_build_configurations.each_key do |config_name|
+        xcconfig_path = agg_target.xcconfig_path(config_name)
+        next unless File.exist?(xcconfig_path)
+
+        content = File.read(xcconfig_path)
+        next if content.include?(skip_marker)
+
+        content = content.sub(
+          'OTHER_SWIFT_FLAGS = $(inherited)',
+          "OTHER_SWIFT_FLAGS = $(inherited) #{react_rct_app_delegate_modulemap_flag}"
+        )
+        File.write(xcconfig_path, content)
       end
     end
   end

@@ -1,6 +1,6 @@
 {
   "name": "BizConsultancyApp",
-  "version": "0.0.1",
+  "version": "2.0.0",
   "private": true,
   "main": "index.js",
   "scripts": {
@@ -21,7 +21,9 @@
     "build:bundle": "cd android && ./gradlew bundleRelease -PreactNativeArchitectures=arm64-v8a",
     "buildW:bundle": "cd android && gradlew.bat bundleRelease -PreactNativeArchitectures=arm64-v8a",
     "build:android": "npx react-native build-android --mode=release",
-    "installApk": "adb install -r android/app/build/outputs/apk/release/app-release.apk"
+    "installApk": "adb install -r android/app/build/outputs/apk/release/app-release.apk",
+    "build:ios": "npx react-native build-ios --mode=Release"
+    
   },
   "lint-staged": {
     "*.{ts,tsx}": [
@@ -55,7 +57,6 @@
     "react-native-image-picker": "^8.2.1",
     "react-native-incall-manager": "^4.2.1",
     "react-native-linear-gradient": "^2.8.3",
-    "react-native-mmkv": "^4.3.1",
     "react-native-mmkv-storage": "^12.0.1",
     "react-native-nitro-modules": "^0.35.6",
     "react-native-orientation-locker": "^1.7.0",
