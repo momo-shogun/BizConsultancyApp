@@ -1,6 +1,6 @@
 /** Edit this to point at your backend (must include `/api` prefix). */
-export const API_BASE_URL = 'https://apibiz.iid.org.in/api/';
- //export const API_BASE_URL = 'http://172.21.32.1:8080/api/';
+//export const API_BASE_URL = 'https://apibiz.iid.org.in/api/';
+export const API_BASE_URL = 'http://192.168.2.95:8080/api/'
 // export const API_BASE_URL = 'http://192.168.0.154:3001/api';
 // export const API_BASE_URL = 'http://192.168.2.34:8080/api';
 

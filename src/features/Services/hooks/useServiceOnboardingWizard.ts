@@ -18,6 +18,7 @@ import {
 import type { ServicesStackParamList } from '@/navigation/types';
 import { useAppSelector } from '@/store/typedHooks';
 import { getApiErrorMessage } from '@/utils/apiError';
+import { waitForNativeModalDismiss } from '@/utils/waitForNativeModalDismiss';
 
 import {
   useCreateOnboardingOrderMutation,
@@ -490,6 +491,8 @@ export function useServiceOnboardingWizard({
         ...(activeForm?.id != null ? { formId: activeForm.id } : {}),
         amountInPaise,
       }).unwrap();
+
+      await waitForNativeModalDismiss();
 
       const payment = await openServiceOnboardingRazorpayCheckout({
         keyId: order.razorpayKeyId,

@@ -22,6 +22,7 @@ import {
 import { showGlobalError, showGlobalToast } from '@/shared/components';
 import { useAppSelector } from '@/store/typedHooks';
 import { getApiErrorMessage } from '@/utils/apiError';
+import { waitForNativeModalDismiss } from '@/utils/waitForNativeModalDismiss';
 
 export interface UseEdpEnrollmentPurchaseResult {
   programAmountRupees: number;
@@ -145,6 +146,7 @@ export function useEdpEnrollmentPurchase(): UseEdpEnrollmentPurchaseResult {
       }
 
       setPaymentModalVisible(false);
+      await waitForNativeModalDismiss();
 
       const payment = await openWalletTopupRazorpayCheckout({
         keyId: res.razorpayKeyId,

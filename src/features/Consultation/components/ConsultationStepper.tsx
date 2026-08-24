@@ -7,6 +7,7 @@ import { DiagnosisPaymentModal } from '@/features/Diagnostics/components/Diagnos
 import { useGetMyWalletBalanceQuery } from '@/features/Home/api/userWalletsApi';
 import { baseApi } from '@/services/api/baseApi';
 import { showGlobalError, showGlobalToast } from '@/shared/components';
+import { waitForNativeModalDismiss } from '@/utils/waitForNativeModalDismiss';
 
 import {
   useCreateConsultantBookingMutation,
@@ -243,6 +244,7 @@ export function ConsultationStepper(props: ConsultationStepperProps): React.Reac
     try {
       const order = await createRazorpayOrder(pendingBookingId).unwrap();
       setPaymentModalVisible(false);
+      await waitForNativeModalDismiss();
 
       const payment = await openConsultationRazorpayCheckout({
         order,

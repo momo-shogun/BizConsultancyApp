@@ -24,6 +24,7 @@ import {
   openWorkshopRazorpayCheckout,
   WorkshopPaymentCancelledError,
 } from '@/features/Home/services/workshopRazorpayCheckout';
+import { waitForNativeModalDismiss } from '@/utils/waitForNativeModalDismiss';
 import type { PublicWorkshopApiRow } from '@/features/Home/types/publicWorkshopApi.types';
 import {
   isWorkshopBookable,
@@ -170,6 +171,9 @@ export function useWorkshopBooking(
         return;
       }
 
+      setPaymentModalVisible(false);
+      await waitForNativeModalDismiss();
+
       const payment = await openWorkshopRazorpayCheckout({
         keyId: result.razorpayKeyId,
         orderId: result.razorpayOrderId,
@@ -189,6 +193,7 @@ export function useWorkshopBooking(
       finishBookingSuccess();
     } catch (error: unknown) {
       if (error instanceof WorkshopPaymentCancelledError) {
+        setPaymentModalVisible(true);
         return;
       }
       Alert.alert('Booking', readWorkshopBookingErrorMessage(error));

@@ -23,6 +23,7 @@ import {
 } from '@/features/Wallet/services/walletRazorpayCheckout';
 import { showGlobalError, showGlobalToast } from '@/shared/components';
 import { useAppSelector } from '@/store/typedHooks';
+import { waitForNativeModalDismiss } from '@/utils/waitForNativeModalDismiss';
 
 export interface UseDiagnosisPurchaseResult {
   /**
@@ -237,6 +238,7 @@ export function useDiagnosisPurchase(): UseDiagnosisPurchaseResult {
       }
 
       setPaymentModalVisible(false);
+      await waitForNativeModalDismiss();
 
       const payment = await openWalletTopupRazorpayCheckout({
         keyId: res.razorpayKeyId,

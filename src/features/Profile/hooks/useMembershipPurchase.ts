@@ -15,6 +15,7 @@ import {
 } from '@/features/Home/api/userWalletsApi';
 import { showGlobalError, showGlobalToast } from '@/shared/components';
 import { useAppSelector } from '@/store/typedHooks';
+import { waitForNativeModalDismiss } from '@/utils/waitForNativeModalDismiss';
 
 import {
   useCreateMembershipRegistrationMutation,
@@ -317,6 +318,7 @@ export function useMembershipPurchase(): UseMembershipPurchaseResult {
       }
 
       setCheckoutVisible(false);
+      await waitForNativeModalDismiss();
 
       const payment = await openMembershipRazorpayCheckout({
         keyId: res.razorpayKeyId,
