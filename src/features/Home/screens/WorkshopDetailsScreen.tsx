@@ -171,6 +171,7 @@ export default function WorkshopDetailsScreen(): React.ReactElement {
     paymentModalVisible,
     walletBalanceRupees,
     canPayWithWallet,
+    showRazorpayOption,
     payingWith,
     onBookPress,
     closePaymentModal,
@@ -590,6 +591,7 @@ export default function WorkshopDetailsScreen(): React.ReactElement {
           amountRupees={bookAmountRupees}
           walletBalanceRupees={walletBalanceRupees}
           canPayWithWallet={canPayWithWallet}
+          showRazorpayOption={showRazorpayOption}
           payingWith={payingWith}
           isBusy={isBooking}
           onClose={closePaymentModal}

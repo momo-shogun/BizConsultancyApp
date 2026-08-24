@@ -10,6 +10,7 @@ import {
   selectLoggedInEmail,
   selectLoggedInMobile,
 } from '@/features/Auth/store/authSelectors';
+import { useRazorpayAvailability } from '@/features/AppSettings/hooks/useRazorpayAvailability';
 import {
   useGetConsultantWalletBalanceQuery,
   useGetMyWalletBalanceQuery,
@@ -38,6 +39,7 @@ export type AiCreditsBuyMode = 'razorpay' | 'wallet';
 export interface UseBizAiCreditsScreenResult {
   isConsultant: boolean;
   hasVerifiedLogin: boolean;
+  isRazorpayEnabled: boolean;
   isLoading: boolean;
   packages: AiCreditPackage[];
   remainingCredits: number | null;
@@ -56,6 +58,7 @@ export interface UseBizAiCreditsScreenResult {
 
 export function useBizAiCreditsScreen(): UseBizAiCreditsScreenResult {
   const navigation = useNavigation<NavigationProp<AccountStackParamList>>();
+  const { isRazorpayEnabled } = useRazorpayAvailability();
   const accountRole = useAppSelector(selectAccountRole);
   const hasVerifiedLogin = useAppSelector(selectHasVerifiedLogin);
   const isConsultant = accountRole === 'consultant';
@@ -165,6 +168,10 @@ export function useBizAiCreditsScreen(): UseBizAiCreditsScreenResult {
         setErrorMessage('Please log in to purchase credits.');
         return;
       }
+      if (!isRazorpayEnabled) {
+        setErrorMessage('Online Razorpay payments are currently disabled.');
+        return;
+      }
       setBuyingPackageId(pkg.id);
       setBuyMode('razorpay');
       setErrorMessage(null);
@@ -202,6 +209,7 @@ export function useBizAiCreditsScreen(): UseBizAiCreditsScreenResult {
       customerName,
       customerPhone,
       hasVerifiedLogin,
+      isRazorpayEnabled,
       refreshBalances,
       verifyPayment,
     ],
@@ -214,6 +222,7 @@ export function useBizAiCreditsScreen(): UseBizAiCreditsScreenResult {
   return {
     isConsultant,
     hasVerifiedLogin,
+    isRazorpayEnabled,
     isLoading,
     packages,
     remainingCredits,

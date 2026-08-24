@@ -60,6 +60,7 @@ const ServiceOnboarding = (): React.ReactElement => {
         visible={wizard.paymentDialog.visible}
         amountLabel={wizard.paymentDialog.amountLabel}
         canWallet={wizard.paymentDialog.canWallet}
+        showRazorpayOption={wizard.paymentDialog.showRazorpayOption}
         isWalletLoading={wizard.paymentDialog.isWalletLoading}
         walletHint={wizard.paymentDialog.walletHint}
         onClose={wizard.paymentDialog.onClose}

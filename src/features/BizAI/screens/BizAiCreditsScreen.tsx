@@ -38,6 +38,7 @@ export function BizAiCreditsScreen(): React.ReactElement {
   const {
     isConsultant,
     hasVerifiedLogin,
+    isRazorpayEnabled,
     isLoading,
     packages,
     remainingCredits,
@@ -130,7 +131,9 @@ export function BizAiCreditsScreen(): React.ReactElement {
             ) : null}
           </View>
           <Text style={s.sectionSubtitle}>
-            Choose a pack and pay instantly with your wallet or Razorpay.
+            {isRazorpayEnabled
+              ? 'Choose a pack and pay instantly with your wallet or Razorpay.'
+              : 'Choose a pack and pay instantly with your wallet.'}
           </Text>
         </View>
 
@@ -161,6 +164,7 @@ export function BizAiCreditsScreen(): React.ReactElement {
                   pkg={pkg}
                   isPopular={index === popularIndex}
                   walletOk={canPayWithWallet(pkg)}
+                  showRazorpayOption={isRazorpayEnabled}
                   busy={busy}
                   buyMode={buyMode}
                   onWalletPress={() => {

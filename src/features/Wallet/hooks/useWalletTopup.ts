@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 
+import { useRazorpayAvailability } from '@/features/AppSettings/hooks/useRazorpayAvailability';
 import { selectAuth } from '@/features/Auth/store/authSelectors';
 import {
   useCreateWalletTopupOrderMutation,
@@ -25,6 +26,7 @@ export interface UseWalletTopupResult {
 
 export function useWalletTopup(): UseWalletTopupResult {
   const auth = useAppSelector(selectAuth);
+  const { isRazorpayEnabled } = useRazorpayAvailability();
   const [amountInput, setAmountInput] = useState('1000');
   const [isProceeding, setIsProceeding] = useState(false);
 
@@ -32,6 +34,10 @@ export function useWalletTopup(): UseWalletTopupResult {
   const [verifyTopup] = useVerifyWalletTopupMutation();
 
   const handleAddBalance = useCallback(async (): Promise<void> => {
+    if (!isRazorpayEnabled) {
+      showGlobalError('Wallet top-up is temporarily unavailable because Razorpay is disabled.');
+      return;
+    }
     const amount = parseTopupAmountInput(amountInput);
     const validationError = validateTopupAmount(amount);
     if (validationError != null) {
@@ -84,7 +90,7 @@ export function useWalletTopup(): UseWalletTopupResult {
     } finally {
       setIsProceeding(false);
     }
-  }, [amountInput, auth.mobile, auth.user?.email, auth.user?.name, auth.user?.phone, createTopupOrder, verifyTopup]);
+  }, [amountInput, auth.mobile, auth.user?.email, auth.user?.name, auth.user?.phone, createTopupOrder, isRazorpayEnabled, verifyTopup]);
 
   return {
     amountInput,

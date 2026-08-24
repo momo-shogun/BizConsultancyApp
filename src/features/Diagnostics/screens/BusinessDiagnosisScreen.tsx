@@ -292,6 +292,7 @@ export function BusinessDiagnosisScreen(): React.ReactElement {
         amountRupees={purchase.amountRupees}
         walletBalanceRupees={purchase.walletBalanceRupees}
         canPayWithWallet={purchase.canPayWithWallet}
+        showRazorpayOption={purchase.showRazorpayOption}
         payingWith={purchase.payingWith}
         isBusy={purchase.isBusy}
         onClose={purchase.closePaymentModal}

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
+import { useRazorpayAvailability } from '@/features/AppSettings/hooks/useRazorpayAvailability';
 import { DiagnosisPaymentModal } from '@/features/Diagnostics/components/DiagnosisPaymentModal';
 import { useGetMyWalletBalanceQuery } from '@/features/Home/api/userWalletsApi';
 import { baseApi } from '@/services/api/baseApi';
@@ -123,6 +124,7 @@ function formatConsultationTypeLabel(type: string): string {
 
 export function ConsultationStepper(props: ConsultationStepperProps): React.ReactElement {
   const { onComplete, onStepChange, ensureVerifiedLogin } = props;
+  const { isRazorpayEnabled } = useRazorpayAvailability();
   const { form, selectedTimeSlot } = useConsultationOnboarding();
   const [createBooking, { isLoading: isCreatingBooking }] = useCreateConsultantBookingMutation();
   const [createRazorpayOrder] = useCreateConsultantBookingRazorpayOrderMutation();
@@ -232,6 +234,10 @@ export function ConsultationStepper(props: ConsultationStepperProps): React.Reac
     if (pendingBookingId == null) {
       return;
     }
+    if (!isRazorpayEnabled) {
+      showGlobalError('Online Razorpay payments are currently disabled.');
+      return;
+    }
     setIsPaymentBusy(true);
     setPayingWith('razorpay');
     try {
@@ -277,6 +283,7 @@ export function ConsultationStepper(props: ConsultationStepperProps): React.Reac
     form.contact.fullName,
     form.contact.phone,
     handleBookingSuccess,
+    isRazorpayEnabled,
     pendingBookingId,
     verifyPayment,
   ]);
@@ -420,6 +427,7 @@ export function ConsultationStepper(props: ConsultationStepperProps): React.Reac
       amountRupees={amountRupees}
       walletBalanceRupees={walletBalanceRupees}
       canPayWithWallet={canPayWithWallet}
+      showRazorpayOption={isRazorpayEnabled}
       payingWith={payingWith}
       isBusy={isPaymentBusy}
       onClose={closePaymentModal}

@@ -385,6 +385,7 @@ export default function EdpVideoScreen(): React.ReactElement {
           amountRupees={purchaseFlow.programAmountRupees}
           walletBalanceRupees={purchaseFlow.walletBalanceRupees}
           canPayWithWallet={purchaseFlow.canPayWithWallet}
+          showRazorpayOption={purchaseFlow.showRazorpayOption}
           payingWith={purchaseFlow.payingWith}
           isBusy={purchaseFlow.isBusy}
           onClose={purchaseFlow.closePaymentModal}

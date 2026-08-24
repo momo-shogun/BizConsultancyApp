@@ -5,6 +5,7 @@ import {
   selectAuth,
   selectIsAuthenticated,
 } from '@/features/Auth/store/authSelectors';
+import { useRazorpayAvailability } from '@/features/AppSettings/hooks/useRazorpayAvailability';
 import {
   useCreateEdpPurchaseMutation,
   useGetEdpProgramAmountQuery,
@@ -27,6 +28,7 @@ export interface UseEdpEnrollmentPurchaseResult {
   paymentModalVisible: boolean;
   walletBalanceRupees: number | null;
   canPayWithWallet: boolean;
+  showRazorpayOption: boolean;
   payingWith: 'razorpay' | 'wallet' | null;
   isBusy: boolean;
   openPaymentModal: () => void;
@@ -37,6 +39,7 @@ export interface UseEdpEnrollmentPurchaseResult {
 
 export function useEdpEnrollmentPurchase(): UseEdpEnrollmentPurchaseResult {
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const { isRazorpayEnabled } = useRazorpayAvailability();
   const accountRole = useAppSelector(selectAccountRole);
   const isConsultant = accountRole === 'consultant';
   const auth = useAppSelector(selectAuth);
@@ -117,6 +120,10 @@ export function useEdpEnrollmentPurchase(): UseEdpEnrollmentPurchaseResult {
   }, [createPurchase, onPurchaseSuccess]);
 
   const payWithRazorpay = useCallback(async (): Promise<void> => {
+    if (!isRazorpayEnabled) {
+      showGlobalError('Online Razorpay payments are currently disabled.');
+      return;
+    }
     setIsBusy(true);
     setPayingWith('razorpay');
     try {
@@ -169,6 +176,7 @@ export function useEdpEnrollmentPurchase(): UseEdpEnrollmentPurchaseResult {
     auth.user?.name,
     auth.user?.phone,
     createPurchase,
+    isRazorpayEnabled,
     onPurchaseSuccess,
     verifyPayment,
   ]);
@@ -179,6 +187,7 @@ export function useEdpEnrollmentPurchase(): UseEdpEnrollmentPurchaseResult {
       paymentModalVisible,
       walletBalanceRupees,
       canPayWithWallet,
+      showRazorpayOption: isRazorpayEnabled,
       payingWith,
       isBusy,
       openPaymentModal,
@@ -189,6 +198,7 @@ export function useEdpEnrollmentPurchase(): UseEdpEnrollmentPurchaseResult {
     [
       canPayWithWallet,
       closePaymentModal,
+      isRazorpayEnabled,
       isBusy,
       openPaymentModal,
       payWithRazorpay,

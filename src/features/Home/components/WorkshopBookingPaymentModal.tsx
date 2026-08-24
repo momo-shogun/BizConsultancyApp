@@ -26,6 +26,7 @@ export interface WorkshopBookingPaymentModalProps {
   amountRupees: number;
   walletBalanceRupees: number | null;
   canPayWithWallet: boolean;
+  showRazorpayOption: boolean;
   payingWith: 'razorpay' | 'wallet' | null;
   isBusy: boolean;
   onClose: () => void;
@@ -43,6 +44,7 @@ export function WorkshopBookingPaymentModal(
     amountRupees,
     walletBalanceRupees,
     canPayWithWallet,
+    showRazorpayOption,
     payingWith,
     isBusy,
     onClose,
@@ -65,24 +67,26 @@ export function WorkshopBookingPaymentModal(
           {workshopName} · ₹{amountRupees.toLocaleString('en-IN')}
         </Text>
 
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Pay with Razorpay"
-          disabled={isBusy}
-          onPress={onPayRazorpay}
-          style={({ pressed }) => [
-            styles.optionRow,
-            pressed && !isBusy ? styles.optionPressed : null,
-            isBusy && payingWith !== 'razorpay' ? styles.optionDisabled : null,
-          ]}
-        >
-          {payingWith === 'razorpay' ? (
-            <ActivityIndicator size="small" color={THEME.colors.primary} />
-          ) : (
-            <Ionicons name="card-outline" size={22} color={THEME.colors.primary} />
-          )}
-          <Text style={styles.optionText}>Pay with Razorpay</Text>
-        </Pressable>
+        {showRazorpayOption ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Pay with Razorpay"
+            disabled={isBusy}
+            onPress={onPayRazorpay}
+            style={({ pressed }) => [
+              styles.optionRow,
+              pressed && !isBusy ? styles.optionPressed : null,
+              isBusy && payingWith !== 'razorpay' ? styles.optionDisabled : null,
+            ]}
+          >
+            {payingWith === 'razorpay' ? (
+              <ActivityIndicator size="small" color={THEME.colors.primary} />
+            ) : (
+              <Ionicons name="card-outline" size={22} color={THEME.colors.primary} />
+            )}
+            <Text style={styles.optionText}>Pay with Razorpay</Text>
+          </Pressable>
+        ) : null}
 
         <Pressable
           accessibilityRole="button"
@@ -113,7 +117,9 @@ export function WorkshopBookingPaymentModal(
         </Text>
         {walletBalanceRupees != null && !canPayWithWallet ? (
           <Text style={styles.insufficientHint}>
-            Wallet balance is insufficient for this workshop.
+            {showRazorpayOption
+              ? 'Wallet balance is insufficient for this workshop.'
+              : 'Wallet balance is insufficient and Razorpay is disabled right now.'}
           </Text>
         ) : null}
 

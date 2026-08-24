@@ -284,6 +284,7 @@ const EDPModulesScreen = ({ onBack, onOpenModule }: EDPModulesScreenProps): Reac
           amountRupees={purchaseFlow.programAmountRupees}
           walletBalanceRupees={purchaseFlow.walletBalanceRupees}
           canPayWithWallet={purchaseFlow.canPayWithWallet}
+          showRazorpayOption={purchaseFlow.showRazorpayOption}
           payingWith={purchaseFlow.payingWith}
           isBusy={purchaseFlow.isBusy}
           onClose={purchaseFlow.closePaymentModal}

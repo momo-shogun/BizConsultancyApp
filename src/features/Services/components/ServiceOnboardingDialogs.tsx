@@ -81,6 +81,7 @@ export interface ServiceOnboardingPaymentDialogProps {
   visible: boolean;
   amountLabel: string;
   canWallet: boolean;
+  showRazorpayOption: boolean;
   isWalletLoading: boolean;
   walletHint: string | null;
   onClose: () => void;
@@ -92,6 +93,7 @@ export function ServiceOnboardingPaymentDialog({
   visible,
   amountLabel,
   canWallet,
+  showRazorpayOption,
   isWalletLoading,
   walletHint,
   onClose,
@@ -110,12 +112,14 @@ export function ServiceOnboardingPaymentDialog({
       actions={[{ label: 'Cancel', variant: 'ghost', onPress: onClose }]}
     >
       <View style={styles.paymentOptions}>
-        <PaymentMethodOption
-          icon="card-outline"
-          title="Pay with Razorpay"
-          subtitle="UPI, cards, netbanking & more"
-          onPress={onRazorpay}
-        />
+        {showRazorpayOption ? (
+          <PaymentMethodOption
+            icon="card-outline"
+            title="Pay with Razorpay"
+            subtitle="UPI, cards, netbanking & more"
+            onPress={onRazorpay}
+          />
+        ) : null}
         {canWallet ? (
           <PaymentMethodOption
             icon="wallet-outline"

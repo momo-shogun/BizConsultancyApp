@@ -6,6 +6,7 @@ import {
   selectAuth,
   selectHasVerifiedLogin,
 } from '@/features/Auth/store/authSelectors';
+import { useRazorpayAvailability } from '@/features/AppSettings/hooks/useRazorpayAvailability';
 import {
   useCreateDiagnosisRegistrationMutation,
   useVerifyDiagnosisPaymentMutation,
@@ -34,6 +35,7 @@ export interface UseDiagnosisPurchaseResult {
   amountRupees: number;
   walletBalanceRupees: number | null;
   canPayWithWallet: boolean;
+  showRazorpayOption: boolean;
   payingWith: 'razorpay' | 'wallet' | null;
   isBusy: boolean;
   openPaymentForPlan: (plan: DiagnosisPlanViewModel, amountRupees: number) => void;
@@ -63,6 +65,7 @@ function extractApiMessage(error: unknown): string {
 
 export function useDiagnosisPurchase(): UseDiagnosisPurchaseResult {
   const hasVerifiedLogin = useAppSelector(selectHasVerifiedLogin);
+  const { isRazorpayEnabled } = useRazorpayAvailability();
   const accountRole = useAppSelector(selectAccountRole);
   const isConsultant = accountRole === 'consultant';
   const auth = useAppSelector(selectAuth);
@@ -206,6 +209,10 @@ export function useDiagnosisPurchase(): UseDiagnosisPurchaseResult {
     if (selectedPlan == null) {
       return;
     }
+    if (!isRazorpayEnabled) {
+      showGlobalError('Online Razorpay payments are currently disabled.');
+      return;
+    }
     setIsBusy(true);
     setPayingWith('razorpay');
     try {
@@ -261,6 +268,7 @@ export function useDiagnosisPurchase(): UseDiagnosisPurchaseResult {
     auth.user?.name,
     auth.user?.phone,
     createRegistration,
+    isRazorpayEnabled,
     onPurchaseSuccess,
     selectedPlan,
     verifyPayment,
@@ -274,6 +282,7 @@ export function useDiagnosisPurchase(): UseDiagnosisPurchaseResult {
       amountRupees,
       walletBalanceRupees,
       canPayWithWallet,
+      showRazorpayOption: isRazorpayEnabled,
       payingWith,
       isBusy,
       openPaymentForPlan,
@@ -287,6 +296,7 @@ export function useDiagnosisPurchase(): UseDiagnosisPurchaseResult {
       canPayWithWallet,
       closePaymentModal,
       diagnosisPurchaseLoginDialog,
+      isRazorpayEnabled,
       isBusy,
       openPaymentForPlan,
       payWithRazorpay,

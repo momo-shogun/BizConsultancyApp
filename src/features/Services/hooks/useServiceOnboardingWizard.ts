@@ -10,6 +10,7 @@ import {
   selectLoggedInEmail,
   selectLoggedInMobile,
 } from '@/features/Auth/store/authSelectors';
+import { useRazorpayAvailability } from '@/features/AppSettings/hooks/useRazorpayAvailability';
 import {
   useGetConsultantWalletBalanceQuery,
   useGetMyWalletBalanceQuery,
@@ -98,6 +99,7 @@ export interface UseServiceOnboardingWizardResult {
     visible: boolean;
     amountLabel: string;
     canWallet: boolean;
+    showRazorpayOption: boolean;
     isWalletLoading: boolean;
     walletHint: string | null;
     onClose: () => void;
@@ -113,6 +115,7 @@ export function useServiceOnboardingWizard({
   const navigation =
     useNavigation<NativeStackNavigationProp<ServicesStackParamList>>();
   const hasVerifiedLogin = useAppSelector(selectHasVerifiedLogin);
+  const { isRazorpayEnabled } = useRazorpayAvailability();
   const displayName = useAppSelector(selectDisplayName);
   const email = useAppSelector(selectLoggedInEmail);
   const mobile = useAppSelector(selectLoggedInMobile);
@@ -470,6 +473,10 @@ export function useServiceOnboardingWizard({
     if (pricingSummary == null || servicePage == null) {
       return;
     }
+    if (!isRazorpayEnabled) {
+      setErrorMessage('Online Razorpay payments are currently disabled.');
+      return;
+    }
     const amountInPaise = pricingSummary.amountInPaise;
     if (amountInPaise < 100) {
       await finalizeSubmission();
@@ -513,6 +520,7 @@ export function useServiceOnboardingWizard({
     pricingSummary,
     servicePage,
     createOrder,
+    isRazorpayEnabled,
     serviceSlug,
     activeForm,
     contact,
@@ -567,6 +575,7 @@ export function useServiceOnboardingWizard({
       visible: paymentModalActive,
       amountLabel: formatInr(amountRupees),
       canWallet,
+      showRazorpayOption: isRazorpayEnabled,
       isWalletLoading,
       walletHint,
       onClose: (): void => setPaymentModalActive(false),
@@ -582,6 +591,7 @@ export function useServiceOnboardingWizard({
     paymentModalActive,
     pricingSummary,
     walletBalance,
+    isRazorpayEnabled,
     isWalletLoading,
     runRazorpayPayment,
     runWalletPayment,

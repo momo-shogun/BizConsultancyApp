@@ -36,6 +36,7 @@ import '@/features/Wallet/api/consultantWithdrawalsApi';
 import '@/features/Wallet/api/consultantWalletTransactionsApi';
 import '@/features/Home/api/homePublicApi';
 import '@/features/ForceUpdate/api/appVersionApi';
+import '@/features/AppSettings/api/mobileAppSettingsApi';
 import '@/features/Diagnostics/api/diagnosticsApi';
 import '@/features/Profile/api/userFeedbackApi';
 import '@/features/Profile/api/userProfileApi';

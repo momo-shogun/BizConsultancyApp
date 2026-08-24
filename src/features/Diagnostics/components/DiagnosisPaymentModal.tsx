@@ -22,6 +22,7 @@ export interface DiagnosisPaymentModalProps {
   amountRupees: number;
   walletBalanceRupees: number | null;
   canPayWithWallet: boolean;
+  showRazorpayOption: boolean;
   payingWith: 'razorpay' | 'wallet' | null;
   isBusy: boolean;
   onClose: () => void;
@@ -88,6 +89,7 @@ export function DiagnosisPaymentModal(props: DiagnosisPaymentModalProps): React.
     amountRupees,
     walletBalanceRupees,
     canPayWithWallet,
+    showRazorpayOption,
     payingWith,
     isBusy,
     onClose,
@@ -170,15 +172,17 @@ export function DiagnosisPaymentModal(props: DiagnosisPaymentModalProps): React.
 
             <Text style={styles.optionsLabel}>Pay with</Text>
 
-            <PaymentOptionCard
-              icon="card-outline"
-              iconBg={hexToRgba(DIAGNOSIS_THEME.heroAccent, 0.12)}
-              title="Razorpay"
-              subtitle="UPI, cards, netbanking & more"
-              disabled={razorpayDisabled}
-              loading={payingWith === 'razorpay'}
-              onPress={onPayRazorpay}
-            />
+            {showRazorpayOption ? (
+              <PaymentOptionCard
+                icon="card-outline"
+                iconBg={hexToRgba(DIAGNOSIS_THEME.heroAccent, 0.12)}
+                title="Razorpay"
+                subtitle="UPI, cards, netbanking & more"
+                disabled={razorpayDisabled}
+                loading={payingWith === 'razorpay'}
+                onPress={onPayRazorpay}
+              />
+            ) : null}
 
             <PaymentOptionCard
               icon="wallet-outline"
@@ -187,7 +191,9 @@ export function DiagnosisPaymentModal(props: DiagnosisPaymentModalProps): React.
               subtitle={
                 canPayWithWallet
                   ? 'Instant debit from your wallet'
-                  : 'Insufficient balance for this pack'
+                  : showRazorpayOption
+                    ? 'Insufficient balance for this pack'
+                    : 'Insufficient balance while Razorpay is disabled'
               }
               disabled={walletDisabled}
               loading={payingWith === 'wallet'}

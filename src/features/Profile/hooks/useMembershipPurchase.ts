@@ -7,6 +7,7 @@ import {
   selectLoggedInEmail,
   selectLoggedInMobile,
 } from '@/features/Auth/store/authSelectors';
+import { useRazorpayAvailability } from '@/features/AppSettings/hooks/useRazorpayAvailability';
 import { useGetMasterCategoriesQuery, useGetMasterSegmentsQuery } from '@/features/consultant/api/consultantApi';
 import {
   useGetConsultantWalletBalanceQuery,
@@ -43,6 +44,7 @@ export interface UseMembershipPurchaseResult {
   amountRupees: number;
   walletBalanceRupees: number | null;
   canPayWithWallet: boolean;
+  showRazorpayOption: boolean;
   payingWith: 'razorpay' | 'wallet' | null;
   isBusy: boolean;
   categoriesLoading: boolean;
@@ -61,6 +63,7 @@ export interface UseMembershipPurchaseResult {
 
 export function useMembershipPurchase(): UseMembershipPurchaseResult {
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const { isRazorpayEnabled } = useRazorpayAvailability();
   const accountRole = useAppSelector(selectAccountRole);
   const displayName = useAppSelector(selectDisplayName);
   const authEmail = useAppSelector(selectLoggedInEmail);
@@ -287,6 +290,10 @@ export function useMembershipPurchase(): UseMembershipPurchaseResult {
     if (selectedPlan == null || !validateCheckoutDetails()) {
       return;
     }
+    if (!isRazorpayEnabled) {
+      showGlobalError('Online Razorpay payments are currently disabled.');
+      return;
+    }
     setIsBusy(true);
     setPayingWith('razorpay');
     try {
@@ -352,6 +359,7 @@ export function useMembershipPurchase(): UseMembershipPurchaseResult {
     profile?.mobile,
     profile?.name,
     selectedPlan,
+    isRazorpayEnabled,
     validateCheckoutDetails,
     verifyPayment,
   ]);
@@ -369,6 +377,7 @@ export function useMembershipPurchase(): UseMembershipPurchaseResult {
       amountRupees,
       walletBalanceRupees,
       canPayWithWallet,
+      showRazorpayOption: isRazorpayEnabled,
       payingWith,
       isBusy,
       categoriesLoading,
@@ -394,6 +403,7 @@ export function useMembershipPurchase(): UseMembershipPurchaseResult {
       categoryOptions,
       checkoutVisible,
       closeCheckout,
+      isRazorpayEnabled,
       isBusy,
       openCheckout,
       payWithRazorpay,

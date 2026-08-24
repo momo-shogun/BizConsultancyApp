@@ -10,6 +10,7 @@ export interface BizAiCreditsPackageCardProps {
   pkg: AiCreditPackage;
   isPopular: boolean;
   walletOk: boolean;
+  showRazorpayOption: boolean;
   busy: boolean;
   buyMode: 'razorpay' | 'wallet' | null;
   onWalletPress: () => void;
@@ -24,6 +25,7 @@ export function BizAiCreditsPackageCard({
   pkg,
   isPopular,
   walletOk,
+  showRazorpayOption,
   busy,
   buyMode,
   onWalletPress,
@@ -81,33 +83,37 @@ export function BizAiCreditsPackageCard({
             )}
           </Pressable>
 
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Pay with Razorpay for ${pkg.name}`}
-            onPress={onRazorpayPress}
-            disabled={busy}
-            style={({ pressed }) => [
-              s.razorpayBtn,
-              busy ? s.razorpayBtnDisabled : null,
-              pressed && !busy ? s.razorpayBtnPressed : null,
-            ]}
-          >
-            {busy && buyMode === 'razorpay' ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <>
-                <Ionicons name="card-outline" size={17} color="#FFFFFF" />
-                <Text style={s.razorpayBtnText}>Razorpay</Text>
-              </>
-            )}
-          </Pressable>
+          {showRazorpayOption ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Pay with Razorpay for ${pkg.name}`}
+              onPress={onRazorpayPress}
+              disabled={busy}
+              style={({ pressed }) => [
+                s.razorpayBtn,
+                busy ? s.razorpayBtnDisabled : null,
+                pressed && !busy ? s.razorpayBtnPressed : null,
+              ]}
+            >
+              {busy && buyMode === 'razorpay' ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <>
+                  <Ionicons name="card-outline" size={17} color="#FFFFFF" />
+                  <Text style={s.razorpayBtnText}>Razorpay</Text>
+                </>
+              )}
+            </Pressable>
+          ) : null}
         </View>
 
         {!walletOk ? (
           <View style={s.insufficientRow}>
             <Ionicons name="information-circle-outline" size={16} color="#D97706" />
             <Text style={s.insufficientText}>
-              Low wallet balance — top up your wallet or pay with Razorpay.
+              {showRazorpayOption
+                ? 'Low wallet balance — top up your wallet or pay with Razorpay.'
+                : 'Low wallet balance and Razorpay is disabled right now.'}
             </Text>
           </View>
         ) : null}

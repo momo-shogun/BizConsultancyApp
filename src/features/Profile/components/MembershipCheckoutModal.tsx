@@ -145,26 +145,28 @@ export function MembershipCheckoutModal(props: MembershipCheckoutModalProps): Re
                 {plan.name} · {formatRupee(purchase.amountRupees)}
               </Text>
 
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Pay with Razorpay"
-                disabled={purchase.isBusy}
-                onPress={() => void purchase.payWithRazorpay()}
-                style={({ pressed }) => [
-                  styles.optionRow,
-                  pressed && !purchase.isBusy ? styles.optionPressed : null,
-                  purchase.isBusy && purchase.payingWith !== 'razorpay'
-                    ? styles.optionDisabled
-                    : null,
-                ]}
-              >
-                {purchase.payingWith === 'razorpay' ? (
-                  <ActivityIndicator size="small" color={THEME.colors.primary} />
-                ) : (
-                  <Ionicons name="card-outline" size={22} color={THEME.colors.primary} />
-                )}
-                <Text style={styles.optionText}>Pay with Razorpay</Text>
-              </Pressable>
+              {purchase.showRazorpayOption ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Pay with Razorpay"
+                  disabled={purchase.isBusy}
+                  onPress={() => void purchase.payWithRazorpay()}
+                  style={({ pressed }) => [
+                    styles.optionRow,
+                    pressed && !purchase.isBusy ? styles.optionPressed : null,
+                    purchase.isBusy && purchase.payingWith !== 'razorpay'
+                      ? styles.optionDisabled
+                      : null,
+                  ]}
+                >
+                  {purchase.payingWith === 'razorpay' ? (
+                    <ActivityIndicator size="small" color={THEME.colors.primary} />
+                  ) : (
+                    <Ionicons name="card-outline" size={22} color={THEME.colors.primary} />
+                  )}
+                  <Text style={styles.optionText}>Pay with Razorpay</Text>
+                </Pressable>
+              ) : null}
 
               <Pressable
                 accessibilityRole="button"
@@ -201,7 +203,9 @@ export function MembershipCheckoutModal(props: MembershipCheckoutModalProps): Re
               </Text>
               {purchase.walletBalanceRupees != null && !purchase.canPayWithWallet ? (
                 <Text style={styles.insufficientHint}>
-                  Wallet balance is insufficient for this membership.
+                  {purchase.showRazorpayOption
+                    ? 'Wallet balance is insufficient for this membership.'
+                    : 'Wallet balance is insufficient and Razorpay is disabled right now.'}
                 </Text>
               ) : null}
             </>

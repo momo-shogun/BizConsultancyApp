@@ -8,6 +8,7 @@ import {
   selectLoggedInEmail,
   selectLoggedInMobile,
 } from '@/features/Auth/store/authSelectors';
+import { useRazorpayAvailability } from '@/features/AppSettings/hooks/useRazorpayAvailability';
 import { useProfileLoginPrompt } from '@/features/Profile/hooks/useProfileLoginPrompt';
 import {
   isPaidWorkshopBookingResult,
@@ -45,6 +46,7 @@ export interface UseWorkshopBookingResult {
   paymentModalVisible: boolean;
   walletBalanceRupees: number | null;
   canPayWithWallet: boolean;
+  showRazorpayOption: boolean;
   payingWith: 'razorpay' | 'wallet' | null;
   onBookPress: () => void;
   closePaymentModal: () => void;
@@ -58,6 +60,7 @@ export function useWorkshopBooking(
   options?: UseWorkshopBookingOptions,
 ): UseWorkshopBookingResult {
   const onBookingSuccess = options?.onBookingSuccess;
+  const { isRazorpayEnabled } = useRazorpayAvailability();
   const hasVerifiedLogin = useAppSelector(selectHasVerifiedLogin);
   const accountRole = useAppSelector(selectAccountRole);
   const displayName = useAppSelector(selectDisplayName);
@@ -155,6 +158,10 @@ export function useWorkshopBooking(
     if (workshop == null) {
       return;
     }
+    if (!isRazorpayEnabled) {
+      Alert.alert('Booking', 'Online Razorpay payments are currently disabled.');
+      return;
+    }
     setPayingWith('razorpay');
     try {
       const result = await createBooking({ workshopId: workshop.id, type: 'online' }).unwrap();
@@ -197,6 +204,7 @@ export function useWorkshopBooking(
     email,
     mobile,
     finishBookingSuccess,
+    isRazorpayEnabled,
   ]);
 
   const onBookPress = useCallback((): void => {
@@ -257,6 +265,7 @@ export function useWorkshopBooking(
     paymentModalVisible,
     walletBalanceRupees,
     canPayWithWallet,
+    showRazorpayOption: isRazorpayEnabled,
     payingWith,
     onBookPress,
     closePaymentModal,
