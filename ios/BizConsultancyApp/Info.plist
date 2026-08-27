@@ -28,11 +28,23 @@
 	<true/>
 	<key>NSAppTransportSecurity</key>
 	<dict>
+		<!-- Debug on device: Metro is plain HTTP on LAN; arbitrary loads avoids silent -1009 on newer iOS -->
 		<key>NSAllowsArbitraryLoads</key>
-		<false/>
+		<true/>
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<!-- Required for Debug builds on a physical device to reach Metro on the LAN -->
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Biz Consultancy needs local network access to load the JavaScript development server (Metro).</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_http._tcp</string>
+		<string>_react-native._tcp</string>
+	</array>
+	<!-- Mac Wi‑Fi IP for device debug (`ipconfig getifaddr en0`). Simulator ignores this. -->
+	<key>RCTMetroHost</key>
+	<string>192.168.2.95</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Biz Consultancy needs microphone access for voice and video calls with consultants.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
