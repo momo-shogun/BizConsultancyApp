@@ -91,15 +91,12 @@ class ReactNativeDelegate: ExpoReactNativeFactoryDelegate {
   override func bundleURL() -> URL? {
 #if DEBUG
 #if !targetEnvironment(simulator)
-    // USB can install the app but cannot deliver Metro JS. Load the embedded
-    // bundle so the UI appears; keep jsLocation pinned for later reload.
+    // Debug on a physical device must load JS from Metro over the LAN.
+    // A checked-in production main.jsbundle (__DEV__=false) running inside a
+    // Debug native binary shows the fake "Missing libraries for React / RCTText"
+    // redbox because Fabric components never register against that bundle.
     if let host = AppDelegateMetro.resolvedHost() {
       AppDelegateMetro.pinJsLocation(host)
-    }
-    if let embedded = Bundle.main.url(forResource: "main", withExtension: "jsbundle") {
-      return embedded
-    }
-    if let host = AppDelegateMetro.resolvedHost() {
       return AppDelegateMetro.bundleURL(host: host)
     }
 #endif

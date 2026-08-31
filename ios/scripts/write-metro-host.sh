@@ -17,8 +17,9 @@ resolve_ip() {
 }
 
 IP="$(resolve_ip | tr -d '[:space:]')"
-if [[ -z "${IP}" ]]; then
-  echo "warning: Could not resolve a LAN IP for Metro." >&2
+if [[ -z "${IP}" || "${IP}" == "localhost" || "${IP}" == 127.* ]]; then
+  echo "warning: Could not resolve a LAN IP for Metro (got '${IP:-empty}')." >&2
+  echo "warning: Physical devices cannot reach Metro via localhost." >&2
   exit 0
 fi
 

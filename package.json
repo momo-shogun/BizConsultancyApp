@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit",
     "validate": "npm run lint:strict && npm run typecheck",
     "prepare": "husky",
-    "start": "react-native start",
+    "start": "react-native start --host 0.0.0.0",
     "test": "NODE_OPTIONS=--max-old-space-size=4096 jest",
     "build": "cd android && ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a",
     "buildW": "cd android && gradlew.bat assembleRelease -PreactNativeArchitectures=arm64-v8a",
