@@ -50,14 +50,16 @@ class AppDelegate: ExpoAppDelegate {
   }
 
 #if DEBUG
-  /// Physical devices cannot reach Metro via `localhost` — pin the Mac LAN IP from Info.plist.
+  /// Physical devices cannot reach Metro via `localhost` — pin the Mac LAN IP.
   private static func configureMetroHostForDevice() {
 #if !targetEnvironment(simulator)
-    let host =
-      (Bundle.main.object(forInfoDictionaryKey: "RCTMetroHost") as? String)?
-      .trimmingCharacters(in: .whitespacesAndNewlines)
-    guard let host, !host.isEmpty else {
+    guard let host = AppDelegateMetro.resolvedHost() else {
       return
+    }
+    // Wipe stale Dev Settings / NSUserDefaults that point at phone-local Metro.
+    let defaults = UserDefaults.standard
+    if defaults.string(forKey: "RCT_jsLocation") == "localhost" {
+      defaults.removeObject(forKey: "RCT_jsLocation")
     }
     RCTBundleURLProvider.sharedSettings().jsLocation = host
 #endif
@@ -78,31 +80,63 @@ class AppDelegate: ExpoAppDelegate {
 
 class ReactNativeDelegate: ExpoReactNativeFactoryDelegate {
   override func sourceURL(for bridge: RCTBridge) -> URL? {
-    // Prefer our bundleURL() — Expo/RN may already set bridge.bundleURL to Metro.
     bundleURL() ?? bridge.bundleURL
   }
 
   override func bundleURL() -> URL? {
 #if DEBUG
-#if targetEnvironment(simulator)
-    return RCTBundleURLProvider.sharedSettings().jsBundleURL(forBundleRoot: "index")
-#else
-    // Physical device: load embedded JS (Metro LAN often blocked by Local Network / Wi‑Fi).
-    if let embedded = Bundle.main.url(forResource: "main", withExtension: "jsbundle") {
-      // DEBUG + file:// shows sticky "Connect to Metro…" banner; turn it off for embedded.
-      RCTDevLoadingViewSetEnabled(false)
-      return embedded
-    }
-    if let host = (Bundle.main.object(forInfoDictionaryKey: "RCTMetroHost") as? String)?
-      .trimmingCharacters(in: .whitespacesAndNewlines),
-      !host.isEmpty
-    {
+#if !targetEnvironment(simulator)
+    // Bypass RCTBundleURLProvider.isPackagerRunning — on device that check often
+    // fails (Local Network not granted yet) and RN then falls back to localhost
+    // (the phone itself), which is why Metro never connects on Wi‑Fi.
+    if let host = AppDelegateMetro.resolvedHost() {
       RCTBundleURLProvider.sharedSettings().jsLocation = host
+      return AppDelegateMetro.bundleURL(host: host)
     }
-    return RCTBundleURLProvider.sharedSettings().jsBundleURL(forBundleRoot: "index")
 #endif
+    return RCTBundleURLProvider.sharedSettings().jsBundleURL(forBundleRoot: "index")
 #else
     return Bundle.main.url(forResource: "main", withExtension: "jsbundle")
 #endif
   }
 }
+
+#if DEBUG
+enum AppDelegateMetro {
+  static func resolvedHost() -> String? {
+    if let host = (Bundle.main.object(forInfoDictionaryKey: "RCTMetroHost") as? String)?
+      .trimmingCharacters(in: .whitespacesAndNewlines),
+      !host.isEmpty,
+      host != "localhost"
+    {
+      return host
+    }
+    if let ipPath = Bundle.main.path(forResource: "ip", ofType: "txt"),
+      let ip = try? String(contentsOfFile: ipPath, encoding: .utf8)
+      .trimmingCharacters(in: .whitespacesAndNewlines),
+      !ip.isEmpty,
+      ip != "localhost"
+    {
+      return ip
+    }
+    return nil
+  }
+
+  static func bundleURL(host: String) -> URL? {
+    var components = URLComponents()
+    components.scheme = "http"
+    components.host = host
+    components.port = 8081
+    components.path = "/index.bundle"
+    components.queryItems = [
+      URLQueryItem(name: "platform", value: "ios"),
+      URLQueryItem(name: "dev", value: "true"),
+      URLQueryItem(name: "minify", value: "false"),
+      URLQueryItem(name: "modulesOnly", value: "false"),
+      URLQueryItem(name: "runModule", value: "true"),
+      URLQueryItem(name: "app", value: "BizConsultancyApp"),
+    ]
+    return components.url
+  }
+}
+#endif

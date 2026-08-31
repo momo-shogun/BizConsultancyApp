@@ -1584,7 +1584,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - react-native-date-picker (5.0.13):
+  - react-native-date-picker (5.0.12):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -2931,7 +2931,7 @@ SPEC CHECKSUMS:
   React-Mapbuffer: 6848f5445d856f713a47e0068b09088e8aeef8b7
   React-microtasksnativemodule: 2d562f61d24b3c2082b123ea579ec95b5b16c9f2
   react-native-agora: 70d20b2bece22371c3a43c44c236f2c476fa2515
-  react-native-date-picker: a7c84efc07d1a4ed9e7928b577ef31dee1511e17
+  react-native-date-picker: f820973822e3ee28dacc68efc7b9881de0769cb5
   react-native-image-picker: 9dce42d17f5917de55bdff39a587390fd496beda
   react-native-mmkv-storage: cd00fda4b3ea7ef941e3df07160fcc2117b407eb
   react-native-netinfo: 10fc5ca4331d893efc2b90adb43869a85d66654e
@@ -2987,6 +2987,6 @@ SPEC CHECKSUMS:
   RNWorklets: 32b9ca9e0588b838ce3202a9ea3971f553c9011c
   Yoga: 211ac8cc822515c4db38d20477d2e0273dc48d87
 
-PODFILE CHECKSUM: 347202cd1263c65c0db137b116dc810520ce1c51
+PODFILE CHECKSUM: a1925fd869558d3942e1b7683a5f4a15aaef290a
 
 COCOAPODS: 1.15.2

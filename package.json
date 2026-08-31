@@ -23,7 +23,6 @@
     "build:android": "npx react-native build-android --mode=release",
     "installApk": "adb install -r android/app/build/outputs/apk/release/app-release.apk",
     "build:ios": "npx react-native build-ios --mode=Release"
-    
   },
   "lint-staged": {
     "*.{ts,tsx}": [
@@ -50,7 +49,7 @@
     "react": "19.2.3",
     "react-native": "0.85.1",
     "react-native-agora": "^4.5.4",
-    "react-native-date-picker": "^5.0.13",
+    "react-native-date-picker": "5.0.12",
     "react-native-element-dropdown": "^2.12.4",
     "react-native-gesture-handler": "^2.31.1",
     "react-native-haptic-feedback": "^3.0.0",
