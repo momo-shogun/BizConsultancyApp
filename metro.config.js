@@ -11,4 +11,11 @@ const { getDefaultConfig } = require('expo/metro-config');
  */
 const config = getDefaultConfig(__dirname);
 
+// Physical iPhones load JS over the LAN, not USB. Bind all interfaces so
+// `192.168.x.x:8081` from the device reaches this Metro process.
+config.server = {
+  ...config.server,
+  port: 8081,
+};
+
 module.exports = config;

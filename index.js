@@ -9,10 +9,7 @@ import {
   setBackgroundMessageHandler,
 } from '@react-native-firebase/messaging';
 import notifee from '@notifee/react-native';
-import { AppRegistry } from 'react-native';
-
-import { handleCallNotifeeEvent } from './src/features/Calls/services/callNotifeeEvents';
-import { handleIncomingCallRemoteMessage } from './src/features/Calls/services/callPushHandlers';
+import { AppRegistry, Platform } from 'react-native';
 
 import App from './App';
 import { name as appName } from './app.json';
@@ -20,21 +17,19 @@ import { name as appName } from './app.json';
 const messaging = getMessaging();
 
 notifee.onBackgroundEvent(async (event) => {
+  const { handleCallNotifeeEvent } = require('./src/features/Calls/services/callNotifeeEvents');
   await handleCallNotifeeEvent(event);
 });
 
-// Ongoing-call microphone foreground service runner. The task stays pending for the
-// service lifetime; `callForegroundService.stop()` (notifee.stopForegroundService) ends it.
-notifee.registerForegroundService(() => {
-  return new Promise(() => {});
-});
+if (Platform.OS === 'android') {
+  notifee.registerForegroundService(() => {
+    return new Promise(() => {});
+  });
+}
 
-/**
- * Background / quit FCM. Display Notifee first; never let CallEngine errors drop the tray UI.
- * Killed-state Android also uses native `IncomingCallFcmReceiver` when the process is dead.
- */
 setBackgroundMessageHandler(messaging, async (remoteMessage) => {
   try {
+    const { handleIncomingCallRemoteMessage } = require('./src/features/Calls/services/callPushHandlers');
     await handleIncomingCallRemoteMessage(remoteMessage, { delivery: 'background' });
   } catch (error) {
     console.warn('[calls] background FCM handler failed', error);

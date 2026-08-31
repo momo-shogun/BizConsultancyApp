@@ -1,7 +1,7 @@
 import React from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { useSafeAreaInsets, type Edge } from 'react-native-safe-area-context';
+import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { THEME } from '@/constants/theme';
@@ -32,7 +32,6 @@ export interface ProfileScreenHeaderChromeProps {
 export function ProfileScreenHeaderChrome(
   props: ProfileScreenHeaderChromeProps,
 ): React.ReactElement {
-  const insets = useSafeAreaInsets();
   const showHero =
     props.displayName != null ||
     props.avatarUri != null ||
@@ -50,8 +49,9 @@ export function ProfileScreenHeaderChrome(
         colors={[...PROFILE_HEADER_GRADIENT]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={[chromeStyles.headerGradient, { paddingTop: insets.top }]}
+        style={chromeStyles.headerGradient}
       >
+        <SafeAreaView edges={['top']} style={chromeStyles.headerSafeTop}>
         {props.onBackPress != null ? (
           <ScreenHeader
             title={props.title}
@@ -144,6 +144,7 @@ export function ProfileScreenHeaderChrome(
             ) : null}
           </View>
         ) : null}
+        </SafeAreaView>
       </LinearGradient>
 
       <View style={chromeStyles.body}>{props.children}</View>
@@ -158,6 +159,9 @@ const chromeStyles = StyleSheet.create({
   headerGradient: {
     width: '100%',
     paddingBottom: THEME.spacing[20],
+  },
+  headerSafeTop: {
+    width: '100%',
   },
   titleRow: {
     minHeight: 56,

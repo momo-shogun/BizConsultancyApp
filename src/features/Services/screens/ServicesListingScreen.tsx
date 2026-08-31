@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -14,17 +14,11 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
-import {
-  ACCOUNT_HUB_GREEN_HEADER_GRADIENT,
-  ACCOUNT_HUB_GREEN_HEADER_STATUS_BAR,
-  ACCOUNT_HUB_LIST_CANVAS,
-} from '@/constants/accountScreenTheme';
+import { ACCOUNT_HUB_LIST_CANVAS } from '@/constants/accountScreenTheme';
 import { THEME } from '@/constants/theme';
 import { ROUTES } from '@/navigation/routeNames';
 import type { ServicesStackParamList } from '@/navigation/types';
 import {
-  AccountHubScreenShell,
-  AnimatedHeaderSearchBar,
   ContentPlaceholder,
   EmptyState,
   FilterChipsBar,
@@ -34,6 +28,8 @@ import {
   type FilterSheetValue,
   RecommendedServiceCard,
   type RecommendedServiceItem,
+  SafeAreaWrapper,
+  ScreenHeader,
   ScreenWrapper,
 } from '@/shared/components';
 
@@ -56,6 +52,7 @@ import {
 } from '@/features/Services/utils/servicesListFilters';
 
 const LIST_SEPARATOR_HEIGHT = THEME.spacing[12];
+const H_PADDING = THEME.spacing[16];
 const CATEGORY_BOOTSTRAP_LIMIT = 100;
 const PLACEHOLDER_CARD_COUNT = 5;
 const PLACEHOLDER_KEYS = Array.from(
@@ -71,7 +68,6 @@ export function ServicesListingScreen(): React.ReactElement {
   const { handleGetStarted, handleViewPurchased, isServicePurchased, servicePurchaseLoginDialog } =
     useServicePurchaseLoginGate();
   const onBizAiScroll = useBizAIScrollReporter();
-  const searchInputRef = useRef<TextInput>(null);
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [debouncedSearch, setDebouncedSearch] = useState<string>('');
@@ -248,13 +244,13 @@ export function ServicesListingScreen(): React.ReactElement {
     [navigation],
   );
 
-  const openSearch = useCallback((): void => {
-    setIsSearchOpen(true);
-  }, []);
-
-  const closeSearch = useCallback((): void => {
-    setIsSearchOpen(false);
-    setSearchQuery('');
+  const toggleSearch = useCallback((): void => {
+    setIsSearchOpen((open) => {
+      if (open) {
+        setSearchQuery('');
+      }
+      return !open;
+    });
   }, []);
 
   const renderPlaceholderItem = useCallback<ListRenderItem<string>>(
@@ -318,99 +314,116 @@ export function ServicesListingScreen(): React.ReactElement {
   return (
     <>
       {servicePurchaseLoginDialog}
-      <AccountHubScreenShell
-      title="Services"
-      edges={[]}
-      canvasColor={ACCOUNT_HUB_LIST_CANVAS}
-      headerColor={ACCOUNT_HUB_GREEN_HEADER_STATUS_BAR}
-      headerGradientColors={ACCOUNT_HUB_GREEN_HEADER_GRADIENT}
-      onSearchPress={isSearchOpen ? undefined : openSearch}
-      headerRightAction={
-        isSearchOpen ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Close search"
-            onPress={closeSearch}
-            hitSlop={8}
-            style={styles.headerIconBtn}
-          >
-            <Ionicons name="close" size={22} color="#FFFFFF" />
-          </Pressable>
-        ) : undefined
-      }
-      headerAccessory={
-        <AnimatedHeaderSearchBar
-          visible={isSearchOpen}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          inputRef={searchInputRef}
-          placeholder="Service name, category…"
-          accessibilityLabel="Search services"
-          embeddedInHeader
+      <SafeAreaWrapper edges={['top', 'bottom']}>
+        <ScreenHeader
+          title="Services"
+          onSearchPress={toggleSearch}
         />
-      }
-    >
-      <ScreenWrapper style={styles.listShell}>
-        {isInitialLoading ? (
-          <AnimatedPlaceholderFlatList
-            data={PLACEHOLDER_KEYS}
-            keyExtractor={(key) => key}
-            renderItem={renderPlaceholderItem}
-            ItemSeparatorComponent={ItemSeparator}
-            contentContainerStyle={styles.content}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            ListHeaderComponent={ListHeader}
-            onScroll={onBizAiScroll}
-            scrollEventThrottle={16}
-          />
-        ) : (
-          <AnimatedFlatList
-            data={displayItems}
-            keyExtractor={keyExtractor}
-            renderItem={renderItem}
-            ItemSeparatorComponent={ItemSeparator}
-            contentContainerStyle={styles.content}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            ListHeaderComponent={ListHeader}
-            onScroll={onBizAiScroll}
-            scrollEventThrottle={16}
-            ListEmptyComponent={
-              <EmptyState
-                title={hasSearchQuery ? 'No services match' : 'No services found'}
-                description={
-                  hasSearchQuery
-                    ? 'Try different keywords or adjust filters.'
-                    : 'Try adjusting filters or check back later.'
-                }
-              />
-            }
-          />
-        )}
 
-        <FilterSheet
-          visible={isFilterOpen}
-          title="Filters"
-          sections={filterSections}
-          value={filters}
-          onChange={handleFilterChange}
-          onClose={() => setIsFilterOpen(false)}
-          onApply={() => setIsFilterOpen(false)}
-          onClear={() => setFilters(EMPTY_SERVICE_LIST_FILTERS)}
-        />
-      </ScreenWrapper>
-    </AccountHubScreenShell>
+        {isSearchOpen ? (
+          <View style={styles.searchRow}>
+            <Ionicons name="search-outline" size={20} color={THEME.colors.textSecondary} />
+            <TextInput
+              accessibilityLabel="Search services"
+              placeholder="Service name, category…"
+              placeholderTextColor={THEME.colors.textSecondary}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              style={styles.searchInput}
+              returnKeyType="search"
+              clearButtonMode="while-editing"
+              autoFocus
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Clear search"
+              onPress={() => setSearchQuery('')}
+              disabled={searchQuery.length === 0}
+              hitSlop={8}
+            >
+              <Ionicons
+                name="close-circle"
+                size={22}
+                color={searchQuery.length === 0 ? THEME.colors.border : THEME.colors.textSecondary}
+              />
+            </Pressable>
+          </View>
+        ) : null}
+
+        <ScreenWrapper style={styles.listShell}>
+          {isInitialLoading ? (
+            <AnimatedPlaceholderFlatList
+              data={PLACEHOLDER_KEYS}
+              keyExtractor={(key) => key}
+              renderItem={renderPlaceholderItem}
+              ItemSeparatorComponent={ItemSeparator}
+              contentContainerStyle={styles.content}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              ListHeaderComponent={ListHeader}
+              onScroll={onBizAiScroll}
+              scrollEventThrottle={16}
+            />
+          ) : (
+            <AnimatedFlatList
+              data={displayItems}
+              keyExtractor={keyExtractor}
+              renderItem={renderItem}
+              ItemSeparatorComponent={ItemSeparator}
+              contentContainerStyle={styles.content}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              ListHeaderComponent={ListHeader}
+              onScroll={onBizAiScroll}
+              scrollEventThrottle={16}
+              ListEmptyComponent={
+                <EmptyState
+                  title={hasSearchQuery ? 'No services match' : 'No services found'}
+                  description={
+                    hasSearchQuery
+                      ? 'Try different keywords or adjust filters.'
+                      : 'Try adjusting filters or check back later.'
+                  }
+                />
+              }
+            />
+          )}
+
+          <FilterSheet
+            visible={isFilterOpen}
+            title="Filters"
+            sections={filterSections}
+            value={filters}
+            onChange={handleFilterChange}
+            onClose={() => setIsFilterOpen(false)}
+            onApply={() => setIsFilterOpen(false)}
+            onClear={() => setFilters(EMPTY_SERVICE_LIST_FILTERS)}
+          />
+        </ScreenWrapper>
+      </SafeAreaWrapper>
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  headerIconBtn: {
-    width: 36,
-    height: 36,
+  searchRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: THEME.spacing[8],
+    paddingHorizontal: H_PADDING,
+    paddingVertical: THEME.spacing[10],
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: THEME.colors.border,
+    backgroundColor: THEME.colors.background,
+  },
+  searchInput: {
+    flex: 1,
+    minHeight: 40,
+    paddingVertical: THEME.spacing[8],
+    fontSize: THEME.typography.size[14],
+    color: THEME.colors.textPrimary,
   },
   listShell: {
     flex: 1,

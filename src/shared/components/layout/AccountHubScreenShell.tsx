@@ -1,8 +1,7 @@
 import React from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { Edge } from 'react-native-safe-area-context';
+import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 
 import { ACCOUNT_SUBSCREEN_HEADER_COLOR } from '@/constants/accountScreenTheme';
 import { THEME } from '@/constants/theme';
@@ -27,7 +26,6 @@ export type AccountHubScreenShellProps = {
 };
 
 export function AccountHubScreenShell(props: AccountHubScreenShellProps): React.ReactElement {
-  const insets = useSafeAreaInsets();
   const solidHeaderColor = props.headerColor ?? ACCOUNT_SUBSCREEN_HEADER_COLOR;
   const gradientColors = props.headerGradientColors;
   const hasGradientHeader = gradientColors != null && gradientColors.length >= 2;
@@ -38,6 +36,7 @@ export function AccountHubScreenShell(props: AccountHubScreenShellProps): React.
   const screenHeaderColor = hasGradientHeader ? 'transparent' : solidHeaderColor;
   const safeAreaEdges: Edge[] =
     props.edges ?? (hasGradientHeader ? ['bottom'] : ['top', 'bottom']);
+  const appliesTopInsetOutside = safeAreaEdges.includes('top');
 
   const headerChrome = (
     <ScreenHeader
@@ -47,6 +46,25 @@ export function AccountHubScreenShell(props: AccountHubScreenShellProps): React.
       onSearchPress={props.onSearchPress}
       rightAction={props.headerRightAction}
     />
+  );
+
+  const headerContent = (
+    <>
+      {headerChrome}
+      {props.headerAccessory != null ? (
+        <View style={styles.headerAccessory}>{props.headerAccessory}</View>
+      ) : null}
+    </>
+  );
+
+  // Gradient headers extend under the status bar; inset chrome inside the band
+  // (padding on LinearGradient itself is unreliable on iOS).
+  const headerBandInner = appliesTopInsetOutside ? (
+    headerContent
+  ) : (
+    <SafeAreaView edges={['top']} style={styles.headerSafeTop}>
+      {headerContent}
+    </SafeAreaView>
   );
 
   return (
@@ -61,19 +79,13 @@ export function AccountHubScreenShell(props: AccountHubScreenShellProps): React.
           colors={[...gradientColors]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={[styles.headerBand, { paddingTop: insets.top }, props.headerBandStyle]}
+          style={[styles.headerBand, props.headerBandStyle]}
         >
-          {headerChrome}
-          {props.headerAccessory != null ? (
-            <View style={styles.headerAccessory}>{props.headerAccessory}</View>
-          ) : null}
+          {headerBandInner}
         </LinearGradient>
       ) : (
         <View style={[styles.headerBand, { backgroundColor: solidHeaderColor }, props.headerBandStyle]}>
-          {headerChrome}
-          {props.headerAccessory != null ? (
-            <View style={styles.headerAccessory}>{props.headerAccessory}</View>
-          ) : null}
+          {headerBandInner}
         </View>
       )}
       {props.children}
@@ -84,6 +96,9 @@ export function AccountHubScreenShell(props: AccountHubScreenShellProps): React.
 const styles = StyleSheet.create({
   headerBand: {
     backgroundColor: ACCOUNT_SUBSCREEN_HEADER_COLOR,
+  },
+  headerSafeTop: {
+    width: '100%',
   },
   headerAccessory: {
     paddingBottom: THEME.spacing[4],
