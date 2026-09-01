@@ -60,6 +60,8 @@ export const packageCardStyles = StyleSheet.create({
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: 12,
+  },
+  topRowPopular: {
     paddingRight: 72,
   },
   titleBlock: {
@@ -88,7 +90,7 @@ export const packageCardStyles = StyleSheet.create({
     gap: 2,
   },
   priceLabel: {
-    fontSize: 11,
+    fontSize: THEME.typography.size[12],
     fontWeight: '600',
     color: SLATE_500,
     textTransform: 'uppercase',
@@ -101,7 +103,7 @@ export const packageCardStyles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   perCredit: {
-    fontSize: 11,
+    fontSize: THEME.typography.size[12],
     color: SLATE_500,
     fontWeight: '500',
   },

@@ -23,8 +23,14 @@ export const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: THEME.spacing[16],
-    paddingTop: THEME.spacing[4],
-    paddingBottom: THEME.spacing[24],
+    paddingTop: THEME.spacing[12],
+    gap: THEME.spacing[10],
+  },
+  headerBand: {
+    paddingBottom: THEME.spacing[12],
+  },
+  headerAccessoryStack: {
+    paddingHorizontal: THEME.spacing[16],
     gap: THEME.spacing[10],
   },
   centered: {
@@ -33,11 +39,6 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: THEME.spacing[20],
     backgroundColor: BOOKINGS_CANVAS,
-  },
-  heroGradient: {
-    borderRadius: 16,
-    padding: THEME.spacing[14],
-    gap: THEME.spacing[10],
   },
   heroTop: {
     flexDirection: 'row',
@@ -63,9 +64,9 @@ export const styles = StyleSheet.create({
     letterSpacing: -0.2,
   },
   heroMeta: {
-    fontSize: 11,
+    fontSize: THEME.typography.size[12],
     color: 'rgba(255,255,255,0.88)',
-    lineHeight: 16,
+    lineHeight: 17,
   },
   headerIconBtn: {
     width: 36,

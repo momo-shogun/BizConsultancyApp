@@ -5,6 +5,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { AccountHubScreenShell } from '@/shared/components';
 import { Dialog } from '@/shared/components/dialog';
+import { getNativeAppVersion } from '@/utils/appVersion';
 
 import { HelpSettingsSection } from './HelpSettingsSection';
 import { HELP_SETTINGS_CANVAS, helpSettingsStyles } from './helpSettings.styles';
@@ -12,7 +13,8 @@ import type { SettingsSectionConfig } from './helpSettings.types';
 
 export interface HelpSettingsScreenLayoutProps {
   sections: SettingsSectionConfig[];
-  appVersion: string;
+  /** Override for tests; defaults to native iOS/Android version. */
+  appVersion?: string;
   onBackPress: () => void;
   onRowPress: (rowId: string) => void;
   onLogout: () => void;
@@ -25,7 +27,7 @@ export function HelpSettingsScreenLayout(
 ): React.ReactElement {
   const {
     sections,
-    appVersion,
+    appVersion = getNativeAppVersion(),
     onBackPress,
     onRowPress,
     onLogout,

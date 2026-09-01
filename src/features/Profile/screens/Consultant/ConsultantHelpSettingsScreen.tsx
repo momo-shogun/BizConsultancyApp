@@ -12,7 +12,6 @@ import { ROUTES } from '@/navigation/routeNames';
 import type { AccountStackParamList } from '@/navigation/types';
 
 export interface ConsultantHelpSettingsScreenProps {
-  appVersion?: string;
   onRowPress?: (id: string) => void;
   onLogout?: () => void;
   onPrivacyPolicy?: () => void;
@@ -24,7 +23,6 @@ export function ConsultantHelpSettingsScreen(
 ): React.ReactElement {
   const navigation = useNavigation<NavigationProp<AccountStackParamList>>();
   const { logout } = useAuth();
-  const appVersion = props.appVersion ?? '1.0.0';
   const { canShowPaidPurchaseCtas } = useRazorpayAvailability();
 
   const sections = useMemo((): SettingsSectionConfig[] => {
@@ -113,7 +111,6 @@ export function ConsultantHelpSettingsScreen(
   return (
     <HelpSettingsScreenLayout
       sections={sections}
-      appVersion={appVersion}
       onBackPress={() => navigation.goBack()}
       onRowPress={handleRowPress}
       onLogout={props.onLogout ?? logout}

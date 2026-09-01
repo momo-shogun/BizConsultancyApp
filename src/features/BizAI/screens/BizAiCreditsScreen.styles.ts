@@ -5,6 +5,7 @@ import { THEME } from '@/constants/theme';
 
 /** Matches hero gradient top — status bar + ScreenHeader */
 export const BIZ_AI_CREDITS_HEADER_COLOR = ACCOUNT_SUBSCREEN_HEADER_COLOR;
+export const BIZ_AI_CREDITS_HEADER_GRADIENT = ['#0F172A', '#1E1B4B', '#312E81'] as const;
 
 const SLATE_50 = '#F8FAFC';
 const SLATE_100 = '#F1F5F9';
@@ -35,23 +36,23 @@ export const bizAiCreditsScreenStyles = StyleSheet.create({
     backgroundColor: SLATE_100,
   },
   scrollContent: {
-    paddingBottom: 32,
+    paddingTop: 4,
+    gap: 12,
   },
   headerBand: {
-    backgroundColor: BIZ_AI_CREDITS_HEADER_COLOR,
+    paddingBottom: 16,
   },
-  heroWrap: {
+  headerAccessory: {
     paddingHorizontal: 16,
-    paddingTop: 0,
-    paddingBottom: 4,
-    backgroundColor: BIZ_AI_CREDITS_HEADER_COLOR,
+  },
+  heroCard: {
+    borderRadius: 20,
+    overflow: 'hidden',
   },
   heroGradient: {
-    borderRadius: 24,
-    paddingHorizontal: 20,
-    paddingTop: 22,
-    paddingBottom: 52,
-    overflow: 'hidden',
+    paddingHorizontal: 18,
+    paddingTop: 18,
+    paddingBottom: 20,
   },
   heroGlow: {
     position: 'absolute',
@@ -75,12 +76,17 @@ export const bizAiCreditsScreenStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    marginBottom: 18,
+    gap: 12,
+    marginBottom: 16,
+  },
+  heroTitleBlock: {
+    flex: 1,
+    minWidth: 0,
   },
   heroEyebrow: {
-    fontSize: 11,
+    fontSize: THEME.typography.size[12],
     fontWeight: '700',
-    letterSpacing: 1,
+    letterSpacing: 0.8,
     textTransform: 'uppercase',
     color: 'rgba(255,255,255,0.72)',
   },
@@ -95,12 +101,16 @@ export const bizAiCreditsScreenStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    flexShrink: 0,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 999,
     backgroundColor: 'rgba(255,255,255,0.14)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.22)',
+  },
+  refreshPillPressed: {
+    opacity: 0.88,
   },
   refreshPillText: {
     fontSize: 12,
@@ -129,14 +139,13 @@ export const bizAiCreditsScreenStyles = StyleSheet.create({
     marginBottom: 8,
   },
   balanceHint: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.68)',
-    lineHeight: 18,
+    fontSize: THEME.typography.size[12],
+    color: 'rgba(255,255,255,0.72)',
+    lineHeight: 17,
   },
   walletFloatCard: {
     marginHorizontal: 16,
-    marginTop: -36,
-    marginBottom: 20,
+    marginTop: 4,
     borderRadius: 18,
     backgroundColor: THEME.colors.white,
     borderWidth: 1,
@@ -190,7 +199,6 @@ export const bizAiCreditsScreenStyles = StyleSheet.create({
   },
   section: {
     paddingHorizontal: 16,
-    marginBottom: 14,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -205,10 +213,9 @@ export const bizAiCreditsScreenStyles = StyleSheet.create({
     letterSpacing: -0.35,
   },
   sectionSubtitle: {
-    fontSize: 13,
+    fontSize: THEME.typography.size[12],
     color: SLATE_500,
-    lineHeight: 18,
-    marginBottom: 14,
+    lineHeight: 17,
   },
   packCount: {
     minWidth: 28,
@@ -226,7 +233,6 @@ export const bizAiCreditsScreenStyles = StyleSheet.create({
   },
   alertBanner: {
     marginHorizontal: 16,
-    marginBottom: 12,
     borderRadius: 14,
     paddingHorizontal: 14,
     paddingVertical: 12,

@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import LinearGradient from 'react-native-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { MyBookingCard } from '@/features/Bookings/components/MyBookingCard';
@@ -33,8 +33,12 @@ import {
 
 type Nav = NativeStackNavigationProp<AccountStackParamList, typeof ROUTES.Account.MyBookings>;
 
+/** Space for the floating Biz AI entry above the home indicator. */
+const BIZ_AI_FLOAT_CLEARANCE = 88;
+
 export function MyBookingsScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
   const screen = useMyBookingsScreen();
   const { callingBookingId, startCallFromBooking } = useUserBookingCall();
   const [searchOpen, setSearchOpen] = useState(false);
@@ -62,17 +66,47 @@ export function MyBookingsScreen(): React.ReactElement {
     screen.setSearch('');
   }, [screen]);
 
-  const headerSearch = (
-    <MyBookingsAnimatedSearchBar
-      visible={searchOpen}
-      value={screen.search}
-      onChangeText={screen.setSearch}
-      inputRef={searchInputRef}
-      placeholder="Search by name or email"
-      accessibilityLabel="Search bookings"
-      embeddedInHeader
-    />
+  const isUpcoming = screen.filter === 'upcoming';
+
+  const headerAccessory = (
+    <View style={styles.headerAccessoryStack}>
+      <MyBookingsAnimatedSearchBar
+        visible={searchOpen}
+        value={screen.search}
+        onChangeText={screen.setSearch}
+        inputRef={searchInputRef}
+        placeholder="Search by name or email"
+        accessibilityLabel="Search bookings"
+        embeddedInHeader
+      />
+      <View style={styles.heroTop}>
+        <View style={styles.heroIconWrap}>
+          <Ionicons name="calendar-outline" size={22} color="#FFFFFF" />
+        </View>
+        <View style={styles.heroTextBlock}>
+          <Text style={styles.heroTitle}>Your consultant sessions</Text>
+          <Text style={styles.heroMeta}>
+            {isUpcoming
+              ? 'Upcoming appointments and pending confirmations.'
+              : 'Completed and past sessions.'}
+            {' '}
+            Pull down to refresh.
+          </Text>
+        </View>
+      </View>
+      <MyBookingsFilterTabs
+        activeFilter={screen.filter}
+        upcomingCount={screen.upcomingCount}
+        pastCount={screen.pastCount}
+        onFilterChange={screen.setFilter}
+      />
+    </View>
   );
+
+  const scrollContentStyle = [
+    styles.scrollContent,
+    { paddingBottom: THEME.spacing[24] + insets.bottom + BIZ_AI_FLOAT_CLEARANCE },
+  ];
 
   const shellProps = {
     title: 'My Bookings',
@@ -80,6 +114,7 @@ export function MyBookingsScreen(): React.ReactElement {
     canvasColor: BOOKINGS_CANVAS,
     headerColor: BOOKINGS_HEADER_STATUS_BAR,
     headerGradientColors: BOOKINGS_HEADER_GRADIENT,
+    headerBandStyle: styles.headerBand,
     onSearchPress: searchOpen ? undefined : openSearch,
     headerRightAction: searchOpen ? (
       <Pressable
@@ -92,7 +127,7 @@ export function MyBookingsScreen(): React.ReactElement {
         <Ionicons name="close" size={22} color="#FFFFFF" />
       </Pressable>
     ) : undefined,
-    headerAccessory: headerSearch,
+    headerAccessory,
   } as const;
 
   if (screen.isLoading) {
@@ -105,13 +140,11 @@ export function MyBookingsScreen(): React.ReactElement {
     );
   }
 
-  const isUpcoming = screen.filter === 'upcoming';
-
   return (
     <AccountHubScreenShell {...shellProps}>
       <ScrollView
         style={styles.screen}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={scrollContentStyle}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         refreshControl={
@@ -122,36 +155,6 @@ export function MyBookingsScreen(): React.ReactElement {
           />
         }
       >
-        <LinearGradient
-          colors={['#075E54', '#128C7E']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.heroGradient}
-        >
-          <View style={styles.heroTop}>
-            <View style={styles.heroIconWrap}>
-              <Ionicons name="calendar-outline" size={22} color="#FFFFFF" />
-            </View>
-            <View style={styles.heroTextBlock}>
-              <Text style={styles.heroTitle}>Your consultant sessions</Text>
-              <Text style={styles.heroMeta}>
-                {isUpcoming
-                  ? 'Upcoming appointments and pending confirmations.'
-                  : 'Completed and past sessions.'}
-                {' '}
-                Pull down to refresh.
-              </Text>
-            </View>
-          </View>
-
-          <MyBookingsFilterTabs
-            activeFilter={screen.filter}
-            upcomingCount={screen.upcomingCount}
-            pastCount={screen.pastCount}
-            onFilterChange={screen.setFilter}
-          />
-        </LinearGradient>
-
         {screen.errorMessage != null ? (
           <View style={styles.errorBanner}>
             <Ionicons name="alert-circle-outline" size={18} color={THEME.colors.danger} />

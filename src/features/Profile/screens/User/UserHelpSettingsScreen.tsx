@@ -13,7 +13,6 @@ import { ROUTES } from '@/navigation/routeNames';
 import type { AccountStackParamList } from '@/navigation/types';
 
 export interface UserHelpSettingsScreenProps {
-  appVersion?: string;
   onRowPress?: (id: string) => void;
   onLogout?: () => void;
   onPrivacyPolicy?: () => void;
@@ -23,7 +22,6 @@ export interface UserHelpSettingsScreenProps {
 export function UserHelpSettingsScreen(props: UserHelpSettingsScreenProps): React.ReactElement {
   const navigation = useNavigation<NavigationProp<AccountStackParamList>>();
   const { logout } = useAuth();
-  const appVersion = props.appVersion ?? '1.0.0';
   const { canShowPaidPurchaseCtas } = useRazorpayAvailability();
 
   const sections = useMemo((): SettingsSectionConfig[] => {
@@ -88,7 +86,6 @@ export function UserHelpSettingsScreen(props: UserHelpSettingsScreenProps): Reac
   return (
     <HelpSettingsScreenLayout
       sections={sections}
-      appVersion={appVersion}
       onBackPress={() => navigation.goBack()}
       onRowPress={handleRowPress}
       onLogout={props.onLogout ?? logout}

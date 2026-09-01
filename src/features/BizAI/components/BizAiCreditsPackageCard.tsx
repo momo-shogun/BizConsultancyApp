@@ -44,7 +44,7 @@ export function BizAiCreditsPackageCard({
       ) : null}
 
       <View style={s.cardBody}>
-        <View style={s.topRow}>
+        <View style={[s.topRow, isPopular ? s.topRowPopular : null]}>
           <View style={s.titleBlock}>
             <Text style={s.packName}>{pkg.name}</Text>
             <View style={s.creditsRow}>

@@ -18,18 +18,18 @@ export function BizAiCreditsHero({
   const displayCredits = remainingCredits == null ? '—' : remainingCredits.toLocaleString('en-IN');
 
   return (
-    <View style={s.heroWrap}>
+    <View style={s.heroCard}>
       <LinearGradient
         colors={['#0F172A', '#1E1B4B', '#312E81']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={s.heroGradient}
       >
-        <View style={s.heroGlow} />
-        <View style={s.heroGlowSecondary} />
+        <View pointerEvents="none" style={s.heroGlow} />
+        <View pointerEvents="none" style={s.heroGlowSecondary} />
 
         <View style={s.heroTopRow}>
-          <View>
+          <View style={s.heroTitleBlock}>
             <Text style={s.heroEyebrow}>Biz AI</Text>
             <Text style={s.heroTitle}>Your credits</Text>
           </View>
@@ -37,7 +37,7 @@ export function BizAiCreditsHero({
             accessibilityRole="button"
             accessibilityLabel="Refresh credit balance"
             onPress={onRefresh}
-            style={({ pressed }) => [s.refreshPill, pressed ? { opacity: 0.88 } : null]}
+            style={({ pressed }) => [s.refreshPill, pressed ? s.refreshPillPressed : null]}
           >
             <Ionicons name="refresh" size={14} color="#FFFFFF" />
             <Text style={s.refreshPillText}>Refresh</Text>
