@@ -5,6 +5,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
+import { useRazorpayAvailability } from '@/features/AppSettings/hooks/useRazorpayAvailability';
 import {
   selectDisplayName,
   selectHasVerifiedLogin,
@@ -124,6 +125,7 @@ export function ConsultantProfileScreen(): React.ReactElement {
   const storedMobile = useAppSelector(selectLoggedInMobile);
   const navigateToLogin = useNavigateToLogin();
   const { promptLogin, profileLoginDialog } = useProfileLoginPrompt();
+  const { canShowPaidPurchaseCtas } = useRazorpayAvailability();
 
   const { profile } = useConsultantAccountProfile();
   const membership = useUserProfileMembershipSection({
@@ -212,7 +214,9 @@ export function ConsultantProfileScreen(): React.ReactElement {
         displayName={heroName}
         displaySubtitle={heroSubtitle}
         membershipLabel={membershipLabel}
-        onMembershipPress={hasVerifiedLogin ? membership.onMembershipPress : undefined}
+        onMembershipPress={
+          hasVerifiedLogin && canShowPaidPurchaseCtas ? membership.onMembershipPress : undefined
+        }
         onAvatarPress={openEditProfile}
         rightAction={<SettingsHeaderButton onPress={openHelpSettings} />}
       >

@@ -189,10 +189,13 @@ export function UserProfileMembershipSection(
     return (
       <View style={styles.card}>
         <View style={styles.emptyHero}>
-          <Text style={styles.emptyTitle}>Choose your membership</Text>
+          <Text style={styles.emptyTitle}>
+            {model.showUpgradeCta ? 'Choose your membership' : 'No active membership'}
+          </Text>
           <Text style={styles.emptySubtitle}>
-            Unlock expert consultations, Biz AI, and business tools tailored to your growth
-            stage.
+            {model.showUpgradeCta
+              ? 'Unlock expert consultations, Biz AI, and business tools tailored to your growth stage.'
+              : 'Membership details will appear here when a plan is assigned to your account.'}
           </Text>
         </View>
 
@@ -212,9 +215,11 @@ export function UserProfileMembershipSection(
           </ScrollView>
         ) : null}
 
-        <View style={styles.emptyFooter}>
-          <MembershipCta label={model.upgradeCtaLabel} onPress={model.onMembershipPress} />
-        </View>
+        {model.showUpgradeCta ? (
+          <View style={styles.emptyFooter}>
+            <MembershipCta label={model.upgradeCtaLabel} onPress={model.onMembershipPress} />
+          </View>
+        ) : null}
       </View>
     );
   }

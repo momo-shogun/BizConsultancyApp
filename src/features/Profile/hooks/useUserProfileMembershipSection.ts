@@ -2,6 +2,7 @@ import { useCallback, useMemo } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
+import { useRazorpayAvailability } from '@/features/AppSettings/hooks/useRazorpayAvailability';
 import { useGetPublicMembershipsQuery } from '@/features/Home/api/homePublicApi';
 import type {
   PublicMembershipApiRow,
@@ -205,6 +206,7 @@ export function useUserProfileMembershipSection(
 ): UserProfileMembershipSectionModel {
   const { enabled, membershipLine, maxBenefits = MAX_BENEFITS } = options;
   const navigation = useNavigation<AccountNav>();
+  const { canShowPaidPurchaseCtas } = useRazorpayAvailability();
 
   const {
     data: dashboard,
@@ -284,7 +286,10 @@ export function useUserProfileMembershipSection(
       }) ?? false;
 
     const upgradeHint =
-      isActive && dashboard?.upgradeHint != null && dashboard.upgradeHint.length > 0
+      canShowPaidPurchaseCtas &&
+      isActive &&
+      dashboard?.upgradeHint != null &&
+      dashboard.upgradeHint.length > 0
         ? dashboard.upgradeHint
         : null;
 
@@ -297,30 +302,32 @@ export function useUserProfileMembershipSection(
     const durationLabel =
       matchedPlan != null ? formatPlanDuration(matchedPlan.days) : null;
 
-    const planTeasers: ProfilePlanTeaser[] = sortedPlans.slice(0, MAX_PLAN_TEASERS).map(
-      (row, index) => ({
-        id: row.id,
-        name: row.name.trim(),
-        priceLabel: formatPlanPrice(row),
-        durationLabel: formatPlanDuration(row.days),
-        perkCount: planPerkCount(row),
-        themeIndex: index,
-        isPopular: row.isMostPopular === 1,
-      }),
-    );
+    const planTeasers: ProfilePlanTeaser[] = canShowPaidPurchaseCtas
+      ? sortedPlans.slice(0, MAX_PLAN_TEASERS).map((row, index) => ({
+          id: row.id,
+          name: row.name.trim(),
+          priceLabel: formatPlanPrice(row),
+          durationLabel: formatPlanDuration(row.days),
+          perkCount: planPerkCount(row),
+          themeIndex: index,
+          isPopular: row.isMostPopular === 1,
+        }))
+      : [];
 
     let showUpgradeCta = false;
     let upgradeCtaLabel = 'View membership plans';
 
-    if (!hasPlan) {
-      showUpgradeCta = true;
-      upgradeCtaLabel = 'View membership plans';
-    } else if (!isActive) {
-      showUpgradeCta = true;
-      upgradeCtaLabel = 'Renew membership';
-    } else if (hasHigherTierPlan || upgradeHint != null) {
-      showUpgradeCta = true;
-      upgradeCtaLabel = 'Upgrade membership';
+    if (canShowPaidPurchaseCtas) {
+      if (!hasPlan) {
+        showUpgradeCta = true;
+        upgradeCtaLabel = 'View membership plans';
+      } else if (!isActive) {
+        showUpgradeCta = true;
+        upgradeCtaLabel = 'Renew membership';
+      } else if (hasHigherTierPlan || upgradeHint != null) {
+        showUpgradeCta = true;
+        upgradeCtaLabel = 'Upgrade membership';
+      }
     }
 
     return {
@@ -353,5 +360,6 @@ export function useUserProfileMembershipSection(
     membershipLine,
     maxBenefits,
     onMembershipPress,
+    canShowPaidPurchaseCtas,
   ]);
 }

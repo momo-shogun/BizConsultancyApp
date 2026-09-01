@@ -13,6 +13,7 @@ import {
   ACCOUNT_HUB_GREEN_HEADER_GRADIENT,
   ACCOUNT_HUB_GREEN_HEADER_STATUS_BAR,
 } from '@/constants/accountScreenTheme';
+import { useRazorpayAvailability } from '@/features/AppSettings/hooks/useRazorpayAvailability';
 import {
   formatWalletBalanceInr,
   useGetMyWalletBalanceQuery,
@@ -33,6 +34,7 @@ const QUICK_AMOUNTS = [500, 1000, 2000, 5000];
 export function WalletScreen(): React.ReactElement {
   const { data: balance, isLoading, isFetching, refetch } = useGetMyWalletBalanceQuery();
   const [amountFocused, setAmountFocused] = useState(false);
+  const { canShowPaidPurchaseCtas } = useRazorpayAvailability();
 
   const { amountInput, setAmountInput, isProceeding, handleAddBalance } = useWalletTopup();
 
@@ -63,7 +65,11 @@ export function WalletScreen(): React.ReactElement {
           )}
         </Pressable>
       </View>
-      <Text style={styles.headerBalanceHint}>Secure instant top-up for bookings and services</Text>
+      <Text style={styles.headerBalanceHint}>
+        {canShowPaidPurchaseCtas
+          ? 'Secure instant top-up for bookings and services'
+          : 'Use your wallet balance for bookings and services'}
+      </Text>
     </View>
   );
 
@@ -83,72 +89,74 @@ export function WalletScreen(): React.ReactElement {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.contentSheet}>
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Add money</Text>
-            <Text style={styles.sectionMeta}>
-              Min ₹{WALLET_TOPUP_MIN_AMOUNT} · Max ₹{WALLET_TOPUP_MAX_AMOUNT.toLocaleString('en-IN')}
-            </Text>
+          {canShowPaidPurchaseCtas ? (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Add money</Text>
+              <Text style={styles.sectionMeta}>
+                Min ₹{WALLET_TOPUP_MIN_AMOUNT} · Max ₹{WALLET_TOPUP_MAX_AMOUNT.toLocaleString('en-IN')}
+              </Text>
 
-            <View style={[styles.inputRow, amountFocused ? styles.inputRowFocused : null]}>
-              <Text style={styles.currency}>₹</Text>
-              <TextInput
-                value={amountInput}
-                onChangeText={setAmountInput}
-                keyboardType="numeric"
-                placeholder="Enter amount"
-                placeholderTextColor="#B0B0B0"
-                style={styles.input}
-                editable={!isProceeding}
-                onFocus={() => setAmountFocused(true)}
-                onBlur={() => setAmountFocused(false)}
-                accessibilityLabel="Top-up amount"
-              />
-            </View>
+              <View style={[styles.inputRow, amountFocused ? styles.inputRowFocused : null]}>
+                <Text style={styles.currency}>₹</Text>
+                <TextInput
+                  value={amountInput}
+                  onChangeText={setAmountInput}
+                  keyboardType="numeric"
+                  placeholder="Enter amount"
+                  placeholderTextColor="#B0B0B0"
+                  style={styles.input}
+                  editable={!isProceeding}
+                  onFocus={() => setAmountFocused(true)}
+                  onBlur={() => setAmountFocused(false)}
+                  accessibilityLabel="Top-up amount"
+                />
+              </View>
 
-            <View style={styles.quickRow}>
-              {QUICK_AMOUNTS.map((item) => {
-                const isSelected = amountInput === String(item);
-                return (
-                  <Pressable
-                    key={item}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: isSelected }}
-                    onPress={() => setAmountInput(String(item))}
-                    style={[styles.quickChip, isSelected ? styles.quickChipActive : null]}
-                  >
-                    <Text
-                      style={[
-                        styles.quickChipText,
-                        isSelected ? styles.quickChipTextActive : null,
-                      ]}
+              <View style={styles.quickRow}>
+                {QUICK_AMOUNTS.map((item) => {
+                  const isSelected = amountInput === String(item);
+                  return (
+                    <Pressable
+                      key={item}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: isSelected }}
+                      onPress={() => setAmountInput(String(item))}
+                      style={[styles.quickChip, isSelected ? styles.quickChipActive : null]}
                     >
-                      ₹{item}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
+                      <Text
+                        style={[
+                          styles.quickChipText,
+                          isSelected ? styles.quickChipTextActive : null,
+                        ]}
+                      >
+                        ₹{item}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
 
-            <Pressable
-              accessibilityRole="button"
-              disabled={isProceeding}
-              onPress={() => void handleAddBalance()}
-              style={({ pressed }) => [
-                styles.addButton,
-                isProceeding ? styles.addButtonDisabled : null,
-                pressed && !isProceeding ? styles.addButtonPressed : null,
-              ]}
-            >
-              {isProceeding ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <>
-                  <Ionicons name="add-circle-outline" size={18} color="#FFFFFF" />
-                  <Text style={styles.addButtonText}>Add balance</Text>
-                </>
-              )}
-            </Pressable>
-          </View>
+              <Pressable
+                accessibilityRole="button"
+                disabled={isProceeding}
+                onPress={() => void handleAddBalance()}
+                style={({ pressed }) => [
+                  styles.addButton,
+                  isProceeding ? styles.addButtonDisabled : null,
+                  pressed && !isProceeding ? styles.addButtonPressed : null,
+                ]}
+              >
+                {isProceeding ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <>
+                    <Ionicons name="add-circle-outline" size={18} color="#FFFFFF" />
+                    <Text style={styles.addButtonText}>Add balance</Text>
+                  </>
+                )}
+              </Pressable>
+            </View>
+          ) : null}
 
           <Text style={styles.sectionTitle}>More</Text>
           <View style={styles.menuBlock}>

@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import type { NavigationProp } from '@react-navigation/native';
 
 import { useAuth } from '@/app/providers/AuthProvider';
+import { useRazorpayAvailability } from '@/features/AppSettings/hooks/useRazorpayAvailability';
 import { CONSULTANT_HELP_SETTINGS_SECTIONS } from '@/features/Profile/components/helpSettings/consultantHelpSettingsConfig';
+import { filterHelpSettingsSections } from '@/features/Profile/components/helpSettings/filterHelpSettingsSections';
 import { HelpSettingsScreenLayout } from '@/features/Profile/components/helpSettings/HelpSettingsScreenLayout';
+import type { SettingsSectionConfig } from '@/features/Profile/components/helpSettings/helpSettings.types';
 import { ROUTES } from '@/navigation/routeNames';
 import type { AccountStackParamList } from '@/navigation/types';
 
@@ -22,6 +25,17 @@ export function ConsultantHelpSettingsScreen(
   const navigation = useNavigation<NavigationProp<AccountStackParamList>>();
   const { logout } = useAuth();
   const appVersion = props.appVersion ?? '1.0.0';
+  const { canShowPaidPurchaseCtas } = useRazorpayAvailability();
+
+  const sections = useMemo((): SettingsSectionConfig[] => {
+    if (canShowPaidPurchaseCtas) {
+      return CONSULTANT_HELP_SETTINGS_SECTIONS;
+    }
+    return filterHelpSettingsSections(
+      CONSULTANT_HELP_SETTINGS_SECTIONS,
+      new Set(['membership']),
+    );
+  }, [canShowPaidPurchaseCtas]);
 
   const handleRowPress = (rowId: string): void => {
     props.onRowPress?.(rowId);
@@ -98,7 +112,7 @@ export function ConsultantHelpSettingsScreen(
 
   return (
     <HelpSettingsScreenLayout
-      sections={CONSULTANT_HELP_SETTINGS_SECTIONS}
+      sections={sections}
       appVersion={appVersion}
       onBackPress={() => navigation.goBack()}
       onRowPress={handleRowPress}
