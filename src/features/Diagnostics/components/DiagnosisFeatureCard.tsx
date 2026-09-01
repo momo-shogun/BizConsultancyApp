@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
@@ -22,44 +22,53 @@ export function DiagnosisFeatureCard({
   const iconBg = useMemo(() => hexToRgba(accentColor, 0.14), [accentColor]);
 
   return (
-    <View style={styles.card}>
-      <LinearGradient
-        colors={[hexToRgba(accentColor, 0.22), hexToRgba(accentColor, 0.04)]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.topBand}
-      >
-        <View style={[styles.iconWrap, { backgroundColor: iconBg }]}>
-          <Ionicons name={icon} size={20} color={accentColor} />
-        </View>
-      </LinearGradient>
+    <View style={styles.shadowWrap}>
+      <View style={styles.card}>
+        <LinearGradient
+          colors={[hexToRgba(accentColor, 0.22), hexToRgba(accentColor, 0.04)]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.topBand}
+        >
+          <View style={[styles.iconWrap, { backgroundColor: iconBg }]}>
+            <Ionicons name={icon} size={20} color={accentColor} />
+          </View>
+        </LinearGradient>
 
-      <View style={styles.body}>
-        <View style={[styles.tag, { backgroundColor: tagBg }]}>
-          <Text style={[styles.tagText, { color: accentColor }]}>Included</Text>
+        <View style={styles.body}>
+          <View style={[styles.tag, { backgroundColor: tagBg }]}>
+            <Text style={[styles.tagText, { color: accentColor }]}>Included</Text>
+          </View>
+          <Text style={styles.title}>{title}</Text>
+          <Text style={styles.description}>{description}</Text>
         </View>
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.description} numberOfLines={3}>
-          {description}
-        </Text>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  shadowWrap: {
+    flex: 1,
+    minWidth: 0,
+    ...Platform.select({
+      ios: {
+        shadowColor: DIAGNOSIS_THEME.shadow,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 1,
+        shadowRadius: 12,
+      },
+      android: { elevation: 2 },
+      default: {},
+    }),
+  },
   card: {
-    width: '48%',
+    flex: 1,
     backgroundColor: DIAGNOSIS_THEME.contentBg,
     borderRadius: 16,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(15, 23, 42, 0.06)',
-    shadowColor: DIAGNOSIS_THEME.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 12,
-    elevation: 2,
   },
   topBand: {
     paddingHorizontal: 12,
@@ -84,20 +93,22 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   tagText: {
-    fontSize: 9,
+    fontSize: 10,
+    lineHeight: 13,
     fontWeight: '800',
     letterSpacing: 0.3,
     textTransform: 'uppercase',
   },
   title: {
     fontSize: 14,
+    lineHeight: 20,
     fontWeight: '800',
     color: DIAGNOSIS_THEME.textPrimary,
     letterSpacing: -0.2,
   },
   description: {
     fontSize: 12,
-    lineHeight: 17,
+    lineHeight: 18,
     color: DIAGNOSIS_THEME.textSecondary,
   },
 });

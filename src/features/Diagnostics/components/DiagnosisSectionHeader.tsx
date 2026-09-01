@@ -21,7 +21,9 @@ export function DiagnosisSectionHeader({
       {eyebrow != null && eyebrow.length > 0 ? (
         <View style={styles.eyebrowRow}>
           <View style={[styles.accentBar, { backgroundColor: accentColor }]} />
-          <Text style={[styles.eyebrow, { color: accentColor }]}>{eyebrow}</Text>
+          <Text style={[styles.eyebrow, { color: accentColor }]} numberOfLines={1}>
+            {eyebrow}
+          </Text>
         </View>
       ) : null}
       <Text style={styles.title}>{title}</Text>
@@ -35,7 +37,7 @@ export function DiagnosisSectionHeader({
 
 const styles = StyleSheet.create({
   wrap: {
-    marginBottom: 14,
+    marginBottom: 16,
   },
   eyebrowRow: {
     flexDirection: 'row',
@@ -47,15 +49,20 @@ const styles = StyleSheet.create({
     width: 3,
     height: 14,
     borderRadius: 2,
+    flexShrink: 0,
   },
   eyebrow: {
+    flexShrink: 1,
     fontSize: 11,
+    lineHeight: 16,
     fontWeight: '800',
     letterSpacing: 1.2,
     textTransform: 'uppercase',
+    paddingRight: 4,
   },
   title: {
     fontSize: 20,
+    lineHeight: 26,
     fontWeight: '800',
     color: DIAGNOSIS_THEME.textPrimary,
     letterSpacing: -0.3,
@@ -63,7 +70,7 @@ const styles = StyleSheet.create({
   subtitle: {
     marginTop: 6,
     fontSize: 14,
-    lineHeight: 20,
+    lineHeight: 21,
     color: DIAGNOSIS_THEME.textSecondary,
   },
   line: {

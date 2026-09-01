@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -20,7 +21,11 @@ import { BusinessDiagnosisHero } from '@/features/Diagnostics/components/Busines
 import { DiagnosisActivePackBanner } from '@/features/Diagnostics/components/DiagnosisActivePackBanner';
 import { DiagnosisFeatureCard } from '@/features/Diagnostics/components/DiagnosisFeatureCard';
 import { DiagnosisPaymentModal } from '@/features/Diagnostics/components/DiagnosisPaymentModal';
-import { DiagnosisPlanCard } from '@/features/Diagnostics/components/DiagnosisPlanCard';
+import {
+  DIAGNOSIS_PLAN_CARD_GAP,
+  DIAGNOSIS_PLAN_CARD_WIDTH,
+  DiagnosisPlanCard,
+} from '@/features/Diagnostics/components/DiagnosisPlanCard';
 import { DiagnosisSectionHeader } from '@/features/Diagnostics/components/DiagnosisSectionHeader';
 import { DIAGNOSIS_THEME } from '@/features/Diagnostics/constants/diagnosisTheme';
 import { useDiagnosisPurchase } from '@/features/Diagnostics/hooks/useDiagnosisPurchase';
@@ -69,6 +74,8 @@ const FEATURES = [
     accent: '#7C3AED',
   },
 ] as const;
+
+const FEATURE_ROW_SIZE = 2;
 
 const TRUST_ITEMS = [
   { icon: 'wallet-outline' as const, label: 'Wallet pay' },
@@ -175,28 +182,41 @@ export function BusinessDiagnosisScreen(): React.ReactElement {
     scrollRef.current?.scrollTo({ y: Math.max(packsScrollY - 16, 0), animated: true });
   }, [packsScrollY]);
 
+  const featureRows = useMemo((): (typeof FEATURES)[number][][] => {
+    const rows: (typeof FEATURES)[number][][] = [];
+    for (let index = 0; index < FEATURES.length; index += FEATURE_ROW_SIZE) {
+      rows.push([...FEATURES.slice(index, index + FEATURE_ROW_SIZE)]);
+    }
+    return rows;
+  }, []);
+
   return (
     <SafeAreaWrapper edges={['top', 'bottom']} bgColor={DIAGNOSIS_THEME.heroBg}>
       {purchase.diagnosisPurchaseLoginDialog}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Go back"
-        onPress={() => navigationRef.goBack()}
-        style={({ pressed }) => [styles.backFab, pressed && styles.backFabPressed]}
-      >
-        <Ionicons name="chevron-back" size={22} color={DIAGNOSIS_THEME.brandPrimary} />
-      </Pressable>
+      <View style={styles.headerBar}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          onPress={() => navigationRef.goBack()}
+          hitSlop={8}
+          style={({ pressed }) => [styles.backFab, pressed && styles.backFabPressed]}
+        >
+          <Ionicons name="chevron-back" size={22} color={DIAGNOSIS_THEME.brandPrimary} />
+        </Pressable>
+      </View>
 
       <ScrollView
         ref={scrollRef}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        contentInsetAdjustmentBehavior="never"
+        automaticallyAdjustContentInsets={false}
       >
         <BusinessDiagnosisHero
           backgroundColor={DIAGNOSIS_THEME.heroBg}
           accentColor={DIAGNOSIS_THEME.heroAccent}
           showStats
-          topPadding={52}
+          topPadding={8}
           onTalkToExpertPress={onTalkToExpertPress}
           onSecondaryPress={scrollToPacks}
           secondaryPillLabel="View packs"
@@ -212,32 +232,42 @@ export function BusinessDiagnosisScreen(): React.ReactElement {
           />
 
           <View style={styles.featureGrid}>
-            {FEATURES.map((feature) => (
-              <DiagnosisFeatureCard
-                key={feature.title}
-                icon={feature.icon}
-                title={feature.title}
-                description={feature.description}
-                accentColor={feature.accent}
-              />
+            {featureRows.map((row) => (
+              <View key={row.map((item) => item.title).join('-')} style={styles.featureRow}>
+                {row.map((feature) => (
+                  <DiagnosisFeatureCard
+                    key={feature.title}
+                    icon={feature.icon}
+                    title={feature.title}
+                    description={feature.description}
+                    accentColor={feature.accent}
+                  />
+                ))}
+              </View>
             ))}
           </View>
 
-          <LinearGradient
-            colors={['rgba(15, 81, 50, 0.06)', 'rgba(37, 99, 235, 0.05)']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.trustStrip}
-          >
+          <View style={styles.trustStrip}>
+            <LinearGradient
+              colors={['rgba(15, 81, 50, 0.06)', 'rgba(37, 99, 235, 0.05)']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={StyleSheet.absoluteFill}
+            />
             {TRUST_ITEMS.map((item) => (
               <View key={item.label} style={styles.trustItem}>
                 <Ionicons name={item.icon} size={16} color={DIAGNOSIS_THEME.brandPrimary} />
-                <Text style={styles.trustLabel}>{item.label}</Text>
+                <Text style={styles.trustLabel} numberOfLines={1}>
+                  {item.label}
+                </Text>
               </View>
             ))}
-          </LinearGradient>
+          </View>
 
-          <View onLayout={(event) => setPacksScrollY(event.nativeEvent.layout.y)}>
+          <View
+            style={styles.packsSection}
+            onLayout={(event) => setPacksScrollY(event.nativeEvent.layout.y)}
+          >
             <DiagnosisSectionHeader
               eyebrow="Pricing"
               title="Diagnostic packs"
@@ -268,7 +298,16 @@ export function BusinessDiagnosisScreen(): React.ReactElement {
             {!packsLoading && !packsError && plans.length > 0 ? (
               <ScrollView
                 horizontal
+                nestedScrollEnabled
+                directionalLockEnabled
+                removeClippedSubviews={false}
+                decelerationRate="fast"
+                snapToAlignment="start"
+                snapToInterval={DIAGNOSIS_PLAN_CARD_WIDTH + DIAGNOSIS_PLAN_CARD_GAP}
+                disableIntervalMomentum
                 showsHorizontalScrollIndicator={false}
+                contentInsetAdjustmentBehavior="never"
+                style={styles.plansCarousel}
                 contentContainerStyle={styles.plansList}
               >
                 {plans.map((plan) => (
@@ -304,11 +343,13 @@ export function BusinessDiagnosisScreen(): React.ReactElement {
 }
 
 const styles = StyleSheet.create({
-  backFab: {
-    position: 'absolute',
-    top: 12,
-    left: 14,
+  headerBar: {
+    paddingHorizontal: 14,
+    paddingTop: 4,
+    paddingBottom: 4,
     zIndex: 20,
+  },
+  backFab: {
     width: 42,
     height: 42,
     borderRadius: 21,
@@ -317,64 +358,85 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.96)',
     borderWidth: 1,
     borderColor: 'rgba(15, 81, 50, 0.12)',
-    shadowColor: DIAGNOSIS_THEME.shadow,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 1,
-    shadowRadius: 8,
-    elevation: 4,
+    ...Platform.select({
+      ios: {
+        shadowColor: DIAGNOSIS_THEME.shadow,
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 1,
+        shadowRadius: 8,
+      },
+      android: { elevation: 4 },
+      default: {},
+    }),
   },
   backFabPressed: {
     opacity: 0.8,
     transform: [{ scale: 0.96 }],
   },
   scrollContent: {
-    // paddingTop: THEME.spacing[4],
-    paddingBottom: THEME.spacing[32],
+    paddingBottom: THEME.spacing[40],
   },
   contentShell: {
-    marginTop: -22,
+    marginTop: -12,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     backgroundColor: DIAGNOSIS_THEME.pageBg,
     paddingHorizontal: THEME.spacing[16],
     paddingTop: THEME.spacing[20],
-    paddingBottom: THEME.spacing[12],
+    paddingBottom: THEME.spacing[24],
     borderWidth: 1,
     borderBottomWidth: 0,
     borderColor: 'rgba(255, 255, 255, 0.85)',
-    shadowColor: DIAGNOSIS_THEME.shadow,
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.6,
-    shadowRadius: 12,
-    elevation: 6,
+    overflow: 'visible',
+    ...Platform.select({
+      ios: {
+        shadowColor: DIAGNOSIS_THEME.shadow,
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.6,
+        shadowRadius: 12,
+      },
+      android: { elevation: 6 },
+      default: {},
+    }),
   },
   featureGrid: {
+    gap: 10,
+    marginBottom: THEME.spacing[16],
+  },
+  featureRow: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: 10,
+  },
+  trustStrip: {
+    position: 'relative',
+    overflow: 'hidden',
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    rowGap: 10,
-    marginBottom: THEME.spacing[16],
-  },
-  trustStrip: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 8,
     borderRadius: 14,
     paddingVertical: 12,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     marginBottom: THEME.spacing[20],
     borderWidth: 1,
     borderColor: 'rgba(15, 81, 50, 0.08)',
+    minHeight: 44,
   },
   trustItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    flexShrink: 1,
+    minWidth: 0,
   },
   trustLabel: {
     fontSize: 11,
+    lineHeight: 16,
     fontWeight: '700',
     color: DIAGNOSIS_THEME.textPrimary,
+    flexShrink: 1,
   },
   loader: {
     marginVertical: 28,
@@ -391,7 +453,10 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 14,
+    lineHeight: 20,
     color: DIAGNOSIS_THEME.textSecondary,
+    textAlign: 'center',
+    paddingHorizontal: 16,
   },
   retryButton: {
     paddingHorizontal: 18,
@@ -403,10 +468,21 @@ const styles = StyleSheet.create({
     color: DIAGNOSIS_THEME.contentBg,
     fontWeight: '700',
     fontSize: 14,
+    lineHeight: 20,
+  },
+  packsSection: {
+    overflow: 'visible',
+  },
+  plansCarousel: {
+    marginHorizontal: -THEME.spacing[16],
+    overflow: 'visible',
   },
   plansList: {
-    paddingRight: THEME.spacing[4],
-    paddingBottom: THEME.spacing[8],
+    paddingLeft: THEME.spacing[16],
+    paddingRight: THEME.spacing[16],
+    paddingTop: THEME.spacing[8],
+    paddingBottom: THEME.spacing[24],
+    alignItems: 'flex-start',
   },
   emptyBox: {
     paddingVertical: 24,
@@ -418,7 +494,10 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 14,
+    lineHeight: 20,
     color: DIAGNOSIS_THEME.textSecondary,
+    textAlign: 'center',
+    paddingHorizontal: 16,
   },
 });
 

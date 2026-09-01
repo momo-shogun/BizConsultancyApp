@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { THEME } from '@/constants/theme';
@@ -7,7 +7,14 @@ import { diagnosisIconName, getDiagnosisPlanTheme } from '../constants/diagnosis
 import { DIAGNOSIS_THEME } from '../constants/diagnosisTheme';
 import type { DiagnosisPlanViewModel } from '../types/diagnostics.types';
 
-export const DIAGNOSIS_PLAN_CARD_WIDTH = 300;
+const WINDOW_WIDTH = Dimensions.get('window').width;
+const PACK_CARD_PEEK = 44;
+
+export const DIAGNOSIS_PLAN_CARD_GAP = THEME.spacing[12];
+export const DIAGNOSIS_PLAN_CARD_WIDTH = Math.min(
+  300,
+  WINDOW_WIDTH - THEME.spacing[16] * 2 - PACK_CARD_PEEK,
+);
 
 export interface DiagnosisPlanCardProps {
   plan: DiagnosisPlanViewModel;
@@ -51,24 +58,29 @@ export function DiagnosisPlanCard({ plan, onPress }: DiagnosisPlanCardProps): Re
       : theme.softBorder;
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={plan.ctaLabel}
-      disabled={isDisabled}
-      onPress={() => onPress(plan.id)}
-      style={({ pressed }) => [
-        styles.planCard,
-        {
-          backgroundColor: theme.cardBg,
-          borderColor,
-          borderWidth,
-          shadowColor: theme.accent,
-        },
+    <View
+      style={[
+        styles.planCardShadow,
+        { shadowColor: theme.accent },
         (plan.isPopular || isActive) ? styles.planCardHighlighted : null,
-        pressed && !isDisabled ? styles.planCardPressed : null,
-        isDisabled ? styles.planCardDisabled : null,
       ]}
     >
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={plan.ctaLabel}
+        disabled={isDisabled}
+        onPress={() => onPress(plan.id)}
+        style={({ pressed }) => [
+          styles.planCard,
+          {
+            backgroundColor: theme.cardBg,
+            borderColor,
+            borderWidth,
+          },
+          pressed && !isDisabled ? styles.planCardPressed : null,
+          isDisabled ? styles.planCardDisabled : null,
+        ]}
+      >
       <View style={[styles.cardBlob, { backgroundColor: theme.accent }]} />
 
       <View style={styles.planCardBody}>
@@ -93,9 +105,7 @@ export function DiagnosisPlanCard({ plan, onPress }: DiagnosisPlanCardProps): Re
             </View>
             <Text style={[styles.planName, { color: theme.accentDark }]}>{plan.title}</Text>
             {plan.idealFor != null && plan.idealFor.length > 0 ? (
-              <Text style={styles.planDescription} numberOfLines={2}>
-                {plan.idealFor}
-              </Text>
+              <Text style={styles.planDescription}>{plan.idealFor}</Text>
             ) : null}
           </View>
 
@@ -147,25 +157,38 @@ export function DiagnosisPlanCard({ plan, onPress }: DiagnosisPlanCardProps): Re
           </Text>
         </View>
       </View>
-    </Pressable>
+      </Pressable>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  planCardShadow: {
+    marginRight: DIAGNOSIS_PLAN_CARD_GAP,
+    ...Platform.select({
+      ios: {
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.14,
+        shadowRadius: 14,
+      },
+      android: { elevation: 5 },
+      default: {},
+    }),
+  },
   planCard: {
     width: DIAGNOSIS_PLAN_CARD_WIDTH,
-    marginRight: THEME.spacing[12],
     borderRadius: 18,
     overflow: 'hidden',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.14,
-    shadowRadius: 14,
-    elevation: 5,
   },
   planCardHighlighted: {
-    shadowOpacity: 0.22,
-    shadowRadius: 18,
-    elevation: 8,
+    ...Platform.select({
+      ios: {
+        shadowOpacity: 0.22,
+        shadowRadius: 18,
+      },
+      android: { elevation: 8 },
+      default: {},
+    }),
   },
   planCardPressed: {
     opacity: 0.94,
@@ -216,9 +239,11 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: THEME.typography.size[12],
+    lineHeight: 16,
     fontWeight: '700',
     letterSpacing: 0.6,
     textTransform: 'uppercase',
+    paddingRight: 2,
   },
   popularBadge: {
     paddingHorizontal: THEME.spacing[10],
@@ -229,8 +254,10 @@ const styles = StyleSheet.create({
   },
   popularBadgeText: {
     fontSize: THEME.typography.size[12],
+    lineHeight: 16,
     fontWeight: '700',
     textTransform: 'uppercase',
+    paddingRight: 2,
   },
   activeBadge: {
     paddingHorizontal: THEME.spacing[10],
@@ -239,9 +266,11 @@ const styles = StyleSheet.create({
   },
   activeBadgeText: {
     fontSize: THEME.typography.size[12],
+    lineHeight: 16,
     fontWeight: '700',
     color: '#FFFFFF',
     textTransform: 'uppercase',
+    paddingRight: 2,
   },
   selectedCheckInline: {
     width: 28,
@@ -259,6 +288,7 @@ const styles = StyleSheet.create({
   },
   planName: {
     fontSize: THEME.typography.size[20],
+    lineHeight: 26,
     fontWeight: '700',
   },
   planDescription: {
@@ -275,6 +305,7 @@ const styles = StyleSheet.create({
   },
   priceAmount: {
     fontSize: THEME.typography.size[28],
+    lineHeight: 34,
     fontWeight: '800',
     letterSpacing: -0.5,
   },
@@ -290,10 +321,12 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: THEME.typography.size[12],
+    lineHeight: 16,
     fontWeight: '700',
     marginBottom: THEME.spacing[10],
     textTransform: 'uppercase',
     letterSpacing: 0.4,
+    paddingRight: 2,
   },
   scopeRow: {
     flexDirection: 'row',
@@ -315,17 +348,13 @@ const styles = StyleSheet.create({
     paddingVertical: THEME.spacing[14],
     borderRadius: 12,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    elevation: 3,
   },
   upgradeCtaDisabled: {
     opacity: 0.65,
   },
   upgradeCtaText: {
     fontSize: THEME.typography.size[16],
+    lineHeight: 22,
     fontWeight: '700',
     color: THEME.colors.white,
   },

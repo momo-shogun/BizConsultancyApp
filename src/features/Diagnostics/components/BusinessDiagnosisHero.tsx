@@ -339,6 +339,7 @@ export function BusinessDiagnosisHero({
       <AmbientRadialOrbs accentColor={accentColor} />
 
       <View style={styles.stage}>
+        <View style={styles.stageSlot} />
         <Animated.View style={[styles.lottieAnchor, lottieMotion]} pointerEvents="none">
           <LottieView source={DIAGNOSIS_LOTTIE_SOURCE} autoPlay loop style={styles.lottie} />
         </Animated.View>
@@ -399,13 +400,29 @@ export function BusinessDiagnosisHero({
       </View>
 
       {showStats ? (
-        <View style={styles.statsRow}>
-          {HERO_STATS.map((stat) => (
-            <View key={stat.label} style={[styles.statCell, { borderColor: withAlpha(accentColor, 0.18) }]}>
-              <Text style={styles.statValue}>{stat.value}</Text>
-              <Text style={styles.statLabel}>{stat.label}</Text>
-            </View>
-          ))}
+        <View style={styles.statsBlock}>
+          <View style={styles.statsRow}>
+            {HERO_STATS.slice(0, 2).map((stat) => (
+              <View
+                key={stat.label}
+                style={[styles.statCell, { borderColor: withAlpha(accentColor, 0.18) }]}
+              >
+                <Text style={styles.statValue}>{stat.value}</Text>
+                <Text style={styles.statLabel}>{stat.label}</Text>
+              </View>
+            ))}
+          </View>
+          <View style={styles.statsRow}>
+            {HERO_STATS.slice(2, 4).map((stat) => (
+              <View
+                key={stat.label}
+                style={[styles.statCell, { borderColor: withAlpha(accentColor, 0.18) }]}
+              >
+                <Text style={styles.statValue}>{stat.value}</Text>
+                <Text style={styles.statLabel}>{stat.label}</Text>
+              </View>
+            ))}
+          </View>
         </View>
       ) : null}
     </View>
@@ -438,18 +455,22 @@ const ambient = StyleSheet.create({
   },
 });
 
+const HERO_STAGE_HEIGHT = 196;
+
 const styles = StyleSheet.create({
   wrap: {
     width: '100%',
     minHeight: 176,
-    overflow: 'hidden',
     paddingHorizontal: 14,
   },
   stage: {
     position: 'relative',
-    minHeight: 172,
     zIndex: 2,
     paddingVertical: 10,
+    overflow: 'hidden',
+  },
+  stageSlot: {
+    height: HERO_STAGE_HEIGHT,
   },
   lottieAnchor: {
     ...StyleSheet.absoluteFill,
@@ -474,6 +495,7 @@ const styles = StyleSheet.create({
   },
   eyebrow: {
     fontSize: 10,
+    lineHeight: 14,
     letterSpacing: 2.2,
     fontWeight: '700',
     marginBottom: 4,
@@ -491,6 +513,7 @@ const styles = StyleSheet.create({
   },
   wordBoost: {
     fontSize: 22,
+    lineHeight: 28,
     fontWeight: '900',
     color: '#0F172A',
     textShadowColor: 'rgba(148, 163, 184, 0.45)',
@@ -499,6 +522,7 @@ const styles = StyleSheet.create({
   },
   wordYour: {
     fontSize: 22,
+    lineHeight: 28,
     fontWeight: '900',
     color: '#1E3A5F',
     textShadowColor: 'rgba(15, 23, 42, 0.2)',
@@ -516,6 +540,7 @@ const styles = StyleSheet.create({
   },
   withWord: {
     fontSize: 10,
+    lineHeight: 14,
     fontWeight: '500',
     fontStyle: 'italic',
     letterSpacing: 1.0,
@@ -523,6 +548,7 @@ const styles = StyleSheet.create({
   },
   wordBiz: {
     fontSize: 26,
+    lineHeight: 32,
     fontWeight: '900',
     color: '#FFD93D',
     textShadowColor: SHADOW_RED,
@@ -531,6 +557,7 @@ const styles = StyleSheet.create({
   },
   wordDiag: {
     fontSize: 18,
+    lineHeight: 24,
     fontWeight: '900',
     color: '#0F766E',
     textShadowColor: SHADOW_TEAL,
@@ -589,6 +616,7 @@ const styles = StyleSheet.create({
   },
   pillText: {
     fontSize: 11,
+    lineHeight: 16,
     fontWeight: '700',
     letterSpacing: 0.1,
   },
@@ -598,23 +626,26 @@ const styles = StyleSheet.create({
   pillTextSecondary: {
     color: '#047857',
   },
-  statsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
+  statsBlock: {
     paddingHorizontal: 6,
     paddingTop: 16,
-    paddingBottom: 20,
-    marginBottom: 16,
+    paddingBottom: 24,
+    gap: 10,
     zIndex: 2,
   },
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: 10,
+  },
   statCell: {
-    flexBasis: '47%',
+    flex: 1,
+    minWidth: 0,
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
     paddingTop: 14,
     paddingBottom: 14,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     borderWidth: 1,
     shadowColor: 'rgba(11, 61, 44, 0.12)',
     shadowOffset: { width: 0, height: 3 },
@@ -624,11 +655,13 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 18,
+    lineHeight: 24,
     fontWeight: '800',
     color: '#0F172A',
   },
   statLabel: {
     fontSize: 12,
+    lineHeight: 16,
     color: '#64748B',
     marginTop: 2,
   },

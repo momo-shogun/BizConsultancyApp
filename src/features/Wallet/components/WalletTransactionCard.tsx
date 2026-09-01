@@ -42,18 +42,16 @@ export function WalletTransactionCard({
       </View>
 
       <View style={styles.body}>
-        <View style={styles.titleRow}>
-          <Text style={styles.title} numberOfLines={1}>
-            {title}
-          </Text>
+        <Text style={styles.title} numberOfLines={2}>
+          {title}
+        </Text>
+
+        <View style={styles.metaRow}>
           <View style={[styles.typePill, { backgroundColor: visual.accentSoft }]}>
             <Text style={[styles.typePillText, { color: visual.accent }]}>
               {visual.label}
             </Text>
           </View>
-        </View>
-
-        <View style={styles.metaRow}>
           {timeLabel.length > 0 ? (
             <Text style={styles.metaText}>{timeLabel}</Text>
           ) : null}
@@ -116,17 +114,12 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingTop: 2,
   },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
   title: {
-    flex: 1,
     fontSize: 15,
     fontWeight: '700',
     color: '#0F172A',
     letterSpacing: -0.2,
+    lineHeight: 20,
   },
   typePill: {
     paddingHorizontal: 8,
