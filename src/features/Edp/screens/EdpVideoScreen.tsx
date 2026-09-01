@@ -14,6 +14,7 @@ import { useEdpWatchTimeHeartbeat } from '@/features/Edp/hooks/useEdpWatchTimeHe
 import { EdpEnrollmentRequiredView } from '@/features/Edp/components/EdpEnrollmentRequiredView';
 import { useEdpAccess } from '@/features/Edp/hooks/useEdpAccess';
 import { useEdpEnrollmentPurchase } from '@/features/Edp/hooks/useEdpEnrollmentPurchase';
+import { useRazorpayAvailability } from '@/features/AppSettings/hooks/useRazorpayAvailability';
 import { normalizeEdpModuleSlug } from '@/features/Edp/utils/edpCourseDetailsParsing';
 import type { EdpModuleLessonRow } from '@/features/Edp/types/edpCourseDetails.types';
 import { buildDirectVideoHtml } from '@/features/Edp/utils/edpOverviewVideoHtml';
@@ -303,6 +304,7 @@ export default function EdpVideoScreen(): React.ReactElement {
     isEnrollmentLoading,
   } = useEdpAccess();
   const purchaseFlow = useEdpEnrollmentPurchase();
+  const { canShowPaidPurchaseCtas } = useRazorpayAvailability();
 
   const {
     isLoading,
@@ -377,6 +379,7 @@ export default function EdpVideoScreen(): React.ReactElement {
         <ScreenHeader title="EDP Programme" headerColor={EDP_HERO_BG} onBackPress={handleBack} />
         <EdpEnrollmentRequiredView
           isConsultant={isConsultant}
+          purchasesDisabled={!canShowPaidPurchaseCtas}
           onEnrollPress={isConsultant ? undefined : () => purchaseFlow.openPaymentModal()}
         />
         <DiagnosisPaymentModal

@@ -30,6 +30,8 @@ import { DiagnosisSectionHeader } from '@/features/Diagnostics/components/Diagno
 import { DIAGNOSIS_THEME } from '@/features/Diagnostics/constants/diagnosisTheme';
 import { useDiagnosisPurchase } from '@/features/Diagnostics/hooks/useDiagnosisPurchase';
 import { mapToDiagnosisPlanViewModels } from '@/features/Diagnostics/utils/diagnosticsMappers';
+import { useRazorpayAvailability } from '@/features/AppSettings/hooks/useRazorpayAvailability';
+import { PAID_PURCHASES_IOS_VIEW_ONLY_MESSAGE } from '@/features/AppSettings/constants/mobilePurchaseGating';
 import {
   selectEffectiveAccountRole,
   selectHasVerifiedLogin,
@@ -78,9 +80,9 @@ const FEATURES = [
 const FEATURE_ROW_SIZE = 2;
 
 const TRUST_ITEMS = [
-  { icon: 'wallet-outline' as const, label: 'Wallet pay' },
-  { icon: 'card-outline' as const, label: 'Razorpay' },
   { icon: 'document-text-outline' as const, label: 'Expert review' },
+  { icon: 'shield-checkmark-outline' as const, label: 'Confidential' },
+  { icon: 'time-outline' as const, label: 'Actionable insights' },
 ] as const;
 
 export function BusinessDiagnosisScreen(): React.ReactElement {
@@ -89,6 +91,7 @@ export function BusinessDiagnosisScreen(): React.ReactElement {
   const [packsScrollY, setPacksScrollY] = useState(0);
   const hasVerifiedLogin = useAppSelector(selectHasVerifiedLogin);
   const accountRole = useAppSelector(selectEffectiveAccountRole);
+  const { canShowPaidPurchaseCtas } = useRazorpayAvailability();
 
   const {
     data: packs = [],
@@ -264,20 +267,30 @@ export function BusinessDiagnosisScreen(): React.ReactElement {
             ))}
           </View>
 
+          {canShowPaidPurchaseCtas || activePack != null ? (
           <View
             style={styles.packsSection}
             onLayout={(event) => setPacksScrollY(event.nativeEvent.layout.y)}
           >
-            <DiagnosisSectionHeader
-              eyebrow="Pricing"
-              title="Diagnostic packs"
-              subtitle="Pick a tier that matches your stage. Upgrade anytime as your business grows."
-              accentColor={DIAGNOSIS_THEME.brandPrimary}
-            />
+            {canShowPaidPurchaseCtas ? (
+              <DiagnosisSectionHeader
+                eyebrow="Pricing"
+                title="Diagnostic packs"
+                subtitle="Pick a tier that matches your stage. Upgrade anytime as your business grows."
+                accentColor={DIAGNOSIS_THEME.brandPrimary}
+              />
+            ) : (
+              <DiagnosisSectionHeader
+                eyebrow="Your pack"
+                title="Diagnostic access"
+                subtitle={PAID_PURCHASES_IOS_VIEW_ONLY_MESSAGE}
+                accentColor={DIAGNOSIS_THEME.brandPrimary}
+              />
+            )}
 
             {activePack != null ? <DiagnosisActivePackBanner purchaseState={activePack} /> : null}
 
-            {packsLoading ? (
+            {canShowPaidPurchaseCtas && packsLoading ? (
               <ActivityIndicator
                 size="large"
                 color={DIAGNOSIS_THEME.brandPrimary}
@@ -285,7 +298,7 @@ export function BusinessDiagnosisScreen(): React.ReactElement {
               />
             ) : null}
 
-            {packsError && !packsLoading ? (
+            {canShowPaidPurchaseCtas && packsError && !packsLoading ? (
               <View style={styles.errorBox}>
                 <Ionicons name="cloud-offline-outline" size={32} color={DIAGNOSIS_THEME.textSecondary} />
                 <Text style={styles.errorText}>Could not load diagnostic packs.</Text>
@@ -295,7 +308,7 @@ export function BusinessDiagnosisScreen(): React.ReactElement {
               </View>
             ) : null}
 
-            {!packsLoading && !packsError && plans.length > 0 ? (
+            {canShowPaidPurchaseCtas && !packsLoading && !packsError && plans.length > 0 ? (
               <ScrollView
                 horizontal
                 nestedScrollEnabled
@@ -316,12 +329,13 @@ export function BusinessDiagnosisScreen(): React.ReactElement {
               </ScrollView>
             ) : null}
 
-            {!packsLoading && !packsError && plans.length === 0 ? (
+            {canShowPaidPurchaseCtas && !packsLoading && !packsError && plans.length === 0 ? (
               <View style={styles.emptyBox}>
                 <Text style={styles.emptyText}>No diagnostic packs available right now.</Text>
               </View>
             ) : null}
           </View>
+          ) : null}
         </View>
       </ScrollView>
 

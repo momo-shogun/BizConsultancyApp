@@ -11,6 +11,7 @@ import {
   selectLoggedInMobile,
 } from '@/features/Auth/store/authSelectors';
 import { useRazorpayAvailability } from '@/features/AppSettings/hooks/useRazorpayAvailability';
+import { PAID_PURCHASES_DISABLED_MESSAGE } from '@/features/AppSettings/constants/mobilePurchaseGating';
 import {
   useGetConsultantWalletBalanceQuery,
   useGetMyWalletBalanceQuery,
@@ -116,7 +117,7 @@ export function useServiceOnboardingWizard({
   const navigation =
     useNavigation<NativeStackNavigationProp<ServicesStackParamList>>();
   const hasVerifiedLogin = useAppSelector(selectHasVerifiedLogin);
-  const { isRazorpayEnabled } = useRazorpayAvailability();
+  const { canShowPaidPurchaseCtas, isRazorpayEnabled } = useRazorpayAvailability();
   const displayName = useAppSelector(selectDisplayName);
   const email = useAppSelector(selectLoggedInEmail);
   const mobile = useAppSelector(selectLoggedInMobile);
@@ -531,6 +532,10 @@ export function useServiceOnboardingWizard({
   ]);
 
   const runWalletPayment = useCallback(async (): Promise<void> => {
+    if (!canShowPaidPurchaseCtas) {
+      setErrorMessage(PAID_PURCHASES_DISABLED_MESSAGE);
+      return;
+    }
     if (pricingSummary == null) {
       return;
     }
@@ -539,7 +544,7 @@ export function useServiceOnboardingWizard({
       paymentMode: 'wallet',
       amountInPaise: pricingSummary.amountInPaise,
     });
-  }, [pricingSummary, finalizeSubmission]);
+  }, [canShowPaidPurchaseCtas, pricingSummary, finalizeSubmission]);
 
   const handleComplete = useCallback(async (): Promise<void> => {
     if (pricingSummary == null) {
@@ -553,8 +558,13 @@ export function useServiceOnboardingWizard({
       return;
     }
 
+    if (!canShowPaidPurchaseCtas) {
+      setErrorMessage(PAID_PURCHASES_DISABLED_MESSAGE);
+      return;
+    }
+
     setPaymentModalActive(true);
-  }, [pricingSummary, finalizeSubmission]);
+  }, [canShowPaidPurchaseCtas, pricingSummary, finalizeSubmission]);
 
   const walletBalance = isConsultant ? consultantWalletBalance : userWalletBalance;
   const isWalletLoading =

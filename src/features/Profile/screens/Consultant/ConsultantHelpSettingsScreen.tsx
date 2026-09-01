@@ -31,7 +31,7 @@ export function ConsultantHelpSettingsScreen(
     }
     return filterHelpSettingsSections(
       CONSULTANT_HELP_SETTINGS_SECTIONS,
-      new Set(['membership']),
+      new Set(['membership', 'wallet', 'bizCredits', 'withdrawals', 'transactionHistory']),
     );
   }, [canShowPaidPurchaseCtas]);
 

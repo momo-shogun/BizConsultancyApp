@@ -7,6 +7,7 @@ import {
   selectHasVerifiedLogin,
 } from '@/features/Auth/store/authSelectors';
 import { useRazorpayAvailability } from '@/features/AppSettings/hooks/useRazorpayAvailability';
+import { PAID_PURCHASES_DISABLED_MESSAGE } from '@/features/AppSettings/constants/mobilePurchaseGating';
 import {
   useCreateDiagnosisRegistrationMutation,
   useVerifyDiagnosisPaymentMutation,
@@ -66,7 +67,7 @@ function extractApiMessage(error: unknown): string {
 
 export function useDiagnosisPurchase(): UseDiagnosisPurchaseResult {
   const hasVerifiedLogin = useAppSelector(selectHasVerifiedLogin);
-  const { isRazorpayEnabled } = useRazorpayAvailability();
+  const { canShowPaidPurchaseCtas, isRazorpayEnabled } = useRazorpayAvailability();
   const accountRole = useAppSelector(selectAccountRole);
   const isConsultant = accountRole === 'consultant';
   const auth = useAppSelector(selectAuth);
@@ -145,6 +146,10 @@ export function useDiagnosisPurchase(): UseDiagnosisPurchaseResult {
 
   const openPaymentForPlan = useCallback(
     (plan: DiagnosisPlanViewModel, priceRupees: number): void => {
+      if (!canShowPaidPurchaseCtas) {
+        showGlobalError(PAID_PURCHASES_DISABLED_MESSAGE);
+        return;
+      }
       if (!hasVerifiedLogin) {
         promptDiagnosisLogin();
         return;
@@ -157,7 +162,7 @@ export function useDiagnosisPurchase(): UseDiagnosisPurchaseResult {
       setPaymentModalVisible(true);
       void refetchWalletBalance();
     },
-    [hasVerifiedLogin, promptDiagnosisLogin, refetchWalletBalance],
+    [canShowPaidPurchaseCtas, hasVerifiedLogin, promptDiagnosisLogin, refetchWalletBalance],
   );
 
   const closePaymentModal = useCallback((): void => {
@@ -183,6 +188,10 @@ export function useDiagnosisPurchase(): UseDiagnosisPurchaseResult {
   }, []);
 
   const payWithWallet = useCallback(async (): Promise<void> => {
+    if (!canShowPaidPurchaseCtas) {
+      showGlobalError(PAID_PURCHASES_DISABLED_MESSAGE);
+      return;
+    }
     if (selectedPlan == null) {
       return;
     }
@@ -204,7 +213,7 @@ export function useDiagnosisPurchase(): UseDiagnosisPurchaseResult {
       setIsBusy(false);
       setPayingWith(null);
     }
-  }, [createRegistration, onPurchaseSuccess, selectedPlan]);
+  }, [canShowPaidPurchaseCtas, createRegistration, onPurchaseSuccess, selectedPlan]);
 
   const payWithRazorpay = useCallback(async (): Promise<void> => {
     if (selectedPlan == null) {

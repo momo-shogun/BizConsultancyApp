@@ -28,7 +28,10 @@ export function UserHelpSettingsScreen(props: UserHelpSettingsScreenProps): Reac
     if (canShowPaidPurchaseCtas) {
       return USER_HELP_SETTINGS_SECTIONS;
     }
-    return filterHelpSettingsSections(USER_HELP_SETTINGS_SECTIONS, new Set(['membership']));
+    return filterHelpSettingsSections(
+      USER_HELP_SETTINGS_SECTIONS,
+      new Set(['membership', 'wallet', 'bizCredits']),
+    );
   }, [canShowPaidPurchaseCtas]);
 
   const handleRowPress = (rowId: string): void => {

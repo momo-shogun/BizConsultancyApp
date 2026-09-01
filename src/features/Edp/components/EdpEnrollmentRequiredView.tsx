@@ -3,9 +3,11 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { THEME } from '@/constants/theme';
+import { PAID_PURCHASES_IOS_VIEW_ONLY_MESSAGE } from '@/features/AppSettings/constants/mobilePurchaseGating';
 
 export interface EdpEnrollmentRequiredViewProps {
   isConsultant?: boolean;
+  purchasesDisabled?: boolean;
   onEnrollPress?: () => void;
 }
 
@@ -21,9 +23,13 @@ export function EdpEnrollmentRequiredView(
       <Text style={styles.body}>
         {props.isConsultant === true
           ? 'Switch to a user account to purchase and access EDP modules, videos, and PDFs.'
-          : 'Purchase the EDP programme to access modules, videos, and PDFs.'}
+          : props.purchasesDisabled === true
+            ? PAID_PURCHASES_IOS_VIEW_ONLY_MESSAGE
+            : 'Purchase the EDP programme to access modules, videos, and PDFs.'}
       </Text>
-      {props.isConsultant !== true && props.onEnrollPress != null ? (
+      {props.isConsultant !== true &&
+      props.purchasesDisabled !== true &&
+      props.onEnrollPress != null ? (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Enroll in EDP programme"

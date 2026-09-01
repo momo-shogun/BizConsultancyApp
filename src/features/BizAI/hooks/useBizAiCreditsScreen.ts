@@ -11,6 +11,7 @@ import {
   selectLoggedInMobile,
 } from '@/features/Auth/store/authSelectors';
 import { useRazorpayAvailability } from '@/features/AppSettings/hooks/useRazorpayAvailability';
+import { PAID_PURCHASES_DISABLED_MESSAGE } from '@/features/AppSettings/constants/mobilePurchaseGating';
 import {
   useGetConsultantWalletBalanceQuery,
   useGetMyWalletBalanceQuery,
@@ -39,6 +40,7 @@ export type AiCreditsBuyMode = 'razorpay' | 'wallet';
 export interface UseBizAiCreditsScreenResult {
   isConsultant: boolean;
   hasVerifiedLogin: boolean;
+  canShowPaidPurchaseCtas: boolean;
   isRazorpayEnabled: boolean;
   isLoading: boolean;
   packages: AiCreditPackage[];
@@ -58,7 +60,7 @@ export interface UseBizAiCreditsScreenResult {
 
 export function useBizAiCreditsScreen(): UseBizAiCreditsScreenResult {
   const navigation = useNavigation<NavigationProp<AccountStackParamList>>();
-  const { isRazorpayEnabled } = useRazorpayAvailability();
+  const { canShowPaidPurchaseCtas, isRazorpayEnabled } = useRazorpayAvailability();
   const accountRole = useAppSelector(selectAccountRole);
   const hasVerifiedLogin = useAppSelector(selectHasVerifiedLogin);
   const isConsultant = accountRole === 'consultant';
@@ -140,6 +142,10 @@ export function useBizAiCreditsScreen(): UseBizAiCreditsScreenResult {
 
   const buyWithWallet = useCallback(
     async (pkg: AiCreditPackage): Promise<void> => {
+      if (!canShowPaidPurchaseCtas) {
+        setErrorMessage(PAID_PURCHASES_DISABLED_MESSAGE);
+        return;
+      }
       if (!hasVerifiedLogin) {
         setErrorMessage('Please log in to purchase credits.');
         return;
@@ -159,7 +165,7 @@ export function useBizAiCreditsScreen(): UseBizAiCreditsScreenResult {
         setBuyMode(null);
       }
     },
-    [hasVerifiedLogin, purchaseWithWallet, refreshBalances],
+    [canShowPaidPurchaseCtas, hasVerifiedLogin, purchaseWithWallet, refreshBalances],
   );
 
   const buyWithRazorpay = useCallback(
@@ -222,6 +228,7 @@ export function useBizAiCreditsScreen(): UseBizAiCreditsScreenResult {
   return {
     isConsultant,
     hasVerifiedLogin,
+    canShowPaidPurchaseCtas,
     isRazorpayEnabled,
     isLoading,
     packages,

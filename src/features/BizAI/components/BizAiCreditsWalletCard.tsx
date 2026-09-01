@@ -9,12 +9,14 @@ export interface BizAiCreditsWalletCardProps {
   isConsultant: boolean;
   walletInr: number | null;
   onTopUp: () => void;
+  showTopUp?: boolean;
 }
 
 export function BizAiCreditsWalletCard({
   isConsultant,
   walletInr,
   onTopUp,
+  showTopUp = true,
 }: BizAiCreditsWalletCardProps): React.ReactElement {
   const walletLabel = isConsultant ? 'Consultant wallet' : 'Your wallet';
   const amountLabel =
@@ -29,14 +31,16 @@ export function BizAiCreditsWalletCard({
         <Text style={s.walletLabel}>{walletLabel}</Text>
         <Text style={s.walletAmount}>{amountLabel}</Text>
       </View>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Top up wallet"
-        onPress={onTopUp}
-        style={({ pressed }) => [s.topUpBtn, pressed ? s.topUpBtnPressed : null]}
-      >
-        <Text style={s.topUpBtnText}>Top up</Text>
-      </Pressable>
+      {showTopUp ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Top up wallet"
+          onPress={onTopUp}
+          style={({ pressed }) => [s.topUpBtn, pressed ? s.topUpBtnPressed : null]}
+        >
+          <Text style={s.topUpBtnText}>Top up</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }

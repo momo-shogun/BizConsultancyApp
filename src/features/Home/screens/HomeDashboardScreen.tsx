@@ -58,6 +58,7 @@ import { applyHomeStatusBar, applyHomeStatusBarSoon } from '@/features/Home/util
 import { darkenHex, ZEPTO_TABS_TRACK_DARKEN } from '@/utils/darkenHex';
 import { useGetPublicServicesQuery } from '@/features/Services/api/servicesApi';
 import { useServicePurchaseLoginGate } from '@/features/Services/hooks/useServicePurchaseLoginGate';
+import { useRazorpayAvailability } from '@/features/AppSettings/hooks/useRazorpayAvailability';
 import { mapPublicServiceToCardItem } from '@/features/Services/utils/serviceMappers';
 import { ROUTES } from '@/navigation/routeNames';
 import { navigationRef } from '@/navigation/RootNavigator';
@@ -204,6 +205,7 @@ export function HomeDashboardScreen(): React.ReactElement {
     isServicePurchased,
     servicePurchaseLoginDialog,
   } = useServicePurchaseLoginGate();
+  const { canShowPaidPurchaseCtas } = useRazorpayAvailability();
   const [activeShell, setActiveShell] = useState<ZeptoHSShellColors | null>(null);
   const [consultantsPageNumber, setConsultantsPageNumber] = useState(1);
   const [nowMs, setNowMs] = useState(() => Date.now());
@@ -640,12 +642,12 @@ export function HomeDashboardScreen(): React.ReactElement {
     () => ({
       backgroundColor: HOME_DEFAULT_SHELL_BG,
       addressLabel: '',
-      walletLabel,
+      walletLabel: canShowPaidPurchaseCtas ? walletLabel : undefined,
       onAddressPress: (): void => undefined,
-      onWalletPress,
+      onWalletPress: canShowPaidPurchaseCtas ? onWalletPress : undefined,
       onProfilePress,
     }),
-    [onProfilePress, onWalletPress, walletLabel],
+    [canShowPaidPurchaseCtas, onProfilePress, onWalletPress, walletLabel],
   );
 
   const safeAreaBgColor = useMemo(

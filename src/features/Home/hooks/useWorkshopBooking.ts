@@ -9,6 +9,7 @@ import {
   selectLoggedInMobile,
 } from '@/features/Auth/store/authSelectors';
 import { useRazorpayAvailability } from '@/features/AppSettings/hooks/useRazorpayAvailability';
+import { PAID_PURCHASES_DISABLED_MESSAGE } from '@/features/AppSettings/constants/mobilePurchaseGating';
 import { useProfileLoginPrompt } from '@/features/Profile/hooks/useProfileLoginPrompt';
 import {
   isPaidWorkshopBookingResult,
@@ -61,7 +62,7 @@ export function useWorkshopBooking(
   options?: UseWorkshopBookingOptions,
 ): UseWorkshopBookingResult {
   const onBookingSuccess = options?.onBookingSuccess;
-  const { isRazorpayEnabled } = useRazorpayAvailability();
+  const { canShowPaidPurchaseCtas, isRazorpayEnabled } = useRazorpayAvailability();
   const hasVerifiedLogin = useAppSelector(selectHasVerifiedLogin);
   const accountRole = useAppSelector(selectAccountRole);
   const displayName = useAppSelector(selectDisplayName);
@@ -141,6 +142,10 @@ export function useWorkshopBooking(
   }, [workshop, createBooking, finishBookingSuccess]);
 
   const handleWalletBook = useCallback(async (): Promise<void> => {
+    if (!canShowPaidPurchaseCtas) {
+      Alert.alert('Booking', PAID_PURCHASES_DISABLED_MESSAGE);
+      return;
+    }
     if (workshop == null) {
       return;
     }
@@ -153,7 +158,7 @@ export function useWorkshopBooking(
     } finally {
       setPayingWith(null);
     }
-  }, [workshop, createBooking, finishBookingSuccess]);
+  }, [canShowPaidPurchaseCtas, workshop, createBooking, finishBookingSuccess]);
 
   const handleRazorpayBook = useCallback(async (): Promise<void> => {
     if (workshop == null) {
@@ -243,12 +248,18 @@ export function useWorkshopBooking(
       return;
     }
 
+    if (!canShowPaidPurchaseCtas) {
+      Alert.alert('Booking', PAID_PURCHASES_DISABLED_MESSAGE);
+      return;
+    }
+
     setPaymentModalVisible(true);
   }, [
     workshop,
     hasVerifiedLogin,
     isBooked,
     isFreeBooking,
+    canShowPaidPurchaseCtas,
     promptLogin,
     handleFreeBook,
   ]);

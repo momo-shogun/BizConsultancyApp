@@ -17,6 +17,8 @@ import {
   formatWalletBalanceInr,
   useGetMyWalletBalanceQuery,
 } from '@/features/Home/api/userWalletsApi';
+import { PAID_PURCHASES_IOS_VIEW_ONLY_MESSAGE } from '@/features/AppSettings/constants/mobilePurchaseGating';
+import { useRazorpayAvailability } from '@/features/AppSettings/hooks/useRazorpayAvailability';
 import { useGetMyWalletTransactionsQuery } from '@/features/Wallet/api/walletApi';
 import { WalletTransactionCard } from '@/features/Wallet/components/WalletTransactionCard';
 import type { WalletTransaction, WalletTransactionSection } from '@/features/Wallet/types/wallet.types';
@@ -31,6 +33,7 @@ const PAGE_SIZE = 20;
 
 export function WalletTransactionsScreen(): React.ReactElement {
   const [page, setPage] = useState(1);
+  const { canShowPaidPurchaseCtas } = useRazorpayAvailability();
 
   const {
     data: balance,
@@ -90,8 +93,20 @@ export function WalletTransactionsScreen(): React.ReactElement {
     canvasColor: WALLET_CANVAS,
     headerColor: ACCOUNT_HUB_GREEN_HEADER_STATUS_BAR,
     headerGradientColors: ACCOUNT_HUB_GREEN_HEADER_GRADIENT,
-    headerAccessory: headerBalance,
+    headerAccessory: canShowPaidPurchaseCtas ? headerBalance : undefined,
   } as const;
+
+  if (!canShowPaidPurchaseCtas) {
+    return (
+      <AccountHubScreenShell {...shellProps}>
+        <View style={styles.viewOnlyWrap}>
+          <Ionicons name="information-circle-outline" size={32} color="#94A3B8" />
+          <Text style={styles.viewOnlyTitle}>Transaction history unavailable</Text>
+          <Text style={styles.viewOnlyBody}>{PAID_PURCHASES_IOS_VIEW_ONLY_MESSAGE}</Text>
+        </View>
+      </AccountHubScreenShell>
+    );
+  }
 
   const renderSectionHeader = useCallback(
     ({ section }: { section: WalletTransactionSection }) => {

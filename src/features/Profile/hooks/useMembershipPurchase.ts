@@ -8,6 +8,7 @@ import {
   selectLoggedInMobile,
 } from '@/features/Auth/store/authSelectors';
 import { useRazorpayAvailability } from '@/features/AppSettings/hooks/useRazorpayAvailability';
+import { PAID_PURCHASES_DISABLED_MESSAGE } from '@/features/AppSettings/constants/mobilePurchaseGating';
 import { useGetMasterCategoriesQuery, useGetMasterSegmentsQuery } from '@/features/consultant/api/consultantApi';
 import {
   useGetConsultantWalletBalanceQuery,
@@ -64,7 +65,7 @@ export interface UseMembershipPurchaseResult {
 
 export function useMembershipPurchase(): UseMembershipPurchaseResult {
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
-  const { isRazorpayEnabled } = useRazorpayAvailability();
+  const { canShowPaidPurchaseCtas, isRazorpayEnabled } = useRazorpayAvailability();
   const accountRole = useAppSelector(selectAccountRole);
   const displayName = useAppSelector(selectDisplayName);
   const authEmail = useAppSelector(selectLoggedInEmail);
@@ -134,6 +135,10 @@ export function useMembershipPurchase(): UseMembershipPurchaseResult {
 
   const openCheckout = useCallback(
     (plan: MembershipPlan): void => {
+      if (!canShowPaidPurchaseCtas) {
+        showGlobalError(PAID_PURCHASES_DISABLED_MESSAGE);
+        return;
+      }
       if (!isAuthenticated) {
         showGlobalError('Please log in to purchase a membership.');
         return;
@@ -149,7 +154,7 @@ export function useMembershipPurchase(): UseMembershipPurchaseResult {
       setPaymentStepVisible(false);
       setCheckoutVisible(true);
     },
-    [isAuthenticated],
+    [canShowPaidPurchaseCtas, isAuthenticated],
   );
 
   const closeCheckout = useCallback((): void => {
@@ -261,6 +266,10 @@ export function useMembershipPurchase(): UseMembershipPurchaseResult {
   }, [resetCheckout]);
 
   const payWithWallet = useCallback(async (): Promise<void> => {
+    if (!canShowPaidPurchaseCtas) {
+      showGlobalError(PAID_PURCHASES_DISABLED_MESSAGE);
+      return;
+    }
     if (selectedPlan == null || !validateCheckoutDetails()) {
       return;
     }
@@ -281,6 +290,7 @@ export function useMembershipPurchase(): UseMembershipPurchaseResult {
     }
   }, [
     buildRegistrationPayload,
+    canShowPaidPurchaseCtas,
     createRegistration,
     onPurchaseSuccess,
     selectedPlan,

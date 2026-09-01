@@ -20,6 +20,7 @@ import { DiagnosisPaymentModal } from '@/features/Diagnostics/components/Diagnos
 import { EdpEnrollmentRequiredView } from '@/features/Edp/components/EdpEnrollmentRequiredView';
 import { useEdpAccess } from '@/features/Edp/hooks/useEdpAccess';
 import { useEdpEnrollmentPurchase } from '@/features/Edp/hooks/useEdpEnrollmentPurchase';
+import { useRazorpayAvailability } from '@/features/AppSettings/hooks/useRazorpayAvailability';
 import { SafeAreaWrapper, ScreenHeader, ScreenWrapper } from '@/shared/components';
 
 import { buildEdpPdfWebViewUri } from '../utils/edpMedia';
@@ -35,6 +36,7 @@ export default function EdpModulePdfScreen(): React.ReactElement {
     isEnrollmentLoading,
   } = useEdpAccess();
   const purchaseFlow = useEdpEnrollmentPurchase();
+  const { canShowPaidPurchaseCtas } = useRazorpayAvailability();
 
   const [webLoading, setWebLoading] = useState(true);
   const [webError, setWebError] = useState(false);
@@ -55,6 +57,7 @@ export default function EdpModulePdfScreen(): React.ReactElement {
         <ScreenHeader title={title} onBackPress={handleBack} />
         <EdpEnrollmentRequiredView
           isConsultant={isConsultant}
+          purchasesDisabled={!canShowPaidPurchaseCtas}
           onEnrollPress={isConsultant ? undefined : () => purchaseFlow.openPaymentModal()}
         />
         <DiagnosisPaymentModal

@@ -3,21 +3,31 @@ import { Platform } from 'react-native';
 import { useGetMobileAppSettingsQuery } from '@/features/AppSettings/api/mobileAppSettingsApi';
 
 export interface RazorpayAvailability {
-  isRazorpayEnabled: boolean;
   isLoading: boolean;
-  /** iOS hides paid CTAs until settings load and Razorpay is enabled. Android always shows them. */
+  /**
+   * Razorpay checkout is enabled server-side (`skipRazorpayGateway !== true`).
+   * On iOS this is only true when paid purchase CTAs are also allowed.
+   */
+  isRazorpayEnabled: boolean;
+  /**
+   * Master gate for any in-app purchase UI or wallet/Razorpay checkout.
+   * Sourced from `GET public/mobile-app-settings` → `skipRazorpayGateway`.
+   * Android: always true once settings load. iOS: false while loading or when skipped.
+   */
   canShowPaidPurchaseCtas: boolean;
 }
 
 export function useRazorpayAvailability(): RazorpayAvailability {
   const { data, isLoading, isFetching } = useGetMobileAppSettingsQuery();
-  const isRazorpayEnabled = data?.skipRazorpayGateway !== true;
   const settingsResolved = data != null;
+  const razorpayAllowedByServer = data?.skipRazorpayGateway !== true;
+
+  const canShowPaidPurchaseCtas =
+    Platform.OS !== 'ios' || (settingsResolved && razorpayAllowedByServer);
 
   return {
-    isRazorpayEnabled,
     isLoading: isLoading || isFetching,
-    canShowPaidPurchaseCtas:
-      Platform.OS !== 'ios' || (settingsResolved && isRazorpayEnabled),
+    canShowPaidPurchaseCtas,
+    isRazorpayEnabled: canShowPaidPurchaseCtas && razorpayAllowedByServer,
   };
 }

@@ -161,4 +161,23 @@ export const styles = StyleSheet.create({
   footerSpace: {
     height: THEME.spacing[8],
   },
+  viewOnlyWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: THEME.spacing[24],
+    gap: THEME.spacing[12],
+  },
+  viewOnlyTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0F172A',
+    textAlign: 'center',
+  },
+  viewOnlyBody: {
+    fontSize: 14,
+    lineHeight: 21,
+    color: SLATE_MUTED,
+    textAlign: 'center',
+  },
 });

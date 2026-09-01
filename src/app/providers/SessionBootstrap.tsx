@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 
+import { mobileAppSettingsApi } from '@/features/AppSettings/api/mobileAppSettingsApi';
 import { hydratePreferredAccountRole, restoreSession } from '@/features/Auth/store/authThunks';
 import { useAppDispatch } from '@/store/typedHooks';
 
@@ -23,6 +24,7 @@ export function SessionBootstrap(props: SessionBootstrapProps): React.ReactEleme
     }
     hasRestoredRef.current = true;
     void (async () => {
+      void dispatch(mobileAppSettingsApi.endpoints.getMobileAppSettings.initiate());
       await dispatch(hydratePreferredAccountRole());
       await dispatch(restoreSession());
     })();

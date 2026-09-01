@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { useRazorpayAvailability } from '@/features/AppSettings/hooks/useRazorpayAvailability';
+import { PAID_PURCHASES_DISABLED_MESSAGE } from '@/features/AppSettings/constants/mobilePurchaseGating';
 import { DiagnosisPaymentModal } from '@/features/Diagnostics/components/DiagnosisPaymentModal';
 import { useGetMyWalletBalanceQuery } from '@/features/Home/api/userWalletsApi';
 import { baseApi } from '@/services/api/baseApi';
@@ -125,7 +126,7 @@ function formatConsultationTypeLabel(type: string): string {
 
 export function ConsultationStepper(props: ConsultationStepperProps): React.ReactElement {
   const { onComplete, onStepChange, ensureVerifiedLogin } = props;
-  const { isRazorpayEnabled } = useRazorpayAvailability();
+  const { canShowPaidPurchaseCtas, isRazorpayEnabled } = useRazorpayAvailability();
   const { form, selectedTimeSlot } = useConsultationOnboarding();
   const [createBooking, { isLoading: isCreatingBooking }] = useCreateConsultantBookingMutation();
   const [createRazorpayOrder] = useCreateConsultantBookingRazorpayOrderMutation();
@@ -215,6 +216,10 @@ export function ConsultationStepper(props: ConsultationStepperProps): React.Reac
   }, [isPaymentBusy, pendingBookingId]);
 
   const payWithWallet = useCallback(async (): Promise<void> => {
+    if (!canShowPaidPurchaseCtas) {
+      showGlobalError(PAID_PURCHASES_DISABLED_MESSAGE);
+      return;
+    }
     if (pendingBookingId == null) {
       return;
     }
@@ -229,7 +234,7 @@ export function ConsultationStepper(props: ConsultationStepperProps): React.Reac
       setIsPaymentBusy(false);
       setPayingWith(null);
     }
-  }, [handleBookingSuccess, payWithWalletMutation, pendingBookingId]);
+  }, [canShowPaidPurchaseCtas, handleBookingSuccess, payWithWalletMutation, pendingBookingId]);
 
   const payWithRazorpay = useCallback(async (): Promise<void> => {
     if (pendingBookingId == null) {
@@ -315,6 +320,11 @@ export function ConsultationStepper(props: ConsultationStepperProps): React.Reac
         return;
       }
 
+      if (!canShowPaidPurchaseCtas) {
+        showGlobalError(PAID_PURCHASES_DISABLED_MESSAGE);
+        return;
+      }
+
       setPendingBookingId(booking.id);
       setPaymentModalVisible(true);
     } catch (err: unknown) {
@@ -323,6 +333,7 @@ export function ConsultationStepper(props: ConsultationStepperProps): React.Reac
   }, [
     amountRupees,
     buildBookingPayload,
+    canShowPaidPurchaseCtas,
     createBooking,
     form,
     handleBookingSuccess,

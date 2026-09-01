@@ -12,6 +12,8 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { THEME } from '@/constants/theme';
 import { selectIsAuthenticated } from '@/features/Auth/store/authSelectors';
+import { PAID_PURCHASES_IOS_VIEW_ONLY_MESSAGE } from '@/features/AppSettings/constants/mobilePurchaseGating';
+import { useRazorpayAvailability } from '@/features/AppSettings/hooks/useRazorpayAvailability';
 import { useGetPublicMembershipsQuery } from '@/features/Home/api/homePublicApi';
 import { useAppSelector } from '@/store/typedHooks';
 import { ROUTES } from '@/navigation/routeNames';
@@ -324,6 +326,7 @@ function isCtaDisabled(mode: MembershipPlanCtaMode): boolean {
 export function MembershipPlansScreen({ config }: MembershipPlansScreenProps): React.ReactElement {
   const navigation = useNavigation<NavigationProp<AccountStackParamList>>();
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const { canShowPaidPurchaseCtas } = useRazorpayAvailability();
 
   const purchase = useMembershipPurchase();
   const { purchaseSuccessCount } = purchase;
@@ -409,6 +412,13 @@ export function MembershipPlansScreen({ config }: MembershipPlansScreenProps): R
         ) : plans.length === 0 ? (
           <View style={styles.centered}>
             <Text style={styles.errorText}>No membership plans available right now.</Text>
+          </View>
+        ) : !canShowPaidPurchaseCtas ? (
+          <View style={styles.centered}>
+            <Text style={styles.pageTitle}>{config.pageTitle}</Text>
+            <Text style={[styles.pageSubtitle, { marginTop: 12, textAlign: 'center' }]}>
+              {PAID_PURCHASES_IOS_VIEW_ONLY_MESSAGE}
+            </Text>
           </View>
         ) : (
           <>

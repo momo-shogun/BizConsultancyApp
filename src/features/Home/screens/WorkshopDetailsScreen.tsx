@@ -17,7 +17,7 @@ import { useNavigation, useRoute, type RouteProp } from '@react-navigation/nativ
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { API_ORIGIN } from '@/constants/api';
+import { useRazorpayAvailability } from '@/features/AppSettings/hooks/useRazorpayAvailability';
 import { THEME } from '@/constants/theme';
 import { usePublicWorkshopDetail } from '@/features/Home/hooks/usePublicWorkshopDetail';
 import { WorkshopBookingPaymentModal } from '@/features/Home/components/WorkshopBookingPaymentModal';
@@ -93,6 +93,7 @@ export default function WorkshopDetailsScreen(): React.ReactElement {
   const insets = useSafeAreaInsets();
 
   const slug = route.params.slug;
+  const { canShowPaidPurchaseCtas } = useRazorpayAvailability();
   const { workshop, isLoading, isFetching, isError, refetch } = usePublicWorkshopDetail(slug);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -168,6 +169,7 @@ export default function WorkshopDetailsScreen(): React.ReactElement {
     isBooked,
     isBooking,
     bookAmountRupees,
+    isFreeBooking,
     paymentModalVisible,
     walletBalanceRupees,
     canPayWithWallet,
@@ -196,7 +198,12 @@ export default function WorkshopDetailsScreen(): React.ReactElement {
           ? 'Book access'
           : 'Book now';
   const canBook =
-    isBookable && !isBooked && !isBooking && workshop != null && fee != null;
+    isBookable &&
+    !isBooked &&
+    !isBooking &&
+    workshop != null &&
+    fee != null &&
+    (isFreeBooking || canShowPaidPurchaseCtas);
 
   // ── Guard states ────────────────────────────────────────────────────────────
 

@@ -15,6 +15,8 @@ import { selectAccountRole, selectIsAuthenticated } from '@/features/Auth/store/
 import { DiagnosisPaymentModal } from '@/features/Diagnostics/components/DiagnosisPaymentModal';
 import { useGetMyEdpPurchaseQuery } from '@/features/Edp/api/edpPurchasesApi';
 import { useEdpEnrollmentPurchase } from '@/features/Edp/hooks/useEdpEnrollmentPurchase';
+import { useRazorpayAvailability } from '@/features/AppSettings/hooks/useRazorpayAvailability';
+import { PAID_PURCHASES_IOS_VIEW_ONLY_MESSAGE } from '@/features/AppSettings/constants/mobilePurchaseGating';
 import { formatEdpDate } from '@/features/Edp/utils/edpPurchaseParsing';
 import { navigationRef } from '@/navigation/navigationContainerRef';
 import { ROUTES } from '@/navigation/routeNames';
@@ -32,6 +34,7 @@ export function MyEdpScreen(): React.ReactElement {
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const accountRole = useAppSelector(selectAccountRole);
   const purchaseFlow = useEdpEnrollmentPurchase();
+  const { canShowPaidPurchaseCtas } = useRazorpayAvailability();
 
   const {
     data: enrollment,
@@ -68,8 +71,17 @@ export function MyEdpScreen(): React.ReactElement {
       navigateToModules();
       return;
     }
+    if (!canShowPaidPurchaseCtas) {
+      return;
+    }
     purchaseFlow.openPaymentModal();
-  }, [hasActiveEnrollment, isConsultant, navigateToModules, purchaseFlow]);
+  }, [
+    canShowPaidPurchaseCtas,
+    hasActiveEnrollment,
+    isConsultant,
+    navigateToModules,
+    purchaseFlow,
+  ]);
 
   if (!isAuthenticated) {
     return (
@@ -194,7 +206,7 @@ export function MyEdpScreen(): React.ReactElement {
               </View>
             ) : null}
 
-            {!isConsultant ? (
+            {!isConsultant && hasActiveEnrollment ? (
               <Pressable
                 accessibilityRole="button"
                 onPress={handleEnrollPress}
@@ -203,15 +215,27 @@ export function MyEdpScreen(): React.ReactElement {
                   pressed ? { opacity: 0.9 } : null,
                 ]}
               >
-                <Ionicons
-                  name={hasActiveEnrollment ? 'play-circle-outline' : 'card-outline'}
-                  size={18}
-                  color={THEME.colors.white}
-                />
-                <Text style={styles.primaryBtnText}>
-                  {hasActiveEnrollment ? 'Start training' : 'Enroll now'}
-                </Text>
+                <Ionicons name="play-circle-outline" size={18} color={THEME.colors.white} />
+                <Text style={styles.primaryBtnText}>Start training</Text>
               </Pressable>
+            ) : null}
+
+            {!isConsultant && !hasActiveEnrollment && canShowPaidPurchaseCtas ? (
+              <Pressable
+                accessibilityRole="button"
+                onPress={handleEnrollPress}
+                style={({ pressed }) => [
+                  styles.primaryBtn,
+                  pressed ? { opacity: 0.9 } : null,
+                ]}
+              >
+                <Ionicons name="card-outline" size={18} color={THEME.colors.white} />
+                <Text style={styles.primaryBtnText}>Enroll now</Text>
+              </Pressable>
+            ) : null}
+
+            {!isConsultant && !hasActiveEnrollment && !canShowPaidPurchaseCtas ? (
+              <Text style={styles.cardDesc}>{PAID_PURCHASES_IOS_VIEW_ONLY_MESSAGE}</Text>
             ) : null}
 
             <Pressable

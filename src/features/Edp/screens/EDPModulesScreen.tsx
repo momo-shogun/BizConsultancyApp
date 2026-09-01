@@ -10,6 +10,7 @@ import { useGetEdpCoursesWithDocumentsQuery } from '@/features/Edp/api/edpLandin
 import { EdpEnrollmentRequiredView } from '@/features/Edp/components/EdpEnrollmentRequiredView';
 import { useEdpAccess } from '@/features/Edp/hooks/useEdpAccess';
 import { useEdpEnrollmentPurchase } from '@/features/Edp/hooks/useEdpEnrollmentPurchase';
+import { useRazorpayAvailability } from '@/features/AppSettings/hooks/useRazorpayAvailability';
 import { useEdpModulesListProgress } from '@/features/Edp/hooks/useEdpModulesListProgress';
 import type { EdpFreeEdpModule } from '@/features/Edp/types/edpCourses.types';
 import { normalizeEdpModuleSlug } from '@/features/Edp/utils/edpCourseDetailsParsing';
@@ -155,6 +156,7 @@ const EDPModulesScreen = ({ onBack, onOpenModule }: EDPModulesScreenProps): Reac
     isEnrollmentLoading,
   } = useEdpAccess();
   const purchaseFlow = useEdpEnrollmentPurchase();
+  const { canShowPaidPurchaseCtas } = useRazorpayAvailability();
   const { data, isLoading, isError } = useGetEdpCoursesWithDocumentsQuery();
   const { progressBySlug } = useEdpModulesListProgress(data?.freeEdps);
 
@@ -226,6 +228,7 @@ const EDPModulesScreen = ({ onBack, onOpenModule }: EDPModulesScreenProps): Reac
           {showEnrollmentGate ? (
             <EdpEnrollmentRequiredView
               isConsultant={isConsultant}
+              purchasesDisabled={!canShowPaidPurchaseCtas}
               onEnrollPress={isConsultant ? undefined : () => purchaseFlow.openPaymentModal()}
             />
           ) : (

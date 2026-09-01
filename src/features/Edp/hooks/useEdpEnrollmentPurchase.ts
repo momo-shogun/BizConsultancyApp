@@ -6,6 +6,7 @@ import {
   selectIsAuthenticated,
 } from '@/features/Auth/store/authSelectors';
 import { useRazorpayAvailability } from '@/features/AppSettings/hooks/useRazorpayAvailability';
+import { PAID_PURCHASES_DISABLED_MESSAGE } from '@/features/AppSettings/constants/mobilePurchaseGating';
 import {
   useCreateEdpPurchaseMutation,
   useGetEdpProgramAmountQuery,
@@ -40,7 +41,7 @@ export interface UseEdpEnrollmentPurchaseResult {
 
 export function useEdpEnrollmentPurchase(): UseEdpEnrollmentPurchaseResult {
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
-  const { isRazorpayEnabled } = useRazorpayAvailability();
+  const { canShowPaidPurchaseCtas, isRazorpayEnabled } = useRazorpayAvailability();
   const accountRole = useAppSelector(selectAccountRole);
   const isConsultant = accountRole === 'consultant';
   const auth = useAppSelector(selectAuth);
@@ -83,6 +84,10 @@ export function useEdpEnrollmentPurchase(): UseEdpEnrollmentPurchaseResult {
   }, []);
 
   const openPaymentModal = useCallback((): void => {
+    if (!canShowPaidPurchaseCtas) {
+      showGlobalError(PAID_PURCHASES_DISABLED_MESSAGE);
+      return;
+    }
     if (!isAuthenticated) {
       showGlobalError('Please log in to enroll in EDP.');
       return;
@@ -92,7 +97,7 @@ export function useEdpEnrollmentPurchase(): UseEdpEnrollmentPurchaseResult {
       return;
     }
     setPaymentModalVisible(true);
-  }, [isAuthenticated, programAmountRupees]);
+  }, [canShowPaidPurchaseCtas, isAuthenticated, programAmountRupees]);
 
   const closePaymentModal = useCallback((): void => {
     if (isBusy) {
@@ -103,6 +108,10 @@ export function useEdpEnrollmentPurchase(): UseEdpEnrollmentPurchaseResult {
   }, [isBusy]);
 
   const payWithWallet = useCallback(async (): Promise<void> => {
+    if (!canShowPaidPurchaseCtas) {
+      showGlobalError(PAID_PURCHASES_DISABLED_MESSAGE);
+      return;
+    }
     setIsBusy(true);
     setPayingWith('wallet');
     try {
@@ -118,7 +127,7 @@ export function useEdpEnrollmentPurchase(): UseEdpEnrollmentPurchaseResult {
       setIsBusy(false);
       setPayingWith(null);
     }
-  }, [createPurchase, onPurchaseSuccess]);
+  }, [canShowPaidPurchaseCtas, createPurchase, onPurchaseSuccess]);
 
   const payWithRazorpay = useCallback(async (): Promise<void> => {
     if (!isRazorpayEnabled) {

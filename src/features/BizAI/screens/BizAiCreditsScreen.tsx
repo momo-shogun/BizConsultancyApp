@@ -3,6 +3,7 @@ import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
+import { PAID_PURCHASES_IOS_VIEW_ONLY_MESSAGE } from '@/features/AppSettings/constants/mobilePurchaseGating';
 import { BizAiCreditsAlertBanner } from '@/features/BizAI/components/BizAiCreditsAlertBanner';
 import { BizAiCreditsHero } from '@/features/BizAI/components/BizAiCreditsHero';
 import { BizAiCreditsPackageCard } from '@/features/BizAI/components/BizAiCreditsPackageCard';
@@ -43,6 +44,7 @@ export function BizAiCreditsScreen(): React.ReactElement {
   const {
     isConsultant,
     hasVerifiedLogin,
+    canShowPaidPurchaseCtas,
     isRazorpayEnabled,
     isLoading,
     packages,
@@ -130,6 +132,7 @@ export function BizAiCreditsScreen(): React.ReactElement {
           isConsultant={isConsultant}
           walletInr={walletInr}
           onTopUp={openWalletTopUp}
+          showTopUp={canShowPaidPurchaseCtas}
         />
 
         {errorMessage != null ? (
@@ -140,63 +143,73 @@ export function BizAiCreditsScreen(): React.ReactElement {
           <BizAiCreditsAlertBanner variant="success" message={successMessage} />
         ) : null}
 
-        <View style={s.section}>
-          <View style={s.sectionHeader}>
-            <Text style={s.sectionTitle}>Credit packs</Text>
-            {packages.length > 0 ? (
-              <View style={s.packCount}>
-                <Text style={s.packCountText}>{packages.length}</Text>
+        {canShowPaidPurchaseCtas ? (
+          <>
+            <View style={s.section}>
+              <View style={s.sectionHeader}>
+                <Text style={s.sectionTitle}>Credit packs</Text>
+                {packages.length > 0 ? (
+                  <View style={s.packCount}>
+                    <Text style={s.packCountText}>{packages.length}</Text>
+                  </View>
+                ) : null}
+              </View>
+              <Text style={s.sectionSubtitle}>
+                {isRazorpayEnabled
+                  ? 'Choose a pack and pay instantly with your wallet or Razorpay.'
+                  : 'Choose a pack and pay instantly with your wallet.'}
+              </Text>
+            </View>
+
+            {isLoading ? (
+              <View style={s.loadingWrap}>
+                <ActivityIndicator size="large" color="#8B5CF6" />
+                <Text style={s.loadingText}>Loading credit packs…</Text>
               </View>
             ) : null}
-          </View>
-          <Text style={s.sectionSubtitle}>
-            {isRazorpayEnabled
-              ? 'Choose a pack and pay instantly with your wallet or Razorpay.'
-              : 'Choose a pack and pay instantly with your wallet.'}
-          </Text>
-        </View>
 
-        {isLoading ? (
-          <View style={s.loadingWrap}>
-            <ActivityIndicator size="large" color="#8B5CF6" />
-            <Text style={s.loadingText}>Loading credit packs…</Text>
-          </View>
-        ) : null}
+            {!isLoading && packages.length === 0 ? (
+              <View style={s.emptyWrap}>
+                <Ionicons name="sparkles-outline" size={32} color="#94A3B8" />
+                <Text style={s.emptyTitle}>No packs available</Text>
+                <Text style={s.emptyBody}>
+                  Credit packages are not available right now. Pull to refresh or try again later.
+                </Text>
+              </View>
+            ) : null}
 
-        {!isLoading && packages.length === 0 ? (
+            {!isLoading && packages.length > 0 ? (
+              <View style={s.packList}>
+                {packages.map((pkg, index) => {
+                  const busy = buyingPackageId === pkg.id;
+                  return (
+                    <BizAiCreditsPackageCard
+                      key={pkg.id}
+                      pkg={pkg}
+                      isPopular={index === popularIndex}
+                      walletOk={canPayWithWallet(pkg)}
+                      showRazorpayOption={isRazorpayEnabled}
+                      busy={busy}
+                      buyMode={buyMode}
+                      onWalletPress={() => {
+                        setWalletConfirmPackage(pkg);
+                      }}
+                      onRazorpayPress={() => {
+                        void buyWithRazorpay(pkg);
+                      }}
+                    />
+                  );
+                })}
+              </View>
+            ) : null}
+          </>
+        ) : (
           <View style={s.emptyWrap}>
-            <Ionicons name="sparkles-outline" size={32} color="#94A3B8" />
-            <Text style={s.emptyTitle}>No packs available</Text>
-            <Text style={s.emptyBody}>
-              Credit packages are not available right now. Pull to refresh or try again later.
-            </Text>
+            <Ionicons name="information-circle-outline" size={32} color="#94A3B8" />
+            <Text style={s.emptyTitle}>View your balance</Text>
+            <Text style={s.emptyBody}>{PAID_PURCHASES_IOS_VIEW_ONLY_MESSAGE}</Text>
           </View>
-        ) : null}
-
-        {!isLoading && packages.length > 0 ? (
-          <View style={s.packList}>
-            {packages.map((pkg, index) => {
-              const busy = buyingPackageId === pkg.id;
-              return (
-                <BizAiCreditsPackageCard
-                  key={pkg.id}
-                  pkg={pkg}
-                  isPopular={index === popularIndex}
-                  walletOk={canPayWithWallet(pkg)}
-                  showRazorpayOption={isRazorpayEnabled}
-                  busy={busy}
-                  buyMode={buyMode}
-                  onWalletPress={() => {
-                    setWalletConfirmPackage(pkg);
-                  }}
-                  onRazorpayPress={() => {
-                    void buyWithRazorpay(pkg);
-                  }}
-                />
-              );
-            })}
-          </View>
-        ) : null}
+        )}
       </ScrollView>
 
       <WalletAiCreditsConfirmDialog

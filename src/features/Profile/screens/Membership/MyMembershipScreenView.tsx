@@ -14,6 +14,8 @@ import {
   ACCOUNT_HUB_LIST_CANVAS,
 } from '@/constants/accountScreenTheme';
 import { THEME } from '@/constants/theme';
+import { PAID_PURCHASES_IOS_VIEW_ONLY_MESSAGE } from '@/features/AppSettings/constants/mobilePurchaseGating';
+import { useRazorpayAvailability } from '@/features/AppSettings/hooks/useRazorpayAvailability';
 import {
   useMyMembershipScreen,
   type MembershipServiceItem,
@@ -46,7 +48,9 @@ type MembershipInfoCardProps = Pick<
   | 'startDate'
   | 'expiryDate'
   | 'progressPercent'
->;
+> & {
+  showPaymentDetails?: boolean;
+};
 
 function MembershipInfoCard({
   planName,
@@ -56,6 +60,7 @@ function MembershipInfoCard({
   startDate,
   expiryDate,
   progressPercent,
+  showPaymentDetails = true,
 }: MembershipInfoCardProps): React.ReactElement {
   const clampedProgress = Math.min(100, Math.max(0, progressPercent));
 
@@ -72,10 +77,12 @@ function MembershipInfoCard({
       <Text style={styles.planSubtitle}>{planSubtitle}</Text>
 
       <View style={styles.infoGrid}>
-        <View style={styles.infoCell}>
-          <Text style={styles.infoLabel}>Amount</Text>
-          <Text style={styles.infoValue}>{amount}</Text>
-        </View>
+        {showPaymentDetails ? (
+          <View style={styles.infoCell}>
+            <Text style={styles.infoLabel}>Amount</Text>
+            <Text style={styles.infoValue}>{amount}</Text>
+          </View>
+        ) : null}
         <View style={styles.infoCell}>
           <Text style={styles.infoLabel}>Validity</Text>
           <Text style={styles.infoValue}>{validity}</Text>
@@ -194,11 +201,13 @@ function ServiceItem({ service, requesting, onRequest }: ServiceItemProps): Reac
 interface MembershipCardProps extends MyMembershipCardModel {
   requestingFeatureId: number | null;
   onRequestService: (featureId: number) => void;
+  showPaymentDetails: boolean;
 }
 
 function MembershipCard({
   requestingFeatureId,
   onRequestService,
+  showPaymentDetails,
   ...props
 }: MembershipCardProps): React.ReactElement {
   return (
@@ -211,9 +220,12 @@ function MembershipCard({
         startDate={props.startDate}
         expiryDate={props.expiryDate}
         progressPercent={props.progressPercent}
+        showPaymentDetails={showPaymentDetails}
       />
 
-      <PaymentCard amount={props.paymentAmount} status={props.paymentStatus} />
+      {showPaymentDetails ? (
+        <PaymentCard amount={props.paymentAmount} status={props.paymentStatus} />
+      ) : null}
 
       {props.services.length > 0 ? (
         <View style={screenStyles.servicesSection}>
@@ -237,6 +249,8 @@ export function MyMembershipScreenView({
   emptySubtitle = 'Purchase a membership plan to view your plan details here.',
 }: MyMembershipScreenViewProps): React.ReactElement {
   const screen = useMyMembershipScreen({ membershipLine });
+  const { canShowPaidPurchaseCtas } = useRazorpayAvailability();
+  const showPaymentDetails = canShowPaidPurchaseCtas;
 
   return (
     <AccountHubScreenShell
@@ -264,8 +278,12 @@ export function MyMembershipScreenView({
             <MembershipCard
               {...screen.cardProps}
               requestingFeatureId={screen.requestingFeatureId}
+              showPaymentDetails={showPaymentDetails}
               onRequestService={(featureId) => void screen.onRequestService(featureId)}
             />
+            {!showPaymentDetails ? (
+              <Text style={screenStyles.viewOnlyNote}>{PAID_PURCHASES_IOS_VIEW_ONLY_MESSAGE}</Text>
+            ) : null}
           </ScrollView>
         )}
       </ScreenWrapper>
@@ -310,5 +328,12 @@ const screenStyles = StyleSheet.create({
     fontWeight: THEME.typography.weight.bold,
     color: THEME.colors.textPrimary,
     marginBottom: THEME.spacing[4],
+  },
+  viewOnlyNote: {
+    marginTop: THEME.spacing[12],
+    fontSize: THEME.typography.size[13],
+    color: THEME.colors.textSecondary,
+    lineHeight: 20,
+    textAlign: 'center',
   },
 });
