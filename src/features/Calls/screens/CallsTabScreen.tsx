@@ -1,17 +1,17 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  FlatList,
   Platform,
   Pressable,
   RefreshControl,
+  SectionList,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
 import RNDatePicker from 'react-native-date-picker';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import {
@@ -40,7 +40,10 @@ import {
 } from '@/features/Calls/utils/callsTabFilters';
 import {
   buildCallsTabRows,
+  groupCallsTabRowsByDate,
+  toCallsTabSectionListSections,
   type CallsTabRowModel,
+  type CallsTabSectionListSection,
 } from '@/features/Calls/utils/callsTabHistoryDisplay';
 import {
   AccountHubScreenShell,
@@ -55,10 +58,9 @@ import { useAppSelector } from '@/store/typedHooks';
 import { styles } from './CallsTabScreen.styles';
 
 const CALL_HISTORY_PAGE_SIZE = 50;
-const TAB_BAR_CONTENT_INSET = 96;
 
 export function CallsTabScreen(): React.ReactElement {
-  const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
   const currentUserId = useAppSelector((state) => {
     const parsed = Number(state.auth.user?.id ?? '');
     return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
@@ -95,9 +97,16 @@ export function CallsTabScreen(): React.ReactElement {
     [currentUserId, filteredItems],
   );
 
+  const sections = useMemo(
+    (): CallsTabSectionListSection[] =>
+      toCallsTabSectionListSections(groupCallsTabRowsByDate(rows)),
+    [rows],
+  );
+
   const activeFilterCount = useMemo(() => countActiveCallsFilters(filters), [filters]);
   const hasSearchQuery = searchQuery.trim().length > 0;
   const hasActiveCriteria = activeFilterCount > 0 || hasSearchQuery;
+  const isEmpty = sections.length === 0;
 
   const chipItems = useMemo(
     () =>
@@ -187,23 +196,47 @@ export function CallsTabScreen(): React.ReactElement {
     }
   }, [startingRowKey]);
 
-  const listBottomPad = TAB_BAR_CONTENT_INSET + Math.max(insets.bottom, 8);
+  const listBottomPad = tabBarHeight + THEME.spacing[16];
 
   const renderItem = useCallback(
-    ({ item, index }: { item: CallsTabRowModel; index: number }): React.ReactElement => (
-      <CallsHistoryRow
-        row={item}
-        isLast={index === rows.length - 1}
-        isStarting={startingRowKey === item.key}
-        onPressAction={() => {
-          void handleCallBack(item);
-        }}
-      />
+    ({ item }: { item: { key: string; rows: CallsTabRowModel[] } }): React.ReactElement => (
+      <View style={styles.sectionCard}>
+        {item.rows.map((row, index) => (
+          <CallsHistoryRow
+            key={row.key}
+            row={row}
+            isLast={index === item.rows.length - 1}
+            isStarting={startingRowKey === row.key}
+            onPressAction={() => {
+              void handleCallBack(row);
+            }}
+          />
+        ))}
+      </View>
     ),
-    [handleCallBack, rows.length, startingRowKey],
+    [handleCallBack, startingRowKey],
   );
 
-  const keyExtractor = useCallback((item: CallsTabRowModel): string => item.key, []);
+  const keyExtractor = useCallback(
+    (item: { key: string; rows: CallsTabRowModel[] }): string => item.key,
+    [],
+  );
+
+  const renderSectionHeader = useCallback(
+    ({ section }: { section: CallsTabSectionListSection }): React.ReactElement => {
+      const isFirst = sections[0]?.title === section.title;
+      return (
+        <Text style={[styles.sectionTitle, isFirst ? styles.sectionTitleFirst : null]}>
+          {section.title}
+        </Text>
+      );
+    },
+    [sections],
+  );
+
+  const renderSectionFooter = useCallback((): React.ReactElement => {
+    return <View style={styles.sectionGap} />;
+  }, []);
 
   const ListHeader = useCallback((): React.ReactElement => {
     return (
@@ -228,12 +261,13 @@ export function CallsTabScreen(): React.ReactElement {
   const emptyTitle = hasActiveCriteria ? 'No matching calls' : 'No calls yet';
   const emptyBody = hasActiveCriteria
     ? 'Try a different name, clear filters, or pick another date.'
-    : 'Your recent voice and video calls will appear here.';
+    : 'Your recent voice and video calls with consultants will appear here.';
 
   return (
     <>
       <AccountHubScreenShell
         title="Calls"
+        edges={[]}
         canvasColor={ACCOUNT_HUB_LIST_CANVAS}
         headerColor={ACCOUNT_HUB_GREEN_HEADER_STATUS_BAR}
         headerGradientColors={ACCOUNT_HUB_GREEN_HEADER_GRADIENT}
@@ -277,18 +311,21 @@ export function CallsTabScreen(): React.ReactElement {
               </Pressable>
             </View>
           ) : (
-            <FlatList
-              data={rows}
+            <SectionList
+              sections={sections}
               keyExtractor={keyExtractor}
               renderItem={renderItem}
+              renderSectionHeader={renderSectionHeader}
+              renderSectionFooter={renderSectionFooter}
               style={styles.list}
               contentContainerStyle={[
                 styles.listContent,
-                rows.length === 0 ? styles.listContentEmpty : null,
+                isEmpty ? styles.listContentEmpty : null,
                 { paddingBottom: listBottomPad },
               ]}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="always"
+              stickySectionHeadersEnabled={false}
               ListHeaderComponent={ListHeader}
               refreshControl={
                 <RefreshControl
@@ -300,7 +337,7 @@ export function CallsTabScreen(): React.ReactElement {
               ListEmptyComponent={
                 <View style={styles.empty}>
                   <View style={styles.emptyIcon}>
-                    <Ionicons name="call-outline" size={26} color={CALLS_TAB_THEME.textSecondary} />
+                    <Ionicons name="call-outline" size={28} color={CALLS_TAB_THEME.textSecondary} />
                   </View>
                   <Text style={styles.emptyTitle}>{emptyTitle}</Text>
                   <Text style={styles.emptyBody}>{emptyBody}</Text>

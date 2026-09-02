@@ -7,6 +7,9 @@ export const CALLS_TAB_THEME = {
   textPrimary: '#0B0F19',
   textSecondary: '#5B6475',
   accent: '#0A84FF',
+  video: '#5856D6',
+  accentSoft: 'rgba(10,132,255,0.12)',
+  videoSoft: 'rgba(88,86,214,0.14)',
   missed: '#E5484D',
   onAccent: '#FFFFFF',
   avatarGradients: [

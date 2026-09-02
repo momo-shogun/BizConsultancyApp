@@ -10,17 +10,38 @@ export interface CallsTabRowModel {
   displayName: string;
   avatarUri: string | null;
   otherUserId: number;
-  mediumLabel: string;
+  subtitleLabel: string;
   timeLabel: string;
+  sectionDateIso: string;
   isMissed: boolean;
   isOutgoing: boolean;
+  isVideo: boolean;
   canCallBack: boolean;
+}
+
+export interface CallsTabSection {
+  title: string;
+  data: CallsTabRowModel[];
+}
+
+export interface CallsTabSectionGroup {
+  key: string;
+  rows: CallsTabRowModel[];
+}
+
+export interface CallsTabSectionListSection {
+  title: string;
+  data: CallsTabSectionGroup[];
 }
 
 type OtherPartySide = 'caller' | 'callee';
 
 function isValidUserId(value: number | null | undefined): value is number {
   return value != null && Number.isFinite(value) && value > 0;
+}
+
+function startOfLocalDay(date: Date): number {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
 }
 
 /**
@@ -42,10 +63,6 @@ export function resolveOtherPartySide(
     }
   }
   return item.direction === 'outgoing' ? 'callee' : 'caller';
-}
-
-function startOfLocalDay(date: Date): number {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
 }
 
 export function getOtherPartyName(
@@ -92,6 +109,28 @@ export function isMissedCall(item: CallHistoryItem): boolean {
   return MISSED_STATUSES.includes(item.status);
 }
 
+export function getCallHistoryItemDateIso(item: CallHistoryItem): string {
+  return item.startedAt ?? item.connectedAt ?? item.endedAt ?? '';
+}
+
+/** Clock time for row trailing label (section header carries the date). */
+export function formatCallsTabRowTime(value?: string | null): string {
+  if (value == null || value.length === 0) {
+    return '';
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return '';
+  }
+
+  return new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  }).format(parsed);
+}
+
 export function formatCallsTabTime(value?: string | null): string {
   if (value == null || value.length === 0) {
     return '';
@@ -106,11 +145,7 @@ export function formatCallsTabTime(value?: string | null): string {
   const dayDiff = Math.round((startOfLocalDay(now) - startOfLocalDay(parsed)) / 86_400_000);
 
   if (dayDiff === 0) {
-    return new Intl.DateTimeFormat('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    }).format(parsed);
+    return formatCallsTabRowTime(value);
   }
 
   if (dayDiff === 1) {
@@ -127,8 +162,90 @@ export function formatCallsTabTime(value?: string | null): string {
   }).format(parsed);
 }
 
+export function getCallsSectionTitle(isoDate: string): string {
+  if (isoDate.length === 0) {
+    return 'Earlier';
+  }
+
+  const parsed = new Date(isoDate);
+  if (Number.isNaN(parsed.getTime())) {
+    return 'Earlier';
+  }
+
+  const now = new Date();
+  const dayDiff = Math.round((startOfLocalDay(now) - startOfLocalDay(parsed)) / 86_400_000);
+
+  if (dayDiff === 0) {
+    return 'Today';
+  }
+
+  if (dayDiff === 1) {
+    return 'Yesterday';
+  }
+
+  if (dayDiff > 1 && dayDiff < 7) {
+    return new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(parsed);
+  }
+
+  return new Intl.DateTimeFormat('en-IN', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(parsed);
+}
+
+export function formatHumanCallDuration(seconds: number): string {
+  const safe = Math.max(0, Math.floor(seconds));
+  if (safe <= 0) {
+    return '';
+  }
+
+  const minutes = Math.floor(safe / 60);
+  const remainingSeconds = safe % 60;
+
+  if (minutes === 0) {
+    return `${remainingSeconds}s`;
+  }
+
+  if (remainingSeconds === 0) {
+    return `${minutes}m`;
+  }
+
+  return `${minutes}m ${remainingSeconds}s`;
+}
+
 function mediumBaseLabel(item: CallHistoryItem): string {
   return item.callType === 'video' ? 'Video' : 'Voice';
+}
+
+function buildSubtitleLabel(
+  item: CallHistoryItem,
+  count: number,
+  isMissed: boolean,
+  isOutgoing: boolean,
+): string {
+  const parts: string[] = [];
+
+  if (isMissed) {
+    parts.push('Missed');
+  } else if (isOutgoing) {
+    parts.push('Outgoing');
+  } else {
+    parts.push('Incoming');
+  }
+
+  parts.push(mediumBaseLabel(item));
+
+  if (count > 1) {
+    parts.push(`${count} calls`);
+  } else if (!isMissed && item.durationSeconds > 0) {
+    const duration = formatHumanCallDuration(item.durationSeconds);
+    if (duration.length > 0) {
+      parts.push(duration);
+    }
+  }
+
+  return parts.join(' · ');
 }
 
 export function buildCallsTabRows(
@@ -144,8 +261,18 @@ export function buildCallsTabRows(
 
     if (last != null && last.key === groupKey) {
       last.count += 1;
+      last.subtitleLabel = buildSubtitleLabel(
+        last.item,
+        last.count,
+        last.isMissed,
+        last.isOutgoing,
+      );
       continue;
     }
+
+    const dateIso = getCallHistoryItemDateIso(item);
+    const isMissed = isMissedCall(item);
+    const isOutgoing = item.direction === 'outgoing';
 
     const row: CallsTabRowModel = {
       key: groupKey,
@@ -154,10 +281,12 @@ export function buildCallsTabRows(
       displayName: getOtherPartyName(item, currentUserId),
       avatarUri: resolveCallPartyImageUrl(getOtherPartyThumbnail(item, currentUserId)),
       otherUserId,
-      mediumLabel: mediumBaseLabel(item),
-      timeLabel: formatCallsTabTime(item.startedAt ?? item.connectedAt ?? item.endedAt),
-      isMissed: isMissedCall(item),
-      isOutgoing: item.direction === 'outgoing',
+      subtitleLabel: buildSubtitleLabel(item, 1, isMissed, isOutgoing),
+      timeLabel: formatCallsTabRowTime(dateIso),
+      sectionDateIso: dateIso,
+      isMissed,
+      isOutgoing,
+      isVideo: item.callType === 'video',
       canCallBack: isValidUserId(otherUserId) && otherUserId !== currentUserId,
     };
     rows.push(row);
@@ -166,6 +295,30 @@ export function buildCallsTabRows(
   return rows.map((row, index) => ({
     ...row,
     key: `${row.key}-${row.item.id}-${index}`,
-    mediumLabel: row.count > 1 ? `${row.mediumLabel} (${row.count})` : row.mediumLabel,
+  }));
+}
+
+export function groupCallsTabRowsByDate(rows: CallsTabRowModel[]): CallsTabSection[] {
+  const sections: CallsTabSection[] = [];
+  let currentTitle: string | null = null;
+
+  for (const row of rows) {
+    const title = getCallsSectionTitle(row.sectionDateIso);
+    if (title !== currentTitle) {
+      sections.push({ title, data: [] });
+      currentTitle = title;
+    }
+    sections[sections.length - 1]?.data.push(row);
+  }
+
+  return sections;
+}
+
+export function toCallsTabSectionListSections(
+  sections: CallsTabSection[],
+): CallsTabSectionListSection[] {
+  return sections.map((section) => ({
+    title: section.title,
+    data: [{ key: section.title, rows: section.data }],
   }));
 }
