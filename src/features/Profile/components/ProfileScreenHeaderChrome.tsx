@@ -5,6 +5,7 @@ import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { THEME } from '@/constants/theme';
+import { useProfileChromeEdges } from '@/shared/hooks/useTabHostedScreenInsets';
 import { SafeAreaWrapper, ScreenHeader } from '@/shared/components';
 
 import {
@@ -37,11 +38,13 @@ export function ProfileScreenHeaderChrome(
     props.avatarUri != null ||
     props.avatarInitial != null ||
     props.onAvatarPress != null;
+  const safeAreaEdges = useProfileChromeEdges(props.safeAreaEdges);
 
   return (
     <SafeAreaWrapper
-      edges={props.safeAreaEdges ?? ['bottom']}
+      edges={safeAreaEdges}
       bgColor={PROFILE_HEADER_STATUS_BAR}
+      contentBgColor={PROFILE_CANVAS}
       statusBarStyle="light-content"
       style={chromeStyles.flex}
     >

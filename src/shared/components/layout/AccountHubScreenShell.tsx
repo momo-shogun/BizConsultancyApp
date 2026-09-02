@@ -5,6 +5,7 @@ import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 
 import { ACCOUNT_SUBSCREEN_HEADER_COLOR } from '@/constants/accountScreenTheme';
 import { THEME } from '@/constants/theme';
+import { useAccountHubShellEdges } from '@/shared/hooks/useTabHostedScreenInsets';
 import { ScreenHeader } from '@/shared/components/ui/ScreenHeader/ScreenHeader';
 import { SafeAreaWrapper } from '@/shared/components/wrappers/SafeAreaWrapper';
 
@@ -34,8 +35,7 @@ export function AccountHubScreenShell(props: AccountHubScreenShellProps): React.
       ? gradientColors[0]
       : solidHeaderColor;
   const screenHeaderColor = hasGradientHeader ? 'transparent' : solidHeaderColor;
-  const safeAreaEdges: Edge[] =
-    props.edges ?? (hasGradientHeader ? ['bottom'] : ['top', 'bottom']);
+  const safeAreaEdges = useAccountHubShellEdges(hasGradientHeader, props.edges);
   const appliesTopInsetOutside = safeAreaEdges.includes('top');
 
   const headerChrome = (

@@ -1,7 +1,12 @@
 import React, { useCallback, useEffect } from 'react';
 import { Platform, StatusBar, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { SafeAreaView, type SafeAreaViewProps } from 'react-native-safe-area-context';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+  type Edge,
+  type SafeAreaViewProps,
+} from 'react-native-safe-area-context';
 
 import { THEME } from '@/constants/theme';
 
@@ -34,6 +39,71 @@ function applyStatusBarAppearance(barStyle: StatusBarIconStyle, backgroundColor:
   }
 }
 
+function normalizeEdges(value: Props['edges']): Edge[] {
+  if (value == null) {
+    return ['top', 'bottom'];
+  }
+  if (Array.isArray(value)) {
+    return [...value];
+  }
+  const objectEdges = value as Partial<Record<Edge, unknown>>;
+  const resolved: Edge[] = [];
+  if (objectEdges.top != null) {
+    resolved.push('top');
+  }
+  if (objectEdges.bottom != null) {
+    resolved.push('bottom');
+  }
+  if (objectEdges.left != null) {
+    resolved.push('left');
+  }
+  if (objectEdges.right != null) {
+    resolved.push('right');
+  }
+  return resolved.length > 0 ? resolved : ['top', 'bottom'];
+}
+
+interface SplitInsetLayoutProps {
+  edges: Edge[];
+  backgroundColor: string;
+  canvasColor: string;
+  style: Props['style'];
+  children: React.ReactNode;
+}
+
+function SplitInsetLayout(props: SplitInsetLayoutProps): React.ReactElement {
+  const insets = useSafeAreaInsets();
+  const edgeSet = new Set(props.edges);
+  const topInset = edgeSet.has('top') ? insets.top : 0;
+  const bottomInset = edgeSet.has('bottom') ? insets.bottom : 0;
+  const leftInset = edgeSet.has('left') ? insets.left : 0;
+  const rightInset = edgeSet.has('right') ? insets.right : 0;
+
+  return (
+    <View
+      style={[
+        styles.safeArea,
+        {
+          backgroundColor: props.canvasColor,
+          paddingLeft: leftInset,
+          paddingRight: rightInset,
+        },
+        props.style,
+      ]}
+    >
+      {topInset > 0 ? (
+        <View style={{ height: topInset, backgroundColor: props.backgroundColor }} />
+      ) : null}
+      <View style={[styles.content, { backgroundColor: props.canvasColor }]}>
+        {props.children}
+      </View>
+      {bottomInset > 0 ? (
+        <View style={{ height: bottomInset, backgroundColor: props.canvasColor }} />
+      ) : null}
+    </View>
+  );
+}
+
 export function SafeAreaWrapper({
   bgColor,
   contentBgColor,
@@ -41,10 +111,14 @@ export function SafeAreaWrapper({
   statusBarStyle,
   style,
   children,
+  edges = ['top', 'bottom'],
   ...props
 }: Props): React.ReactElement {
   const backgroundColor = bgColor ?? THEME.colors.background;
+  const canvasColor = contentBgColor ?? backgroundColor;
   const barStyle = resolveStatusBarStyle(isLight, statusBarStyle);
+  const useSplitInsets = canvasColor !== backgroundColor;
+  const resolvedEdges = normalizeEdges(edges);
 
   useEffect(() => {
     applyStatusBarAppearance(barStyle, backgroundColor);
@@ -59,11 +133,22 @@ export function SafeAreaWrapper({
   return (
     <>
       <StatusBar barStyle={barStyle} backgroundColor={backgroundColor} translucent={false} />
-      <SafeAreaView {...props} style={[styles.safeArea, { backgroundColor }, style]}>
-        <View style={[styles.content, { backgroundColor: contentBgColor ?? backgroundColor }]}>
+      {useSplitInsets ? (
+        <SplitInsetLayout
+          edges={resolvedEdges}
+          backgroundColor={backgroundColor}
+          canvasColor={canvasColor}
+          style={style}
+        >
           {children}
-        </View>
-      </SafeAreaView>
+        </SplitInsetLayout>
+      ) : (
+        <SafeAreaView {...props} edges={edges} style={[styles.safeArea, { backgroundColor }, style]}>
+          <View style={[styles.content, { backgroundColor: canvasColor }]}>
+            {children}
+          </View>
+        </SafeAreaView>
+      )}
     </>
   );
 }

@@ -3,6 +3,8 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
+import { THEME } from '@/constants/theme';
+import { useTabBarOverlayHeight } from '@/shared/hooks/useTabHostedScreenInsets';
 import { AccountHubScreenShell } from '@/shared/components';
 import { Dialog } from '@/shared/components/dialog';
 import { getNativeAppVersion } from '@/utils/appVersion';
@@ -34,6 +36,7 @@ export function HelpSettingsScreenLayout(
     onPrivacyPolicy,
     onSubscriberAgreement,
   } = props;
+  const tabBarHeight = useTabBarOverlayHeight();
 
   const [logoutConfirmVisible, setLogoutConfirmVisible] = useState(false);
 
@@ -58,7 +61,10 @@ export function HelpSettingsScreenLayout(
     >
       <ScrollView
         style={helpSettingsStyles.screen}
-        contentContainerStyle={helpSettingsStyles.scrollContent}
+        contentContainerStyle={[
+          helpSettingsStyles.scrollContent,
+          { paddingBottom: tabBarHeight + THEME.spacing[28] },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         {sections.map((section, index) => (
