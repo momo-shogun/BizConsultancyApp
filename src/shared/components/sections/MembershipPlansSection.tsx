@@ -4,7 +4,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { THEME } from '@/constants/theme';
 import { MembershipPlanCard, type MembershipPlanItem } from '../cards/MembershipPlanCard/MembershipPlanCard';
 
-const MEMBERSHIP_CAROUSEL_BOTTOM_PADDING = THEME.spacing[24];
+const MEMBERSHIP_CAROUSEL_BOTTOM_PADDING = THEME.spacing[8];
 
 export interface MembershipPlansSectionProps {
   title?: string;
@@ -12,6 +12,7 @@ export interface MembershipPlansSectionProps {
   viewAllLabel?: string;
   items: MembershipPlanItem[];
   cardWidth?: number;
+  /** Extra space below the section (home uses 0 — tab bar already reserves inset). */
   contentBottomInset?: number;
   onItemPress?: (item: MembershipPlanItem) => void;
   onCtaPress?: (item: MembershipPlanItem) => void;
@@ -24,13 +25,13 @@ export function MembershipPlansSection(props: MembershipPlansSectionProps): Reac
     viewAllLabel = 'View all',
     items,
     cardWidth = 340,
-    contentBottomInset = THEME.spacing[16],
+    contentBottomInset = 0,
     onItemPress,
     onCtaPress,
   } = props;
 
   return (
-    <View style={[styles.section, { marginBottom: contentBottomInset }]}>
+    <View style={[styles.section, contentBottomInset > 0 ? { marginBottom: contentBottomInset } : null]}>
       <View style={styles.header}>
         <Text style={styles.title} accessibilityRole="header">
           {title}

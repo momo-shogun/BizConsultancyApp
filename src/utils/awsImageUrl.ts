@@ -1,77 +1,92 @@
-import { API_ORIGIN, AWS_BUCKET_NAME, AWS_REGION } from '@/constants/api';
+import { API_BASE_URL } from '@/constants/api';
 
 /**
- * S3 public URLs — keep in sync with portal `BizConsultancy/lib/image.ts` and api `.env`:
- * `AWS_BUCKET_NAME` / `NEXT_PUBLIC_AWS_BUCKET_NAME`, `AWS_REGION` / `NEXT_PUBLIC_AWS_REGION`.
+ * Resolve stored media values (S3 key, legacy S3 URL, or /media path) to a loadable URL
+ * via the API media proxy — keep in sync with portal `BizConsultancy/lib/s3.ts` + `lib/image.ts`.
+ *
+ * Production stores the S3 **key** in the DB; clients fetch `{API_BASE_URL}/media/<key>`.
  */
 
-const S3_HOST_REGEX = /^(?:https?:\/\/)?([^.]+)\.s3\.([^.]+)\.amazonaws\.com\/?/i;
+const S3_HOST_REGEX = /\.s3[.-][^/]*\.amazonaws\.com$/i;
 
-function buildAwsImageBase(): string {
-  if (!AWS_BUCKET_NAME || !AWS_REGION) {
-    return '';
+function apiBase(): string {
+  return API_BASE_URL.replace(/\/$/, '');
+}
+
+function decodeKey(raw: string): string | null {
+  let key = raw.replace(/^\/+/, '');
+  try {
+    key = decodeURIComponent(key);
+  } catch {
+    // keep raw
   }
-  return `https://${AWS_BUCKET_NAME}.s3.${AWS_REGION}.amazonaws.com`;
-}
-
-const AWS_IMAGE_BASE = buildAwsImageBase();
-
-function encodeObjectKey(key: string): string {
-  const normalized = key.replace(/^\/+/, '');
-  return encodeURI(normalized);
-}
-
-function buildS3PublicUrl(objectKey: string): string {
-  if (!AWS_IMAGE_BASE) {
-    return '';
-  }
-  return `${AWS_IMAGE_BASE}/${encodeObjectKey(objectKey)}`;
-}
-
-function parseS3Uri(uri: string): string | null {
-  if (!uri.startsWith('s3://')) {
+  key = key.replace(/^\/+/, '');
+  if (!key || key.includes('..')) {
     return null;
   }
-  const withoutScheme = uri.slice('s3://'.length);
-  const slashIndex = withoutScheme.indexOf('/');
-  if (slashIndex <= 0) {
-    return null;
-  }
-  const bucket = withoutScheme.slice(0, slashIndex);
-  const key = withoutScheme.slice(slashIndex + 1);
-  if (bucket === AWS_BUCKET_NAME) {
-    return buildS3PublicUrl(key);
-  }
-  return `https://${bucket}.s3.amazonaws.com/${encodeObjectKey(key)}`;
+  return key;
 }
 
-/**
- * Resolves API media paths (`workshop/…`, `consultant/…`) to a loadable HTTPS URL.
- * Returns `null` when path is empty or bucket config is missing.
- */
-export function resolveAwsImageUrl(path: string | null | undefined): string | null {
-  const trimmed = path?.trim();
-  if (trimmed == null || trimmed.length === 0) {
+/** Extract S3 object key from a stored value (key, /media path, or S3 URL). */
+export function extractMediaKey(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) {
     return null;
   }
 
   if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
     try {
-      return encodeURI(trimmed);
+      const u = new URL(trimmed);
+      if (S3_HOST_REGEX.test(u.hostname) || u.hostname.includes('amazonaws.com')) {
+        return decodeKey(u.pathname.replace(/^\/+/, ''));
+      }
+      const marker = '/media/';
+      const idx = u.pathname.indexOf(marker);
+      if (idx >= 0) {
+        return decodeKey(u.pathname.slice(idx + marker.length));
+      }
     } catch {
+      return null;
+    }
+    return null;
+  }
+
+  const mediaIdx = trimmed.indexOf('/media/');
+  if (mediaIdx >= 0) {
+    return decodeKey(trimmed.slice(mediaIdx + '/media/'.length));
+  }
+
+  return decodeKey(trimmed.replace(/^\/+/, ''));
+}
+
+/**
+ * Browser / app URL for API-hosted media.
+ * Returns external http(s) URLs unchanged when they are not S3 or /media paths.
+ */
+export function mediaUrl(value?: string | null): string | null {
+  if (!value) {
+    return null;
+  }
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const key = extractMediaKey(trimmed);
+  if (!key) {
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
       return trimmed;
     }
+    return null;
   }
 
-  const s3Url = parseS3Uri(trimmed);
-  if (s3Url != null) {
-    return s3Url;
-  }
+  return `${apiBase()}/media/${encodeURI(key)}`;
+}
 
-  if (!trimmed.includes('://')) {
-    const url = buildS3PublicUrl(trimmed);
-    return url.length > 0 ? url : null;
-  }
-
-  return `${API_ORIGIN}/${trimmed.replace(/^\//, '')}`;
+/**
+ * Resolves API media paths (`consultant/…`, `workshop/…`) to a loadable HTTPS URL.
+ * Returns `null` when path is empty or cannot be resolved.
+ */
+export function resolveAwsImageUrl(path: string | null | undefined): string | null {
+  return mediaUrl(path);
 }

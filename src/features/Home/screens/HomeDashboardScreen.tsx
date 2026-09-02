@@ -759,6 +759,7 @@ export function HomeDashboardScreen(): React.ReactElement {
                 title="Membership plans"
                 cardWidth={HOME_MEMBERSHIP_PLANS_CARD_WIDTH}
                 items={membershipPlanItems}
+                contentBottomInset={0}
                 onViewAllPress={onMembershipViewAll}
                 onItemPress={onMembershipPress}
                 onCtaPress={onMembershipPress}
@@ -775,7 +776,6 @@ const styles = StyleSheet.create({
   sheet: {
     backgroundColor: THEME.colors.background,
     paddingTop: THEME.spacing[8],
-    flexGrow: 1,
     gap: THEME.spacing[20],
   },
   skeletonSection: {

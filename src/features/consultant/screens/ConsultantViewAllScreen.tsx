@@ -2,19 +2,16 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   FlatList,
-  Keyboard,
   ListRenderItem,
-  Pressable,
   StyleSheet,
   Text,
-  TextInput,
   useWindowDimensions,
   View,
 } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 import { skipToken } from '@reduxjs/toolkit/query';
 import { useFocusEffect, useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { THEME } from '@/constants/theme';
 import {
@@ -24,6 +21,7 @@ import {
   useGetPublicConsultantsQuery,
 } from '@/features/consultant/api/consultantApi';
 import { CONSULTANT_LIST_PAGE_SIZE } from '@/features/consultant/constants/pagination';
+import { ConsultantListHeader } from '@/features/consultant/components/ConsultantListHeader';
 import {
   isRenderableConsultantCard,
   mapConsultantDetailToCardItem,
@@ -54,7 +52,6 @@ import {
   type FilterSection,
   type FilterSheetValue,
   SafeAreaWrapper,
-  ScreenHeader,
   ScreenWrapper,
   TopConsultantCard,
   type TopConsultantItem,
@@ -105,9 +102,9 @@ export function ConsultantViewAllScreen(): React.ReactElement {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<ConsultantsListRouteProp>();
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const { ensureVerifiedLogin, consultantBookingLoginDialog } = useConsultantBookingLoginGate();
 
-  const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isFilterOpen, setIsFilterOpen] = useState<boolean>(false);
   const [sortMode, setSortMode] = useState<SortMode>('recommended');
@@ -433,16 +430,6 @@ export function ConsultantViewAllScreen(): React.ReactElement {
     [cardWidth],
   );
 
-  const toggleSearch = useCallback((): void => {
-    setIsSearchOpen((open) => {
-      if (open) {
-        setSearchQuery('');
-        Keyboard.dismiss();
-      }
-      return !open;
-    });
-  }, []);
-
   const clearSearch = useCallback((): void => {
     setSearchQuery('');
   }, []);
@@ -496,55 +483,26 @@ export function ConsultantViewAllScreen(): React.ReactElement {
     );
   }, [isLoadingMore]);
 
-  return (
-    <SafeAreaWrapper edges={['top', 'bottom']}>
-      {consultantBookingLoginDialog}
-      <ScreenHeader
-        title="Consultants"
-        onBackPress={handleBackPress}
-        onSearchPress={toggleSearch}
-      />
+  const listContentStyle = useMemo(
+    () => [styles.listContent, { paddingBottom: THEME.spacing[20] + insets.bottom }],
+    [insets.bottom],
+  );
 
-      {isSearchOpen ? (
-        <View style={styles.searchBlock}>
-          <View style={styles.searchField}>
-            <Ionicons name="search-outline" size={18} color={THEME.colors.primary} />
-            <TextInput
-              accessibilityLabel="Search consultants"
-              placeholder="Name, designation, skills…"
-              placeholderTextColor={THEME.colors.textSecondary}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              style={styles.searchInput}
-              returnKeyType="search"
-              clearButtonMode="while-editing"
-              autoFocus
-              autoCorrect={false}
-              autoCapitalize="none"
-              onSubmitEditing={() => Keyboard.dismiss()}
-              selectionColor={THEME.colors.primary}
-            />
-            {isRefreshingSearch || isSearchPending ? (
-              <ActivityIndicator size="small" color={THEME.colors.primary} />
-            ) : null}
-            {searchQuery.length > 0 ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Clear search"
-                onPress={clearSearch}
-                hitSlop={8}
-              >
-                <Ionicons name="close-circle" size={20} color={THEME.colors.textSecondary} />
-              </Pressable>
-            ) : null}
-          </View>
-          {hasSearchDraft && !isApiSearchActive && !isSearchPending ? (
-            <Text style={styles.searchHint}>
-              Type at least {CONSULTANT_SEARCH_MIN_API_LENGTH} characters to search
-            </Text>
-          ) : null}
-        </View>
-      ) : null}
+  return (
+    <SafeAreaWrapper edges={[]} bgColor="#FFFFFF" contentBgColor="#F8FAF9">
+      {consultantBookingLoginDialog}
+      <ConsultantListHeader
+        onBackPress={handleBackPress}
+        searchQuery={searchQuery}
+        onSearchQueryChange={setSearchQuery}
+        onSearchClear={clearSearch}
+        isSearchPending={isRefreshingSearch || isSearchPending}
+        searchHint={
+          hasSearchDraft && !isApiSearchActive && !isSearchPending
+            ? `Type at least ${CONSULTANT_SEARCH_MIN_API_LENGTH} characters to search`
+            : null
+        }
+      />
 
       <ScreenWrapper>
         {showPlaceholders ? (
@@ -555,7 +513,7 @@ export function ConsultantViewAllScreen(): React.ReactElement {
             renderItem={renderPlaceholderItem}
             ListHeaderComponent={ListHeader}
             columnWrapperStyle={styles.columnWrap}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={listContentStyle}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           />
@@ -568,7 +526,7 @@ export function ConsultantViewAllScreen(): React.ReactElement {
             ListHeaderComponent={ListHeader}
             ListFooterComponent={ListFooter}
             columnWrapperStyle={styles.columnWrap}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={listContentStyle}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             onEndReached={loadMore}
@@ -614,40 +572,9 @@ export function ConsultantViewAllScreen(): React.ReactElement {
 export default ConsultantViewAllScreen;
 
 const styles = StyleSheet.create({
-  searchBlock: {
-    backgroundColor: THEME.colors.background,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: THEME.colors.border,
-    paddingHorizontal: H_PADDING,
-    paddingTop: THEME.spacing[8],
-    paddingBottom: THEME.spacing[10],
-  },
-  searchField: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: THEME.spacing[8],
-    minHeight: 44,
-    paddingHorizontal: THEME.spacing[12],
-    borderRadius: THEME.radius[12],
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: THEME.colors.border,
-    backgroundColor: THEME.colors.surface,
-  },
-  searchHint: {
-    marginTop: THEME.spacing[4],
-    fontSize: THEME.typography.size[12],
-    color: THEME.colors.textSecondary,
-  },
-  searchInput: {
-    flex: 1,
-    paddingVertical: THEME.spacing[10],
-    fontSize: THEME.typography.size[14],
-    color: THEME.colors.textPrimary,
-  },
   listContent: {
     paddingHorizontal: H_PADDING,
     paddingTop: THEME.spacing[10],
-    paddingBottom: THEME.spacing[20],
     flexGrow: 1,
   },
   listHeader: {

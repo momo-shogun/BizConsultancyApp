@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Image,
   Platform,
@@ -27,9 +27,6 @@ export interface TestimonialCardProps {
   cardWidth?: DimensionValue;
   onPress?: () => void;
 }
-
-const FALLBACK_AVATAR =
-  'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=256&auto=format&fit=crop&q=80';
 
 const ACCENT_PRESETS: readonly { blob: readonly string[]; haze: readonly string[] }[] = [
   { blob: ['#FFF2B3', '#FFD98A'], haze: ['rgba(255, 220, 120, 0.95)', 'rgba(255, 220, 120, 0.0)'] },
@@ -61,14 +58,15 @@ export function TestimonialCard({
     [item.name, item.quote, item.role],
   );
 
-  const initialUri = useMemo(() => {
-    const uri = item.avatarUri?.trim();
-    if (!uri) return FALLBACK_AVATAR;
-    return uri.startsWith('http') ? uri : FALLBACK_AVATAR;
-  }, [item.avatarUri]);
+  const avatarUri = useMemo(() => item.avatarUri?.trim() ?? '', [item.avatarUri]);
+  const [imageFailed, setImageFailed] = useState<boolean>(false);
 
-  const [avatarUri, setAvatarUri] = useState(initialUri);
-  const showAvatarImage = Boolean(initialUri);
+  useEffect(() => {
+    setImageFailed(false);
+  }, [avatarUri]);
+
+  const showAvatarImage = avatarUri.length > 0 && !imageFailed;
+  const nameInitials = useMemo(() => initials(item.name), [item.name]);
 
   return (
     <Pressable
@@ -115,11 +113,16 @@ export function TestimonialCard({
             source={{ uri: avatarUri }}
             style={styles.avatar}
             accessibilityIgnoresInvertColors
-            onError={() => setAvatarUri(FALLBACK_AVATAR)}
+            accessibilityLabel={`Photo of ${item.name}`}
+            onError={() => setImageFailed(true)}
           />
         ) : (
-          <View style={styles.avatarFallback} accessibilityElementsHidden>
-            <Text style={styles.avatarInitials}>{initials(item.name)}</Text>
+          <View
+            style={styles.avatarFallback}
+            accessibilityRole="image"
+            accessibilityLabel={`Avatar for ${item.name}`}
+          >
+            <Text style={styles.avatarInitials}>{nameInitials}</Text>
           </View>
         )}
         <View style={styles.personMeta}>
@@ -221,14 +224,17 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: THEME.colors.surface,
+    backgroundColor: 'rgba(15,81,50,0.10)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(15,81,50,0.18)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarInitials: {
     fontSize: THEME.typography.size[12],
     fontWeight: THEME.typography.weight.bold as '700',
-    color: THEME.colors.textPrimary,
+    color: THEME.colors.primary,
+    letterSpacing: 0.4,
   },
   personMeta: {
     flex: 1,

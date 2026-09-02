@@ -3,16 +3,13 @@ import {
   ActivityIndicator,
   FlatList,
   ListRenderItem,
-  Pressable,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { ACCOUNT_HUB_LIST_CANVAS } from '@/constants/accountScreenTheme';
 import { THEME } from '@/constants/theme';
@@ -28,8 +25,8 @@ import {
   type FilterSheetValue,
   RecommendedServiceCard,
   type RecommendedServiceItem,
+  CatalogListSearchHeader,
   SafeAreaWrapper,
-  ScreenHeader,
   ScreenWrapper,
 } from '@/shared/components';
 
@@ -52,7 +49,6 @@ import {
 } from '@/features/Services/utils/servicesListFilters';
 
 const LIST_SEPARATOR_HEIGHT = THEME.spacing[12];
-const H_PADDING = THEME.spacing[16];
 const CATEGORY_BOOTSTRAP_LIMIT = 100;
 const PLACEHOLDER_CARD_COUNT = 5;
 const PLACEHOLDER_KEYS = Array.from(
@@ -68,7 +64,6 @@ export function ServicesListingScreen(): React.ReactElement {
   const { handleGetStarted, handleViewPurchased, isServicePurchased, servicePurchaseLoginDialog } =
     useServicePurchaseLoginGate();
   const onBizAiScroll = useBizAIScrollReporter();
-  const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [debouncedSearch, setDebouncedSearch] = useState<string>('');
   const [isFilterOpen, setIsFilterOpen] = useState<boolean>(false);
@@ -136,8 +131,13 @@ export function ServicesListingScreen(): React.ReactElement {
 
   const activeFilterCount = useMemo(() => countActiveServiceFilters(filters), [filters]);
   const hasSearchQuery = searchQuery.trim().length > 0;
+  const isApiSearchActive = debouncedSearch.length >= SERVICE_SEARCH_MIN_API_LENGTH;
+  const isSearchPending =
+    hasSearchQuery &&
+    searchQuery.trim() !== debouncedSearch &&
+    searchQuery.trim().length >= SERVICE_SEARCH_MIN_API_LENGTH;
   const isInitialLoading =
-    (isLoading || isFetching) && displayItems.length === 0;
+    (isLoading || isFetching || isSearchPending) && displayItems.length === 0;
 
   const handleFilterChange = useCallback((next: FilterSheetValue): void => {
     const prevCategory = filters.selected[SERVICE_LIST_FILTER_KEYS.category];
@@ -244,13 +244,8 @@ export function ServicesListingScreen(): React.ReactElement {
     [navigation],
   );
 
-  const toggleSearch = useCallback((): void => {
-    setIsSearchOpen((open) => {
-      if (open) {
-        setSearchQuery('');
-      }
-      return !open;
-    });
+  const clearSearch = useCallback((): void => {
+    setSearchQuery('');
   }, []);
 
   const renderPlaceholderItem = useCallback<ListRenderItem<string>>(
@@ -314,43 +309,20 @@ export function ServicesListingScreen(): React.ReactElement {
   return (
     <>
       {servicePurchaseLoginDialog}
-      <SafeAreaWrapper edges={['top', 'bottom']}>
-        <ScreenHeader
-          title="Services"
-          onSearchPress={toggleSearch}
+      <SafeAreaWrapper edges={[]} bgColor="#FFFFFF" contentBgColor={ACCOUNT_HUB_LIST_CANVAS}>
+        <CatalogListSearchHeader
+          searchQuery={searchQuery}
+          onSearchQueryChange={setSearchQuery}
+          onSearchClear={clearSearch}
+          isSearchPending={isSearchPending}
+          searchPlaceholder="Search services…"
+          searchAccessibilityLabel="Search services"
+          searchHint={
+            hasSearchQuery && !isApiSearchActive && !isSearchPending
+              ? `Type at least ${SERVICE_SEARCH_MIN_API_LENGTH} characters to search`
+              : null
+          }
         />
-
-        {isSearchOpen ? (
-          <View style={styles.searchRow}>
-            <Ionicons name="search-outline" size={20} color={THEME.colors.textSecondary} />
-            <TextInput
-              accessibilityLabel="Search services"
-              placeholder="Service name, category…"
-              placeholderTextColor={THEME.colors.textSecondary}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              style={styles.searchInput}
-              returnKeyType="search"
-              clearButtonMode="while-editing"
-              autoFocus
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Clear search"
-              onPress={() => setSearchQuery('')}
-              disabled={searchQuery.length === 0}
-              hitSlop={8}
-            >
-              <Ionicons
-                name="close-circle"
-                size={22}
-                color={searchQuery.length === 0 ? THEME.colors.border : THEME.colors.textSecondary}
-              />
-            </Pressable>
-          </View>
-        ) : null}
 
         <ScreenWrapper style={styles.listShell}>
           {isInitialLoading ? (
@@ -408,23 +380,6 @@ export function ServicesListingScreen(): React.ReactElement {
 }
 
 const styles = StyleSheet.create({
-  searchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: THEME.spacing[8],
-    paddingHorizontal: H_PADDING,
-    paddingVertical: THEME.spacing[10],
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: THEME.colors.border,
-    backgroundColor: THEME.colors.background,
-  },
-  searchInput: {
-    flex: 1,
-    minHeight: 40,
-    paddingVertical: THEME.spacing[8],
-    fontSize: THEME.typography.size[14],
-    color: THEME.colors.textPrimary,
-  },
   listShell: {
     flex: 1,
     backgroundColor: ACCOUNT_HUB_LIST_CANVAS,

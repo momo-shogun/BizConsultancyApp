@@ -2,6 +2,7 @@ import React, { useCallback, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { LayoutChangeEvent, NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 import { Platform, RefreshControl, StyleSheet, UIManager, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import Animated, {
   Extrapolation,
@@ -108,6 +109,7 @@ function fireRefreshArmedHaptic(): void {
 
 export function ZeptoHS(props: ZeptoHSProps): React.ReactElement {
   const { header, children, testID, style, onShellColorsChange, onRefresh } = props;
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [activeTopCategoryIndex, setActiveTopCategoryIndex] = React.useState(0);
   const [refreshing, setRefreshing] = useState(false);
@@ -285,6 +287,15 @@ export function ZeptoHS(props: ZeptoHSProps): React.ReactElement {
 
   const refreshEnabled = onRefresh != null;
 
+  const scrollBottomPadding = useMemo((): number => {
+    // Tab bar sits outside this scroll view; keep only a small iOS tail inset.
+    const base = THEME.spacing[12];
+    if (Platform.OS === 'ios') {
+      return base;
+    }
+    return base + Math.max(insets.bottom, 0);
+  }, [insets.bottom]);
+
   return (
     <View style={[{ flex: 1 }, style]} testID={testID}>
       {refreshEnabled ? (
@@ -298,7 +309,7 @@ export function ZeptoHS(props: ZeptoHSProps): React.ReactElement {
 
       <Animated.ScrollView
         style={styles.flex}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: scrollBottomPadding }]}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         showsVerticalScrollIndicator={false}
@@ -385,6 +396,6 @@ ZeptoHS.displayName = 'ZeptoHS';
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   scrollContent: {
-    paddingBottom: THEME.spacing[24],
+    flexGrow: 0,
   },
 });

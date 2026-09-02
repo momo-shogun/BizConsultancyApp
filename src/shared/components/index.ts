@@ -3,6 +3,10 @@ export { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 export { Input } from './ui/Input/Input';
 export { DatePickerField, type DatePickerFieldProps } from './ui/DatePicker';
 export { ScreenHeader } from './ui/ScreenHeader/ScreenHeader';
+export {
+  CatalogListSearchHeader,
+  type CatalogListSearchHeaderProps,
+} from './ui/CatalogListSearchHeader/CatalogListSearchHeader';
 
 export {
   PremiumHorizontalTabBar,

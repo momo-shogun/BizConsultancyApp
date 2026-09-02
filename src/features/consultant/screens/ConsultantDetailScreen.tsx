@@ -1,7 +1,8 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   Linking,
   Platform,
   Pressable,
@@ -18,14 +19,19 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { THEME } from '@/constants/theme';
+import { ConsultantBookingBar } from '@/features/consultant/components/ConsultantBookingBar';
+import {
+  ConsultantDetailImmersiveChrome,
+} from '@/features/consultant/components/ConsultantDetailImmersiveChrome';
 import { usePublicConsultantDetail } from '@/features/consultant/hooks/usePublicConsultantDetail';
 import type { ConsultantDetail, ConsultantExpertTalk } from '@/features/consultant/types/consultantDetail.types';
+import { resolveConsultantImageUrl } from '@/features/consultant/utils/consultantMedia';
 import { resolveConsultationFee } from '@/features/Consultation/utils/consultationBooking';
 import { useConsultantBookingLoginGate } from '@/features/Consultation/hooks/useConsultantBookingLoginGate';
 import { ROUTES } from '@/navigation/routeNames';
 import type { RootStackParamList } from '@/navigation/types';
 import { CallController } from '@/features/Calls/controllers/CallController';
-import { RemoteImage, SafeAreaWrapper, ScreenHeader, ScreenWrapper } from '@/shared/components';
+import { RemoteImage, SafeAreaWrapper, ScreenWrapper } from '@/shared/components';
 import { youtubeEmbedToWatchUrl } from '@/utils/youtubeUrl';
 
 const H_PADDING = THEME.spacing[16];
@@ -212,13 +218,15 @@ function MetricPill(props: MetricPillProps): React.ReactElement {
 interface TagChipProps {
   icon: React.ComponentProps<typeof Ionicons>['name'];
   text: string;
+  tone?: 'default' | 'onDark';
 }
 
 function TagChip(props: TagChipProps): React.ReactElement {
+  const onDark = props.tone === 'onDark';
   return (
-    <View style={styles.tagChip}>
-      <Ionicons name={props.icon} size={12} color="#0F766E" />
-      <Text style={styles.tagChipText} numberOfLines={1}>
+    <View style={[styles.tagChip, onDark ? styles.tagChipOnDark : null]}>
+      <Ionicons name={props.icon} size={12} color={onDark ? '#E2E8F0' : '#0F766E'} />
+      <Text style={[styles.tagChipText, onDark ? styles.tagChipTextOnDark : null]} numberOfLines={1}>
         {props.text}
       </Text>
     </View>
@@ -291,6 +299,11 @@ export function ConsultantDetailScreen(): React.ReactElement {
 
   const slug = route.params.slug;
   const { detail, isLoading } = usePublicConsultantDetail(slug);
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const onDetailScroll = Animated.event(
+    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+    { useNativeDriver: true },
+  );
   const [callStarting, setCallStarting] = useState(false);
   const { ensureVerifiedLogin, consultantBookingLoginDialog } = useConsultantBookingLoginGate();
 
@@ -394,13 +407,67 @@ export function ConsultantDetailScreen(): React.ReactElement {
     () => (detail != null ? collectProfileFacts(detail) : []),
     [detail],
   );
+  const consultantImageUri = useMemo(
+    () => (detail != null ? resolveConsultantImageUrl(detail.image) : null),
+    [detail],
+  );
+  const bookingPriceLabel = useMemo((): string => {
+    if (detail == null) {
+      return '—';
+    }
+    if (videoRateDisplay > 0) {
+      return formatRupee(videoRateDisplay);
+    }
+    if (audioRateDisplay > 0) {
+      return formatRupee(audioRateDisplay);
+    }
+    if (detail.rate > 0) {
+      return formatRupee(detail.rate);
+    }
+    return '—';
+  }, [audioRateDisplay, detail, videoRateDisplay]);
+  const bookingMetaLabel = useMemo((): string | null => {
+    if (detail == null) {
+      return null;
+    }
+    if (videoRateDisplay > 0) {
+      return 'Video consultation';
+    }
+    if (audioRateDisplay > 0) {
+      return 'Audio consultation';
+    }
+    if (detail.rate > 0) {
+      return 'Consultation session';
+    }
+    return null;
+  }, [audioRateDisplay, detail, videoRateDisplay]);
   const showCredentialsSection = profileFactItems.length > 0 || !isKnownProfile;
 
   if (isLoading || detail == null) {
     return (
-    <SafeAreaWrapper edges={['top']}>
-      {consultantBookingLoginDialog}
-      <ScreenHeader title="Consultant" onBackPress={() => navigation.goBack()} />
+      <SafeAreaWrapper edges={['top']} statusBarStyle="light-content" bgColor="#0F5132">
+        {consultantBookingLoginDialog}
+        <View style={styles.loadingHero}>
+          <LinearGradient
+            colors={['#0B3D2C', '#0F5132', '#146E5C']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+            onPress={() => navigation.goBack()}
+            hitSlop={8}
+            style={({ pressed }) => [
+              styles.loadingBackFab,
+              { top: insets.top + THEME.spacing[8] },
+              pressed && styles.loadingBackPressed,
+            ]}
+          >
+            <Ionicons name="chevron-back" size={22} color={THEME.colors.white} />
+          </Pressable>
+        </View>
         <View style={styles.loadingWrap}>
           <ActivityIndicator size="large" color={THEME.colors.primary} />
         </View>
@@ -409,97 +476,90 @@ export function ConsultantDetailScreen(): React.ReactElement {
   }
 
   return (
-    <SafeAreaWrapper edges={['top']}>
+    <SafeAreaWrapper edges={[]} statusBarStyle="light-content" bgColor="#0F5132" contentBgColor={SCREEN_CANVAS}>
       {consultantBookingLoginDialog}
-      <ScreenHeader
-        title="Consultant"
+      <ConsultantDetailImmersiveChrome
+        title={detail.name}
+        scrollY={scrollY}
         onBackPress={() => navigation.goBack()}
-        showConsultantActions
+        showActions
         onCallPress={onCallPress}
         onMessagePress={onWhatsAppPress}
       />
 
       <ScreenWrapper style={styles.screenBg}>
-        <ScrollView
+        <Animated.ScrollView
           style={styles.scroll}
           contentContainerStyle={[
             styles.scrollContent,
             { paddingBottom: THEME.spacing[20] + insets.bottom + 72 },
           ]}
           showsVerticalScrollIndicator={false}
+          scrollEventThrottle={16}
+          onScroll={onDetailScroll}
         >
-          <View style={styles.heroSection}>
-            <LinearGradient
-              colors={['#0B3D2C', '#0F5132', '#146E5C']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.heroGradient}
+          <View style={styles.heroBanner}>
+            <RemoteImage
+              uri={consultantImageUri}
+              placeholderVariant="card"
+              placeholderName={detail.name}
+              style={styles.heroBannerImageWrap}
+              imageStyle={styles.heroBannerImage}
+              resizeMode="cover"
+              accessibilityLabel={`Photo of ${detail.name}`}
             />
-            <View style={styles.profileCard}>
-              <View style={styles.profileRow}>
-                <View style={styles.avatarOuter}>
-                  <LinearGradient
-                    colors={['#34D399', '#0F5132', '#0B3D2C']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.avatarRing}
-                  >
-                    <View style={styles.avatarInner}>
-                      <RemoteImage
-                        uri={detail.image}
-                        placeholderVariant="avatar"
-                        placeholderName={detail.name}
-                        style={styles.avatarImage}
-                        resizeMode="cover"
-                        accessibilityLabel={`Portrait of ${detail.name}`}
-                      />
-                    </View>
-                  </LinearGradient>
-                  {detail.verified ? (
-                    <View style={styles.avatarBadge} accessibilityLabel="Verified consultant">
-                      <Ionicons name="checkmark" size={11} color={THEME.colors.white} />
-                    </View>
-                  ) : null}
-                </View>
-                <View style={styles.profileInfo}>
-                  <Text style={styles.profileName} numberOfLines={2}>
-                    {detail.name}
-                  </Text>
-                  <Text style={styles.profileTitle} numberOfLines={2}>
-                    {detail.title}
-                  </Text>
-                  {isMeaningfulText(detail.expertise) ? (
-                    <Text style={styles.profileExpertise} numberOfLines={1}>
-                      {detail.expertise}
-                    </Text>
-                  ) : null}
-                  {detail.verified ? (
-                    <View style={styles.verifiedRow}>
-                      <Ionicons name="shield-checkmark" size={14} color={THEME.colors.primary} />
-                      <Text style={styles.verifiedLabel}>Verified expert</Text>
-                    </View>
-                  ) : null}
-                  {detail.type != null || locationLine.length > 0 ? (
-                    <View style={styles.tagRow}>
-                      {detail.type ? (
-                        <TagChip
-                          icon="ribbon-outline"
-                          text={
-                            detail.type === 'professional' ? 'Professional expert' : detail.type
-                          }
-                        />
-                      ) : null}
-                      {locationLine.length > 0 ? (
-                        <TagChip icon="location-outline" text={locationLine} />
-                      ) : null}
-                    </View>
-                  ) : null}
-                </View>
-              </View>
-            </View>
+            <LinearGradient
+              colors={[
+                'rgba(11,61,44,0.08)',
+                'rgba(11,61,44,0.02)',
+                'rgba(11,61,44,0.55)',
+                'rgba(11,61,44,0.94)',
+              ]}
+              locations={[0, 0.38, 0.72, 1]}
+              style={StyleSheet.absoluteFill}
+            />
 
+            <View style={styles.heroOverlay}>
+              {detail.verified ? (
+                <View style={styles.heroVerifiedPill}>
+                  <Ionicons name="shield-checkmark" size={13} color={THEME.colors.white} />
+                  <Text style={styles.heroVerifiedText}>Verified expert</Text>
+                </View>
+              ) : null}
+              <Text style={styles.heroName} numberOfLines={2}>
+                {detail.name}
+              </Text>
+              <Text style={styles.heroTitle} numberOfLines={2}>
+                {detail.title}
+              </Text>
+              {isMeaningfulText(detail.expertise) ? (
+                <Text style={styles.heroExpertise} numberOfLines={1}>
+                  {detail.expertise}
+                </Text>
+              ) : null}
+              {detail.type != null || locationLine.length > 0 ? (
+                <View style={styles.heroTagRow}>
+                  {detail.type ? (
+                    <TagChip
+                      icon="ribbon-outline"
+                      tone="onDark"
+                      text={
+                        detail.type === 'professional' ? 'Professional expert' : detail.type
+                      }
+                    />
+                  ) : null}
+                  {locationLine.length > 0 ? (
+                    <TagChip icon="location-outline" tone="onDark" text={locationLine} />
+                  ) : null}
+                </View>
+              ) : null}
+            </View>
+          </View>
+
+          <View style={styles.heroSection}>
             {showRates ? (
-              <View style={styles.metricsRow}>
+              <View style={styles.metricsCard}>
+                <View style={styles.metricsRow}>
                 {audioRateDisplay > 0 ? (
                   <MetricPill
                     icon="mic-outline"
@@ -524,6 +584,7 @@ export function ConsultantDetailScreen(): React.ReactElement {
                     accent="amber"
                   />
                 ) : null}
+                </View>
               </View>
             ) : null}
           </View>
@@ -653,7 +714,7 @@ export function ConsultantDetailScreen(): React.ReactElement {
                     >
                       <View style={styles.talkMedia}>
                         <RemoteImage
-                          uri={talk.thumbnail}
+                          uri={resolveConsultantImageUrl(talk.thumbnail)}
                           placeholderVariant="media"
                           style={styles.talkThumb}
                           resizeMode="cover"
@@ -680,34 +741,14 @@ export function ConsultantDetailScreen(): React.ReactElement {
               </SectionCard>
             ) : null}
           </View>
-        </ScrollView>
+        </Animated.ScrollView>
 
-        <View
-          style={[
-            styles.footer,
-            {
-              paddingBottom: Math.max(insets.bottom, THEME.spacing[12]),
-              paddingTop: THEME.spacing[10],
-            },
-          ]}
-        >
-          <Pressable
-            onPress={onBookConsultation}
-            style={({ pressed }) => [styles.bookBtn, pressed && styles.bookBtnPressed]}
-            accessibilityRole="button"
-            accessibilityLabel="Book consultation"
-          >
-            <LinearGradient
-              colors={[THEME.colors.primary, '#0D9488', '#0F5132']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.bookGradient}
-            >
-              <Text style={styles.bookLabel}>Book consultation</Text>
-              <Ionicons name="arrow-forward" size={20} color={THEME.colors.white} />
-            </LinearGradient>
-          </Pressable>
-        </View>
+        <ConsultantBookingBar
+          priceLabel={bookingPriceLabel}
+          metaLabel={bookingMetaLabel}
+          ctaLabel="Book consultation"
+          onPress={onBookConsultation}
+        />
       </ScreenWrapper>
     </SafeAreaWrapper>
   );
@@ -716,6 +757,29 @@ export function ConsultantDetailScreen(): React.ReactElement {
 export default ConsultantDetailScreen;
 
 const styles = StyleSheet.create({
+  loadingHero: {
+    height: 180,
+    backgroundColor: '#0F5132',
+  },
+  loadingBackFab: {
+    position: 'absolute',
+    left: THEME.spacing[14],
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(15,23,42,0.42)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.28)',
+    ...Platform.select({
+      android: { elevation: 0 },
+      default: {},
+    }),
+  },
+  loadingBackPressed: {
+    opacity: 0.8,
+  },
   loadingWrap: {
     flex: 1,
     alignItems: 'center',
@@ -732,119 +796,93 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: THEME.spacing[12],
   },
-  heroSection: {
-    position: 'relative',
+  heroBanner: {
+    height: 300,
+    backgroundColor: '#0F5132',
     overflow: 'hidden',
-    paddingHorizontal: H_PADDING,
-    paddingTop: THEME.spacing[8],
-    paddingBottom: THEME.spacing[12],
   },
-  heroGradient: {
+  heroBannerImageWrap: {
     ...StyleSheet.absoluteFill,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
   },
-  profileCard: {
-    backgroundColor: THEME.colors.white,
-    borderRadius: 20,
-    padding: THEME.spacing[16],
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.65)',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#0B3D2C',
-        shadowOffset: { width: 0, height: 12 },
-        shadowOpacity: 0.18,
-        shadowRadius: 24,
-      },
-      android: { elevation: 6 },
-      default: {},
-    }),
-  },
-  profileRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: THEME.spacing[14],
-  },
-  avatarOuter: {
-    position: 'relative',
-  },
-  avatarRing: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    padding: 3,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarInner: {
+  heroBannerImage: {
     width: '100%',
-    height: '100%',
-    borderRadius: 41,
-    overflow: 'hidden',
-    backgroundColor: '#E2E8F0',
-    borderWidth: 2,
-    borderColor: THEME.colors.white,
+    height: '112%',
   },
-  avatarImage: {
-    width: '100%',
-    height: '100%',
-  },
-  avatarBadge: {
+  heroOverlay: {
     position: 'absolute',
+    left: 0,
     right: 0,
     bottom: 0,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: THEME.colors.primary,
-    borderWidth: 2,
-    borderColor: THEME.colors.white,
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingHorizontal: H_PADDING,
+    paddingBottom: THEME.spacing[20],
+    paddingTop: THEME.spacing[48],
   },
-  profileInfo: {
-    flex: 1,
-    minWidth: 0,
-    paddingTop: 2,
-  },
-  profileName: {
-    fontSize: THEME.typography.size[20],
-    fontWeight: THEME.typography.weight.bold as '700',
-    color: THEME.colors.textPrimary,
-    letterSpacing: -0.4,
-    lineHeight: 26,
-  },
-  profileTitle: {
-    marginTop: THEME.spacing[4],
-    fontSize: THEME.typography.size[14],
-    fontWeight: THEME.typography.weight.semibold as '600',
-    color: '#1E293B',
-    lineHeight: 20,
-  },
-  profileExpertise: {
-    marginTop: THEME.spacing[4],
-    fontSize: THEME.typography.size[12],
-    fontWeight: THEME.typography.weight.medium as '500',
-    color: THEME.colors.textSecondary,
-    lineHeight: 17,
-  },
-  verifiedRow: {
+  heroVerifiedPill: {
+    alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    marginTop: THEME.spacing[8],
+    paddingHorizontal: THEME.spacing[10],
+    paddingVertical: 4,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.28)',
+    marginBottom: THEME.spacing[8],
   },
-  verifiedLabel: {
+  heroVerifiedText: {
     fontSize: THEME.typography.size[12],
     fontWeight: THEME.typography.weight.semibold as '600',
-    color: THEME.colors.primary,
+    color: THEME.colors.white,
   },
-  tagRow: {
+  heroName: {
+    fontSize: THEME.typography.size[24],
+    fontWeight: THEME.typography.weight.bold as '700',
+    color: THEME.colors.white,
+    letterSpacing: -0.5,
+    lineHeight: 30,
+  },
+  heroTitle: {
+    marginTop: THEME.spacing[4],
+    fontSize: THEME.typography.size[14],
+    fontWeight: THEME.typography.weight.semibold as '600',
+    color: 'rgba(255,255,255,0.94)',
+    lineHeight: 20,
+  },
+  heroExpertise: {
+    marginTop: THEME.spacing[4],
+    fontSize: THEME.typography.size[12],
+    fontWeight: THEME.typography.weight.medium as '500',
+    color: 'rgba(255,255,255,0.82)',
+    lineHeight: 17,
+  },
+  heroTagRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: THEME.spacing[8],
     marginTop: THEME.spacing[10],
+  },
+  heroSection: {
+    paddingHorizontal: H_PADDING,
+    marginTop: -THEME.spacing[16],
+    paddingBottom: THEME.spacing[12],
+  },
+  metricsCard: {
+    backgroundColor: THEME.colors.white,
+    borderRadius: THEME.radius[16],
+    padding: THEME.spacing[12],
+    borderWidth: 1,
+    borderColor: SLATE_LINE,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#0F172A',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.08,
+        shadowRadius: 14,
+      },
+      android: { elevation: 4 },
+      default: {},
+    }),
   },
   tagChip: {
     flexDirection: 'row',
@@ -858,16 +896,22 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#99F6E4',
   },
+  tagChipOnDark: {
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    borderColor: 'rgba(255,255,255,0.24)',
+  },
   tagChipText: {
     flexShrink: 1,
     fontSize: THEME.typography.size[12],
     fontWeight: THEME.typography.weight.medium as '500',
     color: '#0F766E',
   },
+  tagChipTextOnDark: {
+    color: 'rgba(255,255,255,0.92)',
+  },
   metricsRow: {
     flexDirection: 'row',
     gap: THEME.spacing[8],
-    marginTop: THEME.spacing[12],
   },
   metricPill: {
     flex: 1,
@@ -917,7 +961,7 @@ const styles = StyleSheet.create({
   contentStack: {
     paddingHorizontal: H_PADDING,
     gap: THEME.spacing[12],
-    marginTop: -THEME.spacing[4],
+    marginTop: THEME.spacing[4],
   },
   sectionCard: {
     backgroundColor: THEME.colors.white,
@@ -1211,45 +1255,5 @@ const styles = StyleSheet.create({
     fontWeight: THEME.typography.weight.semibold as '600',
     color: THEME.colors.white,
     lineHeight: 16,
-  },
-  footer: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingHorizontal: H_PADDING,
-    backgroundColor: THEME.colors.white,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: SLATE_LINE,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#0F172A',
-        shadowOffset: { width: 0, height: -4 },
-        shadowOpacity: 0.06,
-        shadowRadius: 12,
-      },
-      android: { elevation: 8 },
-      default: {},
-    }),
-  },
-  bookBtn: {
-    borderRadius: 14,
-    overflow: 'hidden',
-  },
-  bookBtnPressed: {
-    opacity: 0.9,
-  },
-  bookGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: THEME.spacing[8],
-    paddingVertical: THEME.spacing[14],
-  },
-  bookLabel: {
-    fontSize: THEME.typography.size[16],
-    fontWeight: THEME.typography.weight.bold as '700',
-    color: THEME.colors.white,
-    letterSpacing: 0.2,
   },
 });
