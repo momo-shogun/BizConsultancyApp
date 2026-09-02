@@ -26,6 +26,7 @@ import { navigationRef } from '@/navigation/navigationContainerRef';
 import { ROUTES } from '@/navigation/routeNames';
 import type { AccountStackParamList } from '@/navigation/types';
 import { AccountHubScreenShell } from '@/shared/components';
+import { useTabBarOverlayHeight } from '@/shared/hooks/useTabHostedScreenInsets';
 
 import { PACK_CANVAS, styles } from './MyDiagnosticPackScreen.styles';
 
@@ -34,8 +35,35 @@ type Nav = NativeStackNavigationProp<
   typeof ROUTES.Account.MyDiagnosticPack
 >;
 
+interface FeatureStats {
+  queued: number;
+  active: number;
+  done: number;
+}
+
+function countFeatureStats(features: DiagnosisDashboardFeature[]): FeatureStats {
+  let queued = 0;
+  let active = 0;
+  let done = 0;
+
+  for (const feature of features) {
+    if (feature.userStatus === 'delivered') {
+      done += 1;
+      continue;
+    }
+    if (feature.userStatus === 'in_progress' || feature.userStatus === 'requested') {
+      active += 1;
+      continue;
+    }
+    queued += 1;
+  }
+
+  return { queued, active, done };
+}
+
 interface ServiceRowProps {
   feature: DiagnosisDashboardFeature;
+  index: number;
   isLast: boolean;
   requesting: boolean;
   onRequest: (featureId: number) => void;
@@ -46,48 +74,74 @@ function ServiceRow(props: ServiceRowProps): React.ReactElement {
   const disabled = isDiagnosisFeatureRequestDisabled(props.feature.adminStatus);
   const canRequest = !disabled && !props.requesting;
   const requestLabel = diagnosisFeatureRequestLabel(props.feature.adminStatus);
+  const hasRemarks =
+    props.feature.remarks != null && props.feature.remarks.trim().length > 0;
 
   return (
     <View style={[styles.serviceRow, props.isLast ? styles.serviceRowLast : null]}>
-      <View style={[styles.serviceIcon, { backgroundColor: `${visual.color}14` }]}>
-        <Ionicons name={visual.icon} size={18} color={visual.color} />
+      <View style={[styles.serviceStep, { backgroundColor: `${visual.color}16` }]}>
+        {props.feature.userStatus === 'delivered' ? (
+          <Ionicons name="checkmark" size={16} color={visual.color} />
+        ) : (
+          <Text style={[styles.serviceStepText, { color: visual.color }]}>
+            {props.index + 1}
+          </Text>
+        )}
       </View>
+
       <View style={styles.serviceText}>
         <Text style={styles.serviceTitle} numberOfLines={2}>
           {props.feature.title}
         </Text>
-        <Text style={styles.serviceMeta} numberOfLines={2}>
-          {visual.label}
-          {props.feature.remarks != null && props.feature.remarks.length > 0
-            ? ` · ${props.feature.remarks}`
-            : ''}
-        </Text>
+        <View style={[styles.statusPill, { backgroundColor: `${visual.color}14` }]}>
+          <Ionicons name={visual.icon} size={11} color={visual.color} />
+          <Text style={[styles.statusPillText, { color: visual.color }]}>{visual.label}</Text>
+        </View>
+        {hasRemarks ? (
+          <Text style={styles.serviceRemarks} numberOfLines={2}>
+            {props.feature.remarks}
+          </Text>
+        ) : null}
       </View>
+
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`${requestLabel} ${props.feature.title}`}
         disabled={!canRequest}
         onPress={() => props.onRequest(props.feature.id)}
+        hitSlop={4}
         style={({ pressed }) => [
           styles.requestBtn,
           canRequest ? styles.requestBtnPrimary : null,
           !canRequest ? styles.requestBtnDisabled : null,
-          pressed && canRequest ? { opacity: 0.88 } : null,
+          pressed && canRequest ? styles.requestBtnPressed : null,
         ]}
       >
         {props.requesting ? (
           <ActivityIndicator size="small" color={THEME.colors.primary} />
         ) : (
           <Text
-            style={[
-              styles.requestBtnText,
-              canRequest ? styles.requestBtnTextPrimary : null,
-            ]}
+            style={[styles.requestBtnText, canRequest ? styles.requestBtnTextPrimary : null]}
           >
             {requestLabel}
           </Text>
         )}
       </Pressable>
+    </View>
+  );
+}
+
+interface StatCardProps {
+  value: number;
+  label: string;
+  color: string;
+}
+
+function StatCard(props: StatCardProps): React.ReactElement {
+  return (
+    <View style={styles.statCard}>
+      <Text style={[styles.statValue, { color: props.color }]}>{props.value}</Text>
+      <Text style={styles.statLabel}>{props.label}</Text>
     </View>
   );
 }
@@ -115,7 +169,7 @@ function EmptyStatePanel(props: EmptyStatePanelProps): React.ReactElement {
         accessibilityLabel={props.actionLabel}
       >
         <Text style={styles.primaryBtnText}>{props.actionLabel}</Text>
-        <Ionicons name="arrow-forward" size={14} color="#FFFFFF" />
+        <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
       </Pressable>
     </View>
   );
@@ -123,9 +177,12 @@ function EmptyStatePanel(props: EmptyStatePanelProps): React.ReactElement {
 
 export function MyDiagnosticPackScreen(): React.ReactElement {
   const navigation = useNavigation<Nav>();
+  const tabBarHeight = useTabBarOverlayHeight();
   const screen = useMyDiagnosticPackScreen();
   const packName = screen.dashboard?.current?.packName ?? '';
   const packVisual = useMemo(() => getPlanTierVisual(packName), [packName]);
+  const features = screen.dashboard?.features ?? [];
+  const featureStats = useMemo(() => countFeatureStats(features), [features]);
 
   const navigateToPackages = useCallback((): void => {
     navigationRef.navigate(ROUTES.Root.BusinessDiagnosis);
@@ -142,9 +199,10 @@ export function MyDiagnosticPackScreen(): React.ReactElement {
       navigation.goBack();
       return;
     }
-    /** After purchase reset, MyDiagnosticPack is the only Account screen — send user to Home. */
     navigationRef.navigate(ROUTES.Root.App, { screen: ROUTES.App.Home });
   }, [navigation]);
+
+  const scrollBottomPad = tabBarHeight + THEME.spacing[20];
 
   if (!screen.isAuthenticated) {
     return (
@@ -212,7 +270,11 @@ export function MyDiagnosticPackScreen(): React.ReactElement {
       >
         <ScrollView
           style={styles.screen}
-          contentContainerStyle={[styles.scrollContent, { flexGrow: 1, justifyContent: 'center' }]}
+          contentContainerStyle={[
+            styles.scrollContent,
+            styles.scrollContentCentered,
+            { paddingBottom: scrollBottomPad },
+          ]}
         >
           <EmptyStatePanel
             icon="analytics-outline"
@@ -227,7 +289,6 @@ export function MyDiagnosticPackScreen(): React.ReactElement {
   }
 
   const progressVal = dashboard?.serviceProgressPercent ?? 0;
-  const features = dashboard?.features ?? [];
   const featureCount = features.length;
 
   const purchasedLabel =
@@ -247,7 +308,7 @@ export function MyDiagnosticPackScreen(): React.ReactElement {
     >
       <ScrollView
         style={styles.screen}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: scrollBottomPad }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -263,47 +324,65 @@ export function MyDiagnosticPackScreen(): React.ReactElement {
           end={{ x: 1, y: 1 }}
           style={styles.heroGradient}
         >
-          <View style={styles.heroTopRow}>
-            <View style={styles.heroIconWrap}>
-              <Ionicons name={packVisual.icon} size={22} color="#FFFFFF" />
-            </View>
-            <View style={styles.heroTitleBlock}>
-              <Text style={styles.heroTitle} numberOfLines={2}>
-                {current.packName ?? 'Diagnostic pack'}
-              </Text>
-              {purchasedLabel != null ? (
-                <Text style={styles.heroSubtitle}>Started {purchasedLabel}</Text>
-              ) : null}
-            </View>
+          <View style={styles.heroDecorLayer} pointerEvents="none">
+            <View style={styles.heroDecor} />
+            <View style={styles.heroDecorSmall} />
           </View>
 
-          <View style={styles.heroMetaRow}>
-            {dashboard?.displayStatus != null && dashboard.displayStatus.length > 0 ? (
-              <View style={styles.statusBadge}>
-                <View style={styles.statusDot} />
-                <Text style={styles.statusBadgeText}>{dashboard.displayStatus}</Text>
+          <View style={styles.heroInner}>
+            <View style={styles.heroTopRow}>
+              <View style={styles.heroIconWrap}>
+                <Ionicons name={packVisual.icon} size={24} color="#FFFFFF" />
               </View>
-            ) : null}
-            <Text style={styles.heroStatText}>
-              {featureCount} services · {Math.round(progressVal)}% done
-            </Text>
-          </View>
-
-          <View style={styles.progressBlock}>
-            <View style={styles.progressLabels}>
-              <Text style={styles.progressLabel}>Delivery progress</Text>
-              <Text style={styles.progressValue}>{Math.round(progressVal)}%</Text>
+              <View style={styles.heroTitleBlock}>
+                <Text style={styles.heroEyebrow}>Active pack</Text>
+                <Text style={styles.heroTitle} numberOfLines={3}>
+                  {current.packName ?? 'Diagnostic pack'}
+                </Text>
+                {purchasedLabel != null ? (
+                  <Text style={styles.heroSubtitle}>Started {purchasedLabel}</Text>
+                ) : null}
+              </View>
             </View>
-            <View style={styles.progressTrack}>
-              <View style={[styles.progressFill, { width: `${Math.min(100, progressVal)}%` }]} />
+
+            <View style={styles.heroMetaRow}>
+              {dashboard?.displayStatus != null && dashboard.displayStatus.length > 0 ? (
+                <View style={styles.statusBadge}>
+                  <View style={styles.statusDot} />
+                  <Text style={styles.statusBadgeText}>{dashboard.displayStatus}</Text>
+                </View>
+              ) : null}
+              <Text style={styles.heroStatText}>
+                {featureCount} services · {Math.round(progressVal)}% complete
+              </Text>
+            </View>
+
+            <View style={styles.progressBlock}>
+              <View style={styles.progressLabels}>
+                <Text style={styles.progressLabel}>Delivery progress</Text>
+                <Text style={styles.progressValue}>{Math.round(progressVal)}%</Text>
+              </View>
+              <View style={styles.progressTrack}>
+                <View style={[styles.progressFill, { width: `${Math.min(100, progressVal)}%` }]} />
+              </View>
             </View>
           </View>
         </LinearGradient>
 
+        {featureCount > 0 ? (
+          <View style={styles.statsRow}>
+            <StatCard value={featureStats.queued} label="Queued" color="#64748B" />
+            <StatCard value={featureStats.active} label="In progress" color="#D97706" />
+            <StatCard value={featureStats.done} label="Delivered" color="#059669" />
+          </View>
+        ) : null}
+
         {dashboard?.nextServiceTitle != null && dashboard.displayStatus === 'Active' ? (
           <View style={[styles.callout, styles.calloutNext]}>
-            <Ionicons name="arrow-forward-circle-outline" size={18} color="#D97706" />
-            <View style={{ flex: 1 }}>
+            <View style={[styles.calloutIconWrap, styles.calloutIconWrapNext]}>
+              <Ionicons name="arrow-forward-circle-outline" size={20} color="#D97706" />
+            </View>
+            <View style={styles.calloutContent}>
               <Text style={styles.calloutTitle}>Up next</Text>
               <Text style={styles.calloutBody}>{dashboard.nextServiceTitle}</Text>
             </View>
@@ -312,12 +391,14 @@ export function MyDiagnosticPackScreen(): React.ReactElement {
 
         {dashboard?.upgradeHint != null && dashboard.displayStatus === 'Active' ? (
           <View style={[styles.callout, styles.calloutUpgrade]}>
-            <Ionicons name="sparkles-outline" size={18} color="#0D9488" />
-            <View style={{ flex: 1 }}>
+            <View style={[styles.calloutIconWrap, styles.calloutIconWrapUpgrade]}>
+              <Ionicons name="sparkles-outline" size={18} color="#0D9488" />
+            </View>
+            <View style={styles.calloutContent}>
               <Text style={styles.calloutBody}>{dashboard.upgradeHint}</Text>
               <Pressable style={styles.upgradeLink} onPress={navigateToPackages}>
                 <Text style={styles.upgradeLinkText}>Upgrade options</Text>
-                <Ionicons name="chevron-forward" size={12} color="#0D9488" />
+                <Ionicons name="chevron-forward" size={14} color="#0D9488" />
               </Pressable>
             </View>
           </View>
@@ -329,20 +410,6 @@ export function MyDiagnosticPackScreen(): React.ReactElement {
               <Text style={styles.servicesTitle}>Services</Text>
               <Text style={styles.servicesCount}>{featureCount} deliverables</Text>
             </View>
-            {/* <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Apply documents"
-              disabled={screen.docItems.length === 0}
-              onPress={screen.openApplyModal}
-              style={({ pressed }) => [
-                styles.applyBtn,
-                screen.docItems.length === 0 ? styles.applyBtnDisabled : null,
-                pressed && screen.docItems.length > 0 ? { opacity: 0.9 } : null,
-              ]}
-            >
-              <Ionicons name="document-attach-outline" size={13} color="#FFFFFF" />
-              <Text style={styles.applyBtnText}>Apply</Text>
-            </Pressable> */}
           </View>
 
           {features.length === 0 ? (
@@ -352,6 +419,7 @@ export function MyDiagnosticPackScreen(): React.ReactElement {
               <ServiceRow
                 key={feature.id}
                 feature={feature}
+                index={index}
                 isLast={index === features.length - 1}
                 requesting={screen.requestingFeatureId === feature.id}
                 onRequest={(id) => void screen.requestService(id)}
