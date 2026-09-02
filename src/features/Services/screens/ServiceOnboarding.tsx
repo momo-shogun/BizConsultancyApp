@@ -11,7 +11,7 @@ import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { selectHasVerifiedLogin } from '@/features/Auth/store/authSelectors';
-import { SafeAreaWrapper } from '@/shared/components';
+import { FloatingBackButton, SafeAreaWrapper } from '@/shared/components';
 import type { ServicesStackParamList } from '@/navigation/types';
 import { ROUTES } from '@/navigation/routeNames';
 import { useAppSelector } from '@/store/typedHooks';
@@ -67,6 +67,7 @@ const ServiceOnboarding = (): React.ReactElement => {
         onRazorpay={wizard.paymentDialog.onRazorpay}
         onWallet={wizard.paymentDialog.onWallet}
       />
+      <FloatingBackButton onPress={() => navigation.goBack()} />
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContainer}>
@@ -112,7 +113,7 @@ export default ServiceOnboarding;
 const styles = StyleSheet.create({
   scrollContainer: {
     paddingHorizontal: 18,
-    paddingTop: 14,
+    paddingTop: 52,
     paddingBottom: 140,
     gap: 20,
   },

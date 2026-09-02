@@ -44,48 +44,34 @@ export const styles = StyleSheet.create({
     gap: TAB_METRICS.gap,
   },
   track: {
-    position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
     minHeight: TAB_METRICS.minHeight,
     paddingVertical: 2,
     borderRadius: 14,
+    gap: TAB_METRICS.gap,
   },
-  pill: {
-    position: 'absolute',
-    left: 0,
-    top: 2,
-    height: TAB_METRICS.pillHeight,
-    borderRadius: TAB_METRICS.pillRadius,
+  tabPressable: {
+    minHeight: TAB_METRICS.minHeight,
+    justifyContent: 'center',
+  },
+  tabPressablePressed: {
+    opacity: 0.92,
+  },
+  tabInnerActive: {
     overflow: 'hidden',
     ...Platform.select({
       ios: {
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.28,
-        shadowRadius: 10,
+        shadowColor: '#0F172A',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.18,
+        shadowRadius: 6,
       },
       android: {
-        elevation: 5,
+        elevation: 4,
       },
+      default: {},
     }),
-  },
-  pillGradient: {
-    ...StyleSheet.absoluteFill,
-    borderRadius: TAB_METRICS.pillRadius,
-  },
-  pillShine: {
-    position: 'absolute',
-    top: 0,
-    left: 12,
-    right: 12,
-    height: 1,
-    backgroundColor: 'rgba(255,255,255,0.35)',
-    borderRadius: 1,
-  },
-  tabPressable: {
-    zIndex: 1,
-    minHeight: TAB_METRICS.minHeight,
-    justifyContent: 'center',
   },
   tabInner: {
     flexDirection: 'row',

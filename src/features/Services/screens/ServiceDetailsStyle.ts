@@ -14,21 +14,23 @@ export const styles = StyleSheet.create({
     paddingVertical: THEME.spacing[24],
   },
   scrollContent: {
-    paddingBottom: THEME.spacing[24],
+    padding: 0,
     gap: THEME.spacing[20],
   },
   heroWrap: {
     paddingHorizontal: THEME.spacing[0],
-    // marginTop: THEME.spacing[8],
   },
   heroBg: {
-    // borderRadius: 22,
-    padding: THEME.spacing[16],
-    gap: THEME.spacing[12],
-    height: 392,
+    minHeight: 392,
     borderBottomLeftRadius: 22,
     borderBottomRightRadius: 22,
     overflow: 'hidden',
+  },
+  heroSafeArea: {
+    paddingHorizontal: THEME.spacing[16],
+    paddingTop: THEME.spacing[48],
+    paddingBottom: THEME.spacing[16],
+    gap: THEME.spacing[12],
   },
   heroDecor: {
     ...StyleSheet.absoluteFill,
@@ -65,25 +67,11 @@ export const styles = StyleSheet.create({
   heroTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: THEME.spacing[12],
+    justifyContent: 'flex-end',
+    minHeight: 40,
   },
-  badgesRow: {
-    width: '100%',
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    // gap: THEME.spacing[8],
-    justifyContent: "space-between",
-  },
-  heroBackButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.28)',
+  heroTopSpacer: {
+    minHeight: 40,
   },
   dealChip: {
     flexDirection: 'row',

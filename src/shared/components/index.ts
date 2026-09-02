@@ -4,6 +4,10 @@ export { Input } from './ui/Input/Input';
 export { DatePickerField, type DatePickerFieldProps } from './ui/DatePicker';
 export { ScreenHeader } from './ui/ScreenHeader/ScreenHeader';
 export {
+  FloatingBackButton,
+  type FloatingBackButtonProps,
+} from './ui/FloatingBackButton/FloatingBackButton';
+export {
   CatalogListSearchHeader,
   type CatalogListSearchHeaderProps,
 } from './ui/CatalogListSearchHeader/CatalogListSearchHeader';

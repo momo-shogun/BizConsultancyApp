@@ -1,17 +1,23 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { THEME } from '@/constants/theme';
 import { ContentPlaceholder } from '@/shared/components';
 
 const TAB_PILL_COUNT = 6;
 
-export function ServiceDetailSkeleton(): React.ReactElement {
+export interface ServiceDetailSkeletonProps {
+  heroTopPadding?: number;
+}
+
+export function ServiceDetailSkeleton(
+  _props: ServiceDetailSkeletonProps,
+): React.ReactElement {
   return (
     <View style={styles.root} testID="service-detail-skeleton">
-      <View style={styles.hero}>
+      <SafeAreaView edges={['top']} style={styles.hero}>
         <View style={styles.heroTopRow}>
-          <ContentPlaceholder variant="circle" width={40} height={40} />
           <ContentPlaceholder variant="line" width={120} height={32} style={styles.heroPill} />
         </View>
 
@@ -38,7 +44,7 @@ export function ServiceDetailSkeleton(): React.ReactElement {
           <ContentPlaceholder variant="block" width="48%" height={40} />
           <ContentPlaceholder variant="block" width="48%" height={40} />
         </View>
-      </View>
+      </SafeAreaView>
 
       <View style={styles.tabsRow}>
         {Array.from({ length: TAB_PILL_COUNT }, (_, index) => (
@@ -69,17 +75,19 @@ const styles = StyleSheet.create({
   },
   hero: {
     minHeight: 392,
-    padding: THEME.spacing[16],
+    paddingHorizontal: THEME.spacing[16],
+    paddingTop: THEME.spacing[48],
+    paddingBottom: THEME.spacing[16],
     gap: THEME.spacing[12],
     borderBottomLeftRadius: 22,
     borderBottomRightRadius: 22,
-    backgroundColor: 'rgba(15, 81, 50, 0.35)',
+    backgroundColor: THEME.colors.chooseAccountConsultantGrad1,
     overflow: 'hidden',
   },
   heroTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
   },
   heroPill: {
     borderRadius: 999,

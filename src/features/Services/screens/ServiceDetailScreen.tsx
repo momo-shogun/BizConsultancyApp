@@ -1,6 +1,6 @@
 import React, { useCallback, useLayoutEffect, useMemo, useState } from 'react';
 
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import type { RouteProp } from '@react-navigation/native';
 
@@ -11,6 +11,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import LinearGradient from 'react-native-linear-gradient';
 
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { THEME } from '@/constants/theme';
 
@@ -21,9 +22,8 @@ import type { ServicesStackParamList } from '@/navigation/types';
 
 import {
   EmptyState,
+  FloatingBackButton,
   SafeAreaWrapper,
-  ScreenWrapper,
-  ScrollWrapper,
 } from '@/shared/components';
 import { PremiumHorizontalTabBar } from '@/shared/components/navigation/PremiumHorizontalTabBar';
 
@@ -137,11 +137,15 @@ function buildHeroQuickActions(
   return actions;
 }
 
+const SERVICE_DETAIL_STATUS_BAR_COLOR = THEME.colors.chooseAccountConsultantGrad1;
+
 export function ServiceDetailScreen(): React.ReactElement {
   const route = useRoute<ServiceDetailRouteProp>();
 
   const navigation =
     useNavigation<NativeStackNavigationProp<ServicesStackParamList>>();
+
+  const insets = useSafeAreaInsets();
 
   const slug = route.params.slug;
 
@@ -192,15 +196,22 @@ export function ServiceDetailScreen(): React.ReactElement {
   }, [item?.hero?.quickActions, openConsultantsList, openDocumentsTab]);
 
   useLayoutEffect(() => {
-    if (item != null) {
+    if (item?.categoryLabel != null) {
       navigation.setOptions({
         title: item.categoryLabel,
       });
     }
-  }, [navigation, item]);
+  }, [navigation, item?.categoryLabel]);
 
   const aboutUi = useMemo(() => mapAboutToUiProps(item?.about), [item?.about]);
   const isPurchased = isServicePurchased(slug);
+
+  const scrollBottomPadding = THEME.spacing[24] + insets.bottom;
+  const floatingBackTop = insets.top + THEME.spacing[8];
+  const heroBleedStyle = useMemo(
+    () => ({ marginTop: -insets.top }),
+    [insets.top],
+  );
 
   const tabPanel = useMemo((): React.ReactElement | null => {
     if (item == null) {
@@ -246,15 +257,27 @@ export function ServiceDetailScreen(): React.ReactElement {
 
   if (isLoading) {
     return (
-      <SafeAreaWrapper edges={['bottom', 'top']} bgColor="#0F5132" isLight>
-        <ScreenWrapper style={styles.flex}>
-          <ScrollWrapper
-            contentContainerStyle={styles.scrollContent}
+      <SafeAreaWrapper
+        edges={[]}
+        bgColor={SERVICE_DETAIL_STATUS_BAR_COLOR}
+        contentBgColor={THEME.colors.background}
+        statusBarStyle="light-content"
+      >
+        <View style={styles.flex}>
+          <ScrollView
+            contentContainerStyle={[
+              styles.scrollContent,
+              { paddingBottom: scrollBottomPadding },
+            ]}
             showsVerticalScrollIndicator={false}
+            contentInsetAdjustmentBehavior="never"
+            automaticallyAdjustContentInsets={false}
           >
-            <ServiceDetailSkeleton />
-          </ScrollWrapper>
-        </ScreenWrapper>
+            <View style={heroBleedStyle}>
+              <ServiceDetailSkeleton />
+            </View>
+          </ScrollView>
+        </View>
       </SafeAreaWrapper>
     );
   }
@@ -262,26 +285,36 @@ export function ServiceDetailScreen(): React.ReactElement {
   if (item == null || isError) {
     return (
       <SafeAreaWrapper edges={['bottom']}>
-        <ScreenWrapper style={styles.missWrap}>
+        <View style={styles.missWrap}>
           <EmptyState
             title="Service not found"
             description="We could not load this service. Check the link or try again."
           />
-        </ScreenWrapper>
+        </View>
       </SafeAreaWrapper>
     );
   }
 
   return (
-    <SafeAreaWrapper edges={['bottom', 'top']}  bgColor='#0F5132' isLight={true}>
+    <SafeAreaWrapper
+      edges={[]}
+      bgColor={SERVICE_DETAIL_STATUS_BAR_COLOR}
+      contentBgColor={THEME.colors.background}
+      statusBarStyle="light-content"
+    >
       {servicePurchaseLoginDialog}
-      {/* <ScreenHeader title="title" headerColor="#0F5132" onSearchPress={() => {}} /> */}
-      <ScreenWrapper style={styles.flex}>
-        <ScrollWrapper
-          contentContainerStyle={styles.scrollContent}
+      <FloatingBackButton onPress={handleBack} topOffset={floatingBackTop} />
+      <View style={styles.flex}>
+        <ScrollView
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: scrollBottomPadding },
+          ]}
           showsVerticalScrollIndicator={false}
+          contentInsetAdjustmentBehavior="never"
+          automaticallyAdjustContentInsets={false}
         >
-          <View style={styles.heroWrap}>
+          <View style={[styles.heroWrap, heroBleedStyle]}>
             <LinearGradient
               colors={[
                 THEME.colors.chooseAccountConsultantGrad1,
@@ -297,24 +330,8 @@ export function ServiceDetailScreen(): React.ReactElement {
                 <View style={styles.heroGlowC} />
               </View>
 
-              {/* ------------------------------- TOP ROW ------------------------------ */}
-
-              <View style={styles.heroTopRow}>
-                <View style={styles.badgesRow}>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="Go back"
-                    onPress={handleBack}
-                    hitSlop={8}
-                    style={styles.heroBackButton}
-                  >
-                    <Ionicons
-                      name="chevron-back"
-                      size={22}
-                      color={THEME.colors.white}
-                    />
-                  </Pressable>
-
+              <SafeAreaView edges={['top']} style={styles.heroSafeArea}>
+                <View style={styles.heroTopRow}>
                   {item.badgeLabel ? (
                     <View style={styles.dealChip}>
                       <Ionicons
@@ -331,115 +348,109 @@ export function ServiceDetailScreen(): React.ReactElement {
                         {item.badgeLabel}
                       </Text>
                     </View>
-                  ) : null}
-                </View>
-              </View>
-
-              {/* ------------------------------ CONTENT ------------------------------ */}
-
-              <Text style={styles.heroTitle}>{item.title}</Text>
-
-              <Text style={styles.heroSummary}>{item.summary}</Text>
-
-              {/* ----------------------------- TRUST ROW ----------------------------- */}
-
-              <View style={styles.trustRow}>
-                <View style={styles.trustItem}>
-                  <Ionicons name="star" size={14} color="#FFD166" />
-
-                  <Text style={styles.trustText}>4.8</Text>
-
-                  <Text style={styles.trustTextMuted}>(1.2k)</Text>
+                  ) : (
+                    <View style={styles.heroTopSpacer} />
+                  )}
                 </View>
 
-                <View style={styles.trustDot} />
+                <Text style={styles.heroTitle}>{item.title}</Text>
 
-                <View style={styles.trustItem}>
-                  <Ionicons
-                    name="shield-checkmark-outline"
-                    size={14}
-                    color={THEME.colors.white}
-                  />
+                <Text style={styles.heroSummary}>{item.summary}</Text>
 
-                  <Text style={styles.trustText}>Verified experts</Text>
-                </View>
-              </View>
+                <View style={styles.trustRow}>
+                  <View style={styles.trustItem}>
+                    <Ionicons name="star" size={14} color="#FFD166" />
 
-              {/* ------------------------------- CARD -------------------------------- */}
+                    <Text style={styles.trustText}>4.8</Text>
 
-              <View style={styles.heroCard}>
-                <View style={styles.heroCardLeft}>
-                  <Text style={styles.priceLabel}>
-                    {item.priceLabel ?? '—'}
-                  </Text>
+                    <Text style={styles.trustTextMuted}>(1.2k)</Text>
+                  </View>
 
-                  <Text style={styles.subLabel}>
-                    Ex GST • Government Fee As per the State Fees
-                  </Text>
-                </View>
+                  <View style={styles.trustDot} />
 
-                {isPurchased ? (
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={`View purchased service ${item.title} in My Services`}
-                    hitSlop={8}
-                    onPress={() => handleViewPurchased(item.slug)}
-                    style={({ pressed }) => [
-                      styles.heroCtaPurchased,
-                      pressed ? styles.heroCtaPressed : null,
-                    ]}
-                  >
-                    <Ionicons name="checkmark-circle" size={16} color={THEME.colors.white} />
-                    <Text style={styles.heroCtaText}>Purchased</Text>
-                  </Pressable>
-                ) : (
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={`Get started with ${item.title}`}
-                    hitSlop={8}
-                    onPress={() => handleGetStarted(item.slug)}
-                    style={({ pressed }) => [
-                      styles.heroCta,
-                      pressed ? styles.heroCtaPressed : null,
-                    ]}
-                  >
-                    <Text style={styles.heroCtaText}>Get started</Text>
-
+                  <View style={styles.trustItem}>
                     <Ionicons
-                      name="arrow-forward"
-                      size={16}
+                      name="shield-checkmark-outline"
+                      size={14}
                       color={THEME.colors.white}
                     />
-                  </Pressable>
-                )}
-              </View>
 
-              {/* --------------------------- QUICK ACTIONS --------------------------- */}
+                    <Text style={styles.trustText}>Verified experts</Text>
+                  </View>
+                </View>
 
-              {heroQuickActions.length > 0 ? (
-                <View style={styles.quickActions}>
-                  {heroQuickActions.map((action) => (
+                <View style={styles.heroCard}>
+                  <View style={styles.heroCardLeft}>
+                    <Text style={styles.priceLabel}>
+                      {item.priceLabel ?? '—'}
+                    </Text>
+
+                    <Text style={styles.subLabel}>
+                      Ex GST • Government Fee As per the State Fees
+                    </Text>
+                  </View>
+
+                  {isPurchased ? (
                     <Pressable
-                      key={action.id}
                       accessibilityRole="button"
-                      accessibilityLabel={action.text}
+                      accessibilityLabel={`View purchased service ${item.title} in My Services`}
                       hitSlop={8}
-                      onPress={action.onPress}
+                      onPress={() => handleViewPurchased(item.slug)}
                       style={({ pressed }) => [
-                        styles.quickBtn,
-                        pressed ? styles.quickPressed : null,
+                        styles.heroCtaPurchased,
+                        pressed ? styles.heroCtaPressed : null,
                       ]}
                     >
+                      <Ionicons name="checkmark-circle" size={16} color={THEME.colors.white} />
+                      <Text style={styles.heroCtaText}>Purchased</Text>
+                    </Pressable>
+                  ) : (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`Get started with ${item.title}`}
+                      hitSlop={8}
+                      onPress={() => handleGetStarted(item.slug)}
+                      style={({ pressed }) => [
+                        styles.heroCta,
+                        pressed ? styles.heroCtaPressed : null,
+                      ]}
+                    >
+                      <Text style={styles.heroCtaText}>Get started</Text>
+
                       <Ionicons
-                        name={action.icon}
+                        name="arrow-forward"
                         size={16}
                         color={THEME.colors.white}
                       />
-                      <Text style={styles.quickBtnText}>{action.text}</Text>
                     </Pressable>
-                  ))}
+                  )}
                 </View>
-              ) : null}
+
+                {heroQuickActions.length > 0 ? (
+                  <View style={styles.quickActions}>
+                    {heroQuickActions.map((action) => (
+                      <Pressable
+                        key={action.id}
+                        accessibilityRole="button"
+                        accessibilityLabel={action.text}
+                        hitSlop={8}
+                        onPress={action.onPress}
+                        style={({ pressed }) => [
+                          styles.quickBtn,
+                          pressed ? styles.quickPressed : null,
+                        ]}
+                      >
+                        <Ionicons
+                          name={action.icon}
+                          size={16}
+                          color={THEME.colors.white}
+                        />
+                        <Text style={styles.quickBtnText}>{action.text}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                ) : null}
+              </SafeAreaView>
             </LinearGradient>
           </View>
 
@@ -458,9 +469,8 @@ export function ServiceDetailScreen(): React.ReactElement {
             onPressService={openRelatedService}
           />
 
-        </ScrollWrapper>
-
-      </ScreenWrapper>
+        </ScrollView>
+      </View>
     </SafeAreaWrapper>
   );
 }
